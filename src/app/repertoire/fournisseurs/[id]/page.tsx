@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { Fournisseur } from "@/lib/types";
 
@@ -35,15 +37,35 @@ export default async function FournisseurDetailPage({
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold text-slate-900">{f.nom}</h1>
-      <div className="rounded-xl bg-white p-4 shadow-sm">
-        <dl className="space-y-2">
-          {champs.map(([label, valeur]) => (
-            <div key={label} className="flex flex-col sm:flex-row sm:gap-2">
-              <dt className="text-sm font-medium text-slate-600 sm:w-48 sm:shrink-0">
+      <Link
+        href="/repertoire/fournisseurs"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-800"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.25} />
+        Retour
+      </Link>
+      <h1 className="mb-5 text-2xl font-bold tracking-tight text-slate-900">
+        {f.nom}
+      </h1>
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <dl>
+          {champs.map(([label, valeur], i) => (
+            <div
+              key={label}
+              className={`flex flex-col gap-0.5 px-4 py-2.5 sm:flex-row sm:items-baseline sm:gap-2 ${
+                i > 0 ? "border-t border-slate-50" : ""
+              }`}
+            >
+              <dt className="text-[13px] text-slate-500 sm:w-52 sm:shrink-0">
                 {label}
               </dt>
-              <dd className={valeur ? "text-sm text-slate-900" : "text-sm text-slate-400"}>
+              <dd
+                className={
+                  valeur
+                    ? "text-sm font-medium text-slate-900"
+                    : "text-sm text-slate-300"
+                }
+              >
                 {valeur || "—"}
               </dd>
             </div>

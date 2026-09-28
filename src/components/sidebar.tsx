@@ -6,11 +6,25 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { X, ChevronDown } from "lucide-react";
 import { useSidebar } from "@/components/sidebar-context";
 
-type SousMenu = { nom: string; href: string };
+type SousMenu = { nom: string; href?: string };
 type Module = { nom: string; actif: boolean; sousMenus: SousMenu[] };
 
 const modules: Module[] = [
-  { nom: "Bon d'intervention", actif: false, sousMenus: [] },
+  {
+    nom: "Bon d'intervention",
+    actif: false,
+    sousMenus: [
+      { nom: "Dépannage" },
+      { nom: "Remplacement à l'identique" },
+      { nom: "Installation neuve" },
+      { nom: "Réparation d'un équipement" },
+      { nom: "Réparation diverse" },
+      { nom: "Entretien sous contrat" },
+      { nom: "Entretien hors contrat" },
+      { nom: "Mise à disposition d'équipement" },
+      { nom: "Livraison de matériel" },
+    ],
+  },
   { nom: "GMAO", actif: false, sousMenus: [] },
   {
     nom: "Répertoire",
@@ -34,8 +48,10 @@ function SidebarContenu({ onNavigate }: { onNavigate: () => void }) {
   const cheminActuel =
     pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "");
 
-  // Le module actif contenant l'écran courant démarre déplié, les
-  // autres repliés — on clique sur un module pour voir ses sous-menus.
+  // Le module contenant l'écran courant démarre déplié, les autres
+  // repliés — on clique sur un module (actif ou non) pour voir ses
+  // sous-menus, même ceux pas encore construits (aperçu de la
+  // structure à venir).
   const [deplies, setDeplies] = useState<Set<string>>(() => {
     const initial = modules.find((m) =>
       m.sousMenus.some((s) => s.href === cheminActuel),
@@ -56,15 +72,16 @@ function SidebarContenu({ onNavigate }: { onNavigate: () => void }) {
     <nav className="space-y-1">
       {modules.map((m) => {
         const deplie = deplies.has(m.nom);
+        const peutDeplier = m.sousMenus.length > 0;
         return (
           <div key={m.nom}>
             <button
-              onClick={() => m.actif && basculer(m.nom)}
-              disabled={!m.actif}
+              onClick={() => peutDeplier && basculer(m.nom)}
+              disabled={!peutDeplier}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${
                 m.actif
                   ? "text-slate-800 hover:bg-slate-50"
-                  : "cursor-default text-slate-400"
+                  : "cursor-default text-slate-400 hover:bg-slate-50/60"
               }`}
             >
               <span className="flex items-center gap-2">
@@ -75,7 +92,7 @@ function SidebarContenu({ onNavigate }: { onNavigate: () => void }) {
                   </span>
                 )}
               </span>
-              {m.actif && (
+              {peutDeplier && (
                 <ChevronDown
                   className={`h-4 w-4 shrink-0 text-slate-400 transition ${
                     deplie ? "rotate-180" : ""
@@ -83,12 +100,21 @@ function SidebarContenu({ onNavigate }: { onNavigate: () => void }) {
                 />
               )}
             </button>
-            {m.actif && deplie && (
+            {peutDeplier && deplie && (
               <ul className="mb-1 mt-0.5 space-y-0.5 pl-3">
                 {m.sousMenus.map((s) => {
-                  const actif = cheminActuel === s.href;
+                  const actif = !!s.href && cheminActuel === s.href;
+                  if (!s.href) {
+                    return (
+                      <li key={s.nom}>
+                        <span className="block cursor-default rounded-lg px-3 py-2 text-sm text-slate-400">
+                          {s.nom}
+                        </span>
+                      </li>
+                    );
+                  }
                   return (
-                    <li key={s.href}>
+                    <li key={s.nom}>
                       <Link
                         href={s.href}
                         onClick={onNavigate}

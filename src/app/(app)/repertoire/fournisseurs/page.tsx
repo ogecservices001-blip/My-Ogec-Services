@@ -60,9 +60,9 @@ export default function FournisseursListePage() {
       </div>
 
       {chargement ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-[60px] animate-pulse rounded-xl bg-slate-200/60" />
+            <div key={i} className="h-[68px] animate-pulse rounded-2xl bg-slate-200/60" />
           ))}
         </div>
       ) : filtres.length === 0 ? (
@@ -70,17 +70,17 @@ export default function FournisseursListePage() {
           Aucun fournisseur trouvé
         </p>
       ) : (
-        <ul className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
-          {filtres.map((f, i) => (
-            <li key={f.id} className={i > 0 ? "border-t border-slate-100" : ""}>
+        <ul className="space-y-3">
+          {filtres.map((f) => (
+            <li key={f.id}>
               <Link
                 href={`/repertoire/fournisseurs/${f.id}`}
-                className="flex items-center gap-3 px-4 py-3.5 transition hover:bg-slate-50"
+                className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
-                  <Truck className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-100">
+                  <Truck className="h-5 w-5 text-sky-600" strokeWidth={2} />
                 </span>
-                <span className="min-w-0 flex-1 truncate font-medium text-slate-900">
+                <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">
                   {f.nom}
                 </span>
                 <span className="shrink-0 text-sm text-slate-400">

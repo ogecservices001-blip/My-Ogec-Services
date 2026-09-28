@@ -65,23 +65,26 @@ export default function CollaborateursPage() {
       </div>
 
       {chargement ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-[60px] animate-pulse rounded-xl bg-slate-200/60" />
+            <div key={i} className="h-[68px] animate-pulse rounded-2xl bg-slate-200/60" />
           ))}
         </div>
       ) : (
-        <ul className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
-          {filtres.map((p, i) => (
-            <li key={p.id} className={i > 0 ? "border-t border-slate-100" : ""}>
+        <ul className="space-y-3">
+          {filtres.map((p) => (
+            <li
+              key={p.id}
+              className="overflow-hidden rounded-2xl bg-white shadow-sm"
+            >
               <button
                 onClick={() => setOuvert(ouvert === p.id ? null : p.id)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-50"
+                className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-slate-50"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600">
                   {initiales(p.name)}
                 </span>
-                <span className="min-w-0 flex-1 truncate font-medium text-slate-900">
+                <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">
                   {p.name}
                 </span>
                 {p.portable && (
@@ -101,7 +104,7 @@ export default function CollaborateursPage() {
                 />
               </button>
               {ouvert === p.id && (
-                <div className="space-y-1.5 border-t border-slate-50 bg-slate-50/50 px-4 py-3 pl-16 text-sm text-slate-600">
+                <div className="space-y-1.5 border-t border-slate-50 bg-slate-50/50 px-4 py-3 pl-[68px] text-sm text-slate-600">
                   {p.email_perso && <p>Email personnel : {p.email_perso}</p>}
                   {p.commune_habitation && (
                     <p>Commune : {p.commune_habitation}</p>

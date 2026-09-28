@@ -68,9 +68,9 @@ function ClientsListeInner() {
       </div>
 
       {chargement ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-[60px] animate-pulse rounded-xl bg-slate-200/60" />
+            <div key={i} className="h-[68px] animate-pulse rounded-2xl bg-slate-200/60" />
           ))}
         </div>
       ) : groupes.length === 0 ? (
@@ -78,24 +78,30 @@ function ClientsListeInner() {
           Aucun client trouvé
         </p>
       ) : (
-        <ul className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
-          {groupes.map(([nom, sitesDuClient], i) => (
-            <li
-              key={nom}
-              className={i > 0 ? "border-t border-slate-100" : ""}
-            >
+        <ul className="space-y-3">
+          {groupes.map(([nom, sitesDuClient]) => (
+            <li key={nom}>
               <Link
                 href={
                   sitesDuClient.length === 1
                     ? `/repertoire/clients/${sitesDuClient[0].id}`
                     : `/repertoire/clients/groupe/${encodeURIComponent(nom)}?horsContrat=${horsContrat ? 1 : 0}`
                 }
-                className="flex items-center gap-3 px-4 py-3.5 transition hover:bg-slate-50"
+                className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
-                  <Building2 className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                <span
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                    horsContrat ? "bg-orange-100" : "bg-green-100"
+                  }`}
+                >
+                  <Building2
+                    className={`h-5 w-5 ${
+                      horsContrat ? "text-orange-600" : "text-brand-green-dark"
+                    }`}
+                    strokeWidth={2}
+                  />
                 </span>
-                <span className="min-w-0 flex-1 truncate font-medium text-slate-900">
+                <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">
                   {nom}
                 </span>
                 <span className="shrink-0 text-sm text-slate-400">

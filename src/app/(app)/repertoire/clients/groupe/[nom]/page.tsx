@@ -50,23 +50,32 @@ export default function SitesDuClientPage({
         {chargement ? "Chargement..." : `${sites.length} site(s)`}
       </p>
       {chargement ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-[60px] animate-pulse rounded-xl bg-slate-200/60" />
+            <div key={i} className="h-[68px] animate-pulse rounded-2xl bg-slate-200/60" />
           ))}
         </div>
       ) : (
-        <ul className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
-          {sites.map((s, i) => (
-            <li key={s.id} className={i > 0 ? "border-t border-slate-100" : ""}>
+        <ul className="space-y-3">
+          {sites.map((s) => (
+            <li key={s.id}>
               <Link
                 href={`/repertoire/clients/${s.id}`}
-                className="flex items-center gap-3 px-4 py-3.5 transition hover:bg-slate-50"
+                className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
-                  <MapPin className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                <span
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                    horsContrat ? "bg-orange-100" : "bg-green-100"
+                  }`}
+                >
+                  <MapPin
+                    className={`h-5 w-5 ${
+                      horsContrat ? "text-orange-600" : "text-brand-green-dark"
+                    }`}
+                    strokeWidth={2}
+                  />
                 </span>
-                <span className="min-w-0 flex-1 truncate font-medium text-slate-900">
+                <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">
                   {s.site || "Site sans nom"}
                 </span>
                 <span className="shrink-0 text-sm text-slate-400">

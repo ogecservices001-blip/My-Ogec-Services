@@ -36,10 +36,25 @@ const modules: Module[] = [
       { nom: "Collaborateurs", href: "/repertoire/collaborateurs" },
     ],
   },
-  { nom: "CERFA", actif: false, sousMenus: [] },
+  {
+    nom: "CERFA",
+    actif: false,
+    sousMenus: [
+      { nom: "Commencer nouveau CERFA" },
+      { nom: "Visualiser un équipement" },
+      { nom: "Visualiser un bordereau" },
+      { nom: "Point sur les CERFA" },
+      { nom: "Créer modèle CERFA" },
+      { nom: "Envoyer un CERFA rempli" },
+      { nom: "Ajouter un équipement" },
+      { nom: "Vérifier les dossiers clients" },
+    ],
+  },
   { nom: "Devis", actif: false, sousMenus: [] },
   { nom: "Prestation sur commande", actif: false, sousMenus: [] },
   { nom: "Planning Maintenance", actif: false, sousMenus: [] },
+  { nom: "Suivi Dépannages", actif: false, sousMenus: [] },
+  { nom: "Signalement retour information terrain", actif: false, sousMenus: [] },
 ];
 
 function SidebarContenu({ onNavigate }: { onNavigate: () => void }) {

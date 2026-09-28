@@ -7,6 +7,8 @@ import {
   FileSignature,
   ShoppingBag,
   CalendarClock,
+  Construction,
+  Flag,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
@@ -81,6 +83,24 @@ const modules: {
     icone: CalendarClock,
     fond: "bg-cyan-100",
     couleur: "text-cyan-600",
+    actif: false,
+  },
+  {
+    href: "#",
+    titre: "Suivi Dépannages",
+    sousTitre: "Demandes reçues via QR équipement",
+    icone: Construction,
+    fond: "bg-red-100",
+    couleur: "text-red-600",
+    actif: false,
+  },
+  {
+    href: "#",
+    titre: "Signalement retour information terrain",
+    sousTitre: "Retours des collaborateurs sur l'app",
+    icone: Flag,
+    fond: "bg-purple-100",
+    couleur: "text-purple-600",
     actif: false,
   },
 ];

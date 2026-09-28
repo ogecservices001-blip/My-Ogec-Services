@@ -10,20 +10,20 @@ function Section({
   titre: string;
   champs: [string, string][];
 }) {
-  const rempli = champs.filter(([, v]) => v);
-  if (rempli.length === 0) return null;
   return (
     <div className="mb-4 rounded-xl bg-white p-4 shadow-sm">
       <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
         {titre}
       </h2>
       <dl className="space-y-2">
-        {rempli.map(([label, valeur]) => (
+        {champs.map(([label, valeur]) => (
           <div key={label} className="flex flex-col sm:flex-row sm:gap-2">
             <dt className="text-sm font-medium text-slate-600 sm:w-56 sm:shrink-0">
               {label}
             </dt>
-            <dd className="text-sm text-slate-900">{valeur}</dd>
+            <dd className={valeur ? "text-sm text-slate-900" : "text-sm text-slate-400"}>
+              {valeur || "—"}
+            </dd>
           </div>
         ))}
       </dl>

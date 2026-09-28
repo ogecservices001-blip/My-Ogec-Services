@@ -18,7 +18,7 @@ export default async function FournisseurDetailPage({
   if (!data) notFound();
   const f = data as Fournisseur;
 
-  const tousLesChamps: [string, string][] = [
+  const champs: [string, string][] = [
     ["Dénomination courte", f.denomination_courte],
     ["Interlocuteurs", f.interlocuteurs],
     ["Tél fixe", f.tel],
@@ -32,7 +32,6 @@ export default async function FournisseurDetailPage({
     ["Produits clés", f.produits_cles],
     ["Remarques", f.remarques],
   ];
-  const champs = tousLesChamps.filter(([, v]) => v);
 
   return (
     <div>
@@ -44,7 +43,9 @@ export default async function FournisseurDetailPage({
               <dt className="text-sm font-medium text-slate-600 sm:w-48 sm:shrink-0">
                 {label}
               </dt>
-              <dd className="text-sm text-slate-900">{valeur}</dd>
+              <dd className={valeur ? "text-sm text-slate-900" : "text-sm text-slate-400"}>
+                {valeur || "—"}
+              </dd>
             </div>
           ))}
         </dl>

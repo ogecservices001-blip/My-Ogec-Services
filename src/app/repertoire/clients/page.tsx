@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Search, ChevronRight, Building2 } from "lucide-react";
+import { ArrowLeft, Search, ChevronRight, Building2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Site } from "@/lib/types";
 
@@ -41,6 +41,13 @@ function ClientsListeInner() {
 
   return (
     <div>
+      <Link
+        href="/repertoire"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-800"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.25} />
+        Retour
+      </Link>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
         {horsContrat ? "Clients hors contrat" : "Clients contrat entretien"}
       </h1>

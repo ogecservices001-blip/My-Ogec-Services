@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronRight, MapPin } from "lucide-react";
+import { ArrowLeft, ChevronRight, MapPin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Site } from "@/lib/types";
 
@@ -36,6 +36,13 @@ export default function SitesDuClientPage({
 
   return (
     <div>
+      <Link
+        href={`/repertoire/clients${horsContrat ? "?horsContrat=1" : ""}`}
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-800"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.25} />
+        Retour
+      </Link>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
         {nomDecode}
       </h1>

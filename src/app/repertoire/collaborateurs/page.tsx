@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, Phone, ChevronDown } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Search, Phone, ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Profil } from "@/lib/types";
 
@@ -39,6 +40,13 @@ export default function CollaborateursPage() {
 
   return (
     <div>
+      <Link
+        href="/repertoire"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-800"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.25} />
+        Retour
+      </Link>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
         Annuaire collaborateurs
       </h1>

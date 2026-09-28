@@ -4,6 +4,7 @@ import {
   ClipboardList,
   BookUser,
   FileText,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 
@@ -12,7 +13,8 @@ const modules: {
   titre: string;
   sousTitre: string;
   icone: LucideIcon;
-  classes: string;
+  fond: string;
+  couleur: string;
   actif: boolean;
 }[] = [
   {
@@ -20,7 +22,8 @@ const modules: {
     titre: "Bon d'intervention",
     sousTitre: "Petits travaux, maintenance, dépannage",
     icone: ClipboardList,
-    classes: "bg-slate-400",
+    fond: "bg-violet-100",
+    couleur: "text-violet-600",
     actif: false,
   },
   {
@@ -28,7 +31,8 @@ const modules: {
     titre: "GMAO",
     sousTitre: "Parc équipements et relevés d'entretien",
     icone: Wrench,
-    classes: "bg-slate-400",
+    fond: "bg-teal-100",
+    couleur: "text-teal-600",
     actif: false,
   },
   {
@@ -36,7 +40,8 @@ const modules: {
     titre: "Répertoire",
     sousTitre: "Clients, fournisseurs et collaborateurs",
     icone: BookUser,
-    classes: "bg-brand-green",
+    fond: "bg-green-100",
+    couleur: "text-brand-green-dark",
     actif: true,
   },
   {
@@ -44,7 +49,8 @@ const modules: {
     titre: "CERFA",
     sousTitre: "Interventions et consultation",
     icone: FileText,
-    classes: "bg-slate-400",
+    fond: "bg-blue-100",
+    couleur: "text-blue-600",
     actif: false,
   },
 ];
@@ -65,12 +71,12 @@ export default function AccueilPage() {
             <Link
               key={m.titre}
               href={m.href}
-              className="group flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+              className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
             >
               <span
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${m.classes}`}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${m.fond}`}
               >
-                <m.icone className="h-5 w-5 text-white" strokeWidth={2} />
+                <m.icone className={`h-5 w-5 ${m.couleur}`} strokeWidth={2} />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-slate-900">{m.titre}</p>
@@ -78,20 +84,21 @@ export default function AccueilPage() {
                   {m.sousTitre}
                 </p>
               </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
             </Link>
           ) : (
             <div
               key={m.titre}
-              className="flex items-center gap-4 rounded-2xl border border-slate-200/60 bg-white/60 p-5 opacity-70"
+              className="flex items-center gap-4 rounded-2xl bg-white p-4 opacity-60 shadow-sm"
             >
               <span
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${m.classes}`}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${m.fond}`}
               >
-                <m.icone className="h-5 w-5 text-white" strokeWidth={2} />
+                <m.icone className={`h-5 w-5 ${m.couleur}`} strokeWidth={2} />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="font-semibold text-slate-600">{m.titre}</p>
+                  <p className="font-semibold text-slate-700">{m.titre}</p>
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-400">
                     Bientôt
                   </span>

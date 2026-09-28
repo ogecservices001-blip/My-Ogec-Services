@@ -5,6 +5,7 @@ import {
   Building,
   Truck,
   Users,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 
@@ -13,35 +14,40 @@ const cartes: {
   titre: string;
   sousTitre: string;
   icone: LucideIcon;
-  classes: string;
+  fond: string;
+  couleur: string;
 }[] = [
   {
     href: "/repertoire/clients",
     titre: "Clients",
     sousTitre: "Contrat entretien",
     icone: Building2,
-    classes: "bg-brand-green",
+    fond: "bg-green-100",
+    couleur: "text-brand-green-dark",
   },
   {
     href: "/repertoire/clients?horsContrat=1",
     titre: "Clients",
     sousTitre: "Hors contrat",
     icone: Building,
-    classes: "bg-orange-500",
+    fond: "bg-orange-100",
+    couleur: "text-orange-600",
   },
   {
     href: "/repertoire/fournisseurs",
     titre: "Fournisseurs",
     sousTitre: "Contacts et produits",
     icone: Truck,
-    classes: "bg-brand-slate",
+    fond: "bg-slate-100",
+    couleur: "text-brand-slate-dark",
   },
   {
     href: "/repertoire/collaborateurs",
     titre: "Collaborateurs",
     sousTitre: "Annuaire de l'équipe",
     icone: Users,
-    classes: "bg-indigo-600",
+    fond: "bg-indigo-100",
+    couleur: "text-indigo-600",
   },
 ];
 
@@ -61,29 +67,23 @@ export default function RepertoirePage() {
       <p className="mb-6 text-sm text-slate-500">
         Clients, fournisseurs et collaborateurs
       </p>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         {cartes.map((c) => (
           <Link
             key={c.href + c.sousTitre}
             href={c.href}
-            className={`group relative flex aspect-[4/3] flex-col justify-between overflow-hidden rounded-2xl p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg sm:aspect-square sm:p-5 ${c.classes}`}
+            className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
           >
-            <c.icone
-              className="h-7 w-7 text-white/90 sm:h-8 sm:w-8"
-              strokeWidth={1.75}
-            />
-            <c.icone
-              className="pointer-events-none absolute -bottom-4 -right-4 h-24 w-24 text-white/10 transition group-hover:scale-110 sm:h-28 sm:w-28"
-              strokeWidth={1}
-            />
-            <div className="relative">
-              <p className="text-base font-bold leading-tight text-white sm:text-lg">
-                {c.titre}
-              </p>
-              <p className="text-xs text-white/80 sm:text-sm">
-                {c.sousTitre}
-              </p>
+            <span
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${c.fond}`}
+            >
+              <c.icone className={`h-5 w-5 ${c.couleur}`} strokeWidth={2} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-slate-900">{c.titre}</p>
+              <p className="truncate text-sm text-slate-500">{c.sousTitre}</p>
             </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
           </Link>
         ))}
       </div>

@@ -9,6 +9,7 @@ import {
   CalendarClock,
   Construction,
   Flag,
+  LibraryBig,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
@@ -101,6 +102,15 @@ const modules: {
     icone: Flag,
     fond: "bg-purple-100",
     couleur: "text-purple-600",
+    actif: false,
+  },
+  {
+    href: "#",
+    titre: "Référentiel GMAO",
+    sousTitre: "Heures et gammes de maintenance",
+    icone: LibraryBig,
+    fond: "bg-lime-100",
+    couleur: "text-lime-600",
     actif: false,
   },
 ];

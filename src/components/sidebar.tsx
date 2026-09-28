@@ -55,6 +55,14 @@ const modules: Module[] = [
   { nom: "Planning Maintenance", actif: false, sousMenus: [] },
   { nom: "Suivi Dépannages", actif: false, sousMenus: [] },
   { nom: "Signalement retour information terrain", actif: false, sousMenus: [] },
+  {
+    nom: "Référentiel GMAO",
+    actif: false,
+    sousMenus: [
+      { nom: "Référentiel Heures" },
+      { nom: "Référentiel Gammes de maintenance" },
+    ],
+  },
 ];
 
 function SidebarContenu({ onNavigate }: { onNavigate: () => void }) {

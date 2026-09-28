@@ -19,16 +19,35 @@ import type { Site } from "@/lib/types";
 function Section({
   titre,
   icone: Icone,
+  niveau,
   champs,
 }: {
   titre: string;
   icone: LucideIcon;
+  niveau: "technicien" | "admin";
   champs: [string, string][];
 }) {
+  const teintes =
+    niveau === "technicien"
+      ? {
+          bordure: "border-l-4 border-l-brand-green/40",
+          entete: "bg-green-50/50",
+          icone: "text-brand-green-dark",
+        }
+      : {
+          bordure: "border-l-4 border-l-orange-300",
+          entete: "bg-orange-50/50",
+          icone: "text-orange-600",
+        };
+
   return (
-    <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
-        <Icone className="h-3.5 w-3.5 text-slate-400" strokeWidth={2.25} />
+    <div
+      className={`mb-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm ${teintes.bordure}`}
+    >
+      <div
+        className={`flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 ${teintes.entete}`}
+      >
+        <Icone className={`h-3.5 w-3.5 ${teintes.icone}`} strokeWidth={2.25} />
         <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">
           {titre}
         </h2>
@@ -106,6 +125,7 @@ export default async function SiteDetailPage({
       <Section
         titre="Identité & Site"
         icone={IdCard}
+        niveau="technicien"
         champs={[
           ["N° Affaire", site.n_affaire],
           ["Commune", site.commune],
@@ -117,6 +137,7 @@ export default async function SiteDetailPage({
       <Section
         titre="Accès & Sécurité"
         icone={ShieldCheck}
+        niveau="technicien"
         champs={[
           ["EPI spécifique", site.epi_specifique],
           ["Habilitation spécifique", site.habilitation_specifique],
@@ -129,6 +150,7 @@ export default async function SiteDetailPage({
       <Section
         titre="Contacts & Suivi"
         icone={Users}
+        niveau="technicien"
         champs={[
           ["Interlocuteur site", site.interlocuteur_site],
           ["Tél fixe interlocuteur", site.tel_fixe_interlocuteur_site],
@@ -148,6 +170,7 @@ export default async function SiteDetailPage({
           <Section
             titre="Heures & Tarifs"
             icone={Clock}
+            niveau="admin"
             champs={[
               ["Nb heures vendues", site.nb_heures_vendues],
               ["Nb heures vendues assistant", site.nb_heures_vendues_assistant],
@@ -161,6 +184,7 @@ export default async function SiteDetailPage({
           <Section
             titre="Contrat"
             icone={FileText}
+            niveau="admin"
             champs={[
               ["Date offre", formaterDate(site.date_offre)],
               ["Date prise d'effet contrat", formaterDate(site.date_prise_effet_contrat)],
@@ -177,6 +201,7 @@ export default async function SiteDetailPage({
           <Section
             titre="Facturation"
             icone={Receipt}
+            niveau="admin"
             champs={[
               ["Adresse facturation", site.adresse_facturation],
               ["Code postal facturation", site.code_postal_facturation],
@@ -192,6 +217,7 @@ export default async function SiteDetailPage({
           <Section
             titre="Révision & Indices"
             icone={TrendingUp}
+            niveau="admin"
             champs={[
               ["Date révision", formaterDate(site.date_revision)],
               ["Formule révision entretien", site.formule_revision_entretien],

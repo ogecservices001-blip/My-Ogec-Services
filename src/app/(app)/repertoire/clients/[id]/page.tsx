@@ -113,7 +113,7 @@ export default async function SiteDetailPage({
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             {site.nom}
           </h1>
-          <p className="text-sm text-slate-500">{site.site}</p>
+          <p className="text-base font-medium text-slate-600">{site.site}</p>
         </div>
         {site.hors_contrat && (
           <span className="mt-1 shrink-0 rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700">

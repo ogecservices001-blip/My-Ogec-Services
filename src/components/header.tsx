@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { LogoutButton } from "@/components/logout-button";
+import { SidebarToggle } from "@/components/sidebar-toggle";
 
 function initiales(nom: string) {
   const parts = nom.trim().split(/\s+/).filter(Boolean);
@@ -21,8 +22,8 @@ export async function Header() {
 
   return (
     <header className="sticky top-0 z-10 bg-gradient-to-r from-brand-slate-dark to-brand-slate shadow-sm">
-      <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
-        <Link href="/repertoire" className="flex items-center gap-2.5">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+        <Link href="/" className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/95 p-1">
             <Image
               src="/logo-icon.png"
@@ -45,6 +46,7 @@ export async function Header() {
               <span className="text-sm text-white/85">{nomAffiche}</span>
             </div>
           )}
+          <SidebarToggle />
           <LogoutButton />
         </div>
       </div>

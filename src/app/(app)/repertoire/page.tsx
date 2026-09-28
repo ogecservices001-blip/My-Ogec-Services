@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  ArrowLeft,
   Building2,
   Building,
   Truck,
@@ -47,6 +48,13 @@ const cartes: {
 export default function RepertoirePage() {
   return (
     <div>
+      <Link
+        href="/"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-800"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.25} />
+        Retour
+      </Link>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
         Répertoire
       </h1>

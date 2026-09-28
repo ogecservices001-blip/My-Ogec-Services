@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
+import { formaterDate } from "@/lib/format";
 import type { Site } from "@/lib/types";
 
 function Section({
@@ -161,9 +162,9 @@ export default async function SiteDetailPage({
             titre="Contrat"
             icone={FileText}
             champs={[
-              ["Date offre", site.date_offre],
-              ["Date prise d'effet contrat", site.date_prise_effet_contrat],
-              ["Date fin contrat", site.date_fin_contrat],
+              ["Date offre", formaterDate(site.date_offre)],
+              ["Date prise d'effet contrat", formaterDate(site.date_prise_effet_contrat)],
+              ["Date fin contrat", formaterDate(site.date_fin_contrat)],
               ["Durée contrat", site.duree_contrat],
               ["Montant contrat AV", site.montant_contrat_av],
               ["Référence offre OGS", site.reference_offre_ogs],
@@ -192,16 +193,16 @@ export default async function SiteDetailPage({
             titre="Révision & Indices"
             icone={TrendingUp}
             champs={[
-              ["Date révision", site.date_revision],
+              ["Date révision", formaterDate(site.date_revision)],
               ["Formule révision entretien", site.formule_revision_entretien],
               ["Formule révision dépannage", site.formule_revision_depannage],
-              ["Date indice S", site.date_indice_s],
+              ["Date indice S", formaterDate(site.date_indice_s)],
               ["Valeur indice S", site.valeur_indice_s],
-              ["Date indice Ch", site.date_indice_ch],
+              ["Date indice Ch", formaterDate(site.date_indice_ch)],
               ["Valeur indice Ch", site.valeur_indice_ch],
-              ["Date indice S'", site.date_indice_s_prime],
+              ["Date indice S'", formaterDate(site.date_indice_s_prime)],
               ["Valeur indice S'", site.valeur_indice_s_prime],
-              ["Date indice Ch'", site.date_indice_ch_prime],
+              ["Date indice Ch'", formaterDate(site.date_indice_ch_prime)],
               ["Valeur indice Ch'", site.valeur_indice_ch_prime],
               ["Montant contrat AV révisé", site.montant_contrat_av_revise],
               ["Taux horaire révisé", site.taux_horaire_revise],

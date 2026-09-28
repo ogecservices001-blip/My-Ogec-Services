@@ -102,9 +102,9 @@ export default async function SiteDetailPage({
     <div>
       <Link
         href="/repertoire/clients"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-800"
+        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
       >
-        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.25} />
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
         Retour
       </Link>
 

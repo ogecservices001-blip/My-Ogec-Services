@@ -18,9 +18,9 @@ export function LogoutButton() {
     <button
       onClick={seDeconnecter}
       title="Déconnexion"
-      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white"
+      className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white transition hover:bg-white/20"
     >
-      <LogOut className="h-4 w-4" strokeWidth={2} />
+      <LogOut className="h-4.5 w-4.5" strokeWidth={2.25} />
     </button>
   );
 }

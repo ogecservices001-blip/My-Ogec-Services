@@ -11,6 +11,17 @@ type Module = { nom: string; actif: boolean; sousMenus: SousMenu[] };
 
 const modules: Module[] = [
   {
+    nom: "Répertoire",
+    actif: true,
+    sousMenus: [
+      { nom: "Clients contrat entretien", href: "/repertoire/clients" },
+      { nom: "Clients hors contrat", href: "/repertoire/clients?horsContrat=1" },
+      { nom: "Fournisseurs", href: "/repertoire/fournisseurs" },
+      { nom: "Collaborateurs", href: "/repertoire/collaborateurs" },
+    ],
+  },
+  { nom: "Suivi Dépannages", actif: false, sousMenus: [] },
+  {
     nom: "Bon d'intervention",
     actif: false,
     sousMenus: [
@@ -27,16 +38,6 @@ const modules: Module[] = [
   },
   { nom: "GMAO", actif: false, sousMenus: [] },
   {
-    nom: "Répertoire",
-    actif: true,
-    sousMenus: [
-      { nom: "Clients contrat entretien", href: "/repertoire/clients" },
-      { nom: "Clients hors contrat", href: "/repertoire/clients?horsContrat=1" },
-      { nom: "Fournisseurs", href: "/repertoire/fournisseurs" },
-      { nom: "Collaborateurs", href: "/repertoire/collaborateurs" },
-    ],
-  },
-  {
     nom: "CERFA",
     actif: false,
     sousMenus: [
@@ -50,10 +51,9 @@ const modules: Module[] = [
       { nom: "Vérifier les dossiers clients" },
     ],
   },
-  { nom: "Devis", actif: false, sousMenus: [] },
   { nom: "Prestation sur commande", actif: false, sousMenus: [] },
   { nom: "Planning Maintenance", actif: false, sousMenus: [] },
-  { nom: "Suivi Dépannages", actif: false, sousMenus: [] },
+  { nom: "Devis", actif: false, sousMenus: [] },
   { nom: "Signalement retour information terrain", actif: false, sousMenus: [] },
   {
     nom: "Référentiel GMAO",

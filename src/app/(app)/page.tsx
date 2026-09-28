@@ -24,6 +24,24 @@ const modules: {
   actif: boolean;
 }[] = [
   {
+    href: "/repertoire",
+    titre: "Répertoire",
+    sousTitre: "Clients, fournisseurs et collaborateurs",
+    icone: BookUser,
+    fond: "bg-green-100",
+    couleur: "text-brand-green-dark",
+    actif: true,
+  },
+  {
+    href: "#",
+    titre: "Suivi Dépannages",
+    sousTitre: "Demandes reçues via QR équipement",
+    icone: Construction,
+    fond: "bg-red-100",
+    couleur: "text-red-600",
+    actif: false,
+  },
+  {
     href: "#",
     titre: "Bon d'intervention",
     sousTitre: "Petits travaux, maintenance, dépannage",
@@ -42,30 +60,12 @@ const modules: {
     actif: false,
   },
   {
-    href: "/repertoire",
-    titre: "Répertoire",
-    sousTitre: "Clients, fournisseurs et collaborateurs",
-    icone: BookUser,
-    fond: "bg-green-100",
-    couleur: "text-brand-green-dark",
-    actif: true,
-  },
-  {
     href: "#",
     titre: "CERFA",
     sousTitre: "Interventions et consultation",
     icone: FileText,
     fond: "bg-blue-100",
     couleur: "text-blue-600",
-    actif: false,
-  },
-  {
-    href: "#",
-    titre: "Devis",
-    sousTitre: "Affaires sur devis",
-    icone: FileSignature,
-    fond: "bg-amber-100",
-    couleur: "text-amber-600",
     actif: false,
   },
   {
@@ -88,11 +88,11 @@ const modules: {
   },
   {
     href: "#",
-    titre: "Suivi Dépannages",
-    sousTitre: "Demandes reçues via QR équipement",
-    icone: Construction,
-    fond: "bg-red-100",
-    couleur: "text-red-600",
+    titre: "Devis",
+    sousTitre: "Affaires sur devis",
+    icone: FileSignature,
+    fond: "bg-amber-100",
+    couleur: "text-amber-600",
     actif: false,
   },
   {

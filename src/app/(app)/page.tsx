@@ -6,6 +6,7 @@ import {
   FileText,
   FileSignature,
   ShoppingBag,
+  CalendarClock,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
@@ -71,6 +72,15 @@ const modules: {
     icone: ShoppingBag,
     fond: "bg-rose-100",
     couleur: "text-rose-600",
+    actif: false,
+  },
+  {
+    href: "#",
+    titre: "Planning Maintenance",
+    sousTitre: "Calendrier des entretiens",
+    icone: CalendarClock,
+    fond: "bg-cyan-100",
+    couleur: "text-cyan-600",
     actif: false,
   },
 ];

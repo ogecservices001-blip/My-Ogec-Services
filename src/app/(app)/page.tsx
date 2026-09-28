@@ -4,6 +4,8 @@ import {
   ClipboardList,
   BookUser,
   FileText,
+  FileSignature,
+  ShoppingBag,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
@@ -51,6 +53,24 @@ const modules: {
     icone: FileText,
     fond: "bg-blue-100",
     couleur: "text-blue-600",
+    actif: false,
+  },
+  {
+    href: "#",
+    titre: "Devis",
+    sousTitre: "Affaires sur devis",
+    icone: FileSignature,
+    fond: "bg-amber-100",
+    couleur: "text-amber-600",
+    actif: false,
+  },
+  {
+    href: "#",
+    titre: "Prestation sur commande",
+    sousTitre: "Interventions à la demande",
+    icone: ShoppingBag,
+    fond: "bg-rose-100",
+    couleur: "text-rose-600",
     actif: false,
   },
 ];

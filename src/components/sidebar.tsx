@@ -23,6 +23,8 @@ const modules: Module[] = [
     ],
   },
   { nom: "CERFA", actif: false, sousMenus: [] },
+  { nom: "Devis", actif: false, sousMenus: [] },
+  { nom: "Prestation sur commande", actif: false, sousMenus: [] },
 ];
 
 function SidebarContenu({ onNavigate }: { onNavigate: () => void }) {

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Wrench } from "lucide-react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -36,13 +36,15 @@ export default function LoginPage() {
         onSubmit={seConnecter}
         className="w-full max-w-sm rounded-2xl border border-slate-200/80 bg-white p-8 shadow-sm"
       >
-        <div className="mb-6 flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-600">
-            <Wrench className="h-4.5 w-4.5 text-white" strokeWidth={2.25} />
-          </span>
-          <span className="text-base font-semibold tracking-tight text-slate-900">
-            OGEC Services
-          </span>
+        <div className="mb-6 flex flex-col items-center">
+          <Image
+            src="/logo.jpg"
+            alt="OGEC Services"
+            width={96}
+            height={92}
+            className="mb-1 h-24 w-auto"
+            priority
+          />
         </div>
         <label className="mb-1.5 block text-sm font-medium text-slate-700">
           Email
@@ -52,7 +54,7 @@ export default function LoginPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mb-4 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+          className="mb-4 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
         />
         <label className="mb-1.5 block text-sm font-medium text-slate-700">
           Mot de passe
@@ -62,7 +64,7 @@ export default function LoginPage() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mb-4 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+          className="mb-4 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
         />
         {erreur && (
           <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -72,7 +74,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={enCours}
-          className="w-full rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-60"
+          className="w-full rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
         >
           {enCours ? "Connexion..." : "Se connecter"}
         </button>

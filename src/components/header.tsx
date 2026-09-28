@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Wrench } from "lucide-react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { LogoutButton } from "@/components/logout-button";
@@ -20,23 +20,29 @@ export async function Header() {
   const nomAffiche = profile?.name || user?.email || "";
 
   return (
-    <header className="sticky top-0 z-10 border-b border-slate-800/60 bg-slate-900">
+    <header className="sticky top-0 z-10 bg-gradient-to-r from-brand-slate-dark to-brand-slate shadow-sm">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
         <Link href="/repertoire" className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600">
-            <Wrench className="h-4 w-4 text-white" strokeWidth={2.25} />
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/95 p-1">
+            <Image
+              src="/logo-icon.png"
+              alt="OGEC Services"
+              width={28}
+              height={28}
+              className="h-full w-full object-contain"
+            />
           </span>
-          <span className="text-[15px] font-semibold tracking-tight text-white">
-            OGEC Services
+          <span className="text-[15px] font-extrabold tracking-tight text-white">
+            OGEC SERVICES
           </span>
         </Link>
         <div className="flex items-center gap-3">
           {nomAffiche && (
             <div className="hidden items-center gap-2 sm:flex">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 text-xs font-semibold text-slate-200">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-xs font-semibold text-white">
                 {initiales(nomAffiche)}
               </span>
-              <span className="text-sm text-slate-300">{nomAffiche}</span>
+              <span className="text-sm text-white/85">{nomAffiche}</span>
             </div>
           )}
           <LogoutButton />

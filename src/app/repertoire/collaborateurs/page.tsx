@@ -60,7 +60,7 @@ export default function CollaborateursPage() {
           placeholder="Rechercher un collègue..."
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
         />
       </div>
 
@@ -88,7 +88,7 @@ export default function CollaborateursPage() {
                   <a
                     href={`tel:${p.portable}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-teal-700 transition hover:bg-teal-50"
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-brand-green-dark transition hover:bg-brand-green/10"
                   >
                     <Phone className="h-3.5 w-3.5" strokeWidth={2} />
                     {p.portable}

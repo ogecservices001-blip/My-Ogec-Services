@@ -39,6 +39,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      compteurs: {
+        Row: {
+          annee: number
+          cle: string
+          valeur: number
+        }
+        Insert: {
+          annee: number
+          cle: string
+          valeur?: number
+        }
+        Update: {
+          annee?: number
+          cle?: string
+          valeur?: number
+        }
+        Relationships: []
+      }
       demandes_depannage: {
         Row: {
           client_nom: string
@@ -53,7 +71,7 @@ export type Database = {
           legacy_id: string | null
           lieu_panne: string
           message: string
-          numero: number
+          numero: string
           numero_demande_client: string
           site_id: string | null
           statut: Database["public"]["Enums"]["statut_depannage"]
@@ -71,7 +89,7 @@ export type Database = {
           legacy_id?: string | null
           lieu_panne?: string
           message?: string
-          numero?: number
+          numero?: string
           numero_demande_client?: string
           site_id?: string | null
           statut?: Database["public"]["Enums"]["statut_depannage"]
@@ -89,7 +107,7 @@ export type Database = {
           legacy_id?: string | null
           lieu_panne?: string
           message?: string
-          numero?: number
+          numero?: string
           numero_demande_client?: string
           site_id?: string | null
           statut?: Database["public"]["Enums"]["statut_depannage"]
@@ -905,6 +923,10 @@ export type Database = {
     Functions: {
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      prochain_chrono: {
+        Args: { p_annee: number; p_cle: string }
+        Returns: number
+      }
     }
     Enums: {
       statut_depannage: "nouvelle" | "traitee"

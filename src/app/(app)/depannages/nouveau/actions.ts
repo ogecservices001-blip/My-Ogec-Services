@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
+import { prochainChrono } from "@/lib/gmao/chrono";
 import type { ActionResult } from "@/lib/action-result";
 
 export type EquipementDuSite = {
@@ -36,6 +37,7 @@ export async function creerDepannage(
   const dateInterventionPrevue = String(formData.get("date_intervention_prevue") ?? "").trim();
   const lieuPanne = String(formData.get("lieu_panne") ?? "").trim();
   const numeroDemandeClient = String(formData.get("numero_demande_client") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
 
   if (!siteId) return { ok: false, erreur: "Le client/site est obligatoire." };
   if (!message) return { ok: false, erreur: "Merci de décrire la panne rencontrée." };
@@ -55,13 +57,16 @@ export async function creerDepannage(
     equipementNom = eq?.nom ?? "";
   }
 
+  const numero = await prochainChrono(supabase, "depannage");
+
   const { error } = await supabase.from("demandes_depannage").insert({
+    numero,
     site_id: siteId,
     equipement_id: equipementId || null,
     client_nom: site.nom,
     client_site: site.site,
     equipement_nom: equipementNom,
-    email: "",
+    email,
     message,
     statut: "nouvelle",
     intervenant_id: intervenantId || null,

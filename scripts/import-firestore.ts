@@ -115,7 +115,10 @@ async function importerCollection(
   const idParLegacyId = new Map<string, string>();
   const idsExistants = new Set<string>();
   if (mapper.idIsDocId) {
-    const { data: existants, error } = await supabase.from(mapper.table).select("id");
+    const { data: existants, error } = await supabase
+      .from(mapper.table)
+      .select("id")
+      .returns<{ id: string }[]>();
     if (error) {
       console.error(`  Impossible de lire ${mapper.table} : ${error.message}`);
       bilan.erreurs.push({ id: "*", raison: error.message });

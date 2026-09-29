@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chargerEquipementEtSite, emailConnuDuSite, type EquipementPublicDonnees } from "@/lib/gmao/depannage";
 import { envoyerNotificationDepannage } from "@/lib/gmao/depannage-email";
+import { prochainChrono } from "@/lib/gmao/chrono";
 
 export type ResultatVerification =
   | { ok: true; donnees: EquipementPublicDonnees }
@@ -58,8 +59,10 @@ export async function soumettreDemandeDepannage(
   }
 
   const { equipement, site } = chargement.donnees;
+  const numero = await prochainChrono(admin, "depannage");
 
   const { error: errInsert } = await admin.from("demandes_depannage").insert({
+    numero,
     equipement_id: equipement.id,
     site_id: site.id,
     client_nom: site.nom,

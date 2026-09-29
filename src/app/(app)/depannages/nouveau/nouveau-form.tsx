@@ -148,6 +148,16 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
           </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Email du contact (pour pouvoir lui répondre)
+            </label>
+            <input
+              type="email"
+              name="email"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+            />
+          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:grid-cols-2">

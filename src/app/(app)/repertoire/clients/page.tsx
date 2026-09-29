@@ -1,126 +1,30 @@
-"use client";
-
-import { useEffect, useMemo, useState, Suspense } from "react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { ArrowLeft, Search, ChevronRight, Building2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/profile";
 import type { Site } from "@/lib/types";
+import { ClientsListe } from "./clients-liste";
 
-function ClientsListeInner() {
-  const searchParams = useSearchParams();
-  const horsContrat = searchParams.get("horsContrat") === "1";
+export default async function ClientsListePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ horsContrat?: string }>;
+}) {
+  const { horsContrat: horsContratParam } = await searchParams;
+  const horsContrat = horsContratParam === "1";
 
-  const [sites, setSites] = useState<Site[]>([]);
-  const [chargement, setChargement] = useState(true);
-  const [recherche, setRecherche] = useState("");
+  const supabase = await createClient();
+  const profile = await getCurrentProfile();
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("sites_view")
-      .select("*")
-      .eq("hors_contrat", horsContrat)
-      .order("nom")
-      .then(({ data }) => {
-        setSites((data as Site[]) ?? []);
-        setChargement(false);
-      });
-  }, [horsContrat]);
-
-  const groupes = useMemo(() => {
-    const parNom = new Map<string, Site[]>();
-    for (const s of sites) {
-      if (!s.nom.toLowerCase().includes(recherche.toLowerCase())) continue;
-      const liste = parNom.get(s.nom) ?? [];
-      liste.push(s);
-      parNom.set(s.nom, liste);
-    }
-    return [...parNom.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [sites, recherche]);
+  const { data } = await supabase
+    .from("sites_view")
+    .select("*")
+    .eq("hors_contrat", horsContrat)
+    .order("nom");
 
   return (
-    <div>
-      <Link
-        href="/repertoire"
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour
-      </Link>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
-        {horsContrat ? "Clients hors contrat" : "Clients contrat entretien"}
-      </h1>
-      <p className="mb-5 text-sm text-slate-500">
-        {chargement
-          ? "Chargement..."
-          : `${groupes.length} client(s) — ${sites.length} site(s)`}
-      </p>
-
-      <div className="relative mb-4">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          placeholder="Rechercher un client..."
-          value={recherche}
-          onChange={(e) => setRecherche(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-        />
-      </div>
-
-      {chargement ? (
-        <div className="space-y-3">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-[68px] animate-pulse rounded-2xl bg-slate-200/60" />
-          ))}
-        </div>
-      ) : groupes.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">
-          Aucun client trouvé
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {groupes.map(([nom, sitesDuClient]) => (
-            <li key={nom}>
-              <Link
-                href={
-                  sitesDuClient.length === 1
-                    ? `/repertoire/clients/${sitesDuClient[0].id}`
-                    : `/repertoire/clients/groupe/${encodeURIComponent(nom)}?horsContrat=${horsContrat ? 1 : 0}`
-                }
-                className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
-              >
-                <span
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                    horsContrat ? "bg-orange-100" : "bg-green-100"
-                  }`}
-                >
-                  <Building2
-                    className={`h-5 w-5 ${
-                      horsContrat ? "text-orange-600" : "text-brand-green-dark"
-                    }`}
-                    strokeWidth={2}
-                  />
-                </span>
-                <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">
-                  {nom}
-                </span>
-                <span className="shrink-0 text-sm text-slate-400">
-                  {sitesDuClient.length} site(s)
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-export default function ClientsListePage() {
-  return (
-    <Suspense>
-      <ClientsListeInner />
-    </Suspense>
+    <ClientsListe
+      sites={(data as Site[]) ?? []}
+      horsContrat={horsContrat}
+      isAdmin={profile?.role === "admin"}
+    />
   );
 }

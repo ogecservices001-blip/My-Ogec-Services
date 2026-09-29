@@ -9,12 +9,15 @@ import {
   FileText,
   Receipt,
   TrendingUp,
+  Pencil,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { formaterDate } from "@/lib/format";
+import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import type { Site } from "@/lib/types";
+import { supprimerSite } from "../actions";
 
 function Section({
   titre,
@@ -122,14 +125,31 @@ export default async function SiteDetailPage({
         )}
       </div>
 
+      {isAdmin && (
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          <Link
+            href={`/repertoire/clients/${id}/modifier`}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <Pencil className="h-4 w-4" strokeWidth={2} />
+            Modifier
+          </Link>
+          <BoutonSupprimer
+            action={supprimerSite.bind(null, id)}
+            confirmation={`Supprimer définitivement le site "${site.site}" de ${site.nom} ? Cette action est irréversible.`}
+            redirectTo="/repertoire/clients"
+          />
+        </div>
+      )}
+
       <Section
         titre="Identité & Site"
         icone={IdCard}
         niveau="technicien"
         champs={[
-          ["N° Affaire", site.n_affaire],
+          ["N°Affaire", site.n_affaire],
+          ["Code Postal", site.code_postal],
           ["Commune", site.commune],
-          ["Code postal", site.code_postal],
           ["Adresse", site.adresse],
           ["Complément d'adresse", site.complement_adresse],
         ]}
@@ -153,14 +173,14 @@ export default async function SiteDetailPage({
         niveau="technicien"
         champs={[
           ["Interlocuteur site", site.interlocuteur_site],
-          ["Tél fixe interlocuteur", site.tel_fixe_interlocuteur_site],
-          ["Portable interlocuteur", site.portable_interlocuteur_site],
-          ["Courriel interlocuteur", site.courriel_interlocuteur_site],
+          ["Tel Fixe interlocuteur site", site.tel_fixe_interlocuteur_site],
+          ["Portable interlocuteur site", site.portable_interlocuteur_site],
+          ["Courriel interlocuteur site", site.courriel_interlocuteur_site],
           ["Fréq. entretien / an", site.freq_entretien_an],
-          ["Interlocuteur tiers", site.interlocuteur_tiers],
-          ["Tél fixe tiers", site.tel_fixe_tiers],
-          ["Portable tiers", site.portable_tiers],
-          ["Courriel tiers", site.courriel_tiers],
+          ["Interlocuteur Tiers", site.interlocuteur_tiers],
+          ["Tel Fixe Tiers", site.tel_fixe_tiers],
+          ["Portable Tiers", site.portable_tiers],
+          ["Courriel Tiers", site.courriel_tiers],
           ["Remarques libres", site.remarques_libres],
         ]}
       />
@@ -172,8 +192,8 @@ export default async function SiteDetailPage({
             icone={Clock}
             niveau="admin"
             champs={[
-              ["Nb heures vendues", site.nb_heures_vendues],
-              ["Nb heures vendues assistant", site.nb_heures_vendues_assistant],
+              ["Nb Heures vendues", site.nb_heures_vendues],
+              ["Nb Heures vendues assistant", site.nb_heures_vendues_assistant],
               ["Qté heures programmées", site.qte_heures_programmees],
               ["Qté heures restantes", site.qte_heures_restantes],
               ["Taux horaire régie", site.taux_horaire_regie],
@@ -186,14 +206,14 @@ export default async function SiteDetailPage({
             icone={FileText}
             niveau="admin"
             champs={[
-              ["Date offre", formaterDate(site.date_offre)],
-              ["Date prise d'effet contrat", formaterDate(site.date_prise_effet_contrat)],
-              ["Date fin contrat", formaterDate(site.date_fin_contrat)],
-              ["Durée contrat", site.duree_contrat],
-              ["Montant contrat AV", site.montant_contrat_av],
+              ["Date de l'offre", formaterDate(site.date_offre)],
+              ["Date de prise d'effet", formaterDate(site.date_prise_effet_contrat)],
+              ["Date de fin de contrat", formaterDate(site.date_fin_contrat)],
+              ["Durée", site.duree_contrat],
+              ["Montant Contrat + AV", site.montant_contrat_av],
               ["Référence offre OGS", site.reference_offre_ogs],
               ["Responsable contrat", site.responsable_contrat],
-              ["Tél fixe responsable", site.tel_fixe_responsable],
+              ["Tel Fixe responsable", site.tel_fixe_responsable],
               ["Portable responsable", site.portable_responsable],
               ["Courriel responsable", site.courriel_responsable],
             ]}
@@ -204,11 +224,11 @@ export default async function SiteDetailPage({
             niveau="admin"
             champs={[
               ["Adresse facturation", site.adresse_facturation],
-              ["Code postal facturation", site.code_postal_facturation],
+              ["Code Postal facturation", site.code_postal_facturation],
               ["Commune facturation", site.commune_facturation],
-              ["Complément adresse facturation", site.complement_adresse_facturation],
+              ["Complément d'adresse facturation", site.complement_adresse_facturation],
               ["Interlocuteur facturation", site.interlocuteur_facturation],
-              ["Tél fixe interlocuteur facturation", site.tel_fixe_interlocuteur_facturation],
+              ["Tel Fixe interlocuteur facturation", site.tel_fixe_interlocuteur_facturation],
               ["Portable interlocuteur facturation", site.portable_interlocuteur_facturation],
               ["Courriel interlocuteur facturation", site.courriel_interlocuteur_facturation],
               ["Fréq. facturation annuelle", site.freq_factu_annuelle],
@@ -219,18 +239,18 @@ export default async function SiteDetailPage({
             icone={TrendingUp}
             niveau="admin"
             champs={[
-              ["Date révision", formaterDate(site.date_revision)],
+              ["Date de révision", formaterDate(site.date_revision)],
               ["Formule révision entretien", site.formule_revision_entretien],
               ["Formule révision dépannage", site.formule_revision_depannage],
-              ["Date indice S", formaterDate(site.date_indice_s)],
+              ["Date Indice S", formaterDate(site.date_indice_s)],
               ["Valeur indice S", site.valeur_indice_s],
-              ["Date indice Ch", formaterDate(site.date_indice_ch)],
-              ["Valeur indice Ch", site.valeur_indice_ch],
-              ["Date indice S'", formaterDate(site.date_indice_s_prime)],
-              ["Valeur indice S'", site.valeur_indice_s_prime],
-              ["Date indice Ch'", formaterDate(site.date_indice_ch_prime)],
-              ["Valeur indice Ch'", site.valeur_indice_ch_prime],
-              ["Montant contrat AV révisé", site.montant_contrat_av_revise],
+              ["Date Indice CH", formaterDate(site.date_indice_ch)],
+              ["Valeur indice CH", site.valeur_indice_ch],
+              ["Date Indice S°", formaterDate(site.date_indice_s_prime)],
+              ["Valeur indice S°", site.valeur_indice_s_prime],
+              ["Date Indice CH°", formaterDate(site.date_indice_ch_prime)],
+              ["Valeur indice CH°", site.valeur_indice_ch_prime],
+              ["Montant Contrat+AV révisé", site.montant_contrat_av_revise],
               ["Taux horaire révisé", site.taux_horaire_revise],
               ["Forfait déplacement révisé", site.forfait_deplacement_revise],
               ["Modif RI ou BG", site.modif_ri_ou_bg],

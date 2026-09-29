@@ -1,0 +1,24 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { requireAdmin } from "@/lib/auth";
+import { SiteForm } from "../site-form";
+
+export default async function NouveauSitePage() {
+  await requireAdmin();
+
+  return (
+    <div>
+      <Link
+        href="/repertoire/clients"
+        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+        Retour
+      </Link>
+      <h1 className="mb-5 text-2xl font-bold tracking-tight text-slate-900">
+        Nouveau site
+      </h1>
+      <SiteForm />
+    </div>
+  );
+}

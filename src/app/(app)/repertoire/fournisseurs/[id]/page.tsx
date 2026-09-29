@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/profile";
+import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import type { Fournisseur } from "@/lib/types";
+import { supprimerFournisseur } from "../actions";
 
 export default async function FournisseurDetailPage({
   params,
@@ -11,6 +14,8 @@ export default async function FournisseurDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const profile = await getCurrentProfile();
+  const isAdmin = profile?.role === "admin";
   const { data } = await supabase
     .from("fournisseurs")
     .select("*")
@@ -44,9 +49,25 @@ export default async function FournisseurDetailPage({
         <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
         Retour
       </Link>
-      <h1 className="mb-5 text-2xl font-bold tracking-tight text-slate-900">
+      <h1 className="mb-4 text-2xl font-bold tracking-tight text-slate-900">
         {f.nom}
       </h1>
+      {isAdmin && (
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          <Link
+            href={`/repertoire/fournisseurs/${id}/modifier`}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <Pencil className="h-4 w-4" strokeWidth={2} />
+            Modifier
+          </Link>
+          <BoutonSupprimer
+            action={supprimerFournisseur.bind(null, id)}
+            confirmation={`Supprimer définitivement le fournisseur "${f.nom}" ? Cette action est irréversible.`}
+            redirectTo="/repertoire/fournisseurs"
+          />
+        </div>
+      )}
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <dl>
           {champs.map(([label, valeur], i) => (

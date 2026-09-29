@@ -26,12 +26,21 @@ import type { Mapper } from "./mappers/types";
 import { sitesMapper } from "./mappers/sites";
 import { fournisseursMapper } from "./mappers/fournisseurs";
 import { profilesMapper } from "./mappers/profiles";
+import { typesEquipementMapper } from "./mappers/types-equipement";
+import { referencesHorairesMapper } from "./mappers/references-horaires";
 
 // Ordre de dépendance des FK — pour l'instant sites/fournisseurs/
-// profiles sont indépendants entre eux, l'ordre n'a pas d'importance,
-// mais toute future collection qui référence l'une d'elles (ex.
-// equipements → sites) doit être ajoutée APRÈS.
-const MAPPERS: Mapper[] = [sitesMapper, fournisseursMapper, profilesMapper];
+// profiles/types_equipement/references_horaires sont indépendants
+// entre eux, l'ordre n'a pas d'importance, mais toute future
+// collection qui référence l'une d'elles (ex. equipements → sites,
+// types_equipement) doit être ajoutée APRÈS.
+const MAPPERS: Mapper[] = [
+  sitesMapper,
+  fournisseursMapper,
+  profilesMapper,
+  typesEquipementMapper,
+  referencesHorairesMapper,
+];
 
 type Bilan = {
   crees: number;
@@ -68,28 +77,41 @@ async function importerCollection(
   const snap = await db.collection(mapper.collection).get();
   console.log(`${snap.size} document(s) Firestore.`);
 
-  const { data: existants, error: errExistants } = await supabase
-    .from(mapper.table)
-    .select("id, legacy_id")
-    .not("legacy_id", "is", null);
-  if (errExistants) {
-    console.error(`  Impossible de lire ${mapper.table} : ${errExistants.message}`);
-    bilan.erreurs.push({ id: "*", raison: errExistants.message });
-    return bilan;
-  }
   const idParLegacyId = new Map<string, string>();
-  for (const row of existants) {
-    if (row.legacy_id) idParLegacyId.set(row.legacy_id, row.id);
+  const idsExistants = new Set<string>();
+  if (mapper.idIsDocId) {
+    const { data: existants, error } = await supabase.from(mapper.table).select("id");
+    if (error) {
+      console.error(`  Impossible de lire ${mapper.table} : ${error.message}`);
+      bilan.erreurs.push({ id: "*", raison: error.message });
+      return bilan;
+    }
+    for (const row of existants) idsExistants.add(row.id);
+  } else {
+    const { data: existants, error: errExistants } = await supabase
+      .from(mapper.table)
+      .select("id, legacy_id")
+      .not("legacy_id", "is", null)
+      .returns<{ id: string; legacy_id: string | null }[]>();
+    if (errExistants) {
+      console.error(`  Impossible de lire ${mapper.table} : ${errExistants.message}`);
+      bilan.erreurs.push({ id: "*", raison: errExistants.message });
+      return bilan;
+    }
+    for (const row of existants) {
+      if (row.legacy_id) idParLegacyId.set(row.legacy_id, row.id);
+    }
   }
 
   const rows: Record<string, unknown>[] = [];
   for (const doc of snap.docs) {
     try {
       const row = mapper.toRow({ id: doc.id, data: doc.data() });
-      const existingId = idParLegacyId.get(row.legacy_id);
-      rows.push({ ...row, id: existingId ?? randomUUID() });
-      if (existingId) bilan.maj++;
-      else bilan.crees++;
+      const id = mapper.idIsDocId ? doc.id : (idParLegacyId.get(row.legacy_id!) ?? randomUUID());
+      const estNouveau = mapper.idIsDocId ? !idsExistants.has(doc.id) : !idParLegacyId.has(row.legacy_id!);
+      rows.push({ ...row, id });
+      if (estNouveau) bilan.crees++;
+      else bilan.maj++;
     } catch (e) {
       bilan.erreurs.push({ id: doc.id, raison: (e as Error).message });
     }

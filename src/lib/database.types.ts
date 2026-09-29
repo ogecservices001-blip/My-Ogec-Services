@@ -138,6 +138,57 @@ export type Database = {
         }
         Relationships: []
       }
+      references_horaires: {
+        Row: {
+          created_at: string
+          designation: string
+          hrs_assistant_an: number
+          hrs_assistant_sem: number
+          hrs_assistant_tri: number
+          hrs_tech_an: number
+          hrs_tech_sem: number
+          hrs_tech_tri: number
+          id: string
+          legacy_id: string | null
+          type_equipement1: string
+          type_equipement2: string
+          type_equipement3: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          designation?: string
+          hrs_assistant_an?: number
+          hrs_assistant_sem?: number
+          hrs_assistant_tri?: number
+          hrs_tech_an?: number
+          hrs_tech_sem?: number
+          hrs_tech_tri?: number
+          id?: string
+          legacy_id?: string | null
+          type_equipement1?: string
+          type_equipement2?: string
+          type_equipement3?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          designation?: string
+          hrs_assistant_an?: number
+          hrs_assistant_sem?: number
+          hrs_assistant_tri?: number
+          hrs_tech_an?: number
+          hrs_tech_sem?: number
+          hrs_tech_tri?: number
+          id?: string
+          legacy_id?: string | null
+          type_equipement1?: string
+          type_equipement2?: string
+          type_equipement3?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sites: {
         Row: {
           adresse: string
@@ -348,6 +399,45 @@ export type Database = {
           valeur_indice_ch_prime?: string
           valeur_indice_s?: string
           valeur_indice_s_prime?: string
+        }
+        Relationships: []
+      }
+      types_equipement: {
+        Row: {
+          champs_en_tete_supplementaires: Json
+          champs_listes: Json
+          checklist: Json
+          code: string
+          created_at: string
+          groupes_mesures: Json
+          id: string
+          nom: string
+          type_equipement1_fixe: string
+          updated_at: string
+        }
+        Insert: {
+          champs_en_tete_supplementaires?: Json
+          champs_listes?: Json
+          checklist?: Json
+          code?: string
+          created_at?: string
+          groupes_mesures?: Json
+          id: string
+          nom?: string
+          type_equipement1_fixe?: string
+          updated_at?: string
+        }
+        Update: {
+          champs_en_tete_supplementaires?: Json
+          champs_listes?: Json
+          checklist?: Json
+          code?: string
+          created_at?: string
+          groupes_mesures?: Json
+          id?: string
+          nom?: string
+          type_equipement1_fixe?: string
+          updated_at?: string
         }
         Relationships: []
       }

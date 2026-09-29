@@ -24,7 +24,11 @@ export type Mapper = {
   table: TableName;
   /// Collection Firestore source.
   collection: string;
-  toRow: (doc: FirestoreDoc) => Record<string, unknown> & { legacy_id: string };
+  /// true si l'id Postgres doit être l'id du document Firestore tel
+  /// quel (clé naturelle déjà stable, ex: types_equipement/mod_roof) —
+  /// pas de legacy_id ni d'uuid généré dans ce cas.
+  idIsDocId?: boolean;
+  toRow: (doc: FirestoreDoc) => Record<string, unknown> & { legacy_id?: string };
 };
 
 /// Lit un champ texte, jamais `undefined`/`null` — les 66 champs de

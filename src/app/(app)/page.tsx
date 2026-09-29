@@ -105,13 +105,13 @@ const modules: {
     actif: false,
   },
   {
-    href: "#",
+    href: "/gmao/referentiel",
     titre: "Référentiel GMAO",
     sousTitre: "Heures et gammes de maintenance",
     icone: LibraryBig,
     fond: "bg-lime-100",
     couleur: "text-lime-600",
-    actif: false,
+    actif: true,
   },
 ];
 
@@ -122,8 +122,8 @@ export default function AccueilPage() {
         Accueil
       </h1>
       <p className="mb-6 text-sm text-slate-500">
-        La migration se fait module par module — Répertoire disponible
-        pour l&apos;instant.
+        La migration se fait module par module — Répertoire et Référentiel
+        GMAO disponibles pour l&apos;instant.
       </p>
       <div className="space-y-3">
         {modules.map((m) =>

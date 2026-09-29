@@ -57,10 +57,10 @@ const modules: Module[] = [
   { nom: "Signalement retour information terrain", actif: false, sousMenus: [] },
   {
     nom: "Référentiel GMAO",
-    actif: false,
+    actif: true,
     sousMenus: [
-      { nom: "Référentiel Heures" },
-      { nom: "Référentiel Gammes de maintenance" },
+      { nom: "Référentiel Heures", href: "/gmao/referentiel/heures" },
+      { nom: "Référentiel Gammes de maintenance", href: "/gmao/referentiel/familles" },
     ],
   },
 ];

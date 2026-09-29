@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, Upload, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
@@ -22,6 +22,7 @@ export default async function EquipementsSitePage({
   ]);
   if (!site) notFound();
 
+  const isAdmin = profile?.role === "admin";
   const typesById: Record<string, TypeEquipement> = {};
   for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
 
@@ -35,13 +36,33 @@ export default async function EquipementsSitePage({
           <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
           Retour
         </Link>
-        <Link
-          href={`/repertoire/clients/${id}/equipements/nouveau`}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2.5} />
-          Ajouter
-        </Link>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <>
+              <a
+                href={`/repertoire/clients/${id}/equipements/export`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                title="Exporter en Excel"
+              >
+                <Download className="h-4 w-4" strokeWidth={2.25} />
+              </a>
+              <Link
+                href={`/repertoire/clients/${id}/equipements/importer`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                title="Importer un fichier"
+              >
+                <Upload className="h-4 w-4" strokeWidth={2.25} />
+              </Link>
+            </>
+          )}
+          <Link
+            href={`/repertoire/clients/${id}/equipements/nouveau`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            Ajouter
+          </Link>
+        </div>
       </div>
 
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Parc GMAO</h1>
@@ -51,7 +72,7 @@ export default async function EquipementsSitePage({
         siteId={id}
         equipements={(equipements ?? []) as Equipement[]}
         typesById={typesById}
-        isAdmin={profile?.role === "admin"}
+        isAdmin={isAdmin}
       />
     </div>
   );

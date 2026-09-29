@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, Building, Download, Upload, ChevronRight } from "lucide-react";
+import { Building2, Building, Download, Upload, ChevronRight, ScanLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { Equipement, ReferenceHoraire } from "@/lib/gmao/types";
@@ -45,8 +45,19 @@ export default async function GmaoHomePage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">GMAO</h1>
-      <p className="mb-5 text-sm text-slate-500">Parc équipements et relevés d&apos;entretien</p>
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">GMAO</h1>
+          <p className="text-sm text-slate-500">Parc équipements et relevés d&apos;entretien</p>
+        </div>
+        <Link
+          href="/gmao/scanner"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
+        >
+          <ScanLine className="h-4 w-4" strokeWidth={2.25} />
+          Scanner
+        </Link>
+      </div>
 
       <div className="space-y-3">
         <Link

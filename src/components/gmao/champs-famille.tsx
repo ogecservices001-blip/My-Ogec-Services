@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import type { ChampEnTete, ChampListeLigne, ChampsEnTeteEquipement, ReferenceHoraire } from "@/lib/gmao/types";
+import { OcrScanButton } from "./ocr-scan-button";
 
 /// Un champ d'en-tête spécifique à une famille (texte ou liste de choix
 /// — la valeur existante est toujours proposée même si absente de la
@@ -24,12 +25,15 @@ export function ChampEnTeteField({
           {champ.label}
           {champ.unite ? ` (${champ.unite})` : ""}
         </label>
-        <input
-          value={v}
-          onChange={(e) => onChange(e.target.value)}
-          inputMode={champ.numerique ? "decimal" : undefined}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-        />
+        <div className="flex items-center gap-1.5">
+          <input
+            value={v}
+            onChange={(e) => onChange(e.target.value)}
+            inputMode={champ.numerique ? "decimal" : undefined}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+          />
+          <OcrScanButton onRecognized={onChange} />
+        </div>
       </div>
     );
   }

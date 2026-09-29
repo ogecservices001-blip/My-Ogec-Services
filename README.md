@@ -44,6 +44,24 @@ npm run db:types
 
 `npm run db:types` écrit `src/lib/database.types.ts` — ne pas modifier ce fichier à la main, il est régénéré à chaque changement de schéma. `src/lib/types.ts` réexporte des alias pratiques à partir de ces types générés.
 
+## Import Firestore → Supabase
+
+Tant qu'un module reste saisi dans l'app Flutter, Firestore fait foi et ce dépôt le lit via un import rejouable (voir `docs/MIGRATION.md`, §4). Le script :
+
+```bash
+# Variables nécessaires (ne jamais commiter le fichier de clé) :
+export FIREBASE_SERVICE_ACCOUNT_PATH=/chemin/hors-du-depot/service-account.json
+export NEXT_PUBLIC_SUPABASE_URL=...        # déjà dans .env.local
+export SUPABASE_SECRET_KEY=...             # déjà dans .env.local
+
+npm run import:firestore -- --only=sites,fournisseurs,profiles
+npm run import:firestore -- --dry-run      # simulation, n'écrit rien
+```
+
+Rejouable sans créer de doublon : chaque ligne porte un `legacy_id` (id du document Firestore d'origine), l'upsert se fait sur `id` en résolvant d'abord l'id existant via ce `legacy_id` — jamais un upsert direct sur `legacy_id`, qui écraserait l'id (et casserait tout ce qui le référence) à chaque ré-import.
+
+Ajouter une collection : créer `scripts/mappers/<nom>.ts` (voir les mappers existants) et l'ajouter au tableau `MAPPERS` de `scripts/import-firestore.ts`, après les collections dont elle dépend.
+
 ## Structure
 
 - `src/app/(app)/repertoire/` — module Répertoire (clients/sites,

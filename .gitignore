@@ -40,6 +40,13 @@ yarn-error.log*
 # données sources locales (fichiers clients/équipements) — jamais dans le repo
 /Dossier sources divers/
 
+# compte de service Firebase (script d'import) — jamais dans le repo,
+# même si un jour placé ici par erreur plutôt qu'à son emplacement
+# recommandé hors dépôt
+*service-account*.json
+*service_account*.json
+sa-key.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

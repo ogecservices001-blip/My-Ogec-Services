@@ -39,6 +39,70 @@ export type Database = {
   }
   public: {
     Tables: {
+      demandes_depannage: {
+        Row: {
+          client_nom: string
+          client_site: string
+          date_creation: string
+          email: string
+          equipement_id: string | null
+          equipement_nom: string
+          id: string
+          legacy_id: string | null
+          message: string
+          site_id: string | null
+          statut: Database["public"]["Enums"]["statut_depannage"]
+        }
+        Insert: {
+          client_nom?: string
+          client_site?: string
+          date_creation?: string
+          email?: string
+          equipement_id?: string | null
+          equipement_nom?: string
+          id?: string
+          legacy_id?: string | null
+          message?: string
+          site_id?: string | null
+          statut?: Database["public"]["Enums"]["statut_depannage"]
+        }
+        Update: {
+          client_nom?: string
+          client_site?: string
+          date_creation?: string
+          email?: string
+          equipement_id?: string | null
+          equipement_nom?: string
+          id?: string
+          legacy_id?: string | null
+          message?: string
+          site_id?: string | null
+          statut?: Database["public"]["Enums"]["statut_depannage"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandes_depannage_equipement_id_fkey"
+            columns: ["equipement_id"]
+            isOneToOne: false
+            referencedRelation: "equipements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_depannage_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_depannage_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipements: {
         Row: {
           champs_en_tete: Json
@@ -821,6 +885,7 @@ export type Database = {
       is_staff: { Args: never; Returns: boolean }
     }
     Enums: {
+      statut_depannage: "nouvelle" | "traitee"
       user_role: "admin" | "technicien" | "en_attente" | "client"
     }
     CompositeTypes: {
@@ -952,6 +1017,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      statut_depannage: ["nouvelle", "traitee"],
       user_role: ["admin", "technicien", "en_attente", "client"],
     },
   },

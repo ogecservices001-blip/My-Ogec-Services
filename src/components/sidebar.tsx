@@ -20,7 +20,11 @@ const modules: Module[] = [
       { nom: "Collaborateurs", href: "/repertoire/collaborateurs" },
     ],
   },
-  { nom: "Suivi Dépannages", actif: false, sousMenus: [] },
+  {
+    nom: "Suivi Dépannages",
+    actif: true,
+    sousMenus: [{ nom: "Demandes reçues", href: "/depannages" }],
+  },
   {
     nom: "Bon d'intervention",
     actif: false,

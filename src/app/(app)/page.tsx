@@ -33,13 +33,13 @@ const modules: {
     actif: true,
   },
   {
-    href: "#",
+    href: "/depannages",
     titre: "Suivi Dépannages",
     sousTitre: "Demandes reçues via QR équipement",
     icone: Construction,
     fond: "bg-red-100",
     couleur: "text-red-600",
-    actif: false,
+    actif: true,
   },
   {
     href: "#",
@@ -122,8 +122,8 @@ export default function AccueilPage() {
         Accueil
       </h1>
       <p className="mb-6 text-sm text-slate-500">
-        La migration se fait module par module — Répertoire, GMAO et
-        Référentiel GMAO disponibles pour l&apos;instant.
+        La migration se fait module par module — Répertoire, GMAO,
+        Référentiel GMAO et Suivi Dépannages disponibles pour l&apos;instant.
       </p>
       <div className="space-y-3">
         {modules.map((m) =>

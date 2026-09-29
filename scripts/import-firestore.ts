@@ -30,12 +30,14 @@ import { typesEquipementMapper } from "./mappers/types-equipement";
 import { referencesHorairesMapper } from "./mappers/references-horaires";
 import { equipementsMapper } from "./mappers/equipements";
 import { relevesMapper } from "./mappers/releves";
+import { demandesDepannageMapper } from "./mappers/demandes-depannage";
 
 // Ordre de dépendance des FK — sites/fournisseurs/profiles/
 // types_equipement/references_horaires sont indépendants entre eux ;
-// equipements référence sites et references_horaires, releves
-// référence equipements et sites (via `dependances`, voir
-// mappers/types.ts) : chacun doit être importé après ses dépendances.
+// equipements référence sites et references_horaires, releves et
+// demandes_depannage référencent equipements et sites (via
+// `dependances`, voir mappers/types.ts) : chacun doit être importé
+// après ses dépendances.
 const MAPPERS: Mapper[] = [
   sitesMapper,
   fournisseursMapper,
@@ -44,6 +46,7 @@ const MAPPERS: Mapper[] = [
   referencesHorairesMapper,
   equipementsMapper,
   relevesMapper,
+  demandesDepannageMapper,
 ];
 
 type Bilan = {

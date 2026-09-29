@@ -13,6 +13,14 @@ export type FirestoreDoc = {
   data: Record<string, unknown>;
 };
 
+/// Donné à `toRow` pour résoudre une relation Firestore (ex: `clientId`)
+/// vers l'id Supabase de la table déjà importée correspondante, via son
+/// `legacy_id`. `null` si la table n'a pas été pré-chargée (absente de
+/// `Mapper.dependances`) ou si l'id Firestore est introuvable.
+export type ImportContext = {
+  legacyId: (table: TableName, legacyId: string | null | undefined) => string | null;
+};
+
 /// Un mapper transforme un document d'une collection Firestore en une
 /// ligne Postgres prête à upserter. `toRow` ne renvoie jamais `id` (la
 /// résolution id existant/nouveau est faite par le moteur d'import,
@@ -28,7 +36,15 @@ export type Mapper = {
   /// quel (clé naturelle déjà stable, ex: types_equipement/mod_roof) —
   /// pas de legacy_id ni d'uuid généré dans ce cas.
   idIsDocId?: boolean;
-  toRow: (doc: FirestoreDoc) => Record<string, unknown> & { legacy_id?: string };
+  /// Tables dont la map legacy_id→id doit être pré-chargée avant
+  /// d'importer cette collection, pour résoudre ses relations via
+  /// `ImportContext.legacyId` (ex: equipements a besoin de sites pour
+  /// résoudre clientId → site_id).
+  dependances?: TableName[];
+  toRow: (
+    doc: FirestoreDoc,
+    ctx: ImportContext,
+  ) => Record<string, unknown> & { legacy_id?: string };
 };
 
 /// Lit un champ texte, jamais `undefined`/`null` — les 66 champs de

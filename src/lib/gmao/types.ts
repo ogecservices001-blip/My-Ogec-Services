@@ -81,3 +81,17 @@ export type TypeEquipement = Omit<
 };
 
 export type ReferenceHoraire = Tables<"references_horaires">;
+
+/// Une ligne d'un `ChampListe` déjà saisie sur une fiche équipement
+/// (clé = `SousChamp.cle`, valeur = texte saisi).
+export type ChampListeLigne = Record<string, string>;
+
+/// Valeurs des champs d'en-tête spécifiques d'un équipement (clé =
+/// `ChampEnTete.cle` ou `ChampListe.cle`) — texte pour un `ChampEnTete`,
+/// liste de lignes pour un `ChampListe`. Fidèle à `equipements.champsEnTete`
+/// (equipement_model.dart), schéma polymorphe piloté par la famille.
+export type ChampsEnTeteEquipement = Record<string, string | ChampListeLigne[]>;
+
+export type Equipement = Omit<Tables<"equipements">, "champs_en_tete"> & {
+  champs_en_tete: ChampsEnTeteEquipement;
+};

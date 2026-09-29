@@ -39,6 +39,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      equipements: {
+        Row: {
+          champs_en_tete: Json
+          code_qr: string
+          created_at: string
+          groupe: string
+          hors_contrat: boolean
+          id: string
+          legacy_id: string | null
+          localisation: string
+          nom: string
+          numero_equipement: string
+          reference_horaire_id: string | null
+          remarque_technicien: string
+          site_id: string
+          type_equipement_id: string
+          updated_at: string
+        }
+        Insert: {
+          champs_en_tete?: Json
+          code_qr?: string
+          created_at?: string
+          groupe?: string
+          hors_contrat?: boolean
+          id?: string
+          legacy_id?: string | null
+          localisation?: string
+          nom?: string
+          numero_equipement?: string
+          reference_horaire_id?: string | null
+          remarque_technicien?: string
+          site_id: string
+          type_equipement_id: string
+          updated_at?: string
+        }
+        Update: {
+          champs_en_tete?: Json
+          code_qr?: string
+          created_at?: string
+          groupe?: string
+          hors_contrat?: boolean
+          id?: string
+          legacy_id?: string | null
+          localisation?: string
+          nom?: string
+          numero_equipement?: string
+          reference_horaire_id?: string | null
+          remarque_technicien?: string
+          site_id?: string
+          type_equipement_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipements_reference_horaire_id_fkey"
+            columns: ["reference_horaire_id"]
+            isOneToOne: false
+            referencedRelation: "references_horaires"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipements_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipements_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipements_type_equipement_id_fkey"
+            columns: ["type_equipement_id"]
+            isOneToOne: false
+            referencedRelation: "types_equipement"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fournisseurs: {
         Row: {
           adresse: string

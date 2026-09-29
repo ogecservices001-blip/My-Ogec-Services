@@ -22,24 +22,26 @@ import { cert, initializeApp, type ServiceAccount } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../src/lib/database.types";
-import type { Mapper } from "./mappers/types";
+import type { ImportContext, Mapper, TableName } from "./mappers/types";
 import { sitesMapper } from "./mappers/sites";
 import { fournisseursMapper } from "./mappers/fournisseurs";
 import { profilesMapper } from "./mappers/profiles";
 import { typesEquipementMapper } from "./mappers/types-equipement";
 import { referencesHorairesMapper } from "./mappers/references-horaires";
+import { equipementsMapper } from "./mappers/equipements";
 
-// Ordre de dépendance des FK — pour l'instant sites/fournisseurs/
-// profiles/types_equipement/references_horaires sont indépendants
-// entre eux, l'ordre n'a pas d'importance, mais toute future
-// collection qui référence l'une d'elles (ex. equipements → sites,
-// types_equipement) doit être ajoutée APRÈS.
+// Ordre de dépendance des FK — sites/fournisseurs/profiles/
+// types_equipement/references_horaires sont indépendants entre eux ;
+// equipements référence sites et references_horaires (via
+// `dependances`, voir mappers/types.ts) et doit donc être importé
+// après elles.
 const MAPPERS: Mapper[] = [
   sitesMapper,
   fournisseursMapper,
   profilesMapper,
   typesEquipementMapper,
   referencesHorairesMapper,
+  equipementsMapper,
 ];
 
 type Bilan = {
@@ -65,6 +67,25 @@ function env(nom: string): string {
   return v;
 }
 
+async function fetchLegacyIdMap(
+  supabase: ReturnType<typeof createClient<Database>>,
+  table: TableName,
+): Promise<Map<string, string>> {
+  const { data, error } = await supabase
+    .from(table)
+    .select("id, legacy_id")
+    .not("legacy_id", "is", null)
+    .returns<{ id: string; legacy_id: string | null }[]>();
+  if (error) {
+    throw new Error(`Impossible de lire ${table} pour résoudre les dépendances : ${error.message}`);
+  }
+  const map = new Map<string, string>();
+  for (const row of data) {
+    if (row.legacy_id) map.set(row.legacy_id, row.id);
+  }
+  return map;
+}
+
 async function importerCollection(
   mapper: Mapper,
   db: Firestore,
@@ -76,6 +97,15 @@ async function importerCollection(
 
   const snap = await db.collection(mapper.collection).get();
   console.log(`${snap.size} document(s) Firestore.`);
+
+  const cartesDependances = new Map<TableName, Map<string, string>>();
+  for (const dep of mapper.dependances ?? []) {
+    cartesDependances.set(dep, await fetchLegacyIdMap(supabase, dep));
+  }
+  const ctx: ImportContext = {
+    legacyId: (table, legacyId) =>
+      legacyId ? (cartesDependances.get(table)?.get(legacyId) ?? null) : null,
+  };
 
   const idParLegacyId = new Map<string, string>();
   const idsExistants = new Set<string>();
@@ -106,7 +136,7 @@ async function importerCollection(
   const rows: Record<string, unknown>[] = [];
   for (const doc of snap.docs) {
     try {
-      const row = mapper.toRow({ id: doc.id, data: doc.data() });
+      const row = mapper.toRow({ id: doc.id, data: doc.data() }, ctx);
       const id = mapper.idIsDocId ? doc.id : (idParLegacyId.get(row.legacy_id!) ?? randomUUID());
       const estNouveau = mapper.idIsDocId ? !idsExistants.has(doc.id) : !idParLegacyId.has(row.legacy_id!);
       rows.push({ ...row, id });

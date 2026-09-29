@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import type { Tables } from "@/lib/types";
@@ -15,7 +15,15 @@ function formaterDateHeure(iso: string): string {
   return `${deuxChiffres(d.getDate())}/${deuxChiffres(d.getMonth() + 1)}/${d.getFullYear()} ${deuxChiffres(d.getHours())}:${deuxChiffres(d.getMinutes())}`;
 }
 
+type Onglet = "en_cours" | "traitees";
+
 export function DepannagesListe({ demandes }: { demandes: Tables<"demandes_depannage">[] }) {
+  const [onglet, setOnglet] = useState<Onglet>("en_cours");
+
+  const enCours = demandes.filter((d) => d.statut !== "traitee");
+  const traitees = demandes.filter((d) => d.statut === "traitee");
+  const filtrees = onglet === "en_cours" ? enCours : traitees;
+
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Suivi Dépannage</h1>
@@ -23,11 +31,36 @@ export function DepannagesListe({ demandes }: { demandes: Tables<"demandes_depan
         Demandes reçues depuis les pages publiques équipement (QR code scanné)
       </p>
 
-      {demandes.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">Aucune demande de dépannage reçue</p>
+      <div className="mb-5 flex gap-2">
+        <button
+          onClick={() => setOnglet("en_cours")}
+          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+            onglet === "en_cours"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+          }`}
+        >
+          Dépannages en cours ({enCours.length})
+        </button>
+        <button
+          onClick={() => setOnglet("traitees")}
+          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+            onglet === "traitees"
+              ? "bg-brand-green text-white shadow-sm"
+              : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+          }`}
+        >
+          Dépannages traitées ({traitees.length})
+        </button>
+      </div>
+
+      {filtrees.length === 0 ? (
+        <p className="py-10 text-center text-sm text-slate-500">
+          {onglet === "en_cours" ? "Aucun dépannage en cours" : "Aucun dépannage traité"}
+        </p>
       ) : (
         <ul className="space-y-3">
-          {demandes.map((d) => (
+          {filtrees.map((d) => (
             <CarteDemande key={d.id} demande={d} />
           ))}
         </ul>

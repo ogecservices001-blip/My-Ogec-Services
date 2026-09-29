@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# données sources locales (fichiers clients/équipements) — jamais dans le repo
+/Dossier sources divers/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -6,25 +6,45 @@ import { Camera, Loader2 } from "lucide-react";
 /// Bouton "scanner" à poser à côté d'un champ texte (référence, n° de
 /// série...) — prend une photo de l'étiquette/plaque signalétique et
 /// propose au technicien les lignes de texte reconnues pour remplir le
-/// champ. Port web de ocr_scan_button.dart (ML Kit natif → Tesseract.js
-/// dans le navigateur, chargé à la demande pour ne pas alourdir le
-/// bundle des pages qui ne l'utilisent pas).
+/// champ. Port web de ocr_scan_button.dart : Google ML Kit (natif) →
+/// Google Cloud Vision appelé côté serveur (/gmao/ocr) — Tesseract.js
+/// (dans le navigateur) essayé en premier s'est révélé trop lent et
+/// imprécis en usage réel.
 export function OcrScanButton({ onRecognized }: { onRecognized: (texte: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [lignes, setLignes] = useState<string[] | null>(null);
 
+  /// Réduit la photo avant envoi — plus rapide à transférer, et Cloud
+  /// Vision n'a pas besoin de la pleine résolution pour lire du texte.
+  async function redimensionner(fichier: File, maxDim = 1600): Promise<Blob> {
+    const bitmap = await createImageBitmap(fichier);
+    const echelle = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const largeur = Math.round(bitmap.width * echelle);
+    const hauteur = Math.round(bitmap.height * echelle);
+    const canvas = document.createElement("canvas");
+    canvas.width = largeur;
+    canvas.height = hauteur;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return fichier;
+    ctx.drawImage(bitmap, 0, 0, largeur, hauteur);
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob ?? fichier), "image/jpeg", 0.85);
+    });
+  }
+
   async function traiter(fichier: File) {
     setEnCours(true);
     setErreur(null);
     try {
-      const Tesseract = await import("tesseract.js");
-      const { data } = await Tesseract.recognize(fichier, "eng");
-      const lignesTrouvees = data.text
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean);
+      const blob = await redimensionner(fichier);
+      const donnees = new FormData();
+      donnees.append("image", blob, "photo.jpg");
+      const res = await fetch("/gmao/ocr", { method: "POST", body: donnees });
+      if (!res.ok) throw new Error();
+      const data: { lignes?: string[]; erreur?: string } = await res.json();
+      const lignesTrouvees = data.lignes ?? [];
       if (lignesTrouvees.length === 0) {
         setErreur("Aucun texte reconnu sur la photo.");
       } else if (lignesTrouvees.length === 1) {

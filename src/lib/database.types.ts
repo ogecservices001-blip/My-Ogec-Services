@@ -44,12 +44,17 @@ export type Database = {
           client_nom: string
           client_site: string
           date_creation: string
+          date_intervention_prevue: string | null
           email: string
           equipement_id: string | null
           equipement_nom: string
           id: string
+          intervenant_id: string | null
           legacy_id: string | null
+          lieu_panne: string
           message: string
+          numero: number
+          numero_demande_client: string
           site_id: string | null
           statut: Database["public"]["Enums"]["statut_depannage"]
         }
@@ -57,12 +62,17 @@ export type Database = {
           client_nom?: string
           client_site?: string
           date_creation?: string
+          date_intervention_prevue?: string | null
           email?: string
           equipement_id?: string | null
           equipement_nom?: string
           id?: string
+          intervenant_id?: string | null
           legacy_id?: string | null
+          lieu_panne?: string
           message?: string
+          numero?: number
+          numero_demande_client?: string
           site_id?: string | null
           statut?: Database["public"]["Enums"]["statut_depannage"]
         }
@@ -70,12 +80,17 @@ export type Database = {
           client_nom?: string
           client_site?: string
           date_creation?: string
+          date_intervention_prevue?: string | null
           email?: string
           equipement_id?: string | null
           equipement_nom?: string
           id?: string
+          intervenant_id?: string | null
           legacy_id?: string | null
+          lieu_panne?: string
           message?: string
+          numero?: number
+          numero_demande_client?: string
           site_id?: string | null
           statut?: Database["public"]["Enums"]["statut_depannage"]
         }
@@ -85,6 +100,13 @@ export type Database = {
             columns: ["equipement_id"]
             isOneToOne: false
             referencedRelation: "equipements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_depannage_intervenant_id_fkey"
+            columns: ["intervenant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {

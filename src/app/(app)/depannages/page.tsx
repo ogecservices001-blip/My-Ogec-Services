@@ -4,10 +4,18 @@ import { DepannagesListe } from "./depannages-liste";
 
 export default async function DepannagesPage() {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("demandes_depannage")
-    .select("*")
-    .order("date_creation", { ascending: false });
+  const [{ data }, { data: techniciens }] = await Promise.all([
+    supabase.from("demandes_depannage").select("*").order("date_creation", { ascending: false }),
+    supabase.from("profiles").select("id, name, portable"),
+  ]);
 
-  return <DepannagesListe demandes={(data ?? []) as Tables<"demandes_depannage">[]} />;
+  const techniciensParId: Record<string, { name: string; portable: string }> = {};
+  for (const t of techniciens ?? []) techniciensParId[t.id] = { name: t.name, portable: t.portable };
+
+  return (
+    <DepannagesListe
+      demandes={(data ?? []) as Tables<"demandes_depannage">[]}
+      techniciensParId={techniciensParId}
+    />
+  );
 }

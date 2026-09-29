@@ -42,7 +42,12 @@ export async function freqCouranteCalculee(
 /// Variante "Fréquence courante" pour plusieurs équipements en un seul
 /// aller-retour réseau (au lieu d'un `freqCouranteCalculee` par
 /// équipement) — même résultat, utilisée pour les compteurs de liste
-/// (parc d'un site) où N appels individuels seraient coûteux.
+/// (parc d'un site, d'un client, ou global). Ne filtre PAS par
+/// `equipement_id` côté requête (un `.in()` sur des milliers d'ids —
+/// tout le parc GMAO au niveau global — dépasserait vite une taille de
+/// requête raisonnable) : la table `releves` d'une année civile reste
+/// petite quel que soit le nombre d'équipements, donc on la lit en
+/// entier et on filtre localement.
 export async function freqCouranteCalculeeBatch(
   supabase: SupabaseServerClient,
   equipementIds: string[],
@@ -61,7 +66,6 @@ export async function freqCouranteCalculeeBatch(
   const { data } = await supabase
     .from("releves")
     .select("equipement_id")
-    .in("equipement_id", equipementIds)
     .gte("date", debut)
     .lt("date", fin)
     .returns<{ equipement_id: string }[]>();

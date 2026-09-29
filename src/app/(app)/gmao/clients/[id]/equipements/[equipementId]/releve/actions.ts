@@ -75,7 +75,7 @@ export async function creerReleve(
   });
   if (errInsert) return { ok: false, erreur: errInsert.message };
 
-  revalidatePath(`/repertoire/clients/${siteId}/equipements`);
-  revalidatePath(`/repertoire/clients/${siteId}/equipements/${equipementId}`);
+  revalidatePath(`/gmao/clients/${siteId}/equipements`);
+  revalidatePath(`/gmao/clients/${siteId}/equipements/${equipementId}`);
   return { ok: true };
 }

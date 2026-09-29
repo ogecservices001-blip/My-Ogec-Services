@@ -265,7 +265,7 @@ function CarteEquipement({
 
       <div className="mt-2 flex gap-2">
         <Link
-          href={`/repertoire/clients/${siteId}/equipements/${eq.id}`}
+          href={`/gmao/clients/${siteId}/equipements/${eq.id}`}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
         >
           <Eye className="h-3.5 w-3.5" strokeWidth={2} />
@@ -273,7 +273,7 @@ function CarteEquipement({
         </Link>
         {type && (
           <Link
-            href={`/repertoire/clients/${siteId}/equipements/${eq.id}/releve/nouveau`}
+            href={`/gmao/clients/${siteId}/equipements/${eq.id}/releve/nouveau`}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-brand-green/30 bg-green-50 px-2 py-1.5 text-xs font-semibold text-brand-green-dark hover:bg-green-100"
           >
             <Play className="h-3.5 w-3.5" strokeWidth={2} />
@@ -287,7 +287,7 @@ function CarteEquipement({
           <BoutonSupprimer
             action={supprimerEquipement.bind(null, eq.id, siteId)}
             confirmation={`Supprimer l'équipement "${eq.nom}" ?`}
-            redirectTo={`/repertoire/clients/${siteId}/equipements`}
+            redirectTo={`/gmao/clients/${siteId}/equipements`}
             label="Supprimer"
           />
         </div>

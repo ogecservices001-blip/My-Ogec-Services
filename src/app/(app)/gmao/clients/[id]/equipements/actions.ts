@@ -50,7 +50,7 @@ export async function creerEquipement(
   });
   if (error) return { ok: false, erreur: error.message };
 
-  revalidatePath(`/repertoire/clients/${parsed.data.site_id}/equipements`);
+  revalidatePath(`/gmao/clients/${parsed.data.site_id}/equipements`);
   return { ok: true };
 }
 
@@ -61,6 +61,6 @@ export async function supprimerEquipement(id: string, siteId: string): Promise<A
   const { error } = await supabase.from("equipements").delete().eq("id", id);
   if (error) return { ok: false, erreur: error.message };
 
-  revalidatePath(`/repertoire/clients/${siteId}/equipements`);
+  revalidatePath(`/gmao/clients/${siteId}/equipements`);
   return { ok: true };
 }

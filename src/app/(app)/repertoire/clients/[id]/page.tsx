@@ -129,10 +129,10 @@ export default async function SiteDetailPage({
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <Link
           href={`/repertoire/clients/${id}/equipements`}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
         >
           <Wrench className="h-4 w-4" strokeWidth={2} />
-          Parc GMAO
+          Équipements Clients
         </Link>
         {isAdmin && (
           <>

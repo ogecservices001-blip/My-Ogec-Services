@@ -36,7 +36,15 @@ const modules: Module[] = [
       { nom: "Livraison de matériel" },
     ],
   },
-  { nom: "GMAO", actif: false, sousMenus: [] },
+  {
+    nom: "GMAO",
+    actif: true,
+    sousMenus: [
+      { nom: "Accueil GMAO", href: "/gmao" },
+      { nom: "Clients contrat entretien", href: "/gmao/clients?horsContrat=0" },
+      { nom: "Clients hors contrat", href: "/gmao/clients?horsContrat=1" },
+    ],
+  },
   {
     nom: "CERFA",
     actif: false,

@@ -51,13 +51,13 @@ const modules: {
     actif: false,
   },
   {
-    href: "#",
+    href: "/gmao",
     titre: "GMAO",
     sousTitre: "Parc équipements et relevés d'entretien",
     icone: Wrench,
     fond: "bg-teal-100",
     couleur: "text-teal-600",
-    actif: false,
+    actif: true,
   },
   {
     href: "#",
@@ -122,8 +122,8 @@ export default function AccueilPage() {
         Accueil
       </h1>
       <p className="mb-6 text-sm text-slate-500">
-        La migration se fait module par module — Répertoire et Référentiel
-        GMAO disponibles pour l&apos;instant.
+        La migration se fait module par module — Répertoire, GMAO et
+        Référentiel GMAO disponibles pour l&apos;instant.
       </p>
       <div className="space-y-3">
         {modules.map((m) =>

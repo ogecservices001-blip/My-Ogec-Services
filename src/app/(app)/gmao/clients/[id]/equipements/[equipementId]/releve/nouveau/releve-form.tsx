@@ -76,7 +76,7 @@ export function ReleveForm({
 
   useEffect(() => {
     if (state?.ok) {
-      router.push(`/repertoire/clients/${siteId}/equipements`);
+      router.push(`/gmao/clients/${siteId}/equipements`);
       router.refresh();
     }
   }, [state, router, siteId]);
@@ -101,14 +101,14 @@ export function ReleveForm({
     <div>
       <div className="mb-4 flex items-center justify-between">
         <Link
-          href={`/repertoire/clients/${siteId}/equipements`}
+          href={`/gmao/clients/${siteId}/equipements`}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
           Retour
         </Link>
         <Link
-          href={`/repertoire/clients/${siteId}/equipements/${equipement.id}/releves`}
+          href={`/gmao/clients/${siteId}/equipements/${equipement.id}/releves`}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
         >
           <Clock className="h-4 w-4" strokeWidth={2.25} />

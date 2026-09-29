@@ -16,7 +16,7 @@ export type LigneImportEquipement = {
 
 export type DiffChamp = { label: string; ancienne: string; nouvelle: string };
 
-export type DiffAjout = { ligne: LigneImportEquipement };
+export type DiffAjout = { ligne: LigneImportEquipement; siteId: string };
 export type DiffModification = { existant: Equipement; ligne: LigneImportEquipement; champs: DiffChamp[] };
 export type DiffSuppression = { existant: Equipement };
 
@@ -74,6 +74,7 @@ export function calculerDiffPourSite(
   lignes: LigneImportEquipement[],
   existants: Equipement[],
   typesById: Record<string, TypeEquipement>,
+  siteId: string,
 ): ResultatDiff {
   const avertissements: Avertissement[] = [];
   const ajouts: DiffAjout[] = [];
@@ -115,7 +116,7 @@ export function calculerDiffPourSite(
 
     const existant = existantsParNumero.get(numero);
     if (!existant) {
-      ajouts.push({ ligne });
+      ajouts.push({ ligne, siteId });
       continue;
     }
 
@@ -147,6 +148,74 @@ export function calculerDiffPourSite(
   const suppressions: DiffSuppression[] = [...existantsParNumero.entries()]
     .filter(([numero]) => !numerosVus.has(numero))
     .map(([, existant]) => ({ existant }));
+
+  return { ajouts, modifications, suppressions, avertissements };
+}
+
+/// Rattache chaque ligne importée au bon site parmi `sites` (un ou
+/// plusieurs) exclusivement via ses colonnes Numéro Client/Site — sauf
+/// cas particulier : un seul site fourni ET aucune ligne n'a ces
+/// colonnes renseignées (fichier mono-site historique), auquel cas
+/// tout lui est rattaché directement. Une ligne dont le Numéro est
+/// illisible est signalée ; une ligne hors périmètre (autre site du
+/// classeur partagé) est ignorée silencieusement. Port de
+/// `EquipementImportService.calculerDiff`, généralisé à N sites (1 pour
+/// un import par site, tous les sites d'un client, ou le parc entier).
+export function calculerDiff(
+  lignes: LigneImportEquipement[],
+  sites: { id: string; n_affaire: string }[],
+  existantsParSite: Map<string, Equipement[]>,
+  typesById: Record<string, TypeEquipement>,
+): ResultatDiff {
+  const auMoinsUneLigneAvecNumero = lignes.some(
+    (l) => extraireNumero(l.numeroClientBrut) !== null && extraireNumero(l.numeroSiteBrut) !== null,
+  );
+
+  const lignesParSite = new Map<string, LigneImportEquipement[]>();
+  const avertissementsGlobaux: Avertissement[] = [];
+
+  if (sites.length === 1 && !auMoinsUneLigneAvecNumero) {
+    lignesParSite.set(sites[0].id, lignes);
+  } else {
+    const siteParNumero = new Map<string, { id: string; n_affaire: string }>();
+    for (const s of sites) {
+      const cle = cleNumeroSite(s.n_affaire);
+      if (cle) siteParNumero.set(cle, s);
+    }
+    for (const ligne of lignes) {
+      const numClient = extraireNumero(ligne.numeroClientBrut);
+      const numSite = extraireNumero(ligne.numeroSiteBrut);
+      if (numClient === null || numSite === null) {
+        avertissementsGlobaux.push({
+          message: `Numéro Client/Site manquant ou illisible pour "${ligne.numeroEquipement || ligne.nom}" — ligne ignorée`,
+        });
+        continue;
+      }
+      const site = siteParNumero.get(`${numClient}-${numSite}`);
+      if (!site) continue; // hors périmètre de cet import, pas une anomalie
+      const liste = lignesParSite.get(site.id) ?? [];
+      liste.push(ligne);
+      lignesParSite.set(site.id, liste);
+    }
+  }
+
+  const ajouts: DiffAjout[] = [];
+  const modifications: DiffModification[] = [];
+  const suppressions: DiffSuppression[] = [];
+  const avertissements: Avertissement[] = [...avertissementsGlobaux];
+
+  for (const site of sites) {
+    const resultat = calculerDiffPourSite(
+      lignesParSite.get(site.id) ?? [],
+      existantsParSite.get(site.id) ?? [],
+      typesById,
+      site.id,
+    );
+    ajouts.push(...resultat.ajouts);
+    modifications.push(...resultat.modifications);
+    suppressions.push(...resultat.suppressions);
+    avertissements.push(...resultat.avertissements);
+  }
 
   return { ajouts, modifications, suppressions, avertissements };
 }

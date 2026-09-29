@@ -41,7 +41,7 @@ export default async function HistoriqueRelevesPage({
   return (
     <div>
       <Link
-        href={`/repertoire/clients/${id}/equipements`}
+        href={`/gmao/clients/${id}/equipements`}
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />

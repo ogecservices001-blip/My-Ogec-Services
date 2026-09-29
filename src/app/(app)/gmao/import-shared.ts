@@ -5,17 +5,15 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
-import {
-  calculerDiffPourSite,
-  cleNumeroSite,
-  extraireNumero,
-  type LigneImportEquipement,
-  type ResultatDiff,
-} from "@/lib/gmao/equipement-import";
+import { calculerDiff, type LigneImportEquipement, type ResultatDiff } from "@/lib/gmao/equipement-import";
 import type { ActionResult } from "@/lib/action-result";
 
-/// Correspondance en-tête normalisé → clé de champsEnTete, même
-/// mapping que `_colonneVersCle` (equipement_import_service.dart).
+/// Logique d'import "Sommaire" partagée entre l'import par site
+/// (/gmao/clients/[id]/equipements/importer), par client
+/// (/gmao/clients/groupe/[nom]/importer) et global (/gmao/importer) —
+/// seul le nombre de sites fournis change, le rattachement par Numéro
+/// Client/Site (calculerDiff) gère les trois cas de façon uniforme.
+
 const COLONNE_VERS_CLE: Record<string, string> = {
   "type equipement 2": "typeEquipement2",
   "type equipement 3": "typeEquipement3",
@@ -103,14 +101,11 @@ export type ResultatPreviewEquipements =
   | { ok: true; diff: ResultatDiff }
   | { ok: false; erreur: string };
 
-/// Analyse le classeur "Sommaire" pour LE site courant : si le fichier
-/// porte des colonnes Numéro Client/Site renseignées, seules les lignes
-/// dont le numéro correspond à ce site sont prises en compte (fichier
-/// partagé multi-clients) ; sinon toutes les lignes lui sont
-/// rattachées (fichier mono-site historique). Port de `calculerDiff`
-/// (equipement_import_service.dart), restreint à un seul site.
+/// Analyse le classeur "Sommaire" pour les sites donnés (un, tous ceux
+/// d'un client, ou le parc entier) — port de `calculerDiff`
+/// (equipement_import_service.dart).
 export async function previsualiserImportEquipements(
-  siteId: string,
+  siteIds: string[],
   formData: FormData,
 ): Promise<ResultatPreviewEquipements> {
   await requireAdmin();
@@ -120,49 +115,23 @@ export async function previsualiserImportEquipements(
     return { ok: false, erreur: "Aucun fichier sélectionné." };
   }
 
-  let toutesLesLignes: LigneImportEquipement[] | null;
+  let lignes: LigneImportEquipement[] | null;
   try {
-    toutesLesLignes = await parserSommaire(fichier);
+    lignes = await parserSommaire(fichier);
   } catch {
     return { ok: false, erreur: "Fichier illisible — un .xlsx/.xlsm est attendu." };
   }
-  if (!toutesLesLignes) return { ok: false, erreur: "Classeur vide." };
+  if (!lignes) return { ok: false, erreur: "Classeur vide." };
 
   const supabase = await createClient();
-  const { data: site, error: errSite } = await supabase
+  const { data: sites, error: errSites } = await supabase
     .from("sites")
     .select("id, n_affaire")
-    .eq("id", siteId)
-    .single();
-  if (errSite || !site) return { ok: false, erreur: "Site introuvable." };
-
-  const auMoinsUneLigneAvecNumero = toutesLesLignes.some(
-    (l) => extraireNumero(l.numeroClientBrut) !== null && extraireNumero(l.numeroSiteBrut) !== null,
-  );
-
-  const avertissementsRattachement: string[] = [];
-  let lignes: LigneImportEquipement[];
-  if (!auMoinsUneLigneAvecNumero) {
-    lignes = toutesLesLignes;
-  } else {
-    const cleSite = cleNumeroSite(site.n_affaire);
-    lignes = toutesLesLignes.filter((l) => {
-      const numClient = extraireNumero(l.numeroClientBrut);
-      const numSite = extraireNumero(l.numeroSiteBrut);
-      if (numClient === null || numSite === null) {
-        avertissementsRattachement.push(
-          `Numéro Client/Site manquant ou illisible pour "${l.numeroEquipement || l.nom}" — ligne ignorée`,
-        );
-        return false;
-      }
-      // Hors périmètre (autre site du classeur partagé) : ignorée
-      // silencieusement, ce n'est pas une anomalie.
-      return cleSite !== null && `${numClient}-${numSite}` === cleSite;
-    });
-  }
+    .in("id", siteIds);
+  if (errSites || !sites || sites.length === 0) return { ok: false, erreur: "Site(s) introuvable(s)." };
 
   const [{ data: existants, error: errExistants }, { data: types }] = await Promise.all([
-    supabase.from("equipements").select("*").eq("site_id", siteId),
+    supabase.from("equipements").select("*").in("site_id", siteIds),
     supabase.from("types_equipement").select("*"),
   ]);
   if (errExistants) return { ok: false, erreur: errExistants.message };
@@ -170,19 +139,24 @@ export async function previsualiserImportEquipements(
   const typesById: Record<string, TypeEquipement> = {};
   for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
 
-  const diff = calculerDiffPourSite(lignes, (existants ?? []) as Equipement[], typesById);
-  diff.avertissements = [
-    ...avertissementsRattachement.map((message) => ({ message })),
-    ...diff.avertissements,
-  ];
+  const existantsParSite = new Map<string, Equipement[]>();
+  for (const e of (existants ?? []) as Equipement[]) {
+    const liste = existantsParSite.get(e.site_id) ?? [];
+    liste.push(e);
+    existantsParSite.set(e.site_id, liste);
+  }
 
+  const diff = calculerDiff(lignes, sites, existantsParSite, typesById);
   return { ok: true, diff };
 }
 
+/// Applique les lignes cochées (déjà rattachées à leur site via
+/// `DiffAjout.siteId` / `DiffModification.existant.site_id`) — jamais
+/// un nouveau parsing du fichier.
 export async function appliquerImportEquipements(
-  siteId: string,
   diff: ResultatDiff,
   selection: { ajouts: boolean[]; modifications: boolean[]; suppressions: boolean[] },
+  cheminsARevalider: string[],
 ): Promise<ActionResult & { ajoutes?: number; modifies?: number; supprimes?: number }> {
   await requireAdmin();
 
@@ -194,7 +168,7 @@ export async function appliquerImportEquipements(
   const aInserer = diff.ajouts
     .filter((_, i) => selection.ajouts[i])
     .map((a) => ({
-      site_id: siteId,
+      site_id: a.siteId,
       type_equipement_id: a.ligne.typeEquipementId!,
       nom: a.ligne.nom,
       numero_equipement: a.ligne.numeroEquipement,
@@ -232,6 +206,6 @@ export async function appliquerImportEquipements(
     supprimes++;
   }
 
-  revalidatePath(`/repertoire/clients/${siteId}/equipements`);
+  for (const chemin of cheminsARevalider) revalidatePath(chemin);
   return { ok: true, ajoutes, modifies, supprimes };
 }

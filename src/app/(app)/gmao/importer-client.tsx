@@ -5,9 +5,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Upload, FileSpreadsheet } from "lucide-react";
 import type { ResultatDiff } from "@/lib/gmao/equipement-import";
-import { previsualiserImportEquipements, appliquerImportEquipements } from "../import-actions";
+import { previsualiserImportEquipements, appliquerImportEquipements } from "./import-shared";
 
-export function ImporterEquipementsClient({ siteId }: { siteId: string }) {
+/// Écran d'import "Sommaire" générique, réutilisé pour un import par
+/// site, par client (plusieurs sites) ou global (tous les sites) —
+/// seuls `siteIds`/`cheminsARevalider` changent selon l'ampleur.
+export function ImporterEquipementsClient({
+  titre,
+  sousTitre,
+  siteIds,
+  retourHref,
+  cheminsARevalider,
+}: {
+  titre: string;
+  sousTitre: string;
+  siteIds: string[];
+  retourHref: string;
+  cheminsARevalider: string[];
+}) {
   const router = useRouter();
   const [analyse, startAnalyse] = useTransition();
   const [application, startApplication] = useTransition();
@@ -22,7 +37,7 @@ export function ImporterEquipementsClient({ siteId }: { siteId: string }) {
     setErreur(null);
     setResultat(null);
     startAnalyse(async () => {
-      const res = await previsualiserImportEquipements(siteId, formData);
+      const res = await previsualiserImportEquipements(siteIds, formData);
       if (!res.ok) {
         setErreur(res.erreur);
         setDiff(null);
@@ -42,11 +57,11 @@ export function ImporterEquipementsClient({ siteId }: { siteId: string }) {
     if (!diff) return;
     setErreur(null);
     startApplication(async () => {
-      const res = await appliquerImportEquipements(siteId, diff, {
-        ajouts: cochesAjouts,
-        modifications: cochesModifications,
-        suppressions: cochesSuppressions,
-      });
+      const res = await appliquerImportEquipements(
+        diff,
+        { ajouts: cochesAjouts, modifications: cochesModifications, suppressions: cochesSuppressions },
+        cheminsARevalider,
+      );
       if (!res.ok) {
         setErreur(res.erreur);
         return;
@@ -71,16 +86,14 @@ export function ImporterEquipementsClient({ siteId }: { siteId: string }) {
   return (
     <div>
       <Link
-        href={`/repertoire/clients/${siteId}/equipements`}
+        href={retourHref}
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
         Retour
       </Link>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Importer des équipements</h1>
-      <p className="mb-5 text-sm text-slate-500">
-        Classeur &quot;Sommaire&quot;. Rapprochement par Numéro Équipement.
-      </p>
+      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">{titre}</h1>
+      <p className="mb-5 text-sm text-slate-500">{sousTitre}</p>
 
       {resultat && (
         <p className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-brand-green-dark">

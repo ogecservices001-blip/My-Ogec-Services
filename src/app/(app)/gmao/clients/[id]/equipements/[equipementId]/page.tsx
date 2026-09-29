@@ -55,14 +55,14 @@ export default async function VisualiserEquipementPage({
     <div>
       <div className="mb-4 flex items-center justify-between">
         <Link
-          href={`/repertoire/clients/${id}/equipements`}
+          href={`/gmao/clients/${id}/equipements`}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
           Retour
         </Link>
         <Link
-          href={`/repertoire/clients/${id}/equipements/${equipementId}/releves`}
+          href={`/gmao/clients/${id}/equipements/${equipementId}/releves`}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
         >
           <Clock className="h-4 w-4" strokeWidth={2.25} />

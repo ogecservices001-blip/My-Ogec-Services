@@ -25,7 +25,7 @@ export function EquipementForm({
 
   useEffect(() => {
     if (state?.ok) {
-      router.push(`/repertoire/clients/${siteId}/equipements`);
+      router.push(`/gmao/clients/${siteId}/equipements`);
       router.refresh();
     }
   }, [state, router, siteId]);

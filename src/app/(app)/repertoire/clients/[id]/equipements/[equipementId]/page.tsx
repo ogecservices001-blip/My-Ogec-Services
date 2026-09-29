@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Cog } from "lucide-react";
+import { ArrowLeft, Cog, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { Equipement, TypeEquipement, ChampListeLigne } from "@/lib/gmao/types";
-import { concatTypeEquipement } from "@/lib/gmao/suggestion-reference-horaire";
+import { concatTypeEquipement, analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
+import { calculerHeuresVisite, heuresCumulAnnee } from "@/lib/gmao/calcul-heures-visite";
+import { freqCouranteCalculee } from "@/lib/gmao/releve-service";
 
 export default async function VisualiserEquipementPage({
   params,
@@ -13,9 +15,10 @@ export default async function VisualiserEquipementPage({
   const { id, equipementId } = await params;
   const supabase = await createClient();
 
-  const [{ data: site }, { data: eqData }] = await Promise.all([
+  const [{ data: site }, { data: eqData }, { data: references }] = await Promise.all([
     supabase.from("sites").select("id, nom, site").eq("id", id).single(),
     supabase.from("equipements").select("*").eq("id", equipementId).eq("site_id", id).single(),
+    supabase.from("references_horaires").select("*"),
   ]);
   if (!site || !eqData) notFound();
   const eq = eqData as Equipement;
@@ -31,6 +34,18 @@ export default async function VisualiserEquipementPage({
   const c = eq.champs_en_tete;
   const typeConcat = concatTypeEquipement(c);
   const freqEntretienAnnuelle = typeof c.freqEntretienAnnuelle === "string" ? c.freqEntretienAnnuelle : "";
+  const freqAnnuelleNum = parseInt(freqEntretienAnnuelle, 10);
+
+  const resultatReference = analyserReference(c, references ?? []);
+  const freqCourante = await freqCouranteCalculee(supabase, equipementId);
+  const cumul =
+    resultatReference.reference && Number.isFinite(freqAnnuelleNum)
+      ? heuresCumulAnnee(freqAnnuelleNum, resultatReference.reference)
+      : null;
+  const heuresProchaineVisite =
+    resultatReference.reference && Number.isFinite(freqAnnuelleNum) && freqCourante !== null
+      ? calculerHeuresVisite(freqAnnuelleNum, freqCourante, resultatReference.reference)
+      : null;
 
   const champsRenseignes = type.champs_en_tete_supplementaires
     .filter((champ) => typeof c[champ.cle] === "string" && (c[champ.cle] as string).trim().length > 0)
@@ -38,13 +53,22 @@ export default async function VisualiserEquipementPage({
 
   return (
     <div>
-      <Link
-        href={`/repertoire/clients/${id}/equipements`}
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour
-      </Link>
+      <div className="mb-4 flex items-center justify-between">
+        <Link
+          href={`/repertoire/clients/${id}/equipements`}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+          Retour
+        </Link>
+        <Link
+          href={`/repertoire/clients/${id}/equipements/${equipementId}/releves`}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+        >
+          <Clock className="h-4 w-4" strokeWidth={2.25} />
+          Historique des visites
+        </Link>
+      </div>
 
       <div className="mb-5 flex items-center gap-4 rounded-2xl bg-teal-50 p-4">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white">
@@ -78,10 +102,45 @@ export default async function VisualiserEquipementPage({
                 <dd className="text-sm font-semibold text-slate-900">{freqEntretienAnnuelle}</dd>
               </div>
             )}
+            {cumul && (
+              <div className="flex items-baseline gap-2 border-t border-slate-50 px-4 py-2.5">
+                <dt className="w-60 shrink-0 text-[13px] text-slate-500">Cumul annuel</dt>
+                <dd className="text-sm font-semibold text-slate-900">
+                  {cumul.heuresTech}h Tech / {cumul.heuresAssistant}h Assistant
+                </dd>
+              </div>
+            )}
+            {heuresProchaineVisite && (
+              <div className="flex items-baseline gap-2 border-t border-slate-50 px-4 py-2.5">
+                <dt className="w-60 shrink-0 text-[13px] text-slate-500">Dont prochaine visite</dt>
+                <dd className="text-sm font-semibold text-slate-900">
+                  {heuresProchaineVisite.heuresTech}h Tech / {heuresProchaineVisite.heuresAssistant}h Assistant
+                </dd>
+              </div>
+            )}
+            {resultatReference.reference && (
+              <div className="flex items-baseline gap-2 border-t border-slate-50 px-4 py-2.5">
+                <dt className="w-60 shrink-0 text-[13px] text-slate-500">Référence catalogue</dt>
+                <dd className="text-sm font-semibold text-slate-900">{resultatReference.reference.designation}</dd>
+              </div>
+            )}
+            {resultatReference.horsCatalogue && (
+              <div className="flex items-baseline gap-2 border-t border-slate-50 px-4 py-2.5">
+                <dt className="w-60 shrink-0 text-[13px] text-slate-500">Heures prévues</dt>
+                <dd className="text-sm font-semibold text-orange-700">
+                  Puissance &quot;{typeof c.typeEquipement3 === "string" ? c.typeEquipement3 : ""}&quot; hors
+                  catalogue — à ajouter aux Heures de référence
+                </dd>
+              </div>
+            )}
             {champsRenseignes.map(([label, valeur], i) => (
               <div
                 key={label}
-                className={`flex items-baseline gap-2 px-4 py-2.5 ${i > 0 || freqEntretienAnnuelle ? "border-t border-slate-50" : ""}`}
+                className={`flex items-baseline gap-2 px-4 py-2.5 ${
+                  i > 0 || freqEntretienAnnuelle || cumul || heuresProchaineVisite || resultatReference.reference
+                    ? "border-t border-slate-50"
+                    : ""
+                }`}
               >
                 <dt className="w-60 shrink-0 text-[13px] text-slate-500">{label}</dt>
                 <dd className="text-sm font-semibold text-slate-900">{valeur}</dd>

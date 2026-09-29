@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Cog, QrCode, Eye } from "lucide-react";
-import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
-import { concatTypeEquipement } from "@/lib/gmao/suggestion-reference-horaire";
+import { ChevronDown, Cog, QrCode, Eye, Play, Clock } from "lucide-react";
+import type { Equipement, TypeEquipement, ReferenceHoraire } from "@/lib/gmao/types";
+import { concatTypeEquipement, analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
+import { sommeHeuresAnnee, calculerHeuresVisite, type HeuresAnnee } from "@/lib/gmao/calcul-heures-visite";
+import { VisiteChips } from "@/components/gmao/visite-chips";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { supprimerEquipement } from "./actions";
 import { QrDialog } from "./qr-dialog";
@@ -20,15 +22,23 @@ const COULEURS = [
   { bg: "bg-emerald-100", text: "text-emerald-700" },
 ];
 
+function fmt(h: { heuresTech: number; heuresAssistant: number }): string {
+  return `${h.heuresTech}h Tech / ${h.heuresAssistant}h Assistant`;
+}
+
 export function EquipementsListe({
   siteId,
   equipements,
   typesById,
+  references,
+  freqCouranteParEquipement,
   isAdmin,
 }: {
   siteId: string;
   equipements: Equipement[];
   typesById: Record<string, TypeEquipement>;
+  references: ReferenceHoraire[];
+  freqCouranteParEquipement: Map<string, number | null>;
   isAdmin: boolean;
 }) {
   const [qrOuvert, setQrOuvert] = useState<Equipement | null>(null);
@@ -55,8 +65,14 @@ export function EquipementsListe({
     return a.localeCompare(b);
   });
 
+  const heuresSite = sommeHeuresAnnee(equipements, references, freqCouranteParEquipement);
+
   return (
     <div className="space-y-3">
+      {(heuresSite.prevues.heuresTech > 0 || heuresSite.prevues.heuresAssistant > 0) && (
+        <CarteHeures titre="Heures prévues (ce site)" heures={heuresSite} />
+      )}
+
       {groupesTries.map((groupe, i) => (
         <Groupe
           key={groupe}
@@ -64,6 +80,8 @@ export function EquipementsListe({
           couleur={COULEURS[i % COULEURS.length]}
           equipements={parGroupe.get(groupe)!}
           typesById={typesById}
+          references={references}
+          freqCouranteParEquipement={freqCouranteParEquipement}
           isAdmin={isAdmin}
           siteId={siteId}
           onQr={setQrOuvert}
@@ -78,11 +96,32 @@ export function EquipementsListe({
   );
 }
 
+function CarteHeures({ titre, heures, compact }: { titre: string; heures: HeuresAnnee; compact?: boolean }) {
+  if (compact) {
+    return (
+      <p className="text-xs font-semibold text-teal-700">
+        {titre} : {fmt(heures.prevues)}
+      </p>
+    );
+  }
+  return (
+    <div className="rounded-2xl bg-teal-50 p-4">
+      <p className="text-sm font-bold text-teal-800">
+        {titre} : {fmt(heures.prevues)}
+      </p>
+      <p className="mt-1 text-xs text-brand-green-dark">Effectuées : {fmt(heures.effectuees)}</p>
+      <p className="text-xs text-orange-700">Restant à faire : {fmt(heures.restantes)}</p>
+    </div>
+  );
+}
+
 function Groupe({
   nom,
   couleur,
   equipements,
   typesById,
+  references,
+  freqCouranteParEquipement,
   isAdmin,
   siteId,
   onQr,
@@ -92,12 +131,15 @@ function Groupe({
   couleur: { bg: string; text: string };
   equipements: Equipement[];
   typesById: Record<string, TypeEquipement>;
+  references: ReferenceHoraire[];
+  freqCouranteParEquipement: Map<string, number | null>;
   isAdmin: boolean;
   siteId: string;
   onQr: (eq: Equipement) => void;
   ouvertParDefaut: boolean;
 }) {
   const [ouvert, setOuvert] = useState(ouvertParDefaut);
+  const heuresGroupe = sommeHeuresAnnee(equipements, references, freqCouranteParEquipement);
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
@@ -111,6 +153,9 @@ function Groupe({
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-bold text-slate-900">{nom}</span>
           <span className="block text-xs text-slate-500">{equipements.length} équipement(s)</span>
+          {(heuresGroupe.prevues.heuresTech > 0 || heuresGroupe.prevues.heuresAssistant > 0) && (
+            <CarteHeures titre="Heures prévues" heures={heuresGroupe} compact />
+          )}
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${ouvert ? "rotate-180" : ""}`} />
       </button>
@@ -121,6 +166,8 @@ function Groupe({
               key={eq.id}
               eq={eq}
               type={typesById[eq.type_equipement_id]}
+              references={references}
+              freqCourante={freqCouranteParEquipement.get(eq.id) ?? null}
               isAdmin={isAdmin}
               siteId={siteId}
               onQr={onQr}
@@ -135,12 +182,16 @@ function Groupe({
 function CarteEquipement({
   eq,
   type,
+  references,
+  freqCourante,
   isAdmin,
   siteId,
   onQr,
 }: {
   eq: Equipement;
   type: TypeEquipement | undefined;
+  references: ReferenceHoraire[];
+  freqCourante: number | null;
   isAdmin: boolean;
   siteId: string;
   onQr: (eq: Equipement) => void;
@@ -149,6 +200,10 @@ function CarteEquipement({
     .filter((s) => s)
     .join(" — ");
   const typeConcat = concatTypeEquipement(eq.champs_en_tete);
+
+  const freqBrut = eq.champs_en_tete.freqEntretienAnnuelle;
+  const freqAnnuelle = typeof freqBrut === "string" ? parseInt(freqBrut, 10) : NaN;
+  const resultatReference = analyserReference(eq.champs_en_tete, references);
 
   return (
     <div
@@ -168,23 +223,38 @@ function CarteEquipement({
           </div>
           {sousTitre && <p className="mt-0.5 text-xs text-slate-500">{sousTitre}</p>}
           {typeConcat && <p className="text-xs text-slate-400">{typeConcat}</p>}
+
+          {resultatReference.horsCatalogue && (
+            <p className="mt-1 text-[11px] font-semibold text-orange-700">
+              Puissance &quot;{typeof eq.champs_en_tete.typeEquipement3 === "string" ? eq.champs_en_tete.typeEquipement3 : ""}
+              &quot; hors catalogue — heures non calculées
+            </p>
+          )}
+
+          {resultatReference.reference && Number.isFinite(freqAnnuelle) && freqCourante !== null && (
+            <div className="mt-1.5">
+              {(() => {
+                const heures = calculerHeuresVisite(freqAnnuelle, freqCourante, resultatReference.reference);
+                return heures ? (
+                  <p className="flex items-center gap-1 text-[11px] font-semibold text-teal-700">
+                    <Clock className="h-3 w-3" strokeWidth={2} />
+                    Prochaine visite : {fmt(heures)}
+                  </p>
+                ) : null;
+              })()}
+              <div className="mt-1">
+                <VisiteChips freqAnnuelle={freqAnnuelle} freqCourante={freqCourante} />
+              </div>
+            </div>
+          )}
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            onClick={() => onQr(eq)}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-            title="QR code équipement"
-          >
-            <QrCode className="h-3.5 w-3.5" strokeWidth={2} />
-          </button>
-          <Link
-            href={`/repertoire/clients/${siteId}/equipements/${eq.id}`}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-            title="Visualiser données"
-          >
-            <Eye className="h-3.5 w-3.5" strokeWidth={2} />
-          </Link>
-        </div>
+        <button
+          onClick={() => onQr(eq)}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          title="QR code équipement"
+        >
+          <QrCode className="h-3.5 w-3.5" strokeWidth={2} />
+        </button>
       </div>
 
       {eq.remarque_technicien && (
@@ -192,6 +262,25 @@ function CarteEquipement({
           {eq.remarque_technicien}
         </div>
       )}
+
+      <div className="mt-2 flex gap-2">
+        <Link
+          href={`/repertoire/clients/${siteId}/equipements/${eq.id}`}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+        >
+          <Eye className="h-3.5 w-3.5" strokeWidth={2} />
+          Visualiser
+        </Link>
+        {type && (
+          <Link
+            href={`/repertoire/clients/${siteId}/equipements/${eq.id}/releve/nouveau`}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-brand-green/30 bg-green-50 px-2 py-1.5 text-xs font-semibold text-brand-green-dark hover:bg-green-100"
+          >
+            <Play className="h-3.5 w-3.5" strokeWidth={2} />
+            Démarrer entretien
+          </Link>
+        )}
+      </div>
 
       {isAdmin && (
         <div className="mt-2">

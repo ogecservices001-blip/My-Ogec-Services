@@ -3,7 +3,8 @@ import Link from "next/link";
 import { ArrowLeft, Plus, Upload, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
-import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
+import type { Equipement, TypeEquipement, ReferenceHoraire } from "@/lib/gmao/types";
+import { freqCouranteCalculeeBatch } from "@/lib/gmao/releve-service";
 import { EquipementsListe } from "./equipements-liste";
 
 export default async function EquipementsSitePage({
@@ -15,16 +16,22 @@ export default async function EquipementsSitePage({
   const supabase = await createClient();
   const profile = await getCurrentProfile();
 
-  const [{ data: site }, { data: equipements }, { data: types }] = await Promise.all([
+  const [{ data: site }, { data: equipements }, { data: types }, { data: references }] = await Promise.all([
     supabase.from("sites").select("id, nom, site").eq("id", id).single(),
     supabase.from("equipements").select("*").eq("site_id", id),
     supabase.from("types_equipement").select("*"),
+    supabase.from("references_horaires").select("*"),
   ]);
   if (!site) notFound();
 
   const isAdmin = profile?.role === "admin";
   const typesById: Record<string, TypeEquipement> = {};
   for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
+
+  const freqCouranteParEquipement = await freqCouranteCalculeeBatch(
+    supabase,
+    (equipements ?? []).map((e) => e.id),
+  );
 
   return (
     <div>
@@ -72,6 +79,8 @@ export default async function EquipementsSitePage({
         siteId={id}
         equipements={(equipements ?? []) as Equipement[]}
         typesById={typesById}
+        references={(references ?? []) as ReferenceHoraire[]}
+        freqCouranteParEquipement={freqCouranteParEquipement}
         isAdmin={isAdmin}
       />
     </div>

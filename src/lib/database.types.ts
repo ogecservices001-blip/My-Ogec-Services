@@ -272,6 +272,79 @@ export type Database = {
         }
         Relationships: []
       }
+      releves: {
+        Row: {
+          checklist_values: Json
+          created_at: string
+          date: string
+          equipement_id: string
+          groupes_mesures: Json
+          id: string
+          informations_internes: string
+          legacy_id: string | null
+          nom_tech: string
+          photos: string[]
+          remarque1: string
+          remarque2: string
+          site_id: string
+          validation_fonctionnement: string | null
+        }
+        Insert: {
+          checklist_values?: Json
+          created_at?: string
+          date?: string
+          equipement_id: string
+          groupes_mesures?: Json
+          id?: string
+          informations_internes?: string
+          legacy_id?: string | null
+          nom_tech?: string
+          photos?: string[]
+          remarque1?: string
+          remarque2?: string
+          site_id: string
+          validation_fonctionnement?: string | null
+        }
+        Update: {
+          checklist_values?: Json
+          created_at?: string
+          date?: string
+          equipement_id?: string
+          groupes_mesures?: Json
+          id?: string
+          informations_internes?: string
+          legacy_id?: string | null
+          nom_tech?: string
+          photos?: string[]
+          remarque1?: string
+          remarque2?: string
+          site_id?: string
+          validation_fonctionnement?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "releves_equipement_id_fkey"
+            columns: ["equipement_id"]
+            isOneToOne: false
+            referencedRelation: "equipements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "releves_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "releves_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sites: {
         Row: {
           adresse: string

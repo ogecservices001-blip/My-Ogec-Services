@@ -2,14 +2,9 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type {
-  TypeEquipement,
-  ReferenceHoraire,
-  ChampsEnTeteEquipement,
-  ChampListeLigne,
-  ChampEnTete,
-} from "@/lib/gmao/types";
+import type { TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement, ChampListeLigne } from "@/lib/gmao/types";
 import { ChampListeEditor } from "@/components/gmao/champ-liste-editor";
+import { ChampEnTeteField, TypeEquipementSelects } from "@/components/gmao/champs-famille";
 import { creerEquipement } from "./actions";
 
 export function EquipementForm({
@@ -34,37 +29,6 @@ export function EquipementForm({
       router.refresh();
     }
   }, [state, router, siteId]);
-
-  const typeEquipement1Fixe = type?.type_equipement1_fixe ?? "";
-  const type2Choisi = typeof champsEnTete.typeEquipement2 === "string" ? champsEnTete.typeEquipement2 : "";
-  const type3Choisi = typeof champsEnTete.typeEquipement3 === "string" ? champsEnTete.typeEquipement3 : "";
-
-  const options2 = typeEquipement1Fixe
-    ? [
-        ...new Set(
-          references
-            .filter((r) => r.type_equipement1.trim().toLowerCase() === typeEquipement1Fixe.trim().toLowerCase())
-            .map((r) => r.type_equipement2)
-            .filter((v) => v.trim().length > 0),
-        ),
-      ].sort((a, b) => a.localeCompare(b))
-    : [];
-
-  const options3 =
-    typeEquipement1Fixe && type2Choisi
-      ? [
-          ...new Set(
-            references
-              .filter(
-                (r) =>
-                  r.type_equipement1.trim().toLowerCase() === typeEquipement1Fixe.trim().toLowerCase() &&
-                  r.type_equipement2.trim().toLowerCase() === type2Choisi.trim().toLowerCase(),
-              )
-              .map((r) => r.type_equipement3)
-              .filter((v) => v.trim().length > 0),
-          ),
-        ].sort((a, b) => a.localeCompare(b))
-      : [];
 
   function changerType(id: string) {
     setTypeId(id);
@@ -102,48 +66,13 @@ export function EquipementForm({
         <ChampTexte label="Localisation" name="localisation" />
         <ChampTexte label="Groupe (ex: Split Système)" name="groupe" />
 
-        {typeEquipement1Fixe && (
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Type Equipement 2</label>
-              <select
-                value={type2Choisi}
-                onChange={(e) =>
-                  setChampsEnTete((prev) => ({
-                    ...prev,
-                    typeEquipement2: e.target.value,
-                    typeEquipement3: "",
-                  }))
-                }
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-              >
-                <option value="">—</option>
-                {options2.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">
-                Type Equipement 3 (puissance)
-              </label>
-              <select
-                value={type3Choisi}
-                onChange={(e) => setChampsEnTete((prev) => ({ ...prev, typeEquipement3: e.target.value }))}
-                disabled={!type2Choisi}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
-              >
-                <option value="">—</option>
-                {options3.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+        {type && type.type_equipement1_fixe && (
+          <TypeEquipementSelects
+            typeEquipement1Fixe={type.type_equipement1_fixe}
+            references={references}
+            champsEnTete={champsEnTete}
+            setChampsEnTete={setChampsEnTete}
+          />
         )}
       </div>
 
@@ -200,54 +129,6 @@ function ChampTexte({ label, name, required }: { label: string; name: string; re
         required={required}
         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
       />
-    </div>
-  );
-}
-
-function ChampEnTeteField({
-  champ,
-  valeur,
-  onChange,
-}: {
-  champ: ChampEnTete;
-  valeur: string | ChampListeLigne[] | undefined;
-  onChange: (v: string) => void;
-}) {
-  const v = typeof valeur === "string" ? valeur : "";
-
-  if (champ.options.length === 0) {
-    return (
-      <div>
-        <label className="mb-1 block text-xs font-medium text-slate-600">
-          {champ.label}
-          {champ.unite ? ` (${champ.unite})` : ""}
-        </label>
-        <input
-          value={v}
-          onChange={(e) => onChange(e.target.value)}
-          inputMode={champ.numerique ? "decimal" : undefined}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-        />
-      </div>
-    );
-  }
-
-  const options = v && !champ.options.includes(v) ? [...champ.options, v] : champ.options;
-  return (
-    <div>
-      <label className="mb-1 block text-xs font-medium text-slate-600">{champ.label}</label>
-      <select
-        value={v}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-      >
-        <option value="">—</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

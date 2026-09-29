@@ -95,3 +95,16 @@ export type ChampsEnTeteEquipement = Record<string, string | ChampListeLigne[]>;
 export type Equipement = Omit<Tables<"equipements">, "champs_en_tete"> & {
   champs_en_tete: ChampsEnTeteEquipement;
 };
+
+/// Valeurs de checklist d'un relevé (clé = `ChecklistItem.rep` en
+/// texte) — booléen, texte libre, ou texte choisi selon `typeValeur`.
+export type ChecklistValues = Record<string, boolean | string>;
+
+/// Occurrences d'un `GroupeMesure` saisies sur un relevé (clé =
+/// `GroupeMesure.cle`, une entrée par répétition).
+export type GroupesMesuresReleve = Record<string, ChampListeLigne[]>;
+
+export type Releve = Omit<Tables<"releves">, "checklist_values" | "groupes_mesures"> & {
+  checklist_values: ChecklistValues;
+  groupes_mesures: GroupesMesuresReleve;
+};

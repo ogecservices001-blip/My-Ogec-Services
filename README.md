@@ -28,18 +28,36 @@ module porté (clients/sites, fournisseurs, annuaire collaborateurs).
 
 ## Base de données
 
-Le schéma vit dans `supabase/migrations/`. Pour l'instant, à appliquer
-manuellement : copier le contenu du fichier de migration dans l'éditeur
-SQL du dashboard Supabase et l'exécuter (pas encore relié à la CLI
-Supabase).
+Le schéma vit dans `supabase/migrations/`, géré par la [CLI Supabase](https://supabase.com/docs/guides/local-development/cli/getting-started) :
+
+```bash
+# Une seule fois : lie ce dossier au projet Supabase distant
+npx supabase login
+npx supabase link --project-ref zmpaminpdcxhyeqfebbf
+
+# Applique les migrations pas encore poussées
+npm run db:push
+
+# Régénère les types TypeScript depuis le schéma distant
+npm run db:types
+```
+
+`npm run db:types` écrit `src/lib/database.types.ts` — ne pas modifier ce fichier à la main, il est régénéré à chaque changement de schéma. `src/lib/types.ts` réexporte des alias pratiques à partir de ces types générés.
 
 ## Structure
 
-- `src/app/repertoire/` — module Répertoire (clients/sites,
+- `src/app/(app)/repertoire/` — module Répertoire (clients/sites,
   fournisseurs, collaborateurs)
 - `src/lib/supabase/` — clients Supabase (navigateur, serveur, session
   middleware/proxy)
 - `src/lib/profile.ts` — rôle de l'utilisateur connecté (admin /
   technicien), équivalent de `UserService.isCurrentUserAdmin()` côté
   Flutter
-- `src/lib/types.ts` — types TypeScript miroir des tables Supabase
+- `src/lib/auth.ts` — `requireProfile()`/`requireAdmin()`, à appeler en
+  début de Server Component ou de Server Action pour protéger un accès
+- `src/lib/database.types.ts` — types générés depuis le schéma Supabase
+  (`npm run db:types`), ne pas éditer à la main
+- `src/lib/types.ts` — alias de types pratiques par-dessus les types
+  générés
+- `docs/MIGRATION.md` — contexte permanent de la migration Flutter →
+  Next.js (cartographie des données, conventions, avancement)

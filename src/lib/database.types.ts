@@ -1,0 +1,712 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      fournisseurs: {
+        Row: {
+          adresse: string
+          code_postal: string
+          commune: string
+          complement_adresse: string
+          courriel: string
+          created_at: string
+          denomination_courte: string
+          id: string
+          interlocuteurs: string
+          legacy_id: string | null
+          nom: string
+          portable: string
+          produits_cles: string
+          remarques: string
+          site_web: string
+          tel: string
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string
+          code_postal?: string
+          commune?: string
+          complement_adresse?: string
+          courriel?: string
+          created_at?: string
+          denomination_courte?: string
+          id?: string
+          interlocuteurs?: string
+          legacy_id?: string | null
+          nom?: string
+          portable?: string
+          produits_cles?: string
+          remarques?: string
+          site_web?: string
+          tel?: string
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string
+          code_postal?: string
+          commune?: string
+          complement_adresse?: string
+          courriel?: string
+          created_at?: string
+          denomination_courte?: string
+          id?: string
+          interlocuteurs?: string
+          legacy_id?: string | null
+          nom?: string
+          portable?: string
+          produits_cles?: string
+          remarques?: string
+          site_web?: string
+          tel?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          commune_habitation: string
+          created_at: string
+          email_perso: string
+          id: string
+          legacy_id: string | null
+          name: string
+          portable: string
+          qualite: string
+          role: Database["public"]["Enums"]["user_role"]
+          vehicule: string
+        }
+        Insert: {
+          commune_habitation?: string
+          created_at?: string
+          email_perso?: string
+          id: string
+          legacy_id?: string | null
+          name?: string
+          portable?: string
+          qualite?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          vehicule?: string
+        }
+        Update: {
+          commune_habitation?: string
+          created_at?: string
+          email_perso?: string
+          id?: string
+          legacy_id?: string | null
+          name?: string
+          portable?: string
+          qualite?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          vehicule?: string
+        }
+        Relationships: []
+      }
+      sites: {
+        Row: {
+          adresse: string
+          adresse_facturation: string
+          code_postal: string
+          code_postal_facturation: string
+          commune: string
+          commune_facturation: string
+          complement_adresse: string
+          complement_adresse_facturation: string
+          courriel_interlocuteur_facturation: string
+          courriel_interlocuteur_site: string
+          courriel_responsable: string
+          courriel_tiers: string
+          created_at: string
+          date_fin_contrat: string
+          date_indice_ch: string
+          date_indice_ch_prime: string
+          date_indice_s: string
+          date_indice_s_prime: string
+          date_offre: string
+          date_prise_effet_contrat: string
+          date_revision: string
+          delai_intervention: string
+          duree_contrat: string
+          epi_specifique: string
+          forfait_deplacement: string
+          forfait_deplacement_revise: string
+          formule_revision_depannage: string
+          formule_revision_entretien: string
+          freq_entretien_an: string
+          freq_factu_annuelle: string
+          habilitation_specifique: string
+          heures_acces: string
+          id: string
+          interlocuteur_facturation: string
+          interlocuteur_site: string
+          interlocuteur_tiers: string
+          jour_acces: string
+          legacy_id: string | null
+          modif_ri_ou_bg: string
+          montant_contrat_av: string
+          montant_contrat_av_revise: string
+          moyen_acces: string
+          n_affaire: string
+          nb_heures_vendues: string
+          nb_heures_vendues_assistant: string
+          nom: string
+          portable_interlocuteur_facturation: string
+          portable_interlocuteur_site: string
+          portable_responsable: string
+          portable_tiers: string
+          qte_heures_programmees: string
+          qte_heures_restantes: string
+          reference_offre_ogs: string
+          remarques_libres: string
+          responsable_contrat: string
+          site: string
+          taux_horaire_regie: string
+          taux_horaire_revise: string
+          taux_horaire_vendu: string
+          tel_fixe_interlocuteur_facturation: string
+          tel_fixe_interlocuteur_site: string
+          tel_fixe_responsable: string
+          tel_fixe_tiers: string
+          updated_at: string
+          valeur_indice_ch: string
+          valeur_indice_ch_prime: string
+          valeur_indice_s: string
+          valeur_indice_s_prime: string
+        }
+        Insert: {
+          adresse?: string
+          adresse_facturation?: string
+          code_postal?: string
+          code_postal_facturation?: string
+          commune?: string
+          commune_facturation?: string
+          complement_adresse?: string
+          complement_adresse_facturation?: string
+          courriel_interlocuteur_facturation?: string
+          courriel_interlocuteur_site?: string
+          courriel_responsable?: string
+          courriel_tiers?: string
+          created_at?: string
+          date_fin_contrat?: string
+          date_indice_ch?: string
+          date_indice_ch_prime?: string
+          date_indice_s?: string
+          date_indice_s_prime?: string
+          date_offre?: string
+          date_prise_effet_contrat?: string
+          date_revision?: string
+          delai_intervention?: string
+          duree_contrat?: string
+          epi_specifique?: string
+          forfait_deplacement?: string
+          forfait_deplacement_revise?: string
+          formule_revision_depannage?: string
+          formule_revision_entretien?: string
+          freq_entretien_an?: string
+          freq_factu_annuelle?: string
+          habilitation_specifique?: string
+          heures_acces?: string
+          id?: string
+          interlocuteur_facturation?: string
+          interlocuteur_site?: string
+          interlocuteur_tiers?: string
+          jour_acces?: string
+          legacy_id?: string | null
+          modif_ri_ou_bg?: string
+          montant_contrat_av?: string
+          montant_contrat_av_revise?: string
+          moyen_acces?: string
+          n_affaire?: string
+          nb_heures_vendues?: string
+          nb_heures_vendues_assistant?: string
+          nom?: string
+          portable_interlocuteur_facturation?: string
+          portable_interlocuteur_site?: string
+          portable_responsable?: string
+          portable_tiers?: string
+          qte_heures_programmees?: string
+          qte_heures_restantes?: string
+          reference_offre_ogs?: string
+          remarques_libres?: string
+          responsable_contrat?: string
+          site?: string
+          taux_horaire_regie?: string
+          taux_horaire_revise?: string
+          taux_horaire_vendu?: string
+          tel_fixe_interlocuteur_facturation?: string
+          tel_fixe_interlocuteur_site?: string
+          tel_fixe_responsable?: string
+          tel_fixe_tiers?: string
+          updated_at?: string
+          valeur_indice_ch?: string
+          valeur_indice_ch_prime?: string
+          valeur_indice_s?: string
+          valeur_indice_s_prime?: string
+        }
+        Update: {
+          adresse?: string
+          adresse_facturation?: string
+          code_postal?: string
+          code_postal_facturation?: string
+          commune?: string
+          commune_facturation?: string
+          complement_adresse?: string
+          complement_adresse_facturation?: string
+          courriel_interlocuteur_facturation?: string
+          courriel_interlocuteur_site?: string
+          courriel_responsable?: string
+          courriel_tiers?: string
+          created_at?: string
+          date_fin_contrat?: string
+          date_indice_ch?: string
+          date_indice_ch_prime?: string
+          date_indice_s?: string
+          date_indice_s_prime?: string
+          date_offre?: string
+          date_prise_effet_contrat?: string
+          date_revision?: string
+          delai_intervention?: string
+          duree_contrat?: string
+          epi_specifique?: string
+          forfait_deplacement?: string
+          forfait_deplacement_revise?: string
+          formule_revision_depannage?: string
+          formule_revision_entretien?: string
+          freq_entretien_an?: string
+          freq_factu_annuelle?: string
+          habilitation_specifique?: string
+          heures_acces?: string
+          id?: string
+          interlocuteur_facturation?: string
+          interlocuteur_site?: string
+          interlocuteur_tiers?: string
+          jour_acces?: string
+          legacy_id?: string | null
+          modif_ri_ou_bg?: string
+          montant_contrat_av?: string
+          montant_contrat_av_revise?: string
+          moyen_acces?: string
+          n_affaire?: string
+          nb_heures_vendues?: string
+          nb_heures_vendues_assistant?: string
+          nom?: string
+          portable_interlocuteur_facturation?: string
+          portable_interlocuteur_site?: string
+          portable_responsable?: string
+          portable_tiers?: string
+          qte_heures_programmees?: string
+          qte_heures_restantes?: string
+          reference_offre_ogs?: string
+          remarques_libres?: string
+          responsable_contrat?: string
+          site?: string
+          taux_horaire_regie?: string
+          taux_horaire_revise?: string
+          taux_horaire_vendu?: string
+          tel_fixe_interlocuteur_facturation?: string
+          tel_fixe_interlocuteur_site?: string
+          tel_fixe_responsable?: string
+          tel_fixe_tiers?: string
+          updated_at?: string
+          valeur_indice_ch?: string
+          valeur_indice_ch_prime?: string
+          valeur_indice_s?: string
+          valeur_indice_s_prime?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      sites_view: {
+        Row: {
+          adresse: string | null
+          adresse_facturation: string | null
+          code_postal: string | null
+          code_postal_facturation: string | null
+          commune: string | null
+          commune_facturation: string | null
+          complement_adresse: string | null
+          complement_adresse_facturation: string | null
+          courriel_interlocuteur_facturation: string | null
+          courriel_interlocuteur_site: string | null
+          courriel_responsable: string | null
+          courriel_tiers: string | null
+          created_at: string | null
+          date_fin_contrat: string | null
+          date_indice_ch: string | null
+          date_indice_ch_prime: string | null
+          date_indice_s: string | null
+          date_indice_s_prime: string | null
+          date_offre: string | null
+          date_prise_effet_contrat: string | null
+          date_revision: string | null
+          delai_intervention: string | null
+          duree_contrat: string | null
+          epi_specifique: string | null
+          forfait_deplacement: string | null
+          forfait_deplacement_revise: string | null
+          formule_revision_depannage: string | null
+          formule_revision_entretien: string | null
+          freq_entretien_an: string | null
+          freq_factu_annuelle: string | null
+          habilitation_specifique: string | null
+          heures_acces: string | null
+          hors_contrat: boolean | null
+          id: string | null
+          interlocuteur_facturation: string | null
+          interlocuteur_site: string | null
+          interlocuteur_tiers: string | null
+          jour_acces: string | null
+          legacy_id: string | null
+          modif_ri_ou_bg: string | null
+          montant_contrat_av: string | null
+          montant_contrat_av_revise: string | null
+          moyen_acces: string | null
+          n_affaire: string | null
+          nb_heures_vendues: string | null
+          nb_heures_vendues_assistant: string | null
+          nom: string | null
+          portable_interlocuteur_facturation: string | null
+          portable_interlocuteur_site: string | null
+          portable_responsable: string | null
+          portable_tiers: string | null
+          qte_heures_programmees: string | null
+          qte_heures_restantes: string | null
+          reference_offre_ogs: string | null
+          remarques_libres: string | null
+          responsable_contrat: string | null
+          site: string | null
+          taux_horaire_regie: string | null
+          taux_horaire_revise: string | null
+          taux_horaire_vendu: string | null
+          tel_fixe_interlocuteur_facturation: string | null
+          tel_fixe_interlocuteur_site: string | null
+          tel_fixe_responsable: string | null
+          tel_fixe_tiers: string | null
+          updated_at: string | null
+          valeur_indice_ch: string | null
+          valeur_indice_ch_prime: string | null
+          valeur_indice_s: string | null
+          valeur_indice_s_prime: string | null
+        }
+        Insert: {
+          adresse?: string | null
+          adresse_facturation?: string | null
+          code_postal?: string | null
+          code_postal_facturation?: string | null
+          commune?: string | null
+          commune_facturation?: string | null
+          complement_adresse?: string | null
+          complement_adresse_facturation?: string | null
+          courriel_interlocuteur_facturation?: string | null
+          courriel_interlocuteur_site?: string | null
+          courriel_responsable?: string | null
+          courriel_tiers?: string | null
+          created_at?: string | null
+          date_fin_contrat?: string | null
+          date_indice_ch?: string | null
+          date_indice_ch_prime?: string | null
+          date_indice_s?: string | null
+          date_indice_s_prime?: string | null
+          date_offre?: string | null
+          date_prise_effet_contrat?: string | null
+          date_revision?: string | null
+          delai_intervention?: string | null
+          duree_contrat?: string | null
+          epi_specifique?: string | null
+          forfait_deplacement?: string | null
+          forfait_deplacement_revise?: string | null
+          formule_revision_depannage?: string | null
+          formule_revision_entretien?: string | null
+          freq_entretien_an?: string | null
+          freq_factu_annuelle?: string | null
+          habilitation_specifique?: string | null
+          heures_acces?: string | null
+          hors_contrat?: never
+          id?: string | null
+          interlocuteur_facturation?: string | null
+          interlocuteur_site?: string | null
+          interlocuteur_tiers?: string | null
+          jour_acces?: string | null
+          legacy_id?: string | null
+          modif_ri_ou_bg?: string | null
+          montant_contrat_av?: string | null
+          montant_contrat_av_revise?: string | null
+          moyen_acces?: string | null
+          n_affaire?: string | null
+          nb_heures_vendues?: string | null
+          nb_heures_vendues_assistant?: string | null
+          nom?: string | null
+          portable_interlocuteur_facturation?: string | null
+          portable_interlocuteur_site?: string | null
+          portable_responsable?: string | null
+          portable_tiers?: string | null
+          qte_heures_programmees?: string | null
+          qte_heures_restantes?: string | null
+          reference_offre_ogs?: string | null
+          remarques_libres?: string | null
+          responsable_contrat?: string | null
+          site?: string | null
+          taux_horaire_regie?: string | null
+          taux_horaire_revise?: string | null
+          taux_horaire_vendu?: string | null
+          tel_fixe_interlocuteur_facturation?: string | null
+          tel_fixe_interlocuteur_site?: string | null
+          tel_fixe_responsable?: string | null
+          tel_fixe_tiers?: string | null
+          updated_at?: string | null
+          valeur_indice_ch?: string | null
+          valeur_indice_ch_prime?: string | null
+          valeur_indice_s?: string | null
+          valeur_indice_s_prime?: string | null
+        }
+        Update: {
+          adresse?: string | null
+          adresse_facturation?: string | null
+          code_postal?: string | null
+          code_postal_facturation?: string | null
+          commune?: string | null
+          commune_facturation?: string | null
+          complement_adresse?: string | null
+          complement_adresse_facturation?: string | null
+          courriel_interlocuteur_facturation?: string | null
+          courriel_interlocuteur_site?: string | null
+          courriel_responsable?: string | null
+          courriel_tiers?: string | null
+          created_at?: string | null
+          date_fin_contrat?: string | null
+          date_indice_ch?: string | null
+          date_indice_ch_prime?: string | null
+          date_indice_s?: string | null
+          date_indice_s_prime?: string | null
+          date_offre?: string | null
+          date_prise_effet_contrat?: string | null
+          date_revision?: string | null
+          delai_intervention?: string | null
+          duree_contrat?: string | null
+          epi_specifique?: string | null
+          forfait_deplacement?: string | null
+          forfait_deplacement_revise?: string | null
+          formule_revision_depannage?: string | null
+          formule_revision_entretien?: string | null
+          freq_entretien_an?: string | null
+          freq_factu_annuelle?: string | null
+          habilitation_specifique?: string | null
+          heures_acces?: string | null
+          hors_contrat?: never
+          id?: string | null
+          interlocuteur_facturation?: string | null
+          interlocuteur_site?: string | null
+          interlocuteur_tiers?: string | null
+          jour_acces?: string | null
+          legacy_id?: string | null
+          modif_ri_ou_bg?: string | null
+          montant_contrat_av?: string | null
+          montant_contrat_av_revise?: string | null
+          moyen_acces?: string | null
+          n_affaire?: string | null
+          nb_heures_vendues?: string | null
+          nb_heures_vendues_assistant?: string | null
+          nom?: string | null
+          portable_interlocuteur_facturation?: string | null
+          portable_interlocuteur_site?: string | null
+          portable_responsable?: string | null
+          portable_tiers?: string | null
+          qte_heures_programmees?: string | null
+          qte_heures_restantes?: string | null
+          reference_offre_ogs?: string | null
+          remarques_libres?: string | null
+          responsable_contrat?: string | null
+          site?: string | null
+          taux_horaire_regie?: string | null
+          taux_horaire_revise?: string | null
+          taux_horaire_vendu?: string | null
+          tel_fixe_interlocuteur_facturation?: string | null
+          tel_fixe_interlocuteur_site?: string | null
+          tel_fixe_responsable?: string | null
+          tel_fixe_tiers?: string | null
+          updated_at?: string | null
+          valeur_indice_ch?: string | null
+          valeur_indice_ch_prime?: string | null
+          valeur_indice_s?: string | null
+          valeur_indice_s_prime?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      is_admin: { Args: never; Returns: boolean }
+      is_staff: { Args: never; Returns: boolean }
+    }
+    Enums: {
+      user_role: "admin" | "technicien" | "en_attente" | "client"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {
+      user_role: ["admin", "technicien", "en_attente", "client"],
+    },
+  },
+} as const

@@ -1,96 +1,21 @@
-export type Site = {
-  id: string;
-  nom: string;
-  site: string;
-  n_affaire: string;
-  commune: string;
-  code_postal: string;
-  adresse: string;
-  complement_adresse: string;
-  epi_specifique: string;
-  habilitation_specifique: string;
-  moyen_acces: string;
-  jour_acces: string;
-  heures_acces: string;
-  delai_intervention: string;
-  interlocuteur_site: string;
-  tel_fixe_interlocuteur_site: string;
-  portable_interlocuteur_site: string;
-  courriel_interlocuteur_site: string;
-  freq_entretien_an: string;
-  interlocuteur_tiers: string;
-  tel_fixe_tiers: string;
-  portable_tiers: string;
-  courriel_tiers: string;
-  remarques_libres: string;
-  nb_heures_vendues: string;
-  nb_heures_vendues_assistant: string;
-  qte_heures_programmees: string;
-  qte_heures_restantes: string;
-  taux_horaire_regie: string;
-  taux_horaire_vendu: string;
-  forfait_deplacement: string;
-  date_offre: string;
-  date_prise_effet_contrat: string;
-  date_fin_contrat: string;
-  duree_contrat: string;
-  montant_contrat_av: string;
-  reference_offre_ogs: string;
-  responsable_contrat: string;
-  tel_fixe_responsable: string;
-  portable_responsable: string;
-  courriel_responsable: string;
-  adresse_facturation: string;
-  code_postal_facturation: string;
-  commune_facturation: string;
-  complement_adresse_facturation: string;
-  interlocuteur_facturation: string;
-  tel_fixe_interlocuteur_facturation: string;
-  portable_interlocuteur_facturation: string;
-  courriel_interlocuteur_facturation: string;
-  freq_factu_annuelle: string;
-  date_revision: string;
-  formule_revision_entretien: string;
-  formule_revision_depannage: string;
-  date_indice_s: string;
-  valeur_indice_s: string;
-  date_indice_ch: string;
-  valeur_indice_ch: string;
-  date_indice_s_prime: string;
-  valeur_indice_s_prime: string;
-  date_indice_ch_prime: string;
-  valeur_indice_ch_prime: string;
-  montant_contrat_av_revise: string;
-  taux_horaire_revise: string;
-  forfait_deplacement_revise: string;
-  modif_ri_ou_bg: string;
-  hors_contrat: boolean;
-};
+import type { Database } from "./database.types";
 
-export type Fournisseur = {
-  id: string;
-  nom: string;
-  denomination_courte: string;
-  interlocuteurs: string;
-  tel: string;
-  portable: string;
-  courriel: string;
-  site_web: string;
-  commune: string;
-  code_postal: string;
-  adresse: string;
-  complement_adresse: string;
-  produits_cles: string;
-  remarques: string;
-};
+export type Tables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Row"];
 
-export type Profil = {
-  id: string;
-  role: "admin" | "technicien" | "en_attente";
-  name: string;
-  portable: string;
-  email_perso: string;
-  commune_habitation: string;
-  vehicule: string;
-  qualite: string;
-};
+export type Enums<T extends keyof Database["public"]["Enums"]> =
+  Database["public"]["Enums"][T];
+
+/// La vue `sites_view` ajoute `hors_contrat` (calculé) par-dessus la
+/// table `sites` — mais Postgres marque toutes les colonnes d'une vue
+/// comme nullables dans les types générés, même quand la table sous-
+/// jacente ne l'est pas. On garde donc le type de la table (colonnes
+/// non-nullables, fidèle au schéma réel) et on ajoute juste le champ
+/// calculé à la main plutôt que de repartir de la vue générée.
+export type Site = Tables<"sites"> & { hors_contrat: boolean };
+
+export type Fournisseur = Tables<"fournisseurs">;
+
+export type Profil = Tables<"profiles">;
+
+export type Role = Enums<"user_role">;

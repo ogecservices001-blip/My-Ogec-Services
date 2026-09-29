@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-
-export type Role = "admin" | "technicien" | "en_attente";
+import type { Role } from "@/lib/types";
 
 export type Profile = {
   id: string;

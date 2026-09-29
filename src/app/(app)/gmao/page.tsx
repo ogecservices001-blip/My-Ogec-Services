@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, Building, Download, Upload, LibraryBig, ChevronRight } from "lucide-react";
+import { Building2, Building, Download, Upload, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { Equipement, ReferenceHoraire } from "@/lib/gmao/types";
@@ -72,19 +72,6 @@ export default async function GmaoHomePage() {
           <span className="min-w-0 flex-1">
             <span className="block font-semibold text-slate-900">Clients hors contrat</span>
             <span className="block text-sm text-slate-500">{nbHorsContrat ?? 0} site(s)</span>
-          </span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
-        </Link>
-        <Link
-          href="/gmao/referentiel"
-          className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
-        >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-lime-100">
-            <LibraryBig className="h-5 w-5 text-lime-600" strokeWidth={2} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-semibold text-slate-900">Référentiel GMAO</span>
-            <span className="block text-sm text-slate-500">Heures et gammes de maintenance</span>
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
         </Link>

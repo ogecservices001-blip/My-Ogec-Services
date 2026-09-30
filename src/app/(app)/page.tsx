@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCurrentProfile } from "@/lib/profile";
 import {
   Wrench,
   ClipboardList,
@@ -115,15 +116,17 @@ const modules: {
   },
 ];
 
-export default function AccueilPage() {
+export default async function AccueilPage() {
+  const profile = await getCurrentProfile();
+  const prenom = profile?.name.trim().split(/\s+/)[0] ?? "";
+
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
         Accueil
       </h1>
       <p className="mb-6 text-sm text-slate-500">
-        La migration se fait module par module — Répertoire, GMAO,
-        Référentiel GMAO et Suivi Dépannages disponibles pour l&apos;instant.
+        {prenom ? `Bonjour ${prenom}` : "Bonjour"}
       </p>
       <div className="space-y-3">
         {modules.map((m) =>

@@ -37,7 +37,7 @@ export function PrestationsListe({ lignes }: { lignes: PrestationLigne[] }) {
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Prestation sur commande</h1>
-      <p className="mb-5 text-sm text-slate-500">Devis commandés — suivi de la réalisation</p>
+      <p className="mb-5 text-sm text-slate-500">Devis commandés — Suivi de la réalisation</p>
 
       <div className="mb-4 flex flex-col gap-2">
         <button

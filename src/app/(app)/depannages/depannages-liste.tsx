@@ -53,9 +53,6 @@ export function DepannagesListe({
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Suivi Dépannage</h1>
-          <p className="text-sm text-slate-500">
-            Demandes reçues via QR équipement ou créées par le bureau
-          </p>
         </div>
         <div className="flex items-center gap-2">
           {isAdmin && (

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, Plus, MessageCircle, Mail, User, CalendarClock, X } from "lucide-react";
+import { Check, Plus, Download, MessageCircle, Mail, User, CalendarClock, X } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { marquerTraitee, envoyerConfirmation } from "./actions";
 
@@ -35,9 +35,11 @@ type Onglet = "en_cours" | "traitees";
 export function DepannagesListe({
   demandes,
   techniciensParId,
+  isAdmin,
 }: {
   demandes: Tables<"demandes_depannage">[];
   techniciensParId: TechniciensParId;
+  isAdmin: boolean;
 }) {
   const [onglet, setOnglet] = useState<Onglet>("en_cours");
 
@@ -54,13 +56,24 @@ export function DepannagesListe({
             Demandes reçues via QR équipement ou créées par le bureau
           </p>
         </div>
-        <Link
-          href="/depannages/nouveau"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2.5} />
-          Nouveau dépannage
-        </Link>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <a
+              href="/depannages/export"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+              title="Exporter en Excel (format Chrono Dépannage)"
+            >
+              <Download className="h-4 w-4" strokeWidth={2.25} />
+            </a>
+          )}
+          <Link
+            href="/depannages/nouveau"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            Nouveau dépannage
+          </Link>
+        </div>
       </div>
 
       <div className="mb-5 flex gap-2">

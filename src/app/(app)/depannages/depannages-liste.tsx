@@ -143,7 +143,7 @@ function CarteDemande({
   const [modaleOuverte, setModaleOuverte] = useState(false);
   const nouvelle = demande.statut !== "traitee";
 
-  const messageWhatsapp = `Dépannage n°${demande.numero} — ${[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}\n${demande.equipement_nom ? `Équipement : ${demande.equipement_nom}\n` : ""}${demande.lieu_panne ? `Lieu : ${demande.lieu_panne}\n` : ""}Motif : ${demande.message}`;
+  const messageWhatsapp = `Dépannage N°${demande.numero} — ${[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}\n${demande.equipement_nom ? `Équipement : ${demande.equipement_nom}\n` : ""}${demande.lieu_panne ? `Lieu : ${demande.lieu_panne}\n` : ""}Motif : ${demande.message}`;
   const whatsapp = intervenant?.portable ? lienWhatsapp(intervenant.portable, messageWhatsapp) : null;
 
   return (
@@ -152,7 +152,7 @@ function CarteDemande({
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <p className="font-bold text-slate-900">
-          n°{demande.numero} — {[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}
+          N°{demande.numero} — {[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}
         </p>
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${

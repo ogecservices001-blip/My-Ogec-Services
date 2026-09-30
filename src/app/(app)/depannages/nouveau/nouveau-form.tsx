@@ -183,7 +183,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
               disabled={!email}
               className="h-4 w-4 accent-brand-green disabled:opacity-50"
             />
-            Envoyer un email de confirmation au client à la création
+            Envoyer prise en compte par mail
           </label>
         </div>
 

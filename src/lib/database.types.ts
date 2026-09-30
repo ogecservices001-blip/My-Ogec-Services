@@ -416,6 +416,8 @@ export type Database = {
       }
       devis: {
         Row: {
+          annule: boolean
+          bi_reference_historique: string
           created_at: string
           date_commande_client: string
           date_devis: string
@@ -431,7 +433,6 @@ export type Database = {
           montant: number | null
           nature: string
           numero: string
-          numero_facture: string
           redacteur: string
           reference_client: string
           remarques: string
@@ -440,6 +441,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          annule?: boolean
+          bi_reference_historique?: string
           created_at?: string
           date_commande_client?: string
           date_devis?: string
@@ -455,7 +458,6 @@ export type Database = {
           montant?: number | null
           nature?: string
           numero?: string
-          numero_facture?: string
           redacteur?: string
           reference_client?: string
           remarques?: string
@@ -464,6 +466,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          annule?: boolean
+          bi_reference_historique?: string
           created_at?: string
           date_commande_client?: string
           date_devis?: string
@@ -479,7 +483,6 @@ export type Database = {
           montant?: number | null
           nature?: string
           numero?: string
-          numero_facture?: string
           redacteur?: string
           reference_client?: string
           remarques?: string

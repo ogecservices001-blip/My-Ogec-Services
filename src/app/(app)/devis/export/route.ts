@@ -18,11 +18,12 @@ const COLONNES = [
   "Référence client",
   "Statut commande fournisseur",
   "Date mise à disposition fourniture",
-  "N° Facture",
+  "Réf. BI historique",
   "Mois facturation",
   "Remarques",
   "Débours matériel prévu",
   "Heures prévues",
+  "Annulé",
 ];
 
 export async function GET(request: Request) {
@@ -63,11 +64,12 @@ export async function GET(request: Request) {
       d.reference_client,
       d.statut_commande_fournisseur,
       d.date_mise_a_disposition_fourniture,
-      d.numero_facture,
+      d.bi_reference_historique,
       d.mois_facturation,
       d.remarques,
       d.debours_materiel_prevu,
       d.heures_prevues,
+      d.annule ? "Oui" : "",
     ]);
   }
 

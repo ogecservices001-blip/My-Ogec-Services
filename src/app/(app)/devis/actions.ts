@@ -17,12 +17,13 @@ export type DevisInput = {
   reference_client: string;
   statut_commande_fournisseur: string;
   date_mise_a_disposition_fourniture: string;
-  numero_facture: string;
+  bi_reference_historique: string;
   mois_facturation: string;
   remarques: string;
   debours_materiel_prevu: number | null;
   heures_prevues: number | null;
   email_responsable_contrat: string;
+  annule: boolean;
 };
 
 /// Pas de création manuelle depuis l'app — les devis arrivent

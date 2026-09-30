@@ -17,15 +17,20 @@ export type PrestationLigne = {
   dateCommandeClient: string;
   biNumero: string | null;
   realisee: boolean;
+  annulee: boolean;
 };
 
+type Onglet = "a_realiser" | "realisees" | "annulees";
+
 export function PrestationsListe({ lignes }: { lignes: PrestationLigne[] }) {
-  const [onglet, setOnglet] = useState<"a_realiser" | "realisees">("a_realiser");
+  const [onglet, setOnglet] = useState<Onglet>("a_realiser");
   const [recherche, setRecherche] = useState("");
 
-  const aRealiser = lignes.filter((l) => !l.realisee);
-  const realisees = lignes.filter((l) => l.realisee);
-  const filtrees = (onglet === "a_realiser" ? aRealiser : realisees).filter((l) =>
+  const aRealiser = lignes.filter((l) => !l.annulee && !l.realisee);
+  const realisees = lignes.filter((l) => !l.annulee && l.realisee);
+  const annulees = lignes.filter((l) => l.annulee);
+  const parOnglet: Record<Onglet, PrestationLigne[]> = { a_realiser: aRealiser, realisees, annulees };
+  const filtrees = parOnglet[onglet].filter((l) =>
     `${l.clientNom} ${l.clientSite} ${l.libelle}`.toLowerCase().includes(recherche.toLowerCase()),
   );
 
@@ -51,6 +56,14 @@ export function PrestationsListe({ lignes }: { lignes: PrestationLigne[] }) {
         >
           Réalisées ({realisees.length})
         </button>
+        <button
+          onClick={() => setOnglet("annulees")}
+          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+            onglet === "annulees" ? "bg-red-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+          }`}
+        >
+          Annulées ({annulees.length})
+        </button>
       </div>
 
       <div className="relative mb-4">
@@ -65,12 +78,16 @@ export function PrestationsListe({ lignes }: { lignes: PrestationLigne[] }) {
 
       {filtrees.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">
-          {onglet === "a_realiser" ? "Aucune prestation à réaliser" : "Aucune prestation réalisée"}
+          {onglet === "a_realiser"
+            ? "Aucune prestation à réaliser"
+            : onglet === "realisees"
+              ? "Aucune prestation réalisée"
+              : "Aucune prestation annulée"}
         </p>
       ) : (
         <ul className="space-y-2.5">
           {filtrees.map((l) => (
-            <li key={l.id} className="rounded-2xl bg-white p-4 shadow-sm">
+            <li key={l.id} className={`rounded-2xl bg-white p-4 shadow-sm ${l.annulee ? "opacity-60" : ""}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-slate-900">

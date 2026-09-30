@@ -39,8 +39,9 @@ export default async function PrestationsPage() {
       montant: d.montant,
       heuresPrevues: d.heures_prevues,
       dateCommandeClient: d.date_commande_client,
-      biNumero: bon?.numero ?? null,
-      realisee: bon ? STATUTS_REALISE.has(bon.statut) : false,
+      biNumero: bon?.numero ?? d.bi_reference_historique ?? null,
+      realisee: (bon ? STATUTS_REALISE.has(bon.statut) : false) || Boolean(d.bi_reference_historique),
+      annulee: d.annule,
     };
   });
 

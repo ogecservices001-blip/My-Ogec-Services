@@ -48,6 +48,7 @@ export async function chargerDevisDuSite(siteId: string, natureFiltre?: string):
     .select("id, numero, libelle, reference_client, date_commande_client, nature")
     .eq("site_id", siteId)
     .neq("date_commande_client", "")
+    .eq("annule", false)
     .order("created_at", { ascending: false });
   if (natureFiltre) requete = requete.eq("nature", natureFiltre);
   const { data } = await requete;
@@ -76,9 +77,10 @@ export async function chargerDevisARealiser(): Promise<DevisARealiser[]> {
   const [{ data: devis }, { data: bons }, { data: sites }] = await Promise.all([
     supabase
       .from("devis")
-      .select("id, numero, site_id, nature, libelle")
+      .select("id, numero, site_id, nature, libelle, bi_reference_historique")
       .neq("date_commande_client", "")
       .neq("nature", "")
+      .eq("annule", false)
       .order("created_at", { ascending: false }),
     supabase.from("bons_intervention").select("devis_id, statut").not("devis_id", "is", null),
     supabase.from("sites").select("id, nom, site"),
@@ -90,7 +92,7 @@ export async function chargerDevisARealiser(): Promise<DevisARealiser[]> {
   const siteParId = new Map((sites ?? []).map((s) => [s.id, s]));
 
   return (devis ?? [])
-    .filter((d) => !devisRealises.has(d.id))
+    .filter((d) => !devisRealises.has(d.id) && !d.bi_reference_historique)
     .map((d) => ({
       id: d.id,
       numero: d.numero,

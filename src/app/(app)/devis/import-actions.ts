@@ -145,12 +145,17 @@ export async function previsualiserImportDevis(formData: FormData): Promise<Resu
         reference_client: cell(row, 13),
         statut_commande_fournisseur: cell(row, 14),
         date_mise_a_disposition_fourniture: cell(row, 15),
-        numero_facture: cell(row, 16),
+        bi_reference_historique: cell(row, 16),
         mois_facturation: cell(row, 17),
         remarques: cell(row, 18),
         debours_materiel_prevu: nombreCell(row, 19),
         heures_prevues: nombreCell(row, 20),
         email_responsable_contrat: site.courriel_responsable,
+        // Jamais déduit du fichier (aucune colonne "Annulé" côté
+        // Suivi Devis) — toujours posé à la main par le bureau après
+        // import. Une mise à jour d'un devis déjà annulé garde son
+        // statut (voir appliquerImportDevis).
+        annule: false,
       },
       siteId: site.id,
       clientNom: site.nom,
@@ -173,7 +178,12 @@ export async function appliquerImportDevis(
   let misesAJour = 0;
 
   for (const ligne of lignes) {
-    const donnees = { ...ligne.donnees, site_id: ligne.siteId };
+    // "annule" n'est jamais dans le fichier (voir previsualiserImportDevis)
+    // — ne jamais l'écraser sur un devis déjà annulé à la main lors
+    // d'un ré-import.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { annule: _annule, ...champsFichier } = ligne.donnees;
+    const donnees = { ...champsFichier, site_id: ligne.siteId };
     if (ligne.devisExistantId) {
       const { error } = await supabase
         .from("devis")

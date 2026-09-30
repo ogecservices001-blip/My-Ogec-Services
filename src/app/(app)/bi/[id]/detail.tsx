@@ -203,8 +203,8 @@ function VueLectureSeule({ bon, typesEquipement }: { bon: Bon; typesEquipement: 
       <Section titre="Intervention">
         <Ligne label="Pôle" valeur={`${bon.pole} · ${labelPole(bon.pole)}`} />
         <Ligne label="Technicien(s)" valeur={bon.techniciens.join(", ")} />
-        {bon.affaire_numero_devis && <Ligne label="Affaire" valeur={bon.affaire_numero_devis} />}
-        {bon.affaire_numero_commande_client && <Ligne label="N° commande client" valeur={bon.affaire_numero_commande_client} />}
+        {bon.devis_numero && <Ligne label="Affaire" valeur={bon.devis_numero} />}
+        {bon.devis_reference_client && <Ligne label="Réf. client" valeur={bon.devis_reference_client} />}
         {bon.equipement_nom && <Ligne label="Équipement" valeur={equipementLabel(bon)} />}
         {bon.entretien_groupes.length > 0 && <Ligne label="Groupes entretenus" valeur={bon.entretien_groupes.join(", ")} />}
         {avecPeriode(bon.pole) ? (

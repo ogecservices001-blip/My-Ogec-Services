@@ -2,21 +2,29 @@ import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
-import { labelNatureAffaire } from "@/lib/affaires/constants";
+import { labelNatureDevis } from "@/lib/devis/constants";
 
 const COLONNES = [
-  "Numéro de devis",
+  "Référence devis",
   "Client",
   "Site",
-  "Désignation des prestations",
-  "Email responsable contrat",
-  "Date de commande client",
-  "Référence commande client",
+  "Item",
+  "Rédacteur",
   "Nature",
+  "Date devis",
+  "Libellé",
+  "Montant",
+  "Date commande client",
+  "Référence client",
+  "Statut commande fournisseur",
+  "Date mise à disposition fourniture",
+  "N° Facture",
+  "Mois facturation",
+  "Remarques",
+  "Débours matériel prévu",
+  "Heures prévues",
 ];
 
-/// Export global (toutes les affaires) ou filtré sur un client via
-/// ?nom=... — même 8 colonnes que AffaireExportService côté Flutter.
 export async function GET(request: Request) {
   await requireAdmin();
 
@@ -30,33 +38,43 @@ export async function GET(request: Request) {
   const siteParId = new Map((sites ?? []).map((s) => [s.id, s]));
   const siteIds = nom ? (sites ?? []).filter((s) => s.nom === nom).map((s) => s.id) : null;
 
-  let requete = supabase.from("affaires").select("*").order("created_at", { ascending: false });
+  let requete = supabase.from("devis").select("*").order("created_at", { ascending: false });
   if (siteIds) requete = requete.in("site_id", siteIds);
-  const { data: affaires, error } = await requete;
+  const { data: devis, error } = await requete;
   if (error) return NextResponse.json({ erreur: error.message }, { status: 500 });
 
   const workbook = new ExcelJS.Workbook();
-  const feuille = workbook.addWorksheet("AFFAIRES");
+  const feuille = workbook.addWorksheet("Devis");
   feuille.addRow(COLONNES);
 
-  for (const a of affaires ?? []) {
-    const site = siteParId.get(a.site_id);
+  for (const d of devis ?? []) {
+    const site = siteParId.get(d.site_id);
     feuille.addRow([
-      a.numero_devis,
+      d.numero,
       site?.nom ?? "",
       site?.site ?? "",
-      a.designation_prestations,
-      a.email_responsable_contrat,
-      a.date_commande_client,
-      a.numero_commande_client,
-      a.nature ? labelNatureAffaire(a.nature) : "",
+      d.item,
+      d.redacteur,
+      d.nature ? labelNatureDevis(d.nature) : "",
+      d.date_devis,
+      d.libelle,
+      d.montant,
+      d.date_commande_client,
+      d.reference_client,
+      d.statut_commande_fournisseur,
+      d.date_mise_a_disposition_fourniture,
+      d.numero_facture,
+      d.mois_facturation,
+      d.remarques,
+      d.debours_materiel_prevu,
+      d.heures_prevues,
     ]);
   }
 
-  feuille.columns.forEach((col) => (col.width = 22));
+  feuille.columns.forEach((col) => (col.width = 20));
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const nomFichier = nom ? `${nom.replace(/[^a-zA-Z0-9._-]/g, "_")}_affaires.xlsx` : "toutes_les_affaires.xlsx";
+  const nomFichier = nom ? `${nom.replace(/[^a-zA-Z0-9._-]/g, "_")}_devis.xlsx` : "tous_les_devis.xlsx";
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

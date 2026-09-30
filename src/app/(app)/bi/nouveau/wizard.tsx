@@ -26,10 +26,11 @@ import {
 import { today, tempsStandard, multiplierDuree } from "@/lib/bi/format";
 import {
   chargerEquipementsDuSite,
-  chargerAffairesDuSite,
+  chargerDevisDuSite,
   enregistrerBI,
   type EquipementDuSite,
-  type AffaireDuSite,
+  type DevisDuSite,
+  type DevisARealiser,
   type PhotoInput,
   type PrestaInput,
   type DepannageEnCours,
@@ -77,6 +78,7 @@ export function BiWizard({
   nomUtilisateur,
   technicienId,
   depannagesEnCours,
+  devisARealiser,
 }: {
   sites: SiteOption[];
   techniciensDisponibles: string[];
@@ -84,6 +86,7 @@ export function BiWizard({
   nomUtilisateur: string;
   technicienId: string;
   depannagesEnCours: DepannageEnCours[];
+  devisARealiser: DevisARealiser[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -105,8 +108,8 @@ export function BiWizard({
   // ---------- Étape 1 : Client ----------
   const [clientNom, setClientNom] = useState("");
   const [siteId, setSiteId] = useState("");
-  const [affaireId, setAffaireId] = useState("");
-  const [affairesDuSite, setAffairesDuSite] = useState<AffaireDuSite[]>([]);
+  const [devisId, setDevisId] = useState("");
+  const [devisDuSite, setDevisDuSite] = useState<DevisDuSite[]>([]);
   const [equipementsSite, setEquipementsSite] = useState<EquipementDuSite[]>([]);
   const [equipementId, setEquipementId] = useState("");
   const [chargementSite, startChargementSite] = useTransition();
@@ -130,20 +133,20 @@ export function BiWizard({
   useEffect(() => {
     if (!siteId) {
       setEquipementsSite([]);
-      setAffairesDuSite([]);
+      setDevisDuSite([]);
       return;
     }
     startChargementSite(async () => {
-      const [eqs, affs] = await Promise.all([
+      const [eqs, dvs] = await Promise.all([
         chargerEquipementsDuSite(siteId),
-        avecAffaire(pole) ? chargerAffairesDuSite(siteId, pole) : Promise.resolve([]),
+        avecAffaire(pole) ? chargerDevisDuSite(siteId, pole) : Promise.resolve([]),
       ]);
       setEquipementsSite(eqs);
-      setAffairesDuSite(affs);
+      setDevisDuSite(dvs);
     });
     // Redéclenché aussi si le technicien revient à l'étape 0 pour
-    // changer de pôle sans changer de client — la liste d'affaires est
-    // filtrée par nature (voir chargerAffairesDuSite) et deviendrait
+    // changer de pôle sans changer de client — la liste de devis est
+    // filtrée par nature (voir chargerDevisDuSite) et deviendrait
     // sinon obsolète.
   }, [siteId, pole]);
 
@@ -159,7 +162,7 @@ export function BiWizard({
   function choisirPole(code: string) {
     if (pole === code) return;
     setPole(code);
-    setAffaireId("");
+    setDevisId("");
     setEquipementId("");
     setTypeActifId("");
     setMaterielChamps({});
@@ -191,6 +194,23 @@ export function BiWizard({
 
   function annulerDepannage() {
     setDepannageId(null);
+  }
+
+  // Affaires à réaliser — même principe que les dépannages en cours,
+  // mais à l'étape Pôle puisque choisir une affaire détermine aussi le
+  // pôle (= sa nature, voir Devis.nature). Recherche client-side, la
+  // liste peut porter plusieurs centaines de lignes.
+  const [rechercheAffaires, setRechercheAffaires] = useState("");
+  const affairesFiltrees = devisARealiser.filter((d) =>
+    `${d.client_nom} ${d.client_site} ${d.libelle}`.toLowerCase().includes(rechercheAffaires.toLowerCase()),
+  );
+
+  function choisirAffaireARealiser(d: DevisARealiser) {
+    setPole(d.nature);
+    setDevisId(d.id);
+    setClientNom(d.client_nom);
+    setSiteId(d.site_id);
+    setEtape(1);
   }
 
   const groupesDisponibles = useMemo(
@@ -320,7 +340,7 @@ export function BiWizard({
 
   const peutAvancerEtapeClient = useMemo(() => {
     if (!siteId) return false;
-    if (avecAffaire(pole) && !affaireId) return false;
+    if (avecAffaire(pole) && !devisId) return false;
     if (avecEquipementObligatoire(pole) && !equipementId) return false;
     if (pole === Poles.remplacementIdentique && !materielComplet) return false;
     if (avecNouvelEquipement(pole)) {
@@ -334,7 +354,7 @@ export function BiWizard({
       }
     }
     return true;
-  }, [siteId, pole, affaireId, equipementId, materielComplet, installationNom, installationLocalisation, groupesSelectionnes, nonDesservisIds, motifsNonDesservi]);
+  }, [siteId, pole, devisId, equipementId, materielComplet, installationNom, installationLocalisation, groupesSelectionnes, nonDesservisIds, motifsNonDesservi]);
 
   const photosEnCours = photos.some((p) => p.enCours);
   const peutTransmettre =
@@ -362,7 +382,7 @@ export function BiWizard({
       equipementNomFinal = equipementLibre.trim();
     }
 
-    const affaire = affairesDuSite.find((a) => a.id === affaireId) ?? null;
+    const devis = devisDuSite.find((d) => d.id === devisId) ?? null;
 
     return {
       pole,
@@ -376,10 +396,10 @@ export function BiWizard({
       equipement_nom: equipementNomFinal,
       equipement_groupe: equipementGroupeFinal,
       equipement_localisation: equipementLocalisationFinal,
-      affaire_id: affaire?.id ?? null,
-      affaire_numero_devis: affaire?.numero_devis ?? "",
-      affaire_numero_commande_client: affaire?.numero_commande_client ?? "",
-      affaire_date_commande_client: affaire?.date_commande_client ?? "",
+      devis_id: devis?.id ?? null,
+      devis_numero: devis?.numero ?? "",
+      devis_reference_client: devis?.reference_client ?? "",
+      devis_date_commande_client: devis?.date_commande_client ?? "",
       materiel_type_equipement_id: typeActif?.id ?? null,
       materiel_champs_en_tete: materielChamps,
       entretien_groupes: [...groupesSelectionnes],
@@ -449,7 +469,47 @@ export function BiWizard({
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>}
 
       {etape === 0 && (
-        <div className="space-y-2">
+        <div className="space-y-4">
+          {devisARealiser.length > 0 && (
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                Affaires à réaliser ({devisARealiser.length})
+              </p>
+              <input
+                value={rechercheAffaires}
+                onChange={(e) => setRechercheAffaires(e.target.value)}
+                placeholder="Rechercher un client, un site..."
+                className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+              />
+              <div className="max-h-64 space-y-1.5 overflow-y-auto">
+                {affairesFiltrees.slice(0, 50).map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => choisirAffaireARealiser(d)}
+                    className="block w-full rounded-lg border border-slate-100 p-2.5 text-left hover:bg-slate-50"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-bold text-slate-900">
+                        {[d.client_nom, d.client_site].filter(Boolean).join(" — ")}
+                      </p>
+                      <span
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        style={{ backgroundColor: `${COULEURS_POLES[d.nature]}26`, color: COULEURS_POLES[d.nature] }}
+                      >
+                        {labelPole(d.nature)}
+                      </span>
+                    </div>
+                    {d.libelle && <p className="truncate text-xs text-slate-500">{d.libelle}</p>}
+                  </button>
+                ))}
+                {affairesFiltrees.length === 0 && (
+                  <p className="py-2 text-center text-xs text-slate-400">Aucune affaire trouvée</p>
+                )}
+              </div>
+              <p className="mt-2 text-center text-xs text-slate-400">ou choisir un pôle directement ci-dessous</p>
+            </div>
+          )}
+
           <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Pôle</p>
           {ORDRE_AFFICHAGE_POLES.map((code) => {
             const selectionne = pole === code;
@@ -598,23 +658,23 @@ export function BiWizard({
 
           {siteId && avecAffaire(pole) && (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-              <label className="mb-1 block text-xs font-medium text-slate-600">Affaire (devis)</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Affaire (devis commandé)</label>
               <select
-                value={affaireId}
+                value={devisId}
                 disabled={chargementSite}
-                onChange={(e) => setAffaireId(e.target.value)}
+                onChange={(e) => setDevisId(e.target.value)}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/20 disabled:bg-slate-50"
               >
                 <option value="">{chargementSite ? "Chargement..." : "— Choisir l'affaire —"}</option>
-                {affairesDuSite.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.numero_devis || "(sans n° de devis)"} — {a.designation_prestations.slice(0, 40)}
+                {devisDuSite.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.numero || "(sans référence)"} — {d.libelle.slice(0, 40)}
                   </option>
                 ))}
               </select>
-              {!chargementSite && affairesDuSite.length === 0 && siteId && (
+              {!chargementSite && devisDuSite.length === 0 && siteId && (
                 <p className="mt-1.5 text-xs text-amber-700">
-                  Aucune affaire de cette nature pour ce site — importer une affaire depuis Travaux Clients.
+                  Aucune affaire de cette nature pour ce site — importer un devis depuis le module Devis.
                 </p>
               )}
             </div>

@@ -28,26 +28,78 @@ export async function chargerEquipementsDuSite(siteId: string): Promise<Equipeme
   return (data ?? []) as EquipementDuSite[];
 }
 
-export type AffaireDuSite = {
+export type DevisDuSite = {
   id: string;
-  numero_devis: string;
-  designation_prestations: string;
-  numero_commande_client: string;
+  numero: string;
+  libelle: string;
+  reference_client: string;
   date_commande_client: string;
   nature: string;
 };
 
-export async function chargerAffairesDuSite(siteId: string, natureFiltre?: string): Promise<AffaireDuSite[]> {
+/// Devis commandés (= Affaires) d'un site — un devis pas encore
+/// commandé (date_commande_client vide) n'a rien à faire dans
+/// l'assistant BI, qui ne concerne que du travail à réaliser.
+export async function chargerDevisDuSite(siteId: string, natureFiltre?: string): Promise<DevisDuSite[]> {
   await requireProfile();
   const supabase = await createClient();
   let requete = supabase
-    .from("affaires")
-    .select("id, numero_devis, designation_prestations, numero_commande_client, date_commande_client, nature")
+    .from("devis")
+    .select("id, numero, libelle, reference_client, date_commande_client, nature")
     .eq("site_id", siteId)
+    .neq("date_commande_client", "")
     .order("created_at", { ascending: false });
   if (natureFiltre) requete = requete.eq("nature", natureFiltre);
   const { data } = await requete;
   return data ?? [];
+}
+
+export type DevisARealiser = {
+  id: string;
+  numero: string;
+  site_id: string;
+  client_nom: string;
+  client_site: string;
+  nature: string;
+  libelle: string;
+};
+
+const STATUTS_REALISE = new Set(["valide", "pdf", "prete", "envoye"]);
+
+/// Devis commandés pas encore réalisés (aucun BI validé ne leur est
+/// rattaché) — proposés à l'étape Pôle de l'assistant : les choisir
+/// détermine le pôle (= la nature du devis) en plus du client, comme
+/// pour les dépannages en cours (voir chargerDepannagesEnCours).
+export async function chargerDevisARealiser(): Promise<DevisARealiser[]> {
+  await requireProfile();
+  const supabase = await createClient();
+  const [{ data: devis }, { data: bons }, { data: sites }] = await Promise.all([
+    supabase
+      .from("devis")
+      .select("id, numero, site_id, nature, libelle")
+      .neq("date_commande_client", "")
+      .neq("nature", "")
+      .order("created_at", { ascending: false }),
+    supabase.from("bons_intervention").select("devis_id, statut").not("devis_id", "is", null),
+    supabase.from("sites").select("id, nom, site"),
+  ]);
+
+  const devisRealises = new Set(
+    (bons ?? []).filter((b) => STATUTS_REALISE.has(b.statut)).map((b) => b.devis_id as string),
+  );
+  const siteParId = new Map((sites ?? []).map((s) => [s.id, s]));
+
+  return (devis ?? [])
+    .filter((d) => !devisRealises.has(d.id))
+    .map((d) => ({
+      id: d.id,
+      numero: d.numero,
+      site_id: d.site_id,
+      client_nom: siteParId.get(d.site_id)?.nom ?? "",
+      client_site: siteParId.get(d.site_id)?.site ?? "",
+      nature: d.nature,
+      libelle: d.libelle,
+    }));
 }
 
 export type DepannageEnCours = {
@@ -99,10 +151,10 @@ export type BiInput = {
   equipement_groupe: string;
   equipement_localisation: string;
 
-  affaire_id: string | null;
-  affaire_numero_devis: string;
-  affaire_numero_commande_client: string;
-  affaire_date_commande_client: string;
+  devis_id: string | null;
+  devis_numero: string;
+  devis_reference_client: string;
+  devis_date_commande_client: string;
 
   materiel_type_equipement_id: string | null;
   materiel_champs_en_tete: Record<string, string>;
@@ -167,10 +219,10 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
     equipement_nom: input.equipement_nom,
     equipement_groupe: input.equipement_groupe,
     equipement_localisation: input.equipement_localisation,
-    affaire_id: input.affaire_id,
-    affaire_numero_devis: input.affaire_numero_devis,
-    affaire_numero_commande_client: input.affaire_numero_commande_client,
-    affaire_date_commande_client: input.affaire_date_commande_client,
+    devis_id: input.devis_id,
+    devis_numero: input.devis_numero,
+    devis_reference_client: input.devis_reference_client,
+    devis_date_commande_client: input.devis_date_commande_client,
     materiel_type_equipement_id: input.materiel_type_equipement_id,
     materiel_champs_en_tete: input.materiel_champs_en_tete,
     entretien_groupes: input.entretien_groupes,
@@ -209,6 +261,7 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
   }
 
   revalidatePath("/bi");
+  revalidatePath("/prestations");
   return { ok: true };
 }
 

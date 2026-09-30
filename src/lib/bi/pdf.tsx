@@ -201,9 +201,9 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
 
         <Section titre="OGEC" />
         <Kv k="Technicien(s)" v={bon.techniciens.join(", ") || "—"} />
-        {bon.affaire_numero_devis && <Kv k="Affaire" v={bon.affaire_numero_devis} />}
-        {bon.affaire_numero_commande_client && <Kv k="Réf commande client" v={bon.affaire_numero_commande_client} />}
-        {bon.affaire_date_commande_client && <Kv k="Date commande client" v={bon.affaire_date_commande_client} />}
+        {bon.devis_numero && <Kv k="Affaire" v={bon.devis_numero} />}
+        {bon.devis_reference_client && <Kv k="Réf commande client" v={bon.devis_reference_client} />}
+        {bon.devis_date_commande_client && <Kv k="Date commande client" v={bon.devis_date_commande_client} />}
         {bon.equipement_nom && (
           <>
             {descriptionEquipement(bon.pole) && <Text style={{ fontSize: 9.5, marginBottom: 1 }}>{descriptionEquipement(bon.pole)}</Text>}

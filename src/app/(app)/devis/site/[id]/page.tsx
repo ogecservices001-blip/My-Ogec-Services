@@ -2,13 +2,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { Site } from "@/lib/types";
-import { AffairesDuSite } from "./affaires-liste";
+import { DevisDuSite } from "./devis-liste";
 
-export default async function AffairesSitePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function DevisSitePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
   const profile = await getCurrentProfile();
@@ -17,17 +13,11 @@ export default async function AffairesSitePage({
   if (!s) notFound();
   const site = s as Site;
 
-  const { data: affaires } = await supabase
-    .from("affaires")
+  const { data: devis } = await supabase
+    .from("devis")
     .select("*")
     .eq("site_id", id)
     .order("created_at", { ascending: false });
 
-  return (
-    <AffairesDuSite
-      site={site}
-      affaires={affaires ?? []}
-      isAdmin={profile?.role === "admin"}
-    />
-  );
+  return <DevisDuSite site={site} devis={devis ?? []} isAdmin={profile?.role === "admin"} />;
 }

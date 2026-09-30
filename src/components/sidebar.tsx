@@ -64,14 +64,18 @@ const modules: Module[] = [
       { nom: "Vérifier les dossiers clients" },
     ],
   },
-  { nom: "Prestation sur commande", actif: false, sousMenus: [] },
+  {
+    nom: "Prestation sur commande",
+    actif: true,
+    sousMenus: [{ nom: "À réaliser / Réalisées", href: "/prestations" }],
+  },
   { nom: "Planning Maintenance", actif: false, sousMenus: [] },
   {
-    nom: "Travaux Clients",
+    nom: "Devis",
     actif: true,
     sousMenus: [
-      { nom: "Contrat entretien", href: "/affaires" },
-      { nom: "Hors contrat", href: "/affaires?horsContrat=1" },
+      { nom: "Contrat entretien", href: "/devis" },
+      { nom: "Hors contrat", href: "/devis?horsContrat=1" },
     ],
   },
   { nom: "Signalement retour information terrain", actif: false, sousMenus: [] },

@@ -1,9 +1,9 @@
-import { NATURE_AFFAIRE, labelNatureAffaire } from "@/lib/affaires/constants";
+import { NATURE_DEVIS, labelNatureDevis } from "@/lib/devis/constants";
 
 /// Pôles métier OGEC — chaque pôle a son propre chrono annuel de
-/// numérotation. Réexporte directement les codes NatureAffaire : le
+/// numérotation. Réexporte directement les codes de Devis.nature : le
 /// pôle du Bon d'intervention EST la nature du travail, même liste,
-/// même sens (voir @/lib/affaires/constants).
+/// même sens (voir @/lib/devis/constants).
 export const Poles = {
   installationNeuve: "10",
   remplacementIdentique: "15",
@@ -21,12 +21,12 @@ export const Poles = {
 export type Pole = (typeof Poles)[keyof typeof Poles];
 
 export const POLE_LABELS: Record<string, string> = {
-  ...NATURE_AFFAIRE,
+  ...NATURE_DEVIS,
   [Poles.depannage]: "Dépannage",
 };
 
 export function labelPole(code: string): string {
-  return POLE_LABELS[code] ?? labelNatureAffaire(code);
+  return POLE_LABELS[code] ?? labelNatureDevis(code);
 }
 
 /// Ordre d'affichage des pôles dans l'assistant — du plus fréquent

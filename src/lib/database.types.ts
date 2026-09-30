@@ -99,10 +99,6 @@ export type Database = {
       bons_intervention: {
         Row: {
           adresse: string
-          affaire_date_commande_client: string
-          affaire_id: string | null
-          affaire_numero_commande_client: string
-          affaire_numero_devis: string
           chrono: number
           client_nom: string
           compte_rendu: string
@@ -112,6 +108,10 @@ export type Database = {
           date_fin: string
           date_intervention: string
           date_signature: string
+          devis_date_commande_client: string
+          devis_id: string | null
+          devis_numero: string
+          devis_reference_client: string
           email: string
           entretien_groupes: string[]
           entretien_non_desservis: Json
@@ -153,10 +153,6 @@ export type Database = {
         }
         Insert: {
           adresse?: string
-          affaire_date_commande_client?: string
-          affaire_id?: string | null
-          affaire_numero_commande_client?: string
-          affaire_numero_devis?: string
           chrono?: number
           client_nom?: string
           compte_rendu?: string
@@ -166,6 +162,10 @@ export type Database = {
           date_fin?: string
           date_intervention?: string
           date_signature?: string
+          devis_date_commande_client?: string
+          devis_id?: string | null
+          devis_numero?: string
+          devis_reference_client?: string
           email?: string
           entretien_groupes?: string[]
           entretien_non_desservis?: Json
@@ -207,10 +207,6 @@ export type Database = {
         }
         Update: {
           adresse?: string
-          affaire_date_commande_client?: string
-          affaire_id?: string | null
-          affaire_numero_commande_client?: string
-          affaire_numero_devis?: string
           chrono?: number
           client_nom?: string
           compte_rendu?: string
@@ -220,6 +216,10 @@ export type Database = {
           date_fin?: string
           date_intervention?: string
           date_signature?: string
+          devis_date_commande_client?: string
+          devis_id?: string | null
+          devis_numero?: string
+          devis_reference_client?: string
           email?: string
           entretien_groupes?: string[]
           entretien_non_desservis?: Json
@@ -261,10 +261,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bons_intervention_affaire_id_fkey"
-            columns: ["affaire_id"]
+            foreignKeyName: "bons_intervention_devis_id_fkey"
+            columns: ["devis_id"]
             isOneToOne: false
-            referencedRelation: "affaires"
+            referencedRelation: "devis"
             referencedColumns: ["id"]
           },
           {
@@ -407,6 +407,96 @@ export type Database = {
           },
           {
             foreignKeyName: "demandes_depannage_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devis: {
+        Row: {
+          created_at: string
+          date_commande_client: string
+          date_devis: string
+          date_mise_a_disposition_fourniture: string
+          debours_materiel_prevu: number | null
+          email_responsable_contrat: string
+          heures_prevues: number | null
+          id: string
+          item: string
+          legacy_id: string | null
+          libelle: string
+          mois_facturation: string
+          montant: number | null
+          nature: string
+          numero: string
+          numero_facture: string
+          redacteur: string
+          reference_client: string
+          remarques: string
+          site_id: string
+          statut_commande_fournisseur: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_commande_client?: string
+          date_devis?: string
+          date_mise_a_disposition_fourniture?: string
+          debours_materiel_prevu?: number | null
+          email_responsable_contrat?: string
+          heures_prevues?: number | null
+          id?: string
+          item?: string
+          legacy_id?: string | null
+          libelle?: string
+          mois_facturation?: string
+          montant?: number | null
+          nature?: string
+          numero?: string
+          numero_facture?: string
+          redacteur?: string
+          reference_client?: string
+          remarques?: string
+          site_id: string
+          statut_commande_fournisseur?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_commande_client?: string
+          date_devis?: string
+          date_mise_a_disposition_fourniture?: string
+          debours_materiel_prevu?: number | null
+          email_responsable_contrat?: string
+          heures_prevues?: number | null
+          id?: string
+          item?: string
+          legacy_id?: string | null
+          libelle?: string
+          mois_facturation?: string
+          montant?: number | null
+          nature?: string
+          numero?: string
+          numero_facture?: string
+          redacteur?: string
+          reference_client?: string
+          remarques?: string
+          site_id?: string
+          statut_commande_fournisseur?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_site_id_fkey"
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites_view"

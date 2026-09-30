@@ -4,18 +4,14 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Upload, FileSpreadsheet } from "lucide-react";
-import { labelNatureAffaire } from "@/lib/affaires/constants";
-import {
-  previsualiserImportAffaires,
-  appliquerImportAffaires,
-  type LigneAffaireImport,
-} from "../import-actions";
+import { labelNatureDevis } from "@/lib/devis/constants";
+import { previsualiserImportDevis, appliquerImportDevis, type LigneDevisImport } from "../import-actions";
 
-export function ImporterAffairesClient() {
+export function ImporterDevisClient() {
   const router = useRouter();
   const [analyse, startAnalyse] = useTransition();
   const [application, startApplication] = useTransition();
-  const [lignes, setLignes] = useState<LigneAffaireImport[] | null>(null);
+  const [lignes, setLignes] = useState<LigneDevisImport[] | null>(null);
   const [avertissements, setAvertissements] = useState<string[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
   const [cochees, setCochees] = useState<Set<number>>(new Set());
@@ -25,7 +21,7 @@ export function ImporterAffairesClient() {
     setErreur(null);
     setResultat(null);
     startAnalyse(async () => {
-      const res = await previsualiserImportAffaires(formData);
+      const res = await previsualiserImportDevis(formData);
       if (!res.ok) {
         setErreur(res.erreur);
         setLignes(null);
@@ -42,7 +38,7 @@ export function ImporterAffairesClient() {
     setErreur(null);
     startApplication(async () => {
       const selection = lignes.filter((_, i) => cochees.has(i));
-      const res = await appliquerImportAffaires(selection);
+      const res = await appliquerImportDevis(selection);
       if (!res.ok) {
         setErreur(res.erreur);
         return;
@@ -56,30 +52,25 @@ export function ImporterAffairesClient() {
   return (
     <div>
       <Link
-        href="/affaires"
+        href="/devis"
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
         Retour
       </Link>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
-        Importer des affaires
-      </h1>
+      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Importer des devis</h1>
       <p className="mb-5 text-sm text-slate-500">
-        Classeur Excel (.xlsx/.xlsm) avec un onglet &quot;AFFAIRES&quot; — même format que le
-        classeur maître. Rapprochement par N° Client-N° Site.
+        Classeur Excel (.xlsx/.xlsm) avec une feuille &quot;Suivi Devis&quot; — même format que le classeur
+        &quot;Chono Devis&quot;. Rapprochement par N° Client-N° Site.
       </p>
 
       {resultat && (
         <p className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-brand-green-dark">
-          Import terminé : {resultat.crees} affaire(s) créée(s), {resultat.misesAJour} mise(s) à
-          jour.
+          Import terminé : {resultat.crees} devis créé(s), {resultat.misesAJour} mis à jour.
         </p>
       )}
 
-      {erreur && (
-        <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>
-      )}
+      {erreur && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>}
 
       {!lignes && (
         <form
@@ -122,7 +113,7 @@ export function ImporterAffairesClient() {
         <>
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-slate-600">
-              {lignes.length} affaire(s) trouvée(s) — {cochees.size} sélectionnée(s)
+              {lignes.length} devis trouvé(s) — {cochees.size} sélectionné(s)
             </p>
             <button
               onClick={appliquer}
@@ -138,10 +129,7 @@ export function ImporterAffairesClient() {
           ) : (
             <ul className="space-y-2">
               {lignes.map((ligne, i) => (
-                <li
-                  key={i}
-                  className="overflow-hidden rounded-xl border border-slate-200/80 bg-white"
-                >
+                <li key={i} className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
                   <label className="flex cursor-pointer items-start gap-3 p-3">
                     <input
                       type="checkbox"
@@ -160,35 +148,34 @@ export function ImporterAffairesClient() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                            ligne.affaireExistanteId
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-green-100 text-brand-green-dark"
+                            ligne.devisExistantId ? "bg-amber-100 text-amber-700" : "bg-green-100 text-brand-green-dark"
                           }`}
                         >
-                          {ligne.affaireExistanteId ? "Mise à jour" : "Ajout"}
+                          {ligne.devisExistantId ? "Mise à jour" : "Ajout"}
                         </span>
-                        <span className="truncate font-semibold text-slate-900">
-                          {ligne.numeroDevis || "(sans n° de devis)"}
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            ligne.donnees.date_commande_client ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {ligne.donnees.date_commande_client ? "Commandé" : "En attente"}
                         </span>
+                        <span className="truncate font-semibold text-slate-900">{ligne.donnees.numero}</span>
                       </div>
                       <p className="mt-1 text-xs text-slate-500">
                         {ligne.clientNom} — {ligne.clientSite}
                         {ligne.siteApproximatif && " (site non précisé, rattaché au 1er site connu)"}
                       </p>
-                      {ligne.designationPrestations && (
-                        <p className="mt-0.5 text-sm text-slate-700">{ligne.designationPrestations}</p>
-                      )}
-                      {(ligne.numeroCommandeClient || ligne.dateCommandeClient || ligne.nature) && (
-                        <p className="mt-0.5 text-xs text-slate-500">
-                          {[
-                            ligne.numeroCommandeClient && `Réf. commande : ${ligne.numeroCommandeClient}`,
-                            ligne.dateCommandeClient && `Date commande : ${ligne.dateCommandeClient}`,
-                            ligne.nature && `Nature : ${labelNatureAffaire(ligne.nature)}`,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
-                      )}
+                      {ligne.donnees.libelle && <p className="mt-0.5 text-sm text-slate-700">{ligne.donnees.libelle}</p>}
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {[
+                          ligne.donnees.nature && `Nature : ${labelNatureDevis(ligne.donnees.nature)}`,
+                          ligne.donnees.montant !== null && `${ligne.donnees.montant} €`,
+                          ligne.donnees.heures_prevues !== null && `${ligne.donnees.heures_prevues} h prévues`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
                     </div>
                   </label>
                 </li>

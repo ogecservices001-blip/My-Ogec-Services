@@ -1,12 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { creerDepannage, chargerEquipementsDuSite, type EquipementDuSite } from "./actions";
 
-type Site = { id: string; nom: string; site: string; n_affaire: string };
+type Site = { id: string; nom: string; site: string; n_affaire: string; courriel_responsable: string };
 type Technicien = { id: string; name: string; portable: string };
 
 export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; techniciens: Technicien[] }) {
@@ -22,12 +22,25 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
   const [chargementEquipements, startChargementEquipements] = useTransition();
   const equipements = siteId ? equipementsChargees : [];
 
+  // Email du contact pré-rempli avec le "Courriel responsable" connu du
+  // site (Répertoire) quand il change — sans écraser une saisie
+  // manuelle déjà faite par le bureau (on ne remplace que si le champ
+  // est resté tel qu'auto-rempli la fois précédente, ou vide).
+  const [email, setEmail] = useState("");
+  const dernierAutoRempli = useRef("");
+
   useEffect(() => {
     if (!siteId) return;
     startChargementEquipements(async () => {
       const data = await chargerEquipementsDuSite(siteId);
       setEquipementsChargees(data);
     });
+
+    const site = sites.find((s) => s.id === siteId);
+    const courriel = site?.courriel_responsable ?? "";
+    setEmail((valeurActuelle) => (valeurActuelle === "" || valeurActuelle === dernierAutoRempli.current ? courriel : valeurActuelle));
+    dernierAutoRempli.current = courriel;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `sites` est une prop stable (jamais reconstruite en cours de vie du formulaire)
   }, [siteId]);
 
   useEffect(() => {
@@ -155,9 +168,23 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
             <input
               type="email"
               name="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Pré-rempli avec le courriel responsable du site si connu"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
           </div>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              name="envoyer_email"
+              value="1"
+              defaultChecked
+              disabled={!email}
+              className="h-4 w-4 accent-brand-green disabled:opacity-50"
+            />
+            Envoyer un email de confirmation au client à la création
+          </label>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:grid-cols-2">

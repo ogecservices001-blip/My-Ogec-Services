@@ -3,12 +3,14 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Lock, X } from "lucide-react";
+import { ArrowLeft, Lock, X, FileText, ExternalLink, Mail } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { Poles, Statuts, avecPeriode, sansTempsPasse, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI } from "@/lib/bi/constants";
 import { equipementLabel, eur, montantLigne, totalHT } from "@/lib/bi/format";
-import { validerBI, urlPhotoSignee, type CorrectionInput } from "./actions";
+import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, type CorrectionInput } from "./actions";
+
+const STATUTS_AVEC_PDF = new Set<string>([Statuts.valide, Statuts.pdfGenere, Statuts.pretEnvoi, Statuts.envoye]);
 
 type Bon = Tables<"bons_intervention">;
 type TypeEquipementResume = { id: string; nom: string; champs_en_tete_supplementaires: unknown };
@@ -26,6 +28,12 @@ export function BiDetail({
 }) {
   const router = useRouter();
   const enCorrection = isAdmin && bon.statut === Statuts.aVerifier;
+  const [archiveUrl, setArchiveUrl] = useState<string | null>(null);
+  const [modaleEmailOuverte, setModaleEmailOuverte] = useState(false);
+
+  useEffect(() => {
+    if (bon.pdf_storage_path) urlArchiveSignee(bon.pdf_storage_path).then(setArchiveUrl);
+  }, [bon.pdf_storage_path]);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -41,6 +49,40 @@ export function BiDetail({
         <p className="text-lg font-bold text-slate-900">{bon.numero || "BI (brouillon)"}</p>
         <StatutBadge statut={bon.statut} />
       </div>
+
+      {STATUTS_AVEC_PDF.has(bon.statut) && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <a
+            href={`/bi/${bon.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 px-3 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50"
+          >
+            <FileText className="h-3.5 w-3.5" strokeWidth={2} />
+            Voir PDF
+          </a>
+          {archiveUrl && (
+            <a
+              href={archiveUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              <ExternalLink className="h-3.5 w-3.5" strokeWidth={2} />
+              Ouvrir l&apos;archive
+            </a>
+          )}
+          {isAdmin && bon.email && (
+            <button
+              onClick={() => setModaleEmailOuverte(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50"
+            >
+              <Mail className="h-3.5 w-3.5" strokeWidth={2} />
+              Envoyer au client
+            </button>
+          )}
+        </div>
+      )}
 
       <Section titre="Le client">
         <div className="mb-2 flex items-center gap-1.5 text-xs text-slate-500">
@@ -78,6 +120,73 @@ export function BiDetail({
           )}
         </Section>
       )}
+
+      {modaleEmailOuverte && (
+        <ModaleEmail biId={bon.id} destinataire={bon.email} onClose={() => setModaleEmailOuverte(false)} />
+      )}
+    </div>
+  );
+}
+
+function ModaleEmail({
+  biId,
+  destinataire,
+  onClose,
+}: {
+  biId: string;
+  destinataire: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [info, setInfo] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  return (
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-bold text-slate-900">Envoyer à {destinataire}</h2>
+          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+            <X className="h-4.5 w-4.5" strokeWidth={2} />
+          </button>
+        </div>
+        <p className="mb-3 text-xs text-slate-500">Le PDF du bon d&apos;intervention sera joint à l&apos;email.</p>
+        <textarea
+          value={info}
+          onChange={(e) => setInfo(e.target.value)}
+          rows={3}
+          placeholder="Information complémentaire (optionnel)"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+        />
+        {erreur && <p className="mt-2 text-sm text-red-600">{erreur}</p>}
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            disabled={pending}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() =>
+              startTransition(async () => {
+                const res = await envoyerBiParEmail(biId, info);
+                if (!res.ok) {
+                  setErreur(res.erreur);
+                  return;
+                }
+                onClose();
+                router.refresh();
+              })
+            }
+            disabled={pending}
+            className="rounded-xl bg-blue-700 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:opacity-60"
+          >
+            {pending ? "Envoi..." : "Envoyer"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

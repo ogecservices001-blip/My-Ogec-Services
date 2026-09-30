@@ -112,7 +112,6 @@ export type Database = {
           date_fin: string
           date_intervention: string
           date_signature: string
-          drive_bi_folder_id: string
           email: string
           entretien_groupes: string[]
           entretien_non_desservis: Json
@@ -125,7 +124,7 @@ export type Database = {
           history: Json
           hors_contrat: boolean
           id: string
-          json_drive_url: string
+          json_storage_path: string
           legacy_id: string | null
           materiel_champs_en_tete: Json
           materiel_type_equipement_id: string | null
@@ -135,7 +134,7 @@ export type Database = {
           numero_provisoire: boolean
           obs_client: string
           obs_tech: string
-          pdf_drive_url: string
+          pdf_storage_path: string
           photos: Json
           pole: string
           prestas: Json
@@ -167,7 +166,6 @@ export type Database = {
           date_fin?: string
           date_intervention?: string
           date_signature?: string
-          drive_bi_folder_id?: string
           email?: string
           entretien_groupes?: string[]
           entretien_non_desservis?: Json
@@ -180,7 +178,7 @@ export type Database = {
           history?: Json
           hors_contrat?: boolean
           id?: string
-          json_drive_url?: string
+          json_storage_path?: string
           legacy_id?: string | null
           materiel_champs_en_tete?: Json
           materiel_type_equipement_id?: string | null
@@ -190,7 +188,7 @@ export type Database = {
           numero_provisoire?: boolean
           obs_client?: string
           obs_tech?: string
-          pdf_drive_url?: string
+          pdf_storage_path?: string
           photos?: Json
           pole?: string
           prestas?: Json
@@ -222,7 +220,6 @@ export type Database = {
           date_fin?: string
           date_intervention?: string
           date_signature?: string
-          drive_bi_folder_id?: string
           email?: string
           entretien_groupes?: string[]
           entretien_non_desservis?: Json
@@ -235,7 +232,7 @@ export type Database = {
           history?: Json
           hors_contrat?: boolean
           id?: string
-          json_drive_url?: string
+          json_storage_path?: string
           legacy_id?: string | null
           materiel_champs_en_tete?: Json
           materiel_type_equipement_id?: string | null
@@ -245,7 +242,7 @@ export type Database = {
           numero_provisoire?: boolean
           obs_client?: string
           obs_tech?: string
-          pdf_drive_url?: string
+          pdf_storage_path?: string
           photos?: Json
           pole?: string
           prestas?: Json

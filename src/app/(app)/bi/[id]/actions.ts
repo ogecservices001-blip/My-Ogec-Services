@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, requireProfile } from "@/lib/auth";
 import { Poles, Statuts, CHAMPS_MATERIEL_EXCLUS_BI } from "@/lib/bi/constants";
 import { now } from "@/lib/bi/format";
+import { archiverBiSiBesoin, genererPdfAvecPhotos } from "@/lib/bi/archive";
+import { envoyerConfirmationBI } from "@/lib/bi/email";
 import type { ActionResult } from "@/lib/action-result";
 import type { Tables } from "@/lib/types";
 
@@ -149,6 +151,13 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
     // bon lui-même — une erreur ici reste silencieuse pour l'usager.
   }
 
+  try {
+    await archiverBiSiBesoin(supabase, corrige as Bon);
+  } catch {
+    // Idem : l'archivage ne doit jamais bloquer la validation — "Voir
+    // PDF" reste un filet de sécurité si ça échoue ici.
+  }
+
   revalidatePath("/bi");
   revalidatePath(`/bi/${id}`);
   return { ok: true };
@@ -159,4 +168,45 @@ export async function urlPhotoSignee(chemin: string): Promise<string | null> {
   const supabase = await createClient();
   const { data } = await supabase.storage.from("bi-photos").createSignedUrl(chemin, 3600);
   return data?.signedUrl ?? null;
+}
+
+export async function urlArchiveSignee(chemin: string): Promise<string | null> {
+  await requireProfile();
+  const supabase = await createClient();
+  const { data } = await supabase.storage.from("bi-archives").createSignedUrl(chemin, 3600);
+  return data?.signedUrl ?? null;
+}
+
+/// Envoie le PDF au client par email — action manuelle depuis l'écran
+/// bureau (même schéma que "Répondre par email" côté Suivi Dépannage),
+/// jamais automatique à la validation.
+export async function envoyerBiParEmail(id: string, informationComplementaire: string): Promise<ActionResult> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: bon, error } = await supabase.from("bons_intervention").select("*").eq("id", id).single();
+  if (error || !bon) return { ok: false, erreur: "Bon introuvable." };
+  if (!bon.email) return { ok: false, erreur: "Aucun email connu pour ce bon." };
+
+  try {
+    await archiverBiSiBesoin(supabase, bon as Bon);
+  } catch {
+    // Le PDF doit exister pour l'envoyer — si l'archivage échoue ici,
+    // l'erreur est reportée à l'usager (contrairement à la validation,
+    // où elle reste silencieuse).
+    return { ok: false, erreur: "Échec de la génération du PDF." };
+  }
+
+  const { data: bonAvecPdf } = await supabase.from("bons_intervention").select("*").eq("id", id).single();
+  const pdfBytes = await genererPdfAvecPhotos(supabase, bonAvecPdf as Bon);
+
+  try {
+    await envoyerConfirmationBI({ bon: bonAvecPdf as Bon, pdfBytes, informationComplementaire });
+  } catch (e) {
+    return { ok: false, erreur: e instanceof Error ? e.message : "Échec de l'envoi." };
+  }
+
+  await supabase.from("bons_intervention").update({ statut: Statuts.envoye }).eq("id", id);
+  revalidatePath(`/bi/${id}`);
+  return { ok: true };
 }

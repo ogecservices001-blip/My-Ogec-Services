@@ -317,6 +317,7 @@ export type Database = {
       }
       demandes_depannage: {
         Row: {
+          bon_intervention_id: string | null
           client_nom: string
           client_site: string
           date_creation: string
@@ -336,6 +337,7 @@ export type Database = {
           statut: Database["public"]["Enums"]["statut_depannage"]
         }
         Insert: {
+          bon_intervention_id?: string | null
           client_nom?: string
           client_site?: string
           date_creation?: string
@@ -355,6 +357,7 @@ export type Database = {
           statut?: Database["public"]["Enums"]["statut_depannage"]
         }
         Update: {
+          bon_intervention_id?: string | null
           client_nom?: string
           client_site?: string
           date_creation?: string
@@ -374,6 +377,13 @@ export type Database = {
           statut?: Database["public"]["Enums"]["statut_depannage"]
         }
         Relationships: [
+          {
+            foreignKeyName: "demandes_depannage_bon_intervention_id_fkey"
+            columns: ["bon_intervention_id"]
+            isOneToOne: false
+            referencedRelation: "bons_intervention"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "demandes_depannage_equipement_id_fkey"
             columns: ["equipement_id"]

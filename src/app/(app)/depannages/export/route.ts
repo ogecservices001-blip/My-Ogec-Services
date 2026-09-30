@@ -6,9 +6,10 @@ import { requireAdmin } from "@/lib/auth";
 /// Colonnes de la feuille "Chrono Dépannage" du classeur
 /// "Suivi dépannage.xlsm" — même ordre, même architecture (21
 /// colonnes), pour rester compatible avec les macros/récaps déjà en
-/// place. "N° Bon intervention" et "Commentaires technicien" restent
-/// vides pour l'instant : câblés quand le Bon d'intervention sera
-/// porté.
+/// place. "N° Bon intervention" et "Commentaires technicien" viennent
+/// du BI créé depuis ce ticket (voir demandes_depannage.bon_intervention_id,
+/// posé par l'assistant BI au pôle Dépannage) — vides tant qu'aucun
+/// bon n'y est encore rattaché.
 const COLONNES = [
   "N° Intervention",
   "N°affaire",
@@ -60,6 +61,13 @@ export async function GET() {
   ]);
   if (error) return NextResponse.json({ erreur: error.message }, { status: 500 });
 
+  const idsBI = (demandes ?? []).map((d) => d.bon_intervention_id).filter((id): id is string => Boolean(id));
+  const { data: bons } = idsBI.length
+    ? await supabase.from("bons_intervention").select("id, numero, compte_rendu").in("id", idsBI)
+    : { data: [] };
+  const bonsParId: Record<string, { numero: string; compte_rendu: string }> = {};
+  for (const b of bons ?? []) bonsParId[b.id] = { numero: b.numero, compte_rendu: b.compte_rendu };
+
   const sitesParId: Record<
     string,
     {
@@ -88,6 +96,7 @@ export async function GET() {
       ? [intervenant.name, intervenant.portable].filter(Boolean).join(" - ")
       : "";
     const dateCreation = new Date(d.date_creation);
+    const bon = d.bon_intervention_id ? bonsParId[d.bon_intervention_id] : undefined;
 
     feuille.addRow([
       d.numero,
@@ -100,8 +109,8 @@ export async function GET() {
       d.numero_demande_client,
       intervenantTexte,
       d.date_intervention_prevue ? new Date(`${d.date_intervention_prevue}T00:00:00`) : "",
-      "",
-      "",
+      bon?.numero ?? "",
+      bon?.compte_rendu ?? "",
       site?.code_postal ?? "",
       site?.commune ?? "",
       site?.adresse ?? "",

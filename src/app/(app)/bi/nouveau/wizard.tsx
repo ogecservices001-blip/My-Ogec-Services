@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Camera, X, Plus, Minus } from "lucide-react";
+import { ArrowLeft, Camera, X, Plus, Minus, CalendarClock, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ChampEnTeteField } from "@/components/gmao/champs-famille";
 import { SignaturePad, type SignaturePadHandle } from "@/components/bi/signature-pad";
@@ -32,6 +32,7 @@ import {
   type AffaireDuSite,
   type PhotoInput,
   type PrestaInput,
+  type DepannageEnCours,
 } from "./actions";
 
 type SiteOption = {
@@ -74,11 +75,15 @@ export function BiWizard({
   techniciensDisponibles,
   typesEquipement,
   nomUtilisateur,
+  technicienId,
+  depannagesEnCours,
 }: {
   sites: SiteOption[];
   techniciensDisponibles: string[];
   typesEquipement: TypeEquipement[];
   nomUtilisateur: string;
+  technicienId: string;
+  depannagesEnCours: DepannageEnCours[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -87,6 +92,15 @@ export function BiWizard({
   const [pole, setPole] = useState(searchParams.get("pole") ?? "");
   const [enregistrement, startEnregistrement] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+
+  // Pôle Dépannage uniquement — pré-remplissage depuis un ticket
+  // ouvert (voir Poles.avecFournitureMateriel plus bas pour le seul
+  // autre bloc réservé à ce pôle) : le technicien connecté voit
+  // d'abord ses propres dépannages, mais peut aussi piocher dans tous
+  // les autres — un dépannage assigné à un collègue reste utile si un
+  // autre technicien passe sur le site en premier.
+  const [depannageId, setDepannageId] = useState<string | null>(null);
+  const [vueDepannages, setVueDepannages] = useState<"mine" | "toutes">("mine");
 
   // ---------- Étape 1 : Client ----------
   const [clientNom, setClientNom] = useState("");
@@ -156,8 +170,27 @@ export function BiWizard({
     setGroupesSelectionnes(new Set());
     setNonDesservisIds(new Set());
     setMotifsNonDesservi({});
+    setDepannageId(null);
     setEtape(1);
     setTempsManuel(false);
+  }
+
+  const mesDepannages = depannagesEnCours.filter((d) => d.intervenant_id === technicienId);
+  const depannagesAffiches = vueDepannages === "mine" ? mesDepannages : depannagesEnCours;
+
+  function choisirDepannage(d: DepannageEnCours) {
+    setDepannageId(d.id);
+    const s = sites.find((site) => site.id === d.site_id);
+    if (s) {
+      setClientNom(s.nom);
+      setSiteId(s.id);
+    }
+    if (d.equipement_id) setEquipementId(d.equipement_id);
+    setCompteRendu(d.message);
+  }
+
+  function annulerDepannage() {
+    setDepannageId(null);
   }
 
   const groupesDisponibles = useMemo(
@@ -373,6 +406,7 @@ export function BiWizard({
       signataire: signataire.trim(),
       signataire_tel_portable: signataireTelPortable.trim(),
       signataire_tel_fixe: signataireTelFixe.trim(),
+      depannage_id: depannageId,
     };
   }
 
@@ -454,6 +488,79 @@ export function BiWizard({
               {labelPole(pole)}
             </p>
           </div>
+
+          {pole === Poles.depannage && (
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              {depannageId ? (
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm text-slate-700">
+                    Pré-rempli depuis le dépannage{" "}
+                    <span className="font-bold">
+                      N°{depannagesEnCours.find((d) => d.id === depannageId)?.numero}
+                    </span>
+                  </p>
+                  <button onClick={annulerDepannage} className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-700">
+                    Annuler
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-2 flex gap-2">
+                    <button
+                      onClick={() => setVueDepannages("mine")}
+                      className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                        vueDepannages === "mine" ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      Mes dépannages ({mesDepannages.length})
+                    </button>
+                    <button
+                      onClick={() => setVueDepannages("toutes")}
+                      className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                        vueDepannages === "toutes" ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      Tous en cours ({depannagesEnCours.length})
+                    </button>
+                  </div>
+                  {depannagesAffiches.length === 0 ? (
+                    <p className="py-2 text-center text-xs text-slate-400">Aucun dépannage en cours</p>
+                  ) : (
+                    <div className="max-h-64 space-y-1.5 overflow-y-auto">
+                      {depannagesAffiches.map((d) => (
+                        <button
+                          key={d.id}
+                          onClick={() => choisirDepannage(d)}
+                          className="block w-full rounded-lg border border-slate-100 p-2.5 text-left hover:bg-slate-50"
+                        >
+                          <p className="text-sm font-bold text-slate-900">
+                            N°{d.numero} — {[d.client_nom, d.client_site].filter(Boolean).join(" — ")}
+                          </p>
+                          {d.equipement_nom && <p className="text-xs text-slate-600">{d.equipement_nom}</p>}
+                          <p className="truncate text-xs text-slate-500">{d.message}</p>
+                          <div className="mt-1 flex items-center gap-3 text-[11px] text-slate-400">
+                            <span className="flex items-center gap-1">
+                              <CalendarClock className="h-3 w-3" strokeWidth={2} />
+                              {new Date(d.date_creation).toLocaleDateString("fr-FR")}
+                            </span>
+                            {vueDepannages === "toutes" && d.intervenant_id && d.intervenant_id !== technicienId && (
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" strokeWidth={2} />
+                                Assigné à un collègue
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="mt-2 text-center text-xs text-slate-400">
+                    ou continuer sans ticket ci-dessous
+                  </p>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <label className="mb-1 block text-xs font-medium text-slate-600">Client</label>

@@ -50,6 +50,37 @@ export async function chargerAffairesDuSite(siteId: string, natureFiltre?: strin
   return data ?? [];
 }
 
+export type DepannageEnCours = {
+  id: string;
+  numero: string;
+  client_nom: string;
+  client_site: string;
+  site_id: string | null;
+  message: string;
+  lieu_panne: string;
+  equipement_id: string | null;
+  equipement_nom: string;
+  intervenant_id: string | null;
+  date_creation: string;
+};
+
+/// Dépannages pas encore liés à un BI, pour pré-remplir l'assistant au
+/// pôle Dépannage (voir wizard.tsx) — tous les dépannages non traités,
+/// pas seulement ceux du technicien connecté : un dépannage assigné à
+/// un collègue reste utile à proposer si un autre technicien passe sur
+/// le site en premier.
+export async function chargerDepannagesEnCours(): Promise<DepannageEnCours[]> {
+  await requireProfile();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("demandes_depannage")
+    .select("id, numero, client_nom, client_site, site_id, message, lieu_panne, equipement_id, equipement_nom, intervenant_id, date_creation")
+    .is("bon_intervention_id", null)
+    .neq("statut", "traitee")
+    .order("date_creation", { ascending: false });
+  return data ?? [];
+}
+
 export type PhotoInput = { type: string; storage_path: string; horodatage: string };
 export type PrestaInput = { designation: string; quantite: string };
 export type NonDesserviInput = { nom: string; motif: string };
@@ -99,6 +130,11 @@ export type BiInput = {
   signataire: string;
   signataire_tel_portable: string;
   signataire_tel_fixe: string;
+
+  /// Dépannage d'origine (voir chargerDepannagesEnCours) — non nul si
+  /// l'assistant a été pré-rempli depuis un ticket : marqué "traitée"
+  /// et lié au bon créé une fois l'insertion réussie.
+  depannage_id: string | null;
 };
 
 /// Crée le bon d'intervention — un seul enregistrement terminal par
@@ -116,7 +152,7 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
   const chrono = await prochainChronoBI(supabase, annee);
   const numero = numeroBI(input.pole, annee, chrono);
 
-  const { error } = await supabase.from("bons_intervention").insert({
+  const { data: bi, error } = await supabase.from("bons_intervention").insert({
     pole: input.pole,
     chrono,
     numero,
@@ -161,8 +197,16 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
       statut === "averif"
         ? [{ user: profile.name, date: now(), event: "Signé client · transmis au bureau pour vérification" }]
         : [],
-  });
-  if (error) return { ok: false, erreur: error.message };
+  }).select("id").single();
+  if (error || !bi) return { ok: false, erreur: error?.message ?? "Échec de l'enregistrement." };
+
+  if (input.depannage_id) {
+    await supabase
+      .from("demandes_depannage")
+      .update({ bon_intervention_id: bi.id, statut: "traitee", date_traitement: new Date().toISOString() })
+      .eq("id", input.depannage_id);
+    revalidatePath("/depannages");
+  }
 
   revalidatePath("/bi");
   return { ok: true };

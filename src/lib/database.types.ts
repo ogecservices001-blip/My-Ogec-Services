@@ -96,6 +96,210 @@ export type Database = {
           },
         ]
       }
+      bons_intervention: {
+        Row: {
+          adresse: string
+          affaire_date_commande_client: string
+          affaire_id: string | null
+          affaire_numero_commande_client: string
+          affaire_numero_devis: string
+          chrono: number
+          client_nom: string
+          compte_rendu: string
+          created_at: string
+          created_by: string
+          date_debut: string
+          date_fin: string
+          date_intervention: string
+          date_signature: string
+          drive_bi_folder_id: string
+          email: string
+          entretien_groupes: string[]
+          entretien_non_desservis: Json
+          equipement_groupe: string
+          equipement_id: string | null
+          equipement_localisation: string
+          equipement_nom: string
+          heure_debut: string
+          heure_fin: string
+          history: Json
+          hors_contrat: boolean
+          id: string
+          json_drive_url: string
+          legacy_id: string | null
+          materiel_champs_en_tete: Json
+          materiel_type_equipement_id: string | null
+          note_interne: string
+          numero: string
+          numero_devis: string
+          numero_provisoire: boolean
+          obs_client: string
+          obs_tech: string
+          pdf_drive_url: string
+          photos: Json
+          pole: string
+          prestas: Json
+          sig_client: string
+          sig_tech: string
+          signataire: string
+          signataire_tel_fixe: string
+          signataire_tel_portable: string
+          site: string
+          site_id: string | null
+          statut: string
+          technicien_signataire: string
+          techniciens: string[]
+          temps_passe: string
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string
+          affaire_date_commande_client?: string
+          affaire_id?: string | null
+          affaire_numero_commande_client?: string
+          affaire_numero_devis?: string
+          chrono?: number
+          client_nom?: string
+          compte_rendu?: string
+          created_at?: string
+          created_by?: string
+          date_debut?: string
+          date_fin?: string
+          date_intervention?: string
+          date_signature?: string
+          drive_bi_folder_id?: string
+          email?: string
+          entretien_groupes?: string[]
+          entretien_non_desservis?: Json
+          equipement_groupe?: string
+          equipement_id?: string | null
+          equipement_localisation?: string
+          equipement_nom?: string
+          heure_debut?: string
+          heure_fin?: string
+          history?: Json
+          hors_contrat?: boolean
+          id?: string
+          json_drive_url?: string
+          legacy_id?: string | null
+          materiel_champs_en_tete?: Json
+          materiel_type_equipement_id?: string | null
+          note_interne?: string
+          numero?: string
+          numero_devis?: string
+          numero_provisoire?: boolean
+          obs_client?: string
+          obs_tech?: string
+          pdf_drive_url?: string
+          photos?: Json
+          pole?: string
+          prestas?: Json
+          sig_client?: string
+          sig_tech?: string
+          signataire?: string
+          signataire_tel_fixe?: string
+          signataire_tel_portable?: string
+          site?: string
+          site_id?: string | null
+          statut?: string
+          technicien_signataire?: string
+          techniciens?: string[]
+          temps_passe?: string
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string
+          affaire_date_commande_client?: string
+          affaire_id?: string | null
+          affaire_numero_commande_client?: string
+          affaire_numero_devis?: string
+          chrono?: number
+          client_nom?: string
+          compte_rendu?: string
+          created_at?: string
+          created_by?: string
+          date_debut?: string
+          date_fin?: string
+          date_intervention?: string
+          date_signature?: string
+          drive_bi_folder_id?: string
+          email?: string
+          entretien_groupes?: string[]
+          entretien_non_desservis?: Json
+          equipement_groupe?: string
+          equipement_id?: string | null
+          equipement_localisation?: string
+          equipement_nom?: string
+          heure_debut?: string
+          heure_fin?: string
+          history?: Json
+          hors_contrat?: boolean
+          id?: string
+          json_drive_url?: string
+          legacy_id?: string | null
+          materiel_champs_en_tete?: Json
+          materiel_type_equipement_id?: string | null
+          note_interne?: string
+          numero?: string
+          numero_devis?: string
+          numero_provisoire?: boolean
+          obs_client?: string
+          obs_tech?: string
+          pdf_drive_url?: string
+          photos?: Json
+          pole?: string
+          prestas?: Json
+          sig_client?: string
+          sig_tech?: string
+          signataire?: string
+          signataire_tel_fixe?: string
+          signataire_tel_portable?: string
+          site?: string
+          site_id?: string | null
+          statut?: string
+          technicien_signataire?: string
+          techniciens?: string[]
+          temps_passe?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bons_intervention_affaire_id_fkey"
+            columns: ["affaire_id"]
+            isOneToOne: false
+            referencedRelation: "affaires"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_intervention_equipement_id_fkey"
+            columns: ["equipement_id"]
+            isOneToOne: false
+            referencedRelation: "equipements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_intervention_materiel_type_equipement_id_fkey"
+            columns: ["materiel_type_equipement_id"]
+            isOneToOne: false
+            referencedRelation: "types_equipement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_intervention_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_intervention_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compteurs: {
         Row: {
           annee: number

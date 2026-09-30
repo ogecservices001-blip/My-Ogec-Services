@@ -42,13 +42,13 @@ const modules: {
     actif: true,
   },
   {
-    href: "#",
+    href: "/bi",
     titre: "Bon d'intervention",
     sousTitre: "Petits travaux, maintenance, dépannage",
     icone: ClipboardList,
     fond: "bg-violet-100",
     couleur: "text-violet-600",
-    actif: false,
+    actif: true,
   },
   {
     href: "/gmao",

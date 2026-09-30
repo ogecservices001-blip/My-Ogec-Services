@@ -158,6 +158,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
             <label className="mb-1 block text-xs font-medium text-slate-600">N° Demande Client</label>
             <input
               name="numero_demande_client"
+              defaultValue="Pas de référence"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
           </div>

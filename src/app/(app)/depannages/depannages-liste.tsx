@@ -30,7 +30,7 @@ function lienWhatsapp(portable: string, texte: string): string | null {
 
 type TechniciensParId = Record<string, { name: string; portable: string }>;
 
-type Onglet = "en_cours" | "traitees";
+type Onglet = "en_cours" | "traitees" | "statistiques";
 
 export function DepannagesListe({
   demandes,
@@ -76,10 +76,10 @@ export function DepannagesListe({
         </div>
       </div>
 
-      <div className="mb-5 flex gap-2">
+      <div className="mb-5 flex flex-col gap-2">
         <button
           onClick={() => setOnglet("en_cours")}
-          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
             onglet === "en_cours"
               ? "bg-red-600 text-white shadow-sm"
               : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
@@ -89,7 +89,7 @@ export function DepannagesListe({
         </button>
         <button
           onClick={() => setOnglet("traitees")}
-          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
             onglet === "traitees"
               ? "bg-brand-green text-white shadow-sm"
               : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
@@ -97,9 +97,23 @@ export function DepannagesListe({
         >
           Dépannages traitées ({traitees.length})
         </button>
+        <button
+          onClick={() => setOnglet("statistiques")}
+          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+            onglet === "statistiques"
+              ? "bg-slate-800 text-white shadow-sm"
+              : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+          }`}
+        >
+          Statistiques
+        </button>
       </div>
 
-      {filtrees.length === 0 ? (
+      {onglet === "statistiques" ? (
+        <p className="py-10 text-center text-sm text-slate-500">
+          Statistiques — bientôt disponible
+        </p>
+      ) : filtrees.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">
           {onglet === "en_cours" ? "Aucun dépannage en cours" : "Aucun dépannage traité"}
         </p>

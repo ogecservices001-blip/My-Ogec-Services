@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Check, Plus, Download, MessageCircle, Mail, User, CalendarClock, X } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { marquerTraitee, envoyerConfirmation } from "./actions";
+import { StatistiquesTab } from "./statistiques";
 
 function deuxChiffres(n: number): string {
   return String(n).padStart(2, "0");
@@ -110,9 +111,7 @@ export function DepannagesListe({
       </div>
 
       {onglet === "statistiques" ? (
-        <p className="py-10 text-center text-sm text-slate-500">
-          Statistiques — bientôt disponible
-        </p>
+        <StatistiquesTab demandes={demandes} techniciensParId={techniciensParId} />
       ) : filtrees.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">
           {onglet === "en_cours" ? "Aucun dépannage en cours" : "Aucun dépannage traité"}

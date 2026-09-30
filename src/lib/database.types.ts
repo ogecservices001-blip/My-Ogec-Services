@@ -63,6 +63,7 @@ export type Database = {
           client_site: string
           date_creation: string
           date_intervention_prevue: string | null
+          date_traitement: string | null
           email: string
           equipement_id: string | null
           equipement_nom: string
@@ -81,6 +82,7 @@ export type Database = {
           client_site?: string
           date_creation?: string
           date_intervention_prevue?: string | null
+          date_traitement?: string | null
           email?: string
           equipement_id?: string | null
           equipement_nom?: string
@@ -99,6 +101,7 @@ export type Database = {
           client_site?: string
           date_creation?: string
           date_intervention_prevue?: string | null
+          date_traitement?: string | null
           email?: string
           equipement_id?: string | null
           equipement_nom?: string

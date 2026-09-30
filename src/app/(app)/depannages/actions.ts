@@ -10,7 +10,10 @@ export async function marquerTraitee(id: string): Promise<ActionResult> {
   await requireProfile();
 
   const supabase = await createClient();
-  const { error } = await supabase.from("demandes_depannage").update({ statut: "traitee" }).eq("id", id);
+  const { error } = await supabase
+    .from("demandes_depannage")
+    .update({ statut: "traitee", date_traitement: new Date().toISOString() })
+    .eq("id", id);
   if (error) return { ok: false, erreur: error.message };
 
   revalidatePath("/depannages");

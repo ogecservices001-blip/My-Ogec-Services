@@ -39,6 +39,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      affaires: {
+        Row: {
+          created_at: string
+          date_commande_client: string
+          designation_prestations: string
+          email_responsable_contrat: string
+          id: string
+          legacy_id: string | null
+          nature: string
+          numero_commande_client: string
+          numero_devis: string
+          site_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_commande_client?: string
+          designation_prestations?: string
+          email_responsable_contrat?: string
+          id?: string
+          legacy_id?: string | null
+          nature?: string
+          numero_commande_client?: string
+          numero_devis?: string
+          site_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_commande_client?: string
+          designation_prestations?: string
+          email_responsable_contrat?: string
+          id?: string
+          legacy_id?: string | null
+          nature?: string
+          numero_commande_client?: string
+          numero_devis?: string
+          site_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affaires_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affaires_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compteurs: {
         Row: {
           annee: number

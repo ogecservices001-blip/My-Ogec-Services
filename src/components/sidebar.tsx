@@ -65,7 +65,14 @@ const modules: Module[] = [
   },
   { nom: "Prestation sur commande", actif: false, sousMenus: [] },
   { nom: "Planning Maintenance", actif: false, sousMenus: [] },
-  { nom: "Devis", actif: false, sousMenus: [] },
+  {
+    nom: "Travaux Clients",
+    actif: true,
+    sousMenus: [
+      { nom: "Contrat entretien", href: "/affaires" },
+      { nom: "Hors contrat", href: "/affaires?horsContrat=1" },
+    ],
+  },
   { nom: "Signalement retour information terrain", actif: false, sousMenus: [] },
   {
     nom: "Référentiel GMAO",

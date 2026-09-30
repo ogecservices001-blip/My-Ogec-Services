@@ -87,13 +87,13 @@ const modules: {
     actif: false,
   },
   {
-    href: "#",
-    titre: "Devis",
-    sousTitre: "Affaires sur devis",
+    href: "/affaires",
+    titre: "Travaux Clients",
+    sousTitre: "Suivi des affaires sur devis",
     icone: FileSignature,
     fond: "bg-amber-100",
     couleur: "text-amber-600",
-    actif: false,
+    actif: true,
   },
   {
     href: "#",

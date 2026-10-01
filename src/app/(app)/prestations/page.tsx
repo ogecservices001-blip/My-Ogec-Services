@@ -1,9 +1,16 @@
 import { requireProfile } from "@/lib/auth";
 import { getCurrentProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
+import { Statuts } from "@/lib/bi/constants";
 import { PrestationsListe, type PrestationLigne } from "./liste";
 
-const STATUTS_REALISE = new Set(["valide", "pdf", "prete", "envoye"]);
+// Comme pour un dépannage : dès que le technicien a transmis le BI
+// (statut différent de brouillon), la prestation est considérée
+// réalisée — le reste du workflow (vérif bureau, facturation) ne
+// concerne plus le suivi "à réaliser / réalisées".
+const STATUTS_REALISE = new Set<string>(
+  Object.values(Statuts).filter((s) => s !== Statuts.brouillon),
+);
 
 export default async function PrestationsPage() {
   await requireProfile();

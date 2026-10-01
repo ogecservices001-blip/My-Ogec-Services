@@ -1,11 +1,15 @@
+import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { TypeEquipement } from "@/lib/gmao/types";
 import { chargerDepannagesEnCours, chargerDevisARealiser } from "./actions";
 import { BiWizard } from "./wizard";
 
+/// Le bureau (admin) ne crée jamais de BI lui-même — il ne fait que
+/// vérifier/valider ceux créés par les techniciens (page /bi).
 export default async function NouveauBiPage() {
   const profile = await requireProfile();
+  if (profile.role === "admin") redirect("/");
   const supabase = await createClient();
 
   const [{ data: sites }, { data: techniciens }, { data: typesEquipement }, depannagesEnCours, devisARealiser] = await Promise.all([

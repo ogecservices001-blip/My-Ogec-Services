@@ -12,10 +12,10 @@ type Module = { nom: string; actif: boolean; sousMenus: SousMenu[] };
 /// Menu technicien volontairement minimal : créer un BI se fait depuis
 /// les boutons contextuels (carte devis dans Prestation sur commande,
 /// carte ticket dans Suivi Dépannages) ou, pour un appel SAV non
-/// encore enregistré en ticket, via "Dépannage" ici. "Tous les bons"
-/// et "Référentiel BI" (bac à sable tous pôles, pour le bureau) ne
-/// sont montrés qu'aux admins — objectif explicite de l'utilisateur :
-/// minimiser le nombre de menus pour les techniciens.
+/// encore enregistré en ticket, via "Dépannage" ici. Le bureau (admin)
+/// ne crée jamais de BI lui-même : "Dépannage" et "Entretien sous
+/// contrat" ne lui sont pas montrés, seul "Tous les bons" (vérification)
+/// et "Référentiel BI" (modèles par pôle) le sont.
 function construireModules(isAdmin: boolean): Module[] {
   return [
     {
@@ -36,11 +36,12 @@ function construireModules(isAdmin: boolean): Module[] {
     {
       nom: "Bon d'intervention",
       actif: true,
-      sousMenus: [
-        { nom: "Dépannage", href: "/bi/nouveau?pole=60" },
-        { nom: "Entretien sous contrat", href: "/bi/nouveau?pole=20" },
-        ...(isAdmin ? [{ nom: "Tous les bons", href: "/bi" }] : []),
-      ],
+      sousMenus: isAdmin
+        ? [{ nom: "Tous les bons", href: "/bi" }]
+        : [
+            { nom: "Dépannage", href: "/bi/nouveau?pole=60" },
+            { nom: "Entretien sous contrat", href: "/bi/nouveau?pole=20" },
+          ],
     },
     {
       nom: "GMAO",

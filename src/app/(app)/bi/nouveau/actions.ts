@@ -274,7 +274,10 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
   }).select("id").single();
   if (error || !bi) return { ok: false, erreur: error?.message ?? "Échec de l'enregistrement." };
 
-  if (input.depannage_id) {
+  // Le dépannage ne passe "traitée" qu'à la transmission réelle au
+  // bureau — un simple brouillon enregistré par le technicien ne
+  // ferme pas le ticket.
+  if (input.depannage_id && statut === "averif") {
     await supabase
       .from("demandes_depannage")
       .update({ bon_intervention_id: bi.id, statut: "traitee", date_traitement: new Date().toISOString() })

@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, Plus, Download, MessageCircle, Mail, User, CalendarClock, X, Wrench } from "lucide-react";
+import { Plus, Download, MessageCircle, Mail, User, CalendarClock, X, Wrench } from "lucide-react";
 import type { Tables } from "@/lib/types";
-import { marquerTraitee, envoyerConfirmation } from "./actions";
+import { envoyerConfirmation } from "./actions";
 import { StatistiquesTab } from "./statistiques";
 
 function deuxChiffres(n: number): string {
@@ -46,7 +46,10 @@ export function DepannagesListe({
 
   const enCours = demandes.filter((d) => d.statut !== "traitee");
   const traitees = demandes.filter((d) => d.statut === "traitee");
-  const filtrees = onglet === "en_cours" ? enCours : traitees;
+  // Vue technicien minimale : uniquement les dépannages en cours, pas
+  // d'onglets "Traitées"/"Statistiques" ni de création manuelle —
+  // réservés au bureau (voir /bi pour la même logique côté BI).
+  const filtrees = !isAdmin ? enCours : onglet === "en_cours" ? enCours : traitees;
 
   return (
     <div>
@@ -54,8 +57,8 @@ export function DepannagesListe({
         <div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Suivi Dépannage</h1>
         </div>
-        <div className="flex items-center gap-2">
-          {isAdmin && (
+        {isAdmin && (
+          <div className="flex items-center gap-2">
             <a
               href="/depannages/export"
               className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
@@ -63,55 +66,57 @@ export function DepannagesListe({
             >
               <Download className="h-4 w-4" strokeWidth={2.25} />
             </a>
-          )}
-          <Link
-            href="/depannages/nouveau"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+            <Link
+              href="/depannages/nouveau"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+              Nouveau dépannage
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {isAdmin && (
+        <div className="mb-5 flex flex-col gap-2">
+          <button
+            onClick={() => setOnglet("en_cours")}
+            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              onglet === "en_cours"
+                ? "bg-red-600 text-white shadow-sm"
+                : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+            }`}
           >
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
-            Nouveau dépannage
-          </Link>
+            Dépannages en cours ({enCours.length})
+          </button>
+          <button
+            onClick={() => setOnglet("traitees")}
+            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              onglet === "traitees"
+                ? "bg-brand-green text-white shadow-sm"
+                : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+            }`}
+          >
+            Dépannages traitées ({traitees.length})
+          </button>
+          <button
+            onClick={() => setOnglet("statistiques")}
+            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              onglet === "statistiques"
+                ? "bg-slate-800 text-white shadow-sm"
+                : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+            }`}
+          >
+            Statistiques
+          </button>
         </div>
-      </div>
+      )}
 
-      <div className="mb-5 flex flex-col gap-2">
-        <button
-          onClick={() => setOnglet("en_cours")}
-          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-            onglet === "en_cours"
-              ? "bg-red-600 text-white shadow-sm"
-              : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-          }`}
-        >
-          Dépannages en cours ({enCours.length})
-        </button>
-        <button
-          onClick={() => setOnglet("traitees")}
-          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-            onglet === "traitees"
-              ? "bg-brand-green text-white shadow-sm"
-              : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-          }`}
-        >
-          Dépannages traitées ({traitees.length})
-        </button>
-        <button
-          onClick={() => setOnglet("statistiques")}
-          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-            onglet === "statistiques"
-              ? "bg-slate-800 text-white shadow-sm"
-              : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-          }`}
-        >
-          Statistiques
-        </button>
-      </div>
-
-      {onglet === "statistiques" ? (
+      {isAdmin && onglet === "statistiques" ? (
         <StatistiquesTab demandes={demandes} techniciensParId={techniciensParId} />
       ) : filtrees.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">
-          {onglet === "en_cours" ? "Aucun dépannage en cours" : "Aucun dépannage traité"}
+          {!isAdmin || onglet === "en_cours" ? "Aucun dépannage en cours" : "Aucun dépannage traité"}
         </p>
       ) : (
         <ul className="space-y-3">
@@ -120,6 +125,7 @@ export function DepannagesListe({
               key={d.id}
               demande={d}
               intervenant={d.intervenant_id ? techniciensParId[d.intervenant_id] : undefined}
+              isAdmin={isAdmin}
             />
           ))}
         </ul>
@@ -131,17 +137,17 @@ export function DepannagesListe({
 function CarteDemande({
   demande,
   intervenant,
+  isAdmin,
 }: {
   demande: Tables<"demandes_depannage">;
   intervenant: { name: string; portable: string } | undefined;
+  isAdmin: boolean;
 }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
   const [modaleOuverte, setModaleOuverte] = useState(false);
   const nouvelle = demande.statut !== "traitee";
 
   const messageWhatsapp = `Dépannage N°${demande.numero} — ${[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}\n${demande.equipement_nom ? `Équipement : ${demande.equipement_nom}\n` : ""}${demande.lieu_panne ? `Lieu : ${demande.lieu_panne}\n` : ""}Motif : ${demande.message}`;
-  const whatsapp = intervenant?.portable ? lienWhatsapp(intervenant.portable, messageWhatsapp) : null;
+  const whatsapp = isAdmin && intervenant?.portable ? lienWhatsapp(intervenant.portable, messageWhatsapp) : null;
 
   return (
     <li
@@ -219,21 +225,6 @@ function CarteDemande({
             <Wrench className="h-3.5 w-3.5" strokeWidth={2} />
             Créer le BI
           </Link>
-        )}
-        {nouvelle && (
-          <button
-            onClick={() =>
-              startTransition(async () => {
-                await marquerTraitee(demande.id);
-                router.refresh();
-              })
-            }
-            disabled={pending}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
-          >
-            <Check className="h-3.5 w-3.5" strokeWidth={2} />
-            {pending ? "..." : "Marquer comme traitée"}
-          </button>
         )}
       </div>
 

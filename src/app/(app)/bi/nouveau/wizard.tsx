@@ -27,10 +27,12 @@ import { today, tempsStandard, multiplierDuree } from "@/lib/bi/format";
 import {
   chargerEquipementsDuSite,
   chargerDevisDuSite,
+  chargerModeleBI,
   enregistrerBI,
   type EquipementDuSite,
   type DevisDuSite,
   type DevisARealiser,
+  type ModeleBI,
   type PhotoInput,
   type PrestaInput,
   type DepannageEnCours,
@@ -213,6 +215,27 @@ export function BiWizard({
     setEtape(1);
   }
 
+  // Boutons contextuels (carte devis dans /prestations, carte ticket
+  // dans /depannages) : pré-remplissage direct au chargement via les
+  // paramètres d'URL, sans repasser par les pickers de l'étape Pôle.
+  useEffect(() => {
+    const devisIdParam = searchParams.get("devisId");
+    if (devisIdParam) {
+      const d = devisARealiser.find((x) => x.id === devisIdParam);
+      if (d) choisirAffaireARealiser(d);
+    }
+    const depannageIdParam = searchParams.get("depannageId");
+    if (depannageIdParam) {
+      const d = depannagesEnCours.find((x) => x.id === depannageIdParam);
+      if (d) {
+        setPole(Poles.depannage);
+        choisirDepannage(d);
+        setEtape(1);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lu une seule fois au montage, les paramètres d'URL ne changent pas en cours de session
+  }, []);
+
   const groupesDisponibles = useMemo(
     () => [...new Set(equipementsSite.map((e) => e.groupe.trim()).filter(Boolean))].sort(),
     [equipementsSite],
@@ -269,6 +292,31 @@ export function BiWizard({
   const [obsClient, setObsClient] = useState("");
   const [photos, setPhotos] = useState<(PhotoInput & { preview: string; enCours: boolean })[]>([]);
   const [fourniture, setFourniture] = useState<PrestaInput[]>([{ designation: "", quantite: "" }]);
+
+  // Modèle du pôle (voir Référentiel BI) — champs guidés + checklist,
+  // consultés en direct à chaque changement de pôle, jamais mis en
+  // cache au-delà de cette session de l'assistant.
+  const [modele, setModele] = useState<ModeleBI | null>(null);
+  const [modeleChamps, setModeleChamps] = useState<Record<string, string>>({});
+  const [checklistValues, setChecklistValues] = useState<Record<string, boolean | string>>({});
+
+  useEffect(() => {
+    if (!pole) {
+      setModele(null);
+      return;
+    }
+    let annule = false;
+    chargerModeleBI(pole).then((m) => {
+      if (annule) return;
+      setModele(m);
+      setModeleChamps({});
+      setChecklistValues({});
+      if (m?.texte_type && !compteRenduRef.current.trim()) setCompteRendu(m.texte_type);
+    });
+    return () => {
+      annule = true;
+    };
+  }, [pole]);
 
   async function redimensionner(fichier: File, maxDim = 1600): Promise<Blob> {
     const bitmap = await createImageBitmap(fichier);
@@ -419,6 +467,8 @@ export function BiWizard({
       compte_rendu: compteRendu.trim(),
       obs_tech: obsTech.trim(),
       obs_client: obsClient.trim(),
+      modele_champs: modeleChamps,
+      checklist_values: checklistValues,
       prestas: avecFournitureMateriel(pole) ? fourniture.filter((p) => p.designation.trim()) : [],
       photos: photos.filter((p) => !p.enCours).map(({ type, storage_path, horodatage }) => ({ type, storage_path, horodatage })),
       sig_tech: sigTechRef.current?.getDataUrl() ?? "",
@@ -847,6 +897,64 @@ export function BiWizard({
 
       {etape === 2 && (
         <div className="space-y-4">
+          {modele && modele.champs.length > 0 && (
+            <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium text-slate-600">Champs guidés</p>
+              {modele.champs.map((champ) => (
+                <ChampEnTeteField
+                  key={champ.cle}
+                  champ={champ}
+                  valeur={modeleChamps[champ.cle]}
+                  onChange={(v) => setModeleChamps((prev) => ({ ...prev, [champ.cle]: v }))}
+                />
+              ))}
+            </div>
+          )}
+
+          {modele && modele.checklist.length > 0 && (
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <p className="mb-2 text-xs font-medium text-slate-600">Checklist</p>
+              <div className="space-y-2">
+                {modele.checklist.map((item) => (
+                  <div key={item.rep} className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-slate-700">
+                      {item.rep}. {item.label}
+                    </span>
+                    {item.typeValeur === "bool" && (
+                      <input
+                        type="checkbox"
+                        checked={checklistValues[item.rep] === true}
+                        onChange={(e) => setChecklistValues((prev) => ({ ...prev, [item.rep]: e.target.checked }))}
+                        className="h-4 w-4 accent-violet-600"
+                      />
+                    )}
+                    {item.typeValeur === "enum" && (
+                      <select
+                        value={typeof checklistValues[item.rep] === "string" ? (checklistValues[item.rep] as string) : ""}
+                        onChange={(e) => setChecklistValues((prev) => ({ ...prev, [item.rep]: e.target.value }))}
+                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs outline-none focus:border-violet-600"
+                      >
+                        <option value="">—</option>
+                        {item.options.map((o) => (
+                          <option key={o} value={o}>
+                            {o}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {item.typeValeur === "text" && (
+                      <input
+                        value={typeof checklistValues[item.rep] === "string" ? (checklistValues[item.rep] as string) : ""}
+                        onChange={(e) => setChecklistValues((prev) => ({ ...prev, [item.rep]: e.target.value }))}
+                        className="w-32 rounded-lg border border-slate-200 px-2 py-1 text-xs outline-none focus:border-violet-600"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <label className="mb-1 block text-xs font-medium text-slate-600">Compte rendu</label>
             <textarea

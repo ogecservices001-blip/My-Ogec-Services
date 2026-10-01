@@ -96,9 +96,40 @@ export type Database = {
           },
         ]
       }
+      bi_modeles: {
+        Row: {
+          champs: Json
+          checklist: Json
+          created_at: string
+          id: string
+          pole: string
+          texte_type: string
+          updated_at: string
+        }
+        Insert: {
+          champs?: Json
+          checklist?: Json
+          created_at?: string
+          id?: string
+          pole: string
+          texte_type?: string
+          updated_at?: string
+        }
+        Update: {
+          champs?: Json
+          checklist?: Json
+          created_at?: string
+          id?: string
+          pole?: string
+          texte_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bons_intervention: {
         Row: {
           adresse: string
+          checklist_values: Json
           chrono: number
           client_nom: string
           compte_rendu: string
@@ -128,6 +159,7 @@ export type Database = {
           legacy_id: string | null
           materiel_champs_en_tete: Json
           materiel_type_equipement_id: string | null
+          modele_champs: Json
           note_interne: string
           numero: string
           numero_devis: string
@@ -153,6 +185,7 @@ export type Database = {
         }
         Insert: {
           adresse?: string
+          checklist_values?: Json
           chrono?: number
           client_nom?: string
           compte_rendu?: string
@@ -182,6 +215,7 @@ export type Database = {
           legacy_id?: string | null
           materiel_champs_en_tete?: Json
           materiel_type_equipement_id?: string | null
+          modele_champs?: Json
           note_interne?: string
           numero?: string
           numero_devis?: string
@@ -207,6 +241,7 @@ export type Database = {
         }
         Update: {
           adresse?: string
+          checklist_values?: Json
           chrono?: number
           client_nom?: string
           compte_rendu?: string
@@ -236,6 +271,7 @@ export type Database = {
           legacy_id?: string | null
           materiel_champs_en_tete?: Json
           materiel_type_equipement_id?: string | null
+          modele_champs?: Json
           note_interne?: string
           numero?: string
           numero_devis?: string

@@ -16,11 +16,18 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
   ]);
   if (!bon) notFound();
 
+  const { data: modele } = await supabase
+    .from("bi_modeles")
+    .select("champs, checklist")
+    .eq("pole", bon.pole)
+    .maybeSingle();
+
   return (
     <BiDetail
       bon={bon as Tables<"bons_intervention">}
       techniciensDisponibles={(techniciens ?? []).map((t) => t.name)}
       typesEquipement={typesEquipement ?? []}
+      modele={modele ?? null}
       isAdmin={profile?.role === "admin"}
     />
   );

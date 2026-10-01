@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, Plus, Download, MessageCircle, Mail, User, CalendarClock, X } from "lucide-react";
+import { Check, Plus, Download, MessageCircle, Mail, User, CalendarClock, X, Wrench } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { marquerTraitee, envoyerConfirmation } from "./actions";
 import { StatistiquesTab } from "./statistiques";
@@ -210,6 +210,15 @@ function CarteDemande({
             <MessageCircle className="h-3.5 w-3.5" strokeWidth={2} />
             WhatsApp {intervenant?.name}
           </a>
+        )}
+        {nouvelle && (
+          <Link
+            href={`/bi/nouveau?depannageId=${demande.id}`}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700"
+          >
+            <Wrench className="h-3.5 w-3.5" strokeWidth={2} />
+            Créer le BI
+          </Link>
         )}
         {nouvelle && (
           <button

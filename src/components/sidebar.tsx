@@ -9,91 +9,102 @@ import { useSidebar } from "@/components/sidebar-context";
 type SousMenu = { nom: string; href?: string };
 type Module = { nom: string; actif: boolean; sousMenus: SousMenu[] };
 
-const modules: Module[] = [
-  {
-    nom: "Répertoire",
-    actif: true,
-    sousMenus: [
-      { nom: "Clients contrat entretien", href: "/repertoire/clients" },
-      { nom: "Clients hors contrat", href: "/repertoire/clients?horsContrat=1" },
-      { nom: "Fournisseurs", href: "/repertoire/fournisseurs" },
-      { nom: "Collaborateurs", href: "/repertoire/collaborateurs" },
-    ],
-  },
-  {
-    nom: "Suivi Dépannages",
-    actif: true,
-    sousMenus: [{ nom: "Demandes reçues", href: "/depannages" }],
-  },
-  {
-    nom: "Bon d'intervention",
-    actif: true,
-    sousMenus: [
-      { nom: "Tous les bons", href: "/bi" },
-      { nom: "Dépannage", href: "/bi/nouveau?pole=60" },
-      { nom: "Remplacement à l'identique", href: "/bi/nouveau?pole=15" },
-      { nom: "Installation neuve", href: "/bi/nouveau?pole=10" },
-      { nom: "Réparation d'un équipement", href: "/bi/nouveau?pole=30" },
-      { nom: "Réparation diverse", href: "/bi/nouveau?pole=35" },
-      { nom: "Entretien sous contrat", href: "/bi/nouveau?pole=20" },
-      { nom: "Entretien hors contrat", href: "/bi/nouveau?pole=25" },
-      { nom: "Mise à disposition d'équipement", href: "/bi/nouveau?pole=40" },
-      { nom: "Livraison de matériel", href: "/bi/nouveau?pole=50" },
-    ],
-  },
-  {
-    nom: "GMAO",
-    actif: true,
-    sousMenus: [
-      { nom: "Accueil GMAO", href: "/gmao" },
-      { nom: "Clients contrat entretien", href: "/gmao/clients?horsContrat=0" },
-      { nom: "Clients hors contrat", href: "/gmao/clients?horsContrat=1" },
-    ],
-  },
-  {
-    nom: "CERFA",
-    actif: false,
-    sousMenus: [
-      { nom: "Commencer nouveau CERFA" },
-      { nom: "Visualiser un équipement" },
-      { nom: "Visualiser un bordereau" },
-      { nom: "Point sur les CERFA" },
-      { nom: "Créer modèle CERFA" },
-      { nom: "Envoyer un CERFA rempli" },
-      { nom: "Ajouter un équipement" },
-      { nom: "Vérifier les dossiers clients" },
-    ],
-  },
-  {
-    nom: "Prestation sur commande",
-    actif: true,
-    sousMenus: [{ nom: "À réaliser / Réalisées", href: "/prestations" }],
-  },
-  { nom: "Planning Maintenance", actif: false, sousMenus: [] },
-  {
-    nom: "Devis",
-    actif: true,
-    sousMenus: [
-      { nom: "Contrat entretien", href: "/devis" },
-      { nom: "Hors contrat", href: "/devis?horsContrat=1" },
-    ],
-  },
-  { nom: "Signalement retour information terrain", actif: false, sousMenus: [] },
-  {
-    nom: "Référentiel GMAO",
-    actif: true,
-    sousMenus: [
-      { nom: "Référentiel Heures", href: "/gmao/referentiel/heures" },
-      { nom: "Référentiel Gammes de maintenance", href: "/gmao/referentiel/familles" },
-    ],
-  },
-];
+/// Menu technicien volontairement minimal : créer un BI se fait depuis
+/// les boutons contextuels (carte devis dans Prestation sur commande,
+/// carte ticket dans Suivi Dépannages) ou, pour un appel SAV non
+/// encore enregistré en ticket, via "Dépannage" ici. "Tous les bons"
+/// et "Référentiel BI" (bac à sable tous pôles, pour le bureau) ne
+/// sont montrés qu'aux admins — objectif explicite de l'utilisateur :
+/// minimiser le nombre de menus pour les techniciens.
+function construireModules(isAdmin: boolean): Module[] {
+  return [
+    {
+      nom: "Répertoire",
+      actif: true,
+      sousMenus: [
+        { nom: "Clients contrat entretien", href: "/repertoire/clients" },
+        { nom: "Clients hors contrat", href: "/repertoire/clients?horsContrat=1" },
+        { nom: "Fournisseurs", href: "/repertoire/fournisseurs" },
+        { nom: "Collaborateurs", href: "/repertoire/collaborateurs" },
+      ],
+    },
+    {
+      nom: "Suivi Dépannages",
+      actif: true,
+      sousMenus: [{ nom: "Demandes reçues", href: "/depannages" }],
+    },
+    {
+      nom: "Bon d'intervention",
+      actif: true,
+      sousMenus: [
+        { nom: "Dépannage", href: "/bi/nouveau?pole=60" },
+        ...(isAdmin ? [{ nom: "Tous les bons", href: "/bi" }] : []),
+      ],
+    },
+    {
+      nom: "GMAO",
+      actif: true,
+      sousMenus: [
+        { nom: "Accueil GMAO", href: "/gmao" },
+        { nom: "Clients contrat entretien", href: "/gmao/clients?horsContrat=0" },
+        { nom: "Clients hors contrat", href: "/gmao/clients?horsContrat=1" },
+      ],
+    },
+    {
+      nom: "CERFA",
+      actif: false,
+      sousMenus: [
+        { nom: "Commencer nouveau CERFA" },
+        { nom: "Visualiser un équipement" },
+        { nom: "Visualiser un bordereau" },
+        { nom: "Point sur les CERFA" },
+        { nom: "Créer modèle CERFA" },
+        { nom: "Envoyer un CERFA rempli" },
+        { nom: "Ajouter un équipement" },
+        { nom: "Vérifier les dossiers clients" },
+      ],
+    },
+    {
+      nom: "Prestation sur commande",
+      actif: true,
+      sousMenus: [{ nom: "À réaliser / Réalisées", href: "/prestations" }],
+    },
+    { nom: "Planning Maintenance", actif: false, sousMenus: [] },
+    {
+      nom: "Devis",
+      actif: true,
+      sousMenus: [
+        { nom: "Contrat entretien", href: "/devis" },
+        { nom: "Hors contrat", href: "/devis?horsContrat=1" },
+      ],
+    },
+    { nom: "Signalement retour information terrain", actif: false, sousMenus: [] },
+    {
+      nom: "Référentiel GMAO",
+      actif: true,
+      sousMenus: [
+        { nom: "Référentiel Heures", href: "/gmao/referentiel/heures" },
+        { nom: "Référentiel Gammes de maintenance", href: "/gmao/referentiel/familles" },
+      ],
+    },
+    ...(isAdmin
+      ? [
+          {
+            nom: "Référentiel BI",
+            actif: true,
+            sousMenus: [{ nom: "Modèles par pôle", href: "/bi/referentiel" }],
+          },
+        ]
+      : []),
+  ];
+}
 
-function SidebarContenu({ onNavigate }: { onNavigate: () => void }) {
+function SidebarContenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const cheminActuel =
     pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "");
+  const modules = construireModules(isAdmin);
 
   // Le module contenant l'écran courant démarre déplié, les autres
   // repliés — on clique sur un module (actif ou non) pour voir ses
@@ -185,7 +196,7 @@ function SidebarContenu({ onNavigate }: { onNavigate: () => void }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   const { ouvert, fermer } = useSidebar();
 
   return (
@@ -193,7 +204,7 @@ export function Sidebar() {
       {/* Desktop : colonne fixe à gauche */}
       <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white px-3 py-6 lg:block">
         <Suspense fallback={null}>
-          <SidebarContenu onNavigate={() => {}} />
+          <SidebarContenu isAdmin={isAdmin} onNavigate={() => {}} />
         </Suspense>
       </aside>
 
@@ -215,7 +226,7 @@ export function Sidebar() {
               </button>
             </div>
             <Suspense fallback={null}>
-              <SidebarContenu onNavigate={fermer} />
+              <SidebarContenu isAdmin={isAdmin} onNavigate={fermer} />
             </Suspense>
           </div>
         </div>

@@ -5,7 +5,20 @@ import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { numeroBI, currentYear, now } from "@/lib/bi/format";
 import type { ActionResult } from "@/lib/action-result";
-import type { ChampsEnTeteEquipement } from "@/lib/gmao/types";
+import type { ChampsEnTeteEquipement, ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
+
+export type ModeleBI = { champs: ChampEnTete[]; checklist: ChecklistItem[]; texte_type: string };
+
+/// Modèle du pôle (voir Référentiel BI) — consulté en direct à chaque
+/// création de BI, jamais mis en cache côté client au-delà de la
+/// session de l'assistant.
+export async function chargerModeleBI(pole: string): Promise<ModeleBI | null> {
+  await requireProfile();
+  const supabase = await createClient();
+  const { data } = await supabase.from("bi_modeles").select("champs, checklist, texte_type").eq("pole", pole).maybeSingle();
+  if (!data) return null;
+  return { champs: data.champs as ChampEnTete[], checklist: data.checklist as ChecklistItem[], texte_type: data.texte_type };
+}
 
 export type EquipementDuSite = {
   id: string;
@@ -176,6 +189,11 @@ export type BiInput = {
   obs_tech: string;
   obs_client: string;
 
+  /// Valeurs des champs guidés / de la checklist du modèle du pôle
+  /// (voir chargerModeleBI) — vides si le pôle n'a pas de modèle.
+  modele_champs: Record<string, string>;
+  checklist_values: Record<string, boolean | string>;
+
   prestas: PrestaInput[];
   photos: PhotoInput[];
 
@@ -238,6 +256,8 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
     compte_rendu: input.compte_rendu,
     obs_tech: input.obs_tech,
     obs_client: input.obs_client,
+    modele_champs: input.modele_champs,
+    checklist_values: input.checklist_values,
     prestas: input.prestas,
     photos: input.photos,
     sig_tech: input.sig_tech,

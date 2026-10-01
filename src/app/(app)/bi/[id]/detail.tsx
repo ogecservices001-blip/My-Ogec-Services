@@ -9,21 +9,25 @@ import { StatutBadge } from "@/components/bi/statut-badge";
 import { Poles, Statuts, avecPeriode, sansTempsPasse, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI } from "@/lib/bi/constants";
 import { equipementLabel, eur, montantLigne, totalHT } from "@/lib/bi/format";
 import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, type CorrectionInput } from "./actions";
+import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 
 const STATUTS_AVEC_PDF = new Set<string>([Statuts.valide, Statuts.pdfGenere, Statuts.pretEnvoi, Statuts.envoye]);
 
 type Bon = Tables<"bons_intervention">;
 type TypeEquipementResume = { id: string; nom: string; champs_en_tete_supplementaires: unknown };
+type ModeleResume = { champs: ChampEnTete[]; checklist: ChecklistItem[] } | null;
 
 export function BiDetail({
   bon,
   techniciensDisponibles,
   typesEquipement,
+  modele,
   isAdmin,
 }: {
   bon: Bon;
   techniciensDisponibles: string[];
   typesEquipement: TypeEquipementResume[];
+  modele: ModeleResume;
   isAdmin: boolean;
 }) {
   const router = useRouter();
@@ -98,7 +102,7 @@ export function BiDetail({
       {enCorrection ? (
         <VueCorrection bon={bon} techniciensDisponibles={techniciensDisponibles} onValide={() => router.refresh()} />
       ) : (
-        <VueLectureSeule bon={bon} typesEquipement={typesEquipement} />
+        <VueLectureSeule bon={bon} typesEquipement={typesEquipement} modele={modele} />
       )}
 
       {Array.isArray(bon.history) && bon.history.length > 0 && (
@@ -191,7 +195,15 @@ function ModaleEmail({
   );
 }
 
-function VueLectureSeule({ bon, typesEquipement }: { bon: Bon; typesEquipement: TypeEquipementResume[] }) {
+function VueLectureSeule({
+  bon,
+  typesEquipement,
+  modele,
+}: {
+  bon: Bon;
+  typesEquipement: TypeEquipementResume[];
+  modele: ModeleResume;
+}) {
   const prestas = (bon.prestas as { designation: string; quantite: string; pu?: string }[]).filter((p) => p.designation.trim());
   const total = totalHT(prestas);
   const nonDesservis = bon.entretien_non_desservis as { nom?: string; motif?: string }[];
@@ -230,6 +242,30 @@ function VueLectureSeule({ bon, typesEquipement }: { bon: Bon; typesEquipement: 
               ))}
           </Section>
         )}
+
+      {modele && modele.champs.length > 0 && (
+        <Section titre="Champs guidés">
+          {modele.champs.map((c) => {
+            const v = (bon.modele_champs as Record<string, string>)[c.cle];
+            return v ? <Ligne key={c.cle} label={c.label} valeur={v} /> : null;
+          })}
+        </Section>
+      )}
+
+      {modele && modele.checklist.length > 0 && (
+        <Section titre="Checklist">
+          {modele.checklist.map((item) => {
+            const v = (bon.checklist_values as Record<string, boolean | string>)[item.rep];
+            return (
+              <Ligne
+                key={item.rep}
+                label={`${item.rep}. ${item.label}`}
+                valeur={v === true ? "Effectué" : v === false || v === undefined ? "—" : String(v)}
+              />
+            );
+          })}
+        </Section>
+      )}
 
       <Section titre="Compte rendu">
         <p className="text-sm text-slate-700">{bon.compte_rendu || "—"}</p>

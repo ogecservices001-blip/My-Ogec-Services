@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, ClipboardList } from "lucide-react";
+import { Search, ClipboardList, Wrench } from "lucide-react";
 import { labelNatureDevis } from "@/lib/devis/constants";
+import { avecAffaire } from "@/lib/bi/constants";
 
 export type PrestationLigne = {
   id: string;
@@ -114,6 +115,15 @@ export function PrestationsListe({ lignes }: { lignes: PrestationLigne[] }) {
                 >
                   <ClipboardList className="h-3.5 w-3.5" strokeWidth={2} />
                   {l.biNumero}
+                </Link>
+              )}
+              {onglet === "a_realiser" && avecAffaire(l.nature) && (
+                <Link
+                  href={`/bi/nouveau?devisId=${l.id}`}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700"
+                >
+                  <Wrench className="h-3.5 w-3.5" strokeWidth={2} />
+                  Créer le BI
                 </Link>
               )}
             </li>

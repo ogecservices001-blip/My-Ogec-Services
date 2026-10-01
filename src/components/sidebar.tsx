@@ -38,6 +38,7 @@ function construireModules(isAdmin: boolean): Module[] {
       actif: true,
       sousMenus: [
         { nom: "Dépannage", href: "/bi/nouveau?pole=60" },
+        { nom: "Entretien sous contrat", href: "/bi/nouveau?pole=20" },
         ...(isAdmin ? [{ nom: "Tous les bons", href: "/bi" }] : []),
       ],
     },

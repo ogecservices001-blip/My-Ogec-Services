@@ -25,7 +25,8 @@ export type PrestationLigne = {
 type Onglet = "a_realiser" | "realisees" | "annulees";
 
 export function PrestationsListe({ lignes, isAdmin }: { lignes: PrestationLigne[]; isAdmin: boolean }) {
-  const [onglet, setOnglet] = useState<Onglet>("a_realiser");
+  const [ongletAdmin, setOngletAdmin] = useState<Onglet>("a_realiser");
+  const onglet = isAdmin ? ongletAdmin : "a_realiser";
   const [recherche, setRecherche] = useState("");
 
   const aRealiser = lignes.filter((l) => !l.annulee && !l.realisee);
@@ -41,32 +42,36 @@ export function PrestationsListe({ lignes, isAdmin }: { lignes: PrestationLigne[
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Prestation sur commande</h1>
       <p className="mb-5 text-sm text-slate-500">Devis commandés — Suivi de la réalisation</p>
 
-      <div className="mb-4 flex flex-col gap-2">
-        <button
-          onClick={() => setOnglet("a_realiser")}
-          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-            onglet === "a_realiser" ? "bg-violet-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-          }`}
-        >
-          À réaliser ({aRealiser.length})
-        </button>
-        <button
-          onClick={() => setOnglet("realisees")}
-          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-            onglet === "realisees" ? "bg-brand-green text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-          }`}
-        >
-          Réalisées ({realisees.length})
-        </button>
-        <button
-          onClick={() => setOnglet("annulees")}
-          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-            onglet === "annulees" ? "bg-red-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-          }`}
-        >
-          Annulées ({annulees.length})
-        </button>
-      </div>
+      {isAdmin ? (
+        <div className="mb-4 flex flex-col gap-2">
+          <button
+            onClick={() => setOngletAdmin("a_realiser")}
+            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              onglet === "a_realiser" ? "bg-violet-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+            }`}
+          >
+            À réaliser ({aRealiser.length})
+          </button>
+          <button
+            onClick={() => setOngletAdmin("realisees")}
+            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              onglet === "realisees" ? "bg-brand-green text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+            }`}
+          >
+            Réalisées ({realisees.length})
+          </button>
+          <button
+            onClick={() => setOngletAdmin("annulees")}
+            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              onglet === "annulees" ? "bg-red-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+            }`}
+          >
+            Annulées ({annulees.length})
+          </button>
+        </div>
+      ) : (
+        <p className="mb-4 text-sm font-semibold text-slate-700">À réaliser ({aRealiser.length})</p>
+      )}
 
       <div className="relative mb-4">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -107,7 +112,7 @@ export function PrestationsListe({ lignes, isAdmin }: { lignes: PrestationLigne[
                 <span>{l.numero}</span>
                 {l.dateCommandeClient && <span>Commandé le {l.dateCommandeClient}</span>}
                 {l.heuresPrevues !== null && <span>{l.heuresPrevues} h prévues</span>}
-                {l.montant !== null && <span>{l.montant.toFixed(2)} €</span>}
+                {isAdmin && l.montant !== null && <span>{l.montant.toFixed(2)} €</span>}
               </div>
               {l.biNumero && l.biId && (
                 <Link

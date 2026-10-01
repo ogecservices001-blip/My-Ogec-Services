@@ -498,7 +498,7 @@ export function BiWizard({
         setErreur(res.erreur);
         return;
       }
-      router.push("/bi");
+      router.push("/");
       router.refresh();
     });
   }
@@ -509,7 +509,7 @@ export function BiWizard({
     <div className="mx-auto max-w-2xl">
       <div className="mb-4 flex items-center gap-3">
         <button
-          onClick={() => (etape > etapeDepart ? setEtape(etape - 1) : router.push("/bi"))}
+          onClick={() => (etape > etapeDepart ? setEtape(etape - 1) : router.push("/"))}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm hover:bg-slate-50"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
@@ -1125,7 +1125,7 @@ export function BiWizard({
       <div className="sticky bottom-0 mt-6 -mx-4 flex gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:mx-0 sm:rounded-2xl sm:border">
         {etape > 0 && (
           <button
-            onClick={() => (etape > etapeDepart ? setEtape(etape - 1) : router.push("/bi"))}
+            onClick={() => (etape > etapeDepart ? setEtape(etape - 1) : router.push("/"))}
             disabled={enregistrement}
             className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
           >

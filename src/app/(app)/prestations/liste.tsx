@@ -16,6 +16,7 @@ export type PrestationLigne = {
   montant: number | null;
   heuresPrevues: number | null;
   dateCommandeClient: string;
+  biId: string | null;
   biNumero: string | null;
   realisee: boolean;
   annulee: boolean;
@@ -108,14 +109,20 @@ export function PrestationsListe({ lignes, isAdmin }: { lignes: PrestationLigne[
                 {l.heuresPrevues !== null && <span>{l.heuresPrevues} h prévues</span>}
                 {l.montant !== null && <span>{l.montant.toFixed(2)} €</span>}
               </div>
-              {l.biNumero && (
+              {l.biNumero && l.biId && (
                 <Link
-                  href="/bi"
+                  href={`/bi/${l.biId}`}
                   className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700"
                 >
                   <ClipboardList className="h-3.5 w-3.5" strokeWidth={2} />
                   {l.biNumero}
                 </Link>
+              )}
+              {l.biNumero && !l.biId && (
+                <span className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">
+                  <ClipboardList className="h-3.5 w-3.5" strokeWidth={2} />
+                  {l.biNumero} (historique)
+                </span>
               )}
               {onglet === "a_realiser" && !isAdmin && avecAffaire(l.nature) && (
                 <Link

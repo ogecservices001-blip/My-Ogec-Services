@@ -17,14 +17,14 @@ export default async function PrestationsPage() {
   ]);
 
   const siteParId = new Map((sites ?? []).map((s) => [s.id, s]));
-  const bonParDevisId = new Map<string, { numero: string; statut: string }>();
+  const bonParDevisId = new Map<string, { id: string; numero: string; statut: string }>();
   for (const b of bons ?? []) {
     if (!b.devis_id) continue;
     // Un devis peut en théorie avoir plusieurs BI (reprise après
     // erreur) — le plus avancé (réalisé) prime sur un brouillon.
     const existant = bonParDevisId.get(b.devis_id);
     if (!existant || (STATUTS_REALISE.has(b.statut) && !STATUTS_REALISE.has(existant.statut))) {
-      bonParDevisId.set(b.devis_id, { numero: b.numero, statut: b.statut });
+      bonParDevisId.set(b.devis_id, { id: b.id, numero: b.numero, statut: b.statut });
     }
   }
 
@@ -41,6 +41,7 @@ export default async function PrestationsPage() {
       montant: d.montant,
       heuresPrevues: d.heures_prevues,
       dateCommandeClient: d.date_commande_client,
+      biId: bon?.id ?? null,
       biNumero: bon?.numero ?? d.bi_reference_historique ?? null,
       realisee: (bon ? STATUTS_REALISE.has(bon.statut) : false) || Boolean(d.bi_reference_historique),
       annulee: d.annule,

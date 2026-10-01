@@ -217,7 +217,7 @@ function CarteDemande({
             WhatsApp {intervenant?.name}
           </a>
         )}
-        {nouvelle && (
+        {nouvelle && !isAdmin && (
           <Link
             href={`/bi/nouveau?depannageId=${demande.id}`}
             className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700"

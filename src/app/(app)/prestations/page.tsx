@@ -1,4 +1,5 @@
 import { requireProfile } from "@/lib/auth";
+import { getCurrentProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import { PrestationsListe, type PrestationLigne } from "./liste";
 
@@ -6,6 +7,7 @@ const STATUTS_REALISE = new Set(["valide", "pdf", "prete", "envoye"]);
 
 export default async function PrestationsPage() {
   await requireProfile();
+  const profile = await getCurrentProfile();
   const supabase = await createClient();
 
   const [{ data: devis }, { data: bons }, { data: sites }] = await Promise.all([
@@ -45,5 +47,5 @@ export default async function PrestationsPage() {
     };
   });
 
-  return <PrestationsListe lignes={lignes} />;
+  return <PrestationsListe lignes={lignes} isAdmin={profile?.role === "admin"} />;
 }

@@ -23,7 +23,7 @@ export type PrestationLigne = {
 
 type Onglet = "a_realiser" | "realisees" | "annulees";
 
-export function PrestationsListe({ lignes }: { lignes: PrestationLigne[] }) {
+export function PrestationsListe({ lignes, isAdmin }: { lignes: PrestationLigne[]; isAdmin: boolean }) {
   const [onglet, setOnglet] = useState<Onglet>("a_realiser");
   const [recherche, setRecherche] = useState("");
 
@@ -117,7 +117,7 @@ export function PrestationsListe({ lignes }: { lignes: PrestationLigne[] }) {
                   {l.biNumero}
                 </Link>
               )}
-              {onglet === "a_realiser" && avecAffaire(l.nature) && (
+              {onglet === "a_realiser" && !isAdmin && avecAffaire(l.nature) && (
                 <Link
                   href={`/bi/nouveau?devisId=${l.id}`}
                   className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700"

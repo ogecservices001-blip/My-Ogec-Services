@@ -197,7 +197,7 @@ function CarteDemande({
       )}
 
       <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
-        {demande.email && (
+        {isAdmin && demande.email && (
           <button
             onClick={() => setModaleOuverte(true)}
             className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50"

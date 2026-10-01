@@ -216,15 +216,19 @@ export function BiWizard({
   }
 
   // Boutons contextuels (carte devis dans /prestations, carte ticket
-  // dans /depannages) : pré-remplissage direct au chargement via les
-  // paramètres d'URL, sans repasser par les pickers de l'étape Pôle.
+  // dans /depannages) : pré-remplissage direct via les paramètres
+  // d'URL, sans repasser par les pickers de l'étape Pôle. Dépend de
+  // `searchParams` (pas juste [] au montage) : la page /bi/nouveau est
+  // la même route pour tous les BI, donc naviguer d'une carte à une
+  // autre peut réutiliser l'instance déjà montée sans redéclencher un
+  // effet qui ne tournerait qu'une fois.
+  const devisIdParam = searchParams.get("devisId");
+  const depannageIdParam = searchParams.get("depannageId");
   useEffect(() => {
-    const devisIdParam = searchParams.get("devisId");
     if (devisIdParam) {
       const d = devisARealiser.find((x) => x.id === devisIdParam);
       if (d) choisirAffaireARealiser(d);
     }
-    const depannageIdParam = searchParams.get("depannageId");
     if (depannageIdParam) {
       const d = depannagesEnCours.find((x) => x.id === depannageIdParam);
       if (d) {
@@ -233,8 +237,8 @@ export function BiWizard({
         setEtape(1);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- lu une seule fois au montage, les paramètres d'URL ne changent pas en cours de session
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ne doit réagir qu'à un changement des paramètres d'URL eux-mêmes, pas aux fonctions/tableaux recréés à chaque rendu
+  }, [devisIdParam, depannageIdParam]);
 
   const groupesDisponibles = useMemo(
     () => [...new Set(equipementsSite.map((e) => e.groupe.trim()).filter(Boolean))].sort(),

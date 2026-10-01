@@ -99,6 +99,10 @@ export function BiWizard({
   // coup — /bi/nouveau est la même route pour tous les BI, donc passer
   // d'une carte à une autre peut réutiliser l'instance déjà montée
   // sans jamais redéclencher un effet qui ne tournerait qu'au montage.
+  function compteRenduDepuisDepannage(d: DepannageEnCours): string {
+    return [d.lieu_panne ? `Lieu : ${d.lieu_panne}` : "", `Motif : ${d.message}`].filter(Boolean).join("\n");
+  }
+
   function calculerEtatInitial() {
     const poleParam = searchParams.get("pole") ?? "";
     const devisIdParam = searchParams.get("devisId");
@@ -107,20 +111,29 @@ export function BiWizard({
     if (devisIdParam) {
       const d = devisARealiser.find((x) => x.id === devisIdParam);
       if (d) {
-        return { etape: 1, pole: d.nature, devisId: d.id, depannageId: null as string | null, clientNom: d.client_nom, siteId: d.site_id, compteRendu: "" };
+        return { etape: 1, pole: d.nature, devisId: d.id, depannageId: null as string | null, clientNom: d.client_nom, siteId: d.site_id, equipementId: "", compteRendu: "" };
       }
     }
     if (depannageIdParam) {
       const d = depannagesEnCours.find((x) => x.id === depannageIdParam);
       if (d) {
         const s = sites.find((site) => site.id === d.site_id);
-        return { etape: 1, pole: Poles.depannage, devisId: "", depannageId: d.id, clientNom: s?.nom ?? "", siteId: s?.id ?? "", compteRendu: d.message };
+        return {
+          etape: 1,
+          pole: Poles.depannage,
+          devisId: "",
+          depannageId: d.id,
+          clientNom: s?.nom ?? "",
+          siteId: s?.id ?? "",
+          equipementId: d.equipement_id ?? "",
+          compteRendu: compteRenduDepuisDepannage(d),
+        };
       }
     }
     if (poleParam) {
-      return { etape: 1, pole: poleParam, devisId: "", depannageId: null as string | null, clientNom: "", siteId: "", compteRendu: "" };
+      return { etape: 1, pole: poleParam, devisId: "", depannageId: null as string | null, clientNom: "", siteId: "", equipementId: "", compteRendu: "" };
     }
-    return { etape: 0, pole: "", devisId: "", depannageId: null as string | null, clientNom: "", siteId: "", compteRendu: "" };
+    return { etape: 0, pole: "", devisId: "", depannageId: null as string | null, clientNom: "", siteId: "", equipementId: "", compteRendu: "" };
   }
   const etatInitial = calculerEtatInitial();
 
@@ -138,7 +151,7 @@ export function BiWizard({
   const [devisId, setDevisId] = useState(etatInitial.devisId);
   const [devisDuSite, setDevisDuSite] = useState<DevisDuSite[]>([]);
   const [equipementsSite, setEquipementsSite] = useState<EquipementDuSite[]>([]);
-  const [equipementId, setEquipementId] = useState("");
+  const [equipementId, setEquipementId] = useState(etatInitial.equipementId);
   const [chargementSite, startChargementSite] = useTransition();
 
   const [typeActifId, setTypeActifId] = useState("");
@@ -216,7 +229,7 @@ export function BiWizard({
       setSiteId(s.id);
     }
     if (d.equipement_id) setEquipementId(d.equipement_id);
-    setCompteRendu(d.message);
+    setCompteRendu(compteRenduDepuisDepannage(d));
   }
 
   function annulerDepannage() {

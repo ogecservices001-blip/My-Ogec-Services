@@ -93,24 +93,49 @@ export function BiWizard({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [etape, setEtape] = useState(0);
-  const [pole, setPole] = useState(searchParams.get("pole") ?? "");
+  // Boutons contextuels (carte devis dans /prestations, carte ticket
+  // dans /depannages) et lien "Dépannage" de la sidebar : pré-
+  // remplissage calculé dès le premier rendu, pas dans un effet après
+  // coup — /bi/nouveau est la même route pour tous les BI, donc passer
+  // d'une carte à une autre peut réutiliser l'instance déjà montée
+  // sans jamais redéclencher un effet qui ne tournerait qu'au montage.
+  function calculerEtatInitial() {
+    const poleParam = searchParams.get("pole") ?? "";
+    const devisIdParam = searchParams.get("devisId");
+    const depannageIdParam = searchParams.get("depannageId");
+
+    if (devisIdParam) {
+      const d = devisARealiser.find((x) => x.id === devisIdParam);
+      if (d) {
+        return { etape: 1, pole: d.nature, devisId: d.id, depannageId: null as string | null, clientNom: d.client_nom, siteId: d.site_id, compteRendu: "" };
+      }
+    }
+    if (depannageIdParam) {
+      const d = depannagesEnCours.find((x) => x.id === depannageIdParam);
+      if (d) {
+        const s = sites.find((site) => site.id === d.site_id);
+        return { etape: 1, pole: Poles.depannage, devisId: "", depannageId: d.id, clientNom: s?.nom ?? "", siteId: s?.id ?? "", compteRendu: d.message };
+      }
+    }
+    if (poleParam) {
+      return { etape: 1, pole: poleParam, devisId: "", depannageId: null as string | null, clientNom: "", siteId: "", compteRendu: "" };
+    }
+    return { etape: 0, pole: "", devisId: "", depannageId: null as string | null, clientNom: "", siteId: "", compteRendu: "" };
+  }
+  const etatInitial = calculerEtatInitial();
+
+  const [etape, setEtape] = useState(etatInitial.etape);
+  const [pole, setPole] = useState(etatInitial.pole);
   const [enregistrement, startEnregistrement] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
-  // Pôle Dépannage uniquement — pré-remplissage depuis un ticket
-  // ouvert (voir Poles.avecFournitureMateriel plus bas pour le seul
-  // autre bloc réservé à ce pôle) : le technicien connecté voit
-  // d'abord ses propres dépannages, mais peut aussi piocher dans tous
-  // les autres — un dépannage assigné à un collègue reste utile si un
-  // autre technicien passe sur le site en premier.
-  const [depannageId, setDepannageId] = useState<string | null>(null);
+  const [depannageId, setDepannageId] = useState<string | null>(etatInitial.depannageId);
   const [vueDepannages, setVueDepannages] = useState<"mine" | "toutes">("mine");
 
   // ---------- Étape 1 : Client ----------
-  const [clientNom, setClientNom] = useState("");
-  const [siteId, setSiteId] = useState("");
-  const [devisId, setDevisId] = useState("");
+  const [clientNom, setClientNom] = useState(etatInitial.clientNom);
+  const [siteId, setSiteId] = useState(etatInitial.siteId);
+  const [devisId, setDevisId] = useState(etatInitial.devisId);
   const [devisDuSite, setDevisDuSite] = useState<DevisDuSite[]>([]);
   const [equipementsSite, setEquipementsSite] = useState<EquipementDuSite[]>([]);
   const [equipementId, setEquipementId] = useState("");
@@ -215,31 +240,6 @@ export function BiWizard({
     setEtape(1);
   }
 
-  // Boutons contextuels (carte devis dans /prestations, carte ticket
-  // dans /depannages) : pré-remplissage direct via les paramètres
-  // d'URL, sans repasser par les pickers de l'étape Pôle. Dépend de
-  // `searchParams` (pas juste [] au montage) : la page /bi/nouveau est
-  // la même route pour tous les BI, donc naviguer d'une carte à une
-  // autre peut réutiliser l'instance déjà montée sans redéclencher un
-  // effet qui ne tournerait qu'une fois.
-  const devisIdParam = searchParams.get("devisId");
-  const depannageIdParam = searchParams.get("depannageId");
-  useEffect(() => {
-    if (devisIdParam) {
-      const d = devisARealiser.find((x) => x.id === devisIdParam);
-      if (d) choisirAffaireARealiser(d);
-    }
-    if (depannageIdParam) {
-      const d = depannagesEnCours.find((x) => x.id === depannageIdParam);
-      if (d) {
-        setPole(Poles.depannage);
-        choisirDepannage(d);
-        setEtape(1);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- ne doit réagir qu'à un changement des paramètres d'URL eux-mêmes, pas aux fonctions/tableaux recréés à chaque rendu
-  }, [devisIdParam, depannageIdParam]);
-
   const groupesDisponibles = useMemo(
     () => [...new Set(equipementsSite.map((e) => e.groupe.trim()).filter(Boolean))].sort(),
     [equipementsSite],
@@ -289,7 +289,7 @@ export function BiWizard({
   }, [groupesSelectionnes, equipementsSite]);
 
   // ---------- Étape 2 : Compte rendu + photos ----------
-  const [compteRendu, setCompteRendu] = useState("");
+  const [compteRendu, setCompteRendu] = useState(etatInitial.compteRendu);
   const compteRenduRef = useRef("");
   compteRenduRef.current = compteRendu;
   const [obsTech, setObsTech] = useState("");

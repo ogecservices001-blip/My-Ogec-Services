@@ -27,7 +27,6 @@ export default async function NouveauBiPage() {
       techniciensDisponibles={(techniciens ?? []).map((t) => t.name)}
       typesEquipement={(typesEquipement ?? []) as TypeEquipement[]}
       nomUtilisateur={profile.name}
-      technicienId={profile.id}
       depannagesEnCours={depannagesEnCours}
       devisARealiser={devisARealiser}
     />

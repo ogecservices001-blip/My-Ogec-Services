@@ -1,30 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bug, Lightbulb, MessageSquare, Send, ChevronDown } from "lucide-react";
-import { envoyerSignalement, marquerSignalement } from "./actions";
+import Link from "next/link";
+import { Bug, Lightbulb, MessageSquare, Send, ChevronRight } from "lucide-react";
+import { envoyerSignalement } from "./actions";
+import { TypeBadge } from "@/components/signalements/type-badge";
 import type { Module } from "@/lib/menus";
-import type { Signalement, SignalementHistorique, TypeSignalement } from "@/lib/types";
-
-export type HistoriqueParSignalement = Record<string, SignalementHistorique[]>;
+import type { Signalement, TypeSignalement } from "@/lib/types";
 
 const TYPES: { valeur: TypeSignalement; label: string; icone: typeof Bug }[] = [
   { valeur: "bug", label: "Bug", icone: Bug },
   { valeur: "suggestion", label: "Suggestion", icone: Lightbulb },
   { valeur: "remarque", label: "Remarque", icone: MessageSquare },
 ];
-
-const LABEL_TYPE: Record<TypeSignalement, string> = {
-  bug: "Bug",
-  suggestion: "Suggestion",
-  remarque: "Remarque",
-};
-
-const TEINTE_TYPE: Record<TypeSignalement, string> = {
-  bug: "bg-red-100 text-red-700",
-  suggestion: "bg-amber-100 text-amber-700",
-  remarque: "bg-sky-100 text-sky-700",
-};
 
 const NATURES: Record<TypeSignalement, string[]> = {
   bug: [
@@ -37,16 +25,6 @@ const NATURES: Record<TypeSignalement, string[]> = {
   suggestion: ["Ajouter une information", "Simplifier cet écran", "Me faire gagner du temps", "Autre idée"],
   remarque: ["Remarque positive", "Ça me gêne", "Question", "Autre"],
 };
-
-function formaterDateHeure(iso: string): string {
-  return new Date(iso).toLocaleString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function BoutonChoix({
   label,
@@ -73,12 +51,10 @@ export function SignalementsEcran({
   isAdmin,
   modules,
   signalements,
-  historique,
 }: {
   isAdmin: boolean;
   modules: Module[];
   signalements: Signalement[];
-  historique: HistoriqueParSignalement;
 }) {
   const [type, setType] = useState<TypeSignalement>("bug");
   const [menu, setMenu] = useState<string | null>(null);
@@ -221,31 +197,17 @@ export function SignalementsEcran({
         </div>
       </div>
 
-      {isAdmin && <ListeAdmin signalements={signalements} historique={historique} />}
+      {isAdmin && <ListeAdmin signalements={signalements} />}
     </div>
   );
 }
 
-function ListeAdmin({
-  signalements,
-  historique,
-}: {
-  signalements: Signalement[];
-  historique: HistoriqueParSignalement;
-}) {
+function ListeAdmin({ signalements }: { signalements: Signalement[] }) {
   const [filtre, setFiltre] = useState<"a_traiter" | "traites">("a_traiter");
-  const [ouvert, setOuvert] = useState<string | null>(null);
-  const [maj, startMaj] = useTransition();
 
   const aTraiter = signalements.filter((s) => !s.traite);
   const traites = signalements.filter((s) => s.traite);
   const affiches = filtre === "a_traiter" ? aTraiter : traites;
-
-  function basculer(id: string, traite: boolean) {
-    startMaj(() => {
-      marquerSignalement(id, traite);
-    });
-  }
 
   return (
     <div>
@@ -278,60 +240,26 @@ function ListeAdmin({
         </p>
       ) : (
         <ul className="space-y-2.5">
-          {affiches.map((s) => {
-            const journal = historique[s.id] ?? [];
-            return (
-              <li key={s.id} className="overflow-hidden rounded-2xl bg-white shadow-sm">
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${TEINTE_TYPE[s.type]}`}
-                        >
-                          {LABEL_TYPE[s.type]}
-                        </span>
-                        <span className="font-mono text-xs text-slate-400">{s.numero}</span>
-                      </div>
-                      <p className="mt-1.5 text-sm font-semibold text-slate-900">
-                        {s.menu} › {s.sous_menu}
-                      </p>
-                      <p className="text-sm text-slate-700">{s.nature}</p>
-                      {s.message && <p className="mt-1 text-sm text-slate-500">{s.message}</p>}
-                      <p className="mt-1.5 text-xs text-slate-400">
-                        {s.auteur_nom} · {formaterDateHeure(s.created_at)}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => basculer(s.id, !s.traite)}
-                      disabled={maj}
-                      className="shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-200 disabled:opacity-60"
-                    >
-                      {s.traite ? "Rouvrir" : "Marquer traité"}
-                    </button>
+          {affiches.map((s) => (
+            <li key={s.id}>
+              <Link
+                href={`/signalements/${s.id}`}
+                className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate font-mono text-sm font-bold text-slate-900">{s.numero}</p>
+                    <TypeBadge type={s.type} />
                   </div>
-                  <button
-                    onClick={() => setOuvert(ouvert === s.id ? null : s.id)}
-                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-slate-600"
-                  >
-                    Journal ({journal.length})
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 transition ${ouvert === s.id ? "rotate-180" : ""}`}
-                    />
-                  </button>
+                  <p className="truncate text-sm text-slate-500">
+                    {s.menu} — {s.sous_menu}
+                  </p>
+                  <p className="truncate text-xs text-slate-400">{s.nature}</p>
                 </div>
-                {ouvert === s.id && (
-                  <div className="space-y-1 border-t border-slate-50 bg-slate-50/50 px-4 py-3 text-xs text-slate-500">
-                    {journal.map((h) => (
-                      <p key={h.id}>
-                        {formaterDateHeure(h.created_at)} · {h.auteur_nom} — {h.action}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </li>
-            );
-          })}
+                <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+              </Link>
+            </li>
+          ))}
         </ul>
       )}
     </div>

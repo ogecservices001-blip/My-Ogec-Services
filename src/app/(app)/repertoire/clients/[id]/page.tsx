@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Pencil,
   Wrench,
+  Upload,
+  Download,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -104,13 +106,33 @@ export default async function SiteDetailPage({
 
   return (
     <div>
-      <Link
-        href="/repertoire/clients"
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour
-      </Link>
+      <div className="mb-4 flex items-center justify-between">
+        <Link
+          href="/repertoire/clients"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+          Retour
+        </Link>
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <a
+              href={`/repertoire/clients/${id}/export`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+              title="Exporter ce site"
+            >
+              <Download className="h-4 w-4" strokeWidth={2.25} />
+            </a>
+            <Link
+              href="/repertoire/clients/importer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+              title="Importer un fichier"
+            >
+              <Upload className="h-4 w-4" strokeWidth={2.25} />
+            </Link>
+          </div>
+        )}
+      </div>
 
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>

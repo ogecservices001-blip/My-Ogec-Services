@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ChevronRight, MapPin, Plus } from "lucide-react";
+import { ArrowLeft, ChevronRight, MapPin, Plus, Upload, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
@@ -41,13 +41,29 @@ export default async function SitesDuClientPage({
           Retour
         </Link>
         {isAdmin && (
-          <Link
-            href={`/repertoire/clients/nouveau${horsContrat ? "?horsContrat=1" : ""}`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
-            Ajouter un site
-          </Link>
+          <div className="flex items-center gap-2">
+            <a
+              href={`/repertoire/clients/groupe/${encodeURIComponent(nomDecode)}/export${horsContrat ? "?horsContrat=1" : ""}`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+              title="Exporter les sites de ce client"
+            >
+              <Download className="h-4 w-4" strokeWidth={2.25} />
+            </a>
+            <Link
+              href="/repertoire/clients/importer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+              title="Importer un fichier"
+            >
+              <Upload className="h-4 w-4" strokeWidth={2.25} />
+            </Link>
+            <Link
+              href={`/repertoire/clients/nouveau${horsContrat ? "?horsContrat=1" : ""}`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+              Ajouter un site
+            </Link>
+          </div>
         )}
       </div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">

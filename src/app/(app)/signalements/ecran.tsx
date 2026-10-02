@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bug, Lightbulb, MessageSquare, Send, ChevronRight } from "lucide-react";
+import { ArrowLeft, Bug, Lightbulb, MessageSquare, Send, ChevronRight } from "lucide-react";
 import { envoyerSignalement } from "./actions";
 import { TypeBadge } from "@/components/signalements/type-badge";
 import { construireModules } from "@/lib/menus";
@@ -154,6 +154,13 @@ export function SignalementsEcran({
 
   return (
     <div>
+      <Link
+        href="/"
+        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+        Retour
+      </Link>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
         Signalement retour terrain
       </h1>

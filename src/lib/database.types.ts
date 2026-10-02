@@ -728,6 +728,32 @@ export type Database = {
         }
         Relationships: []
       }
+      profils_mdp: {
+        Row: {
+          mdp_app: string
+          profil_id: string
+          updated_at: string
+        }
+        Insert: {
+          mdp_app?: string
+          profil_id: string
+          updated_at?: string
+        }
+        Update: {
+          mdp_app?: string
+          profil_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profils_mdp_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       references_horaires: {
         Row: {
           created_at: string

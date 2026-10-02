@@ -1,0 +1,35 @@
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
+import type { Profil } from "@/lib/types";
+import { ModifierProfilForm } from "../../modifier-form";
+
+export default async function ModifierProfilPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  await requireAdmin();
+  const { id } = await params;
+
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("*").eq("id", id).single();
+  if (!data) notFound();
+  const profil = data as Profil;
+
+  return (
+    <div>
+      <Link
+        href="/repertoire/collaborateurs"
+        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+        Retour
+      </Link>
+      <h1 className="mb-5 text-2xl font-bold tracking-tight text-slate-900">{profil.name}</h1>
+      <ModifierProfilForm profil={profil} />
+    </div>
+  );
+}

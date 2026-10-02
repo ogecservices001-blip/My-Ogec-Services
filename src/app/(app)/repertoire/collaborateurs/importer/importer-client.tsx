@@ -65,10 +65,11 @@ export function ImporterCollaborateursClient() {
         Importer des collaborateurs
       </h1>
       <p className="mb-5 text-sm text-slate-500">
-        Classeur Excel (.xlsx/.xlsm) avec une feuille &quot;COLLABORATEURS&quot;
-        (Nom, Qualité, Portable, Email pro, Email personnel, Commune, Véhicule).
-        Rapprochement par nom. Le rôle n&apos;est jamais modifié par l&apos;import —
-        un nouveau collaborateur arrive sans accès à l&apos;application.
+        Classeur Excel (.xlsx/.xlsm), colonnes reconnues par leur en-tête
+        (Nom, Qualité, Portable, Email pro, Email personnel, Commune, Véhicule
+        — les autres colonnes sont ignorées). Rapprochement par nom. Le rôle
+        n&apos;est jamais modifié par l&apos;import — un nouveau collaborateur
+        arrive sans accès à l&apos;application.
       </p>
 
       {resultat && (
@@ -167,6 +168,11 @@ export function ImporterCollaborateursClient() {
                       <span className="truncate font-semibold text-slate-900">
                         {ligne.donnees.name}
                       </span>
+                      {ligne.mdp && (
+                        <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">
+                          Mot de passe fourni
+                        </span>
+                      )}
                     </div>
                     {ligne.differences.length > 0 && (
                       <div className="mt-1.5 space-y-0.5">

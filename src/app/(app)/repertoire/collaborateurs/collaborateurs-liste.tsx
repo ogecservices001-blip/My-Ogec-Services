@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, Search, Phone, ChevronDown, Upload, Download } from "lucide-react";
+import { ArrowLeft, Search, Phone, ChevronDown, Upload, Download, Pencil, KeyRound } from "lucide-react";
 import type { Profil } from "@/lib/types";
+import { recupererMotDePasse } from "./mdp-actions";
 
 function initiales(nom: string) {
   const parts = nom.trim().split(/\s+/).filter(Boolean);
@@ -20,6 +21,18 @@ export function CollaborateursListe({
 }) {
   const [recherche, setRecherche] = useState("");
   const [ouvert, setOuvert] = useState<string | null>(null);
+  const [mdpVisibles, setMdpVisibles] = useState<Record<string, string>>({});
+  const [chargementMdp, startChargementMdp] = useTransition();
+
+  function voirMotDePasse(profilId: string) {
+    startChargementMdp(async () => {
+      const res = await recupererMotDePasse(profilId);
+      setMdpVisibles((prev) => ({
+        ...prev,
+        [profilId]: res.ok ? res.mdp || "(non renseigné)" : `Erreur : ${res.erreur}`,
+      }));
+    });
+  }
 
   const filtres = useMemo(
     () =>
@@ -110,13 +123,39 @@ export function CollaborateursListe({
               </button>
               {ouvert === p.id && (
                 <div className="space-y-1.5 border-t border-slate-50 bg-slate-50/50 px-4 py-3 pl-[68px] text-sm text-slate-600">
+                  {p.qualite && <p>Qualité : {p.qualite}</p>}
                   {p.email_pro && <p>Email pro : {p.email_pro}</p>}
                   {p.email_perso && <p>Email personnel : {p.email_perso}</p>}
                   {p.commune_habitation && (
                     <p>Commune : {p.commune_habitation}</p>
                   )}
                   {p.vehicule && <p>Véhicule : {p.vehicule}</p>}
-                  {p.qualite && <p>Qualité : {p.qualite}</p>}
+                  {isAdmin && (
+                    <div className="flex flex-wrap items-center gap-2 pt-1.5">
+                      <Link
+                        href={`/repertoire/collaborateurs/${p.id}/modifier`}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-100"
+                      >
+                        <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                        Modifier
+                      </Link>
+                      {mdpVisibles[p.id] === undefined ? (
+                        <button
+                          onClick={() => voirMotDePasse(p.id)}
+                          disabled={chargementMdp}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-100 disabled:opacity-60"
+                        >
+                          <KeyRound className="h-3.5 w-3.5" strokeWidth={2} />
+                          Voir le mot de passe
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                          <KeyRound className="h-3.5 w-3.5" strokeWidth={2} />
+                          {mdpVisibles[p.id]}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </li>

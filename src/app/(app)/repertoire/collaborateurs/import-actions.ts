@@ -23,6 +23,7 @@ const LABELS: Record<keyof ProfilInput, string> = {
   name: "Nom",
   qualite: "Qualité",
   portable: "Portable",
+  email_pro: "Email pro",
   email_perso: "Email personnel",
   commune_habitation: "Commune",
   vehicule: "Véhicule",

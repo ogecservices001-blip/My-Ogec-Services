@@ -6,18 +6,20 @@ export const COLONNES_PROFILS: { index: number; champ: keyof ProfilInput }[] = [
   { index: 0, champ: "name" },
   { index: 1, champ: "qualite" },
   { index: 2, champ: "portable" },
-  { index: 3, champ: "email_perso" },
-  { index: 4, champ: "commune_habitation" },
-  { index: 5, champ: "vehicule" },
+  { index: 3, champ: "email_pro" },
+  { index: 4, champ: "email_perso" },
+  { index: 5, champ: "commune_habitation" },
+  { index: 6, champ: "vehicule" },
 ];
 
 export const ENTETES_PROFILS: Record<number, string> = {
   0: "Nom",
   1: "Qualité",
   2: "Portable",
-  3: "Email personnel",
-  4: "Commune",
-  5: "Véhicule",
+  3: "Email pro",
+  4: "Email personnel",
+  5: "Commune",
+  6: "Véhicule",
 };
 
-export const NB_COLONNES_PROFILS = 6;
+export const NB_COLONNES_PROFILS = 7;

@@ -110,6 +110,7 @@ export function CollaborateursListe({
               </button>
               {ouvert === p.id && (
                 <div className="space-y-1.5 border-t border-slate-50 bg-slate-50/50 px-4 py-3 pl-[68px] text-sm text-slate-600">
+                  {p.email_pro && <p>Email pro : {p.email_pro}</p>}
                   {p.email_perso && <p>Email personnel : {p.email_perso}</p>}
                   {p.commune_habitation && (
                     <p>Commune : {p.commune_habitation}</p>

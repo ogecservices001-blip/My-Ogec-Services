@@ -691,6 +691,7 @@ export type Database = {
           commune_habitation: string
           created_at: string
           email_perso: string
+          email_pro: string
           id: string
           legacy_id: string | null
           name: string
@@ -703,6 +704,7 @@ export type Database = {
           commune_habitation?: string
           created_at?: string
           email_perso?: string
+          email_pro?: string
           id: string
           legacy_id?: string | null
           name?: string
@@ -715,6 +717,7 @@ export type Database = {
           commune_habitation?: string
           created_at?: string
           email_perso?: string
+          email_pro?: string
           id?: string
           legacy_id?: string | null
           name?: string

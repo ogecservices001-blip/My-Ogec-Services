@@ -6,6 +6,7 @@ export const profilSchema = z.object({
   name: z.string().trim().min(1, "Le nom est obligatoire"),
   qualite: optionnel(),
   portable: optionnel(),
+  email_pro: optionnel(),
   email_perso: optionnel(),
   commune_habitation: optionnel(),
   vehicule: optionnel(),

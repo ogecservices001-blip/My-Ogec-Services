@@ -65,7 +65,8 @@ export function ImporterCollaborateursClient() {
         Importer des collaborateurs
       </h1>
       <p className="mb-5 text-sm text-slate-500">
-        Classeur Excel (.xlsx/.xlsm) avec une feuille &quot;COLLABORATEURS&quot;.
+        Classeur Excel (.xlsx/.xlsm) avec une feuille &quot;COLLABORATEURS&quot;
+        (Nom, Qualité, Portable, Email pro, Email personnel, Commune, Véhicule).
         Rapprochement par nom. Le rôle n&apos;est jamais modifié par l&apos;import —
         un nouveau collaborateur arrive sans accès à l&apos;application.
       </p>

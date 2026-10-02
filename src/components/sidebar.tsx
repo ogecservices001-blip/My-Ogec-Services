@@ -76,8 +76,8 @@ function construireModules(isAdmin: boolean): Module[] {
       nom: "Devis",
       actif: true,
       sousMenus: [
-        { nom: "Contrat entretien", href: "/devis" },
-        { nom: "Hors contrat", href: "/devis?horsContrat=1" },
+        { nom: "Clients sous contrat", href: "/devis" },
+        { nom: "Clients hors contrat", href: "/devis?horsContrat=1" },
       ],
     },
     { nom: "Signalement retour information terrain", actif: false, sousMenus: [] },

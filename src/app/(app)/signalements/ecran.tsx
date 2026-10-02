@@ -8,10 +8,10 @@ import { TypeBadge } from "@/components/signalements/type-badge";
 import type { Module } from "@/lib/menus";
 import type { Signalement, TypeSignalement } from "@/lib/types";
 
-const TYPES: { valeur: TypeSignalement; label: string; icone: typeof Bug }[] = [
-  { valeur: "bug", label: "Bug", icone: Bug },
-  { valeur: "suggestion", label: "Suggestion", icone: Lightbulb },
-  { valeur: "remarque", label: "Remarque", icone: MessageSquare },
+const TYPES: { valeur: TypeSignalement; label: string; icone: typeof Bug; couleur: string }[] = [
+  { valeur: "bug", label: "Bug", icone: Bug, couleur: "bg-red-100 text-red-600" },
+  { valeur: "suggestion", label: "Suggestion", icone: Lightbulb, couleur: "bg-amber-100 text-amber-600" },
+  { valeur: "remarque", label: "Remarque", icone: MessageSquare, couleur: "bg-sky-100 text-sky-600" },
 ];
 
 const LABEL_TYPE: Record<TypeSignalement, string> = {
@@ -32,7 +32,7 @@ const NATURES: Record<TypeSignalement, string[]> = {
   remarque: ["Remarque positive", "Ça me gêne", "Question", "Autre"],
 };
 
-type Option = { valeur: string; label: string; icone?: typeof Bug };
+type Option = { valeur: string; label: string; icone?: typeof Bug; couleur?: string };
 
 /// Une étape du pas-à-pas : tant qu'elle n'est pas répondue, affiche
 /// les choix ; une fois répondue, se réduit à une ligne de résumé avec
@@ -70,16 +70,23 @@ function Etape({
 
   return (
     <div className="border-b border-slate-100 py-2.5">
-      <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">{titre}</p>
-      <div className="flex flex-wrap gap-2">
-        {options.map(({ valeur, label, icone: Icone }) => (
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{titre}</p>
+      <div className="space-y-2">
+        {options.map(({ valeur, label, icone: Icone, couleur }) => (
           <button
             key={valeur}
             onClick={() => onChoisir(valeur)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-200"
+            className="flex w-full items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5 text-left transition hover:bg-slate-100"
           >
-            {Icone && <Icone className="h-4 w-4" strokeWidth={2} />}
-            {label}
+            {Icone && (
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${couleur ?? "bg-violet-100 text-violet-600"}`}
+              >
+                <Icone className="h-4 w-4" strokeWidth={2} />
+              </span>
+            )}
+            <span className="min-w-0 flex-1 text-sm font-semibold text-slate-800">{label}</span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
           </button>
         ))}
       </div>

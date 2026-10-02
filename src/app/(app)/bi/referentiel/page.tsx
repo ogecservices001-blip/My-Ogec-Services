@@ -5,6 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { ORDRE_AFFICHAGE_POLES, labelPole } from "@/lib/bi/constants";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 
+/// Tri numérique des codes de pôle (10, 15, 20...) — contrairement à
+/// ORDRE_AFFICHAGE_POLES (fréquence d'usage côté assistant technicien),
+/// ici c'est un référentiel consulté par le bureau : l'ordre numérique
+/// est plus lisible pour parcourir/retrouver un pôle.
+const POLES_TRIES = [...ORDRE_AFFICHAGE_POLES].sort((a, b) => Number(a) - Number(b));
+
 export default async function ReferentielBiPage() {
   await requireAdmin();
   const supabase = await createClient();
@@ -25,7 +31,7 @@ export default async function ReferentielBiPage() {
       </p>
 
       <ul className="space-y-3">
-        {ORDRE_AFFICHAGE_POLES.map((pole) => {
+        {POLES_TRIES.map((pole) => {
           const modele = modeleParPole.get(pole);
           return (
             <li key={pole}>

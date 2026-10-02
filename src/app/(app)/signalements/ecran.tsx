@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Bug, Lightbulb, MessageSquare, Send, ChevronRight } from "lucide-react";
 import { envoyerSignalement } from "./actions";
 import { TypeBadge } from "@/components/signalements/type-badge";
-import type { Module } from "@/lib/menus";
+import { construireModules } from "@/lib/menus";
 import type { Signalement, TypeSignalement } from "@/lib/types";
 
 const TYPES: { valeur: TypeSignalement; label: string; icone: typeof Bug; couleur: string }[] = [
@@ -96,11 +96,9 @@ function Etape({
 
 export function SignalementsEcran({
   isAdmin,
-  modules,
   signalements,
 }: {
   isAdmin: boolean;
-  modules: Module[];
   signalements: Signalement[];
 }) {
   const [type, setType] = useState<TypeSignalement | null>(null);
@@ -112,6 +110,10 @@ export function SignalementsEcran({
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
 
+  // construireModules() renvoie des icônes (composants React) — à
+  // calculer côté client uniquement, jamais reçu en prop d'un composant
+  // serveur (une fonction ne peut pas traverser cette frontière RSC).
+  const modules = useMemo(() => construireModules(isAdmin), [isAdmin]);
   const modulesActifs = modules.filter((m) => m.actif && m.sousMenus.length > 0);
   const moduleChoisi = modulesActifs.find((m) => m.nom === menu);
 

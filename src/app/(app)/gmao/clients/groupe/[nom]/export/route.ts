@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
 import { COLONNES_SOMMAIRE, ligneSommaire } from "@/lib/gmao/equipement-export";
+import { finaliserFeuille } from "@/lib/excel-export";
 
 /// Exporte tous les équipements de tous les sites d'un client — port de
 /// `GmaoClientsScreen._exporterTousLesSites`.
@@ -36,6 +37,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ nom
     const site = sitesById[eq.site_id];
     if (site) feuille.addRow(ligneSommaire(eq, site, typesById));
   }
+
+  finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
   const nomFichier = `${nomDecode}_tous_sites_equipements.xlsx`.replace(/[^a-zA-Z0-9._-]/g, "_");

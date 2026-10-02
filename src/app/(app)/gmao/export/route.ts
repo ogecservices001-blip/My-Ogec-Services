@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
 import { COLONNES_SOMMAIRE, ligneSommaire } from "@/lib/gmao/equipement-export";
+import { finaliserFeuille } from "@/lib/excel-export";
 
 /// Exporte le parc GMAO entier, tous clients confondus — port de
 /// `GmaoHomeScreen._exporterTout`.
@@ -32,6 +33,8 @@ export async function GET() {
     if (!site) continue;
     feuille.addRow(ligneSommaire(eq, site, typesById));
   }
+
+  finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
   return new NextResponse(buffer, {

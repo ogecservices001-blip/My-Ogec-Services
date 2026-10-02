@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
 import { COLONNES_SOMMAIRE, ligneSommaire } from "@/lib/gmao/equipement-export";
+import { finaliserFeuille } from "@/lib/excel-export";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
@@ -27,6 +28,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   for (const eq of (equipements ?? []) as Equipement[]) {
     feuille.addRow(ligneSommaire(eq, site, typesById));
   }
+
+  finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
   const nomFichier = `${site.nom}_${site.site}_equipements.xlsx`.replace(/[^a-zA-Z0-9._-]/g, "_");

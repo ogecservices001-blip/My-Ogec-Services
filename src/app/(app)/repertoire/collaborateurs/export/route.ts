@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { COLONNES_PROFILS, ENTETES_PROFILS, NB_COLONNES_PROFILS } from "@/lib/repertoire/profils-excel";
+import { finaliserFeuille } from "@/lib/excel-export";
 
 /// Exporte tous les collaborateurs — réimportable tel quel via
 /// /repertoire/collaborateurs/importer. Le rôle n'est jamais exporté :
@@ -30,6 +31,8 @@ export async function GET() {
     }
     feuille.addRow(ligne);
   }
+
+  finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
   return new NextResponse(buffer, {

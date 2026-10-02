@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { COLONNES_SITES, ENTETES_SITES, NB_COLONNES_SITES } from "@/lib/repertoire/sites-excel";
+import { finaliserFeuille } from "@/lib/excel-export";
 
 /// Exporte les sites d'un seul client — même format que
 /// /repertoire/clients/export, réimportable tel quel.
@@ -37,6 +38,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ nom:
     }
     feuille.addRow(ligne);
   }
+
+  finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
   const nomFichier = `${nomDecode}_sites.xlsx`.replace(/[^a-zA-Z0-9._-]/g, "_");

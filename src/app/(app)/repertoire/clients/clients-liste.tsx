@@ -47,9 +47,8 @@ export function ClientsListe({
         </Link>
         {isAdmin && (
           <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- téléchargement de fichier, pas une page interne */}
             <a
-              href="/repertoire/clients/export"
+              href={`/repertoire/clients/export?horsContrat=${horsContrat ? 1 : 0}`}
               className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
               title="Exporter en Excel"
             >

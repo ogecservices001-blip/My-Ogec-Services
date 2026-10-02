@@ -3,14 +3,21 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { COLONNES_SITES, ENTETES_SITES, NB_COLONNES_SITES } from "@/lib/repertoire/sites-excel";
+import { finaliserFeuille } from "@/lib/excel-export";
 
-/// Exporte tous les sites au format de la feuille "SITES" du classeur
+/// Exporte les sites au format de la feuille "SITES" du classeur
 /// maître — réimportable tel quel via /repertoire/clients/importer.
-export async function GET() {
+/// Filtré par ?horsContrat=0|1 si fourni (même périmètre que l'écran
+/// "Clients contrat entretien" / "Clients hors contrat" en cours).
+export async function GET(request: Request) {
   await requireAdmin();
 
+  const horsContratParam = new URL(request.url).searchParams.get("horsContrat");
+
   const supabase = await createClient();
-  const { data: sites, error } = await supabase.from("sites").select("*").order("nom");
+  let requete = supabase.from("sites").select("*").order("nom");
+  if (horsContratParam !== null) requete = requete.eq("hors_contrat", horsContratParam === "1");
+  const { data: sites, error } = await requete;
   if (error) {
     return NextResponse.json({ erreur: error.message }, { status: 500 });
   }
@@ -30,11 +37,15 @@ export async function GET() {
     feuille.addRow(ligne);
   }
 
+  finaliserFeuille(feuille);
+
   const buffer = await workbook.xlsx.writeBuffer();
+  const nomFichier =
+    horsContratParam === "1" ? "sites_hors_contrat.xlsx" : horsContratParam === "0" ? "sites_contrat.xlsx" : "sites.xlsx";
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": 'attachment; filename="sites.xlsx"',
+      "Content-Disposition": `attachment; filename="${nomFichier}"`,
     },
   });
 }

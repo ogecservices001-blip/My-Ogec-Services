@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
+import { finaliserFeuille } from "@/lib/excel-export";
 
 /// Colonnes de la feuille "Chrono Dépannage" du classeur
 /// "Suivi dépannage.xlsm" — même ordre, même architecture (21
@@ -124,7 +125,7 @@ export async function GET() {
 
   feuille.getColumn(5).numFmt = "dd/mm/yyyy";
   feuille.getColumn(10).numFmt = "dd/mm/yyyy";
-  feuille.columns.forEach((col) => (col.width = 18));
+  finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
   return new NextResponse(buffer, {

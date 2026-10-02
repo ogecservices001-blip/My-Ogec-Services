@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { labelNatureDevis } from "@/lib/devis/constants";
+import { finaliserFeuille } from "@/lib/excel-export";
 
 const COLONNES = [
   "Référence devis",
@@ -73,7 +74,7 @@ export async function GET(request: Request) {
     ]);
   }
 
-  feuille.columns.forEach((col) => (col.width = 20));
+  finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
   const nomFichier = nom ? `${nom.replace(/[^a-zA-Z0-9._-]/g, "_")}_devis.xlsx` : "tous_les_devis.xlsx";

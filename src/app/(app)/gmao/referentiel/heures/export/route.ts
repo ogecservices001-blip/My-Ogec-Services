@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
+import { finaliserFeuille } from "@/lib/excel-export";
 
 /// Exporte le référentiel actuel en classeur Excel, même format que
 /// l'import — modifiable puis réimportable tel quel.
@@ -47,6 +48,8 @@ export async function GET() {
       r.hrs_assistant_tri,
     ]);
   }
+
+  finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
   return new NextResponse(buffer, {

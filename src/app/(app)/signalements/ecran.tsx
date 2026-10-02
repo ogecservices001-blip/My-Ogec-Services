@@ -177,7 +177,7 @@ export function SignalementsEcran({
           <Etape
             titre="Quel menu concerné ?"
             valeurActuelle={menu}
-            options={modulesActifs.map((m) => ({ valeur: m.nom, label: m.nom }))}
+            options={modulesActifs.map((m) => ({ valeur: m.nom, label: m.nom, icone: m.icone, couleur: m.couleur }))}
             onChoisir={choisirMenu}
             onChanger={() => setMenu(null)}
           />
@@ -187,7 +187,12 @@ export function SignalementsEcran({
           <Etape
             titre="Quel écran précis ?"
             valeurActuelle={sousMenu}
-            options={moduleChoisi.sousMenus.map((sm) => ({ valeur: sm.nom, label: sm.nom }))}
+            options={moduleChoisi.sousMenus.map((sm) => ({
+              valeur: sm.nom,
+              label: sm.nom,
+              icone: moduleChoisi.icone,
+              couleur: moduleChoisi.couleur,
+            }))}
             onChoisir={(v) => {
               setSousMenu(v);
               setNature(null);
@@ -203,7 +208,12 @@ export function SignalementsEcran({
           <Etape
             titre="Quoi exactement ?"
             valeurActuelle={nature}
-            options={NATURES[type].map((n) => ({ valeur: n, label: n }))}
+            options={NATURES[type].map((n) => ({
+              valeur: n,
+              label: n,
+              icone: TYPES.find((t) => t.valeur === type)!.icone,
+              couleur: TYPES.find((t) => t.valeur === type)!.couleur,
+            }))}
             onChoisir={setNature}
             onChanger={() => setNature(null)}
           />

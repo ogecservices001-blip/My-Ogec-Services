@@ -32,24 +32,26 @@ export async function envoyerSignalement(saisie: SaisieSignalement): Promise<Act
   const chrono = await prochainChrono(supabase, "SIG", annee);
   const numero = `SIG-${chrono}-${initiales(profile.name)}`;
 
-  const { data, error } = await supabase
-    .from("signalements")
-    .insert({
-      numero,
-      auteur_id: profile.id,
-      auteur_nom: profile.name,
-      type: saisie.type,
-      menu: saisie.menu,
-      sous_menu: saisie.sousMenu,
-      nature: saisie.nature,
-      message: saisie.detail.trim(),
-    })
-    .select("id")
-    .single();
+  // Pas de .select() après l'insert : la RETURNING d'un insert est
+  // filtrée par la policy SELECT ("signalements_select_admin", admin
+  // uniquement) — un technicien qui envoie son propre signalement s'y
+  // heurterait. L'id est donc généré ici, jamais relu après coup.
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from("signalements").insert({
+    id,
+    numero,
+    auteur_id: profile.id,
+    auteur_nom: profile.name,
+    type: saisie.type,
+    menu: saisie.menu,
+    sous_menu: saisie.sousMenu,
+    nature: saisie.nature,
+    message: saisie.detail.trim(),
+  });
   if (error) return { ok: false, erreur: error.message };
 
   await supabase.from("signalements_historique").insert({
-    signalement_id: data.id,
+    signalement_id: id,
     auteur_nom: profile.name,
     action: "Création du signalement",
   });

@@ -4,13 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowLeft, Search, Phone, ChevronDown, Upload, Download, Pencil, KeyRound } from "lucide-react";
 import type { Profil } from "@/lib/types";
+import { initiales } from "@/lib/format";
 import { recupererMotDePasse } from "./mdp-actions";
-
-function initiales(nom: string) {
-  const parts = nom.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
-}
 
 export function CollaborateursListe({
   profils,

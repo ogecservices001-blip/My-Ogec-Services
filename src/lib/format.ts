@@ -9,3 +9,12 @@ export function formaterDate(valeur: string): string {
   const [, annee, mois, jour] = match;
   return `${jour}/${mois}/${annee}`;
 }
+
+/// Initiales d'un nom complet ("ROBERT Ludovic" → "RL") — même calcul
+/// que l'avatar de l'annuaire collaborateurs, réutilisé pour les
+/// numéros de signalement.
+export function initiales(nom: string): string {
+  const parts = nom.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
+}

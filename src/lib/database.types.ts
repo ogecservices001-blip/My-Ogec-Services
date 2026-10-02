@@ -884,7 +884,11 @@ export type Database = {
           auteur_nom: string
           created_at: string
           id: string
+          menu: string
           message: string
+          nature: string
+          numero: string
+          sous_menu: string
           traite: boolean
           type: Database["public"]["Enums"]["signalement_type"]
         }
@@ -893,7 +897,11 @@ export type Database = {
           auteur_nom: string
           created_at?: string
           id?: string
-          message: string
+          menu?: string
+          message?: string
+          nature?: string
+          numero?: string
+          sous_menu?: string
           traite?: boolean
           type: Database["public"]["Enums"]["signalement_type"]
         }
@@ -902,7 +910,11 @@ export type Database = {
           auteur_nom?: string
           created_at?: string
           id?: string
+          menu?: string
           message?: string
+          nature?: string
+          numero?: string
+          sous_menu?: string
           traite?: boolean
           type?: Database["public"]["Enums"]["signalement_type"]
         }
@@ -912,6 +924,38 @@ export type Database = {
             columns: ["auteur_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signalements_historique: {
+        Row: {
+          action: string
+          auteur_nom: string
+          created_at: string
+          id: string
+          signalement_id: string
+        }
+        Insert: {
+          action: string
+          auteur_nom: string
+          created_at?: string
+          id?: string
+          signalement_id: string
+        }
+        Update: {
+          action?: string
+          auteur_nom?: string
+          created_at?: string
+          id?: string
+          signalement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signalements_historique_signalement_id_fkey"
+            columns: ["signalement_id"]
+            isOneToOne: false
+            referencedRelation: "signalements"
             referencedColumns: ["id"]
           },
         ]

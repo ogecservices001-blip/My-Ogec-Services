@@ -61,7 +61,7 @@ export function DevisClientsListe({
             !horsContrat ? "bg-brand-green text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
           }`}
         >
-          Contrat entretien
+          Clients sous contrat
         </Link>
         <Link
           href="/devis?horsContrat=1"
@@ -69,7 +69,7 @@ export function DevisClientsListe({
             horsContrat ? "bg-orange-500 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
           }`}
         >
-          Hors contrat
+          Clients hors contrat
         </Link>
       </div>
 

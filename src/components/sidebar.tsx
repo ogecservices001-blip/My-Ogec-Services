@@ -22,7 +22,7 @@ function construireModules(isAdmin: boolean): Module[] {
       nom: "Répertoire",
       actif: true,
       sousMenus: [
-        { nom: "Clients contrat entretien", href: "/repertoire/clients" },
+        { nom: "Clients sous contrat", href: "/repertoire/clients" },
         { nom: "Clients hors contrat", href: "/repertoire/clients?horsContrat=1" },
         { nom: "Fournisseurs", href: "/repertoire/fournisseurs" },
         { nom: "Collaborateurs", href: "/repertoire/collaborateurs" },
@@ -48,7 +48,7 @@ function construireModules(isAdmin: boolean): Module[] {
       actif: true,
       sousMenus: [
         { nom: "Accueil GMAO", href: "/gmao" },
-        { nom: "Clients contrat entretien", href: "/gmao/clients?horsContrat=0" },
+        { nom: "Clients sous contrat", href: "/gmao/clients?horsContrat=0" },
         { nom: "Clients hors contrat", href: "/gmao/clients?horsContrat=1" },
       ],
     },

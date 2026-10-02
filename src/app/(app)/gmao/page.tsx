@@ -68,7 +68,7 @@ export default async function GmaoHomePage() {
             <Building2 className="h-5 w-5 text-brand-green-dark" strokeWidth={2} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-semibold text-slate-900">Clients contrat entretien</span>
+            <span className="block font-semibold text-slate-900">Clients sous contrat</span>
             <span className="block text-sm text-slate-500">{nbContrat ?? 0} site(s)</span>
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />

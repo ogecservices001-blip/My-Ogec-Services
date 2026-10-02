@@ -72,7 +72,7 @@ export function ClientsListe({
         )}
       </div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
-        {horsContrat ? "Clients hors contrat" : "Clients contrat entretien"}
+        {horsContrat ? "Clients hors contrat" : "Clients sous contrat"}
       </h1>
       <p className="mb-5 text-sm text-slate-500">
         {groupes.length} client(s) — {sites.length} site(s)

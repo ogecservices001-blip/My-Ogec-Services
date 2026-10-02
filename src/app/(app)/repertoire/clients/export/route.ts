@@ -8,7 +8,7 @@ import { finaliserFeuille } from "@/lib/excel-export";
 /// Exporte les sites au format de la feuille "SITES" du classeur
 /// maître — réimportable tel quel via /repertoire/clients/importer.
 /// Filtré par ?horsContrat=0|1 si fourni (même périmètre que l'écran
-/// "Clients contrat entretien" / "Clients hors contrat" en cours).
+/// "Clients sous contrat" / "Clients hors contrat" en cours).
 export async function GET(request: Request) {
   await requireAdmin();
 

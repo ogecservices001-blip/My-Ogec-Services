@@ -57,7 +57,7 @@ export default async function GmaoClientsPage({
     <GmaoClientsListe
       groupes={groupes}
       horsContrat={horsContrat}
-      titre={horsContrat ? "GMAO — Hors contrat" : "GMAO — Contrat entretien"}
+      titre={horsContrat ? "GMAO — Clients hors contrat" : "GMAO — Clients sous contrat"}
     />
   );
 }

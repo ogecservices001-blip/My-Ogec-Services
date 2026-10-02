@@ -20,7 +20,7 @@ const cartes: {
   {
     href: "/repertoire/clients",
     titre: "Clients",
-    sousTitre: "Contrat entretien",
+    sousTitre: "Sous contrat",
     icone: Building2,
     fond: "bg-green-100",
     couleur: "text-brand-green-dark",

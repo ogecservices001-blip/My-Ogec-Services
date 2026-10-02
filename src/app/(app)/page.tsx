@@ -97,13 +97,13 @@ const modules: {
     actif: true,
   },
   {
-    href: "#",
+    href: "/signalements",
     titre: "Signalement retour information terrain",
     sousTitre: "Retours des collaborateurs sur l'app",
     icone: Flag,
     fond: "bg-purple-100",
     couleur: "text-purple-600",
-    actif: false,
+    actif: true,
   },
   {
     href: "/gmao/referentiel",

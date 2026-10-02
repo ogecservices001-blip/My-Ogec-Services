@@ -19,3 +19,6 @@ export type Fournisseur = Tables<"fournisseurs">;
 export type Profil = Tables<"profiles">;
 
 export type Role = Enums<"user_role">;
+
+export type Signalement = Tables<"signalements">;
+export type TypeSignalement = Enums<"signalement_type">;

@@ -878,6 +878,44 @@ export type Database = {
           },
         ]
       }
+      signalements: {
+        Row: {
+          auteur_id: string
+          auteur_nom: string
+          created_at: string
+          id: string
+          message: string
+          traite: boolean
+          type: Database["public"]["Enums"]["signalement_type"]
+        }
+        Insert: {
+          auteur_id: string
+          auteur_nom: string
+          created_at?: string
+          id?: string
+          message: string
+          traite?: boolean
+          type: Database["public"]["Enums"]["signalement_type"]
+        }
+        Update: {
+          auteur_id?: string
+          auteur_nom?: string
+          created_at?: string
+          id?: string
+          message?: string
+          traite?: boolean
+          type?: Database["public"]["Enums"]["signalement_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signalements_auteur_id_fkey"
+            columns: ["auteur_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sites: {
         Row: {
           adresse: string
@@ -1358,6 +1396,7 @@ export type Database = {
       }
     }
     Enums: {
+      signalement_type: "bug" | "suggestion" | "remarque"
       statut_depannage: "nouvelle" | "traitee"
       user_role: "admin" | "technicien" | "en_attente" | "client"
     }
@@ -1490,6 +1529,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      signalement_type: ["bug", "suggestion", "remarque"],
       statut_depannage: ["nouvelle", "traitee"],
       user_role: ["admin", "technicien", "en_attente", "client"],
     },

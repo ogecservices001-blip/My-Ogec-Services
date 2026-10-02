@@ -80,7 +80,11 @@ function construireModules(isAdmin: boolean): Module[] {
         { nom: "Clients hors contrat", href: "/devis?horsContrat=1" },
       ],
     },
-    { nom: "Signalement retour information terrain", actif: false, sousMenus: [] },
+    {
+      nom: "Signalement retour information terrain",
+      actif: true,
+      sousMenus: [{ nom: "Envoyer / consulter", href: "/signalements" }],
+    },
     {
       nom: "Référentiel GMAO",
       actif: true,

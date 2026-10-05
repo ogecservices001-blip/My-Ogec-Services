@@ -2,43 +2,20 @@ import Link from "next/link";
 import { Building2, Building, Download, Upload, ChevronRight, ScanLine, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
-import type { Equipement, ReferenceHoraire } from "@/lib/gmao/types";
-import { freqCouranteCalculeeBatch } from "@/lib/gmao/releve-service";
-import { sommeHeuresAnnee } from "@/lib/gmao/calcul-heures-visite";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
-import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 import { supprimerEquipementsPourSites } from "./actions";
-
-function fmt(h: { heuresTech: number; heuresAssistant: number }): string {
-  return `${h.heuresTech}h Tech / ${h.heuresAssistant}h Assistant`;
-}
 
 export default async function GmaoHomePage() {
   const supabase = await createClient();
   const profile = await getCurrentProfile();
   const isAdmin = profile?.role === "admin";
 
-  const [{ count: nbContrat }, { count: nbHorsContrat }, equipements, { data: references }, { data: sites }] =
-    await Promise.all([
-      supabase.from("sites_view").select("*", { count: "exact", head: true }).eq("hors_contrat", false),
-      supabase.from("sites_view").select("*", { count: "exact", head: true }).eq("hors_contrat", true),
-      recupererToutesLesLignes<Equipement>((debut, fin) =>
-        supabase.from("equipements").select("*").range(debut, fin),
-      ),
-      supabase.from("references_horaires").select("*"),
-      supabase.from("sites").select("id"),
-    ]);
+  const [{ count: nbContrat }, { count: nbHorsContrat }, { data: sites }] = await Promise.all([
+    supabase.from("sites_view").select("*", { count: "exact", head: true }).eq("hors_contrat", false),
+    supabase.from("sites_view").select("*", { count: "exact", head: true }).eq("hors_contrat", true),
+    supabase.from("sites").select("id"),
+  ]);
 
-  const listeEquipements = equipements;
-  const freqCouranteParEquipement = await freqCouranteCalculeeBatch(
-    supabase,
-    listeEquipements.map((e) => e.id),
-  );
-  const heures = sommeHeuresAnnee(
-    listeEquipements,
-    (references ?? []) as ReferenceHoraire[],
-    freqCouranteParEquipement,
-  );
   const tousLesSiteIds = (sites ?? []).map((s) => s.id);
 
   return (
@@ -100,14 +77,6 @@ export default async function GmaoHomePage() {
           </Link>
         )}
       </div>
-
-      {(heures.prevues.heuresTech > 0 || heures.prevues.heuresAssistant > 0) && (
-        <div className="mt-4 rounded-2xl bg-teal-50 p-4">
-          <p className="text-sm font-bold text-teal-800">Heures prévues (tous clients) : {fmt(heures.prevues)}</p>
-          <p className="mt-1 text-xs text-brand-green-dark">Effectuées : {fmt(heures.effectuees)}</p>
-          <p className="text-xs text-orange-700">Restant à faire : {fmt(heures.restantes)}</p>
-        </div>
-      )}
 
       {isAdmin && (
         <>

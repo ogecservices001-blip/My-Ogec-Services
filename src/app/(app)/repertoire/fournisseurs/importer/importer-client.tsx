@@ -65,7 +65,7 @@ export function ImporterFournisseursClient() {
         Importer des fournisseurs
       </h1>
       <p className="mb-5 text-sm text-slate-500">
-        Fichier CSV (point-virgule ou virgule), 12 colonnes minimum. Rapprochement par nom.
+        Classeur Excel (.xlsx/.xlsm), colonnes reconnues par en-tête. Rapprochement par nom.
       </p>
 
       {resultat && (
@@ -88,7 +88,7 @@ export function ImporterFournisseursClient() {
           <input
             type="file"
             name="fichier"
-            accept=".csv"
+            accept=".xlsx,.xlsm,.xls"
             required
             className="mx-auto mb-4 block text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200"
           />

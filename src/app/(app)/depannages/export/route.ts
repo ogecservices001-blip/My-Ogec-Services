@@ -23,6 +23,7 @@ const COLONNES = [
   "Intervenant",
   "Date intervention prévue",
   "N° Bon intervention",
+  "Date d'intervention",
   "Commentaires technicien",
   "Code Postal",
   "Commune",
@@ -64,10 +65,11 @@ export async function GET() {
 
   const idsBI = (demandes ?? []).map((d) => d.bon_intervention_id).filter((id): id is string => Boolean(id));
   const { data: bons } = idsBI.length
-    ? await supabase.from("bons_intervention").select("id, numero, compte_rendu").in("id", idsBI)
+    ? await supabase.from("bons_intervention").select("id, numero, date_intervention, compte_rendu").in("id", idsBI)
     : { data: [] };
-  const bonsParId: Record<string, { numero: string; compte_rendu: string }> = {};
-  for (const b of bons ?? []) bonsParId[b.id] = { numero: b.numero, compte_rendu: b.compte_rendu };
+  const bonsParId: Record<string, { numero: string; date_intervention: string; compte_rendu: string }> = {};
+  for (const b of bons ?? [])
+    bonsParId[b.id] = { numero: b.numero, date_intervention: b.date_intervention, compte_rendu: b.compte_rendu };
 
   const sitesParId: Record<
     string,
@@ -111,6 +113,7 @@ export async function GET() {
       intervenantTexte,
       d.date_intervention_prevue ? new Date(`${d.date_intervention_prevue}T00:00:00`) : "",
       bon?.numero ?? "",
+      bon?.date_intervention ?? "",
       bon?.compte_rendu ?? "",
       site?.code_postal ?? "",
       site?.commune ?? "",

@@ -52,7 +52,7 @@ export function CollaborateursListe({
             <a
               href="/repertoire/collaborateurs/export"
               className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
-              title="Exporter en CSV"
+              title="Exporter en Excel"
             >
               <Download className="h-4 w-4" strokeWidth={2.25} />
             </a>

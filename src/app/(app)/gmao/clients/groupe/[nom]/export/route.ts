@@ -15,7 +15,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ nom
   const nomDecode = decodeURIComponent(nom);
 
   const supabase = await createClient();
-  const { data: sites, error: errSites } = await supabase.from("sites").select("id, nom, site").eq("nom", nomDecode);
+  const { data: sites, error: errSites } = await supabase
+    .from("sites")
+    .select("id, nom, site, n_affaire")
+    .eq("nom", nomDecode);
   if (errSites) return NextResponse.json({ erreur: errSites.message }, { status: 500 });
   const siteIds = (sites ?? []).map((s) => s.id);
   if (siteIds.length === 0) return NextResponse.json({ erreur: "Client introuvable." }, { status: 404 });
@@ -27,8 +30,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ nom
     supabase.from("types_equipement").select("*"),
   ]);
 
-  const sitesById: Record<string, { nom: string; site: string }> = {};
-  for (const s of sites ?? []) sitesById[s.id] = { nom: s.nom, site: s.site };
+  const sitesById: Record<string, { nom: string; site: string; n_affaire: string }> = {};
+  for (const s of sites ?? []) sitesById[s.id] = { nom: s.nom, site: s.site, n_affaire: s.n_affaire };
   const typesById: Record<string, TypeEquipement> = {};
   for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
 

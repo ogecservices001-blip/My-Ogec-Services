@@ -1,4 +1,5 @@
 import type { Equipement, TypeEquipement } from "./types";
+import { extraireNumero } from "./equipement-import";
 
 /// Colonnes du format "Sommaire", dans l'ordre — pour que le fichier
 /// exporté puisse être édité puis réimporté tel quel. Port de
@@ -49,11 +50,12 @@ function champ(c: Record<string, unknown>, cle: string): string {
 /// côté Flutter, jamais réimportée).
 export function ligneSommaire(
   eq: Equipement,
-  site: { nom: string; site: string },
+  site: { nom: string; site: string; n_affaire: string },
   typesById: Record<string, TypeEquipement>,
 ): (string | number)[] {
   const c = eq.champs_en_tete;
   const type = typesById[eq.type_equipement_id];
+  const [numClientBrut, numSiteBrut] = site.n_affaire.split("-");
   return [
     eq.nom,
     cellNumerique(c.freqEntretienAnnuelle),
@@ -62,8 +64,8 @@ export function ligneSommaire(
     eq.groupe,
     site.nom,
     site.site,
-    "",
-    "",
+    extraireNumero(numClientBrut ?? "") ?? "",
+    extraireNumero(numSiteBrut ?? "") ?? "",
     eq.numero_equipement,
     champ(c, "typeEquipement1"),
     champ(c, "typeEquipement2"),

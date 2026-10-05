@@ -14,7 +14,7 @@ export async function GET() {
 
   const supabase = await createClient();
   const [{ data: sites, error: errSites }, { data: types }] = await Promise.all([
-    supabase.from("sites").select("id, nom, site"),
+    supabase.from("sites").select("id, nom, site, n_affaire"),
     supabase.from("types_equipement").select("*"),
   ]);
   if (errSites) return NextResponse.json({ erreur: errSites.message }, { status: 500 });
@@ -28,8 +28,8 @@ export async function GET() {
     return NextResponse.json({ erreur: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 
-  const sitesById: Record<string, { nom: string; site: string }> = {};
-  for (const s of sites ?? []) sitesById[s.id] = { nom: s.nom, site: s.site };
+  const sitesById: Record<string, { nom: string; site: string; n_affaire: string }> = {};
+  for (const s of sites ?? []) sitesById[s.id] = { nom: s.nom, site: s.site, n_affaire: s.n_affaire };
   const typesById: Record<string, TypeEquipement> = {};
   for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
 

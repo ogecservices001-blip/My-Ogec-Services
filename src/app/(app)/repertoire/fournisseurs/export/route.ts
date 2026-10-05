@@ -1,6 +1,8 @@
+import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
+import { finaliserFeuille } from "@/lib/excel-export";
 
 const ENTETES = [
   "Nom",
@@ -18,12 +20,8 @@ const ENTETES = [
   "Remarques",
 ];
 
-function nettoyer(v: string): string {
-  return v.replaceAll(";", ",").replaceAll("\n", " ");
-}
-
-/// Exporte tous les fournisseurs en CSV (point-virgule) — même ordre
-/// de colonnes que celui attendu par /repertoire/fournisseurs/importer.
+/// Exporte tous les fournisseurs — réimportable tel quel via
+/// /repertoire/fournisseurs/importer.
 export async function GET() {
   await requireAdmin();
 
@@ -36,33 +34,35 @@ export async function GET() {
     return NextResponse.json({ erreur: error.message }, { status: 500 });
   }
 
-  const lignes = [ENTETES.join(";")];
+  const workbook = new ExcelJS.Workbook();
+  const feuille = workbook.addWorksheet("FOURNISSEURS");
+  feuille.addRow(ENTETES);
+
   for (const f of fournisseurs ?? []) {
-    lignes.push(
-      [
-        f.nom,
-        f.denomination_courte,
-        f.interlocuteurs,
-        f.tel,
-        f.portable,
-        f.courriel,
-        f.site_web,
-        f.commune,
-        f.code_postal,
-        f.adresse,
-        f.complement_adresse,
-        f.produits_cles,
-        f.remarques,
-      ]
-        .map(nettoyer)
-        .join(";"),
-    );
+    feuille.addRow([
+      f.nom,
+      f.denomination_courte,
+      f.interlocuteurs,
+      f.tel,
+      f.portable,
+      f.courriel,
+      f.site_web,
+      f.commune,
+      f.code_postal,
+      f.adresse,
+      f.complement_adresse,
+      f.produits_cles,
+      f.remarques,
+    ]);
   }
 
-  return new NextResponse("﻿" + lignes.join("\n"), {
+  finaliserFeuille(feuille);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new NextResponse(buffer, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="fournisseurs.csv"',
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": 'attachment; filename="fournisseurs.xlsx"',
     },
   });
 }

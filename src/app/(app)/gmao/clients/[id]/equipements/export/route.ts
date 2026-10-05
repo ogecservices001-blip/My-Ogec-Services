@@ -12,7 +12,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const supabase = await createClient();
   const [{ data: site, error: errSite }, { data: equipements, error }, { data: types }] = await Promise.all([
-    supabase.from("sites").select("nom, site").eq("id", id).single(),
+    supabase.from("sites").select("nom, site, n_affaire").eq("id", id).single(),
     supabase.from("equipements").select("*").eq("site_id", id).order("nom"),
     supabase.from("types_equipement").select("*"),
   ]);

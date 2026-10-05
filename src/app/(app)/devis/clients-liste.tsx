@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, ChevronRight, FileSignature, Upload, Download } from "lucide-react";
-import { ListeRegistreDevis, eur, type DevisRegistreLigne } from "./registre-liste";
+import { TableauRegistreDevis, eur, type DevisRegistreLigne } from "./registre-liste";
 
 export type { DevisRegistreLigne };
 
@@ -205,7 +205,7 @@ export function DevisClientsListe({
           {registre.length === 0 ? "Aucun devis pour l'instant" : "Aucun résultat"}
         </p>
       ) : (
-        <ListeRegistreDevis lignes={registreFiltre} isAdmin={isAdmin} />
+        <TableauRegistreDevis lignes={registreFiltre} isAdmin={isAdmin} />
       )}
     </div>
   );

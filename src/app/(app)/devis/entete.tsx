@@ -36,28 +36,3 @@ export function DevisEntete({ isAdmin }: { isAdmin: boolean }) {
     </div>
   );
 }
-
-/// Bouton Chrono Devis / Par client — toujours en premier (tout à
-/// gauche) sur les deux écrans.
-export function DevisVueToggle({ vueActive }: { vueActive: "registre" | "client" }) {
-  return (
-    <>
-      <Link
-        href="/devis"
-        className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-          vueActive === "registre" ? "bg-sky-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-        }`}
-      >
-        Chrono Devis
-      </Link>
-      <Link
-        href="/devis/par-client"
-        className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-          vueActive === "client" ? "bg-violet-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-        }`}
-      >
-        Par client
-      </Link>
-    </>
-  );
-}

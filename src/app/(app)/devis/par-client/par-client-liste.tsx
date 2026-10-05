@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, ChevronRight, FileSignature, Download } from "lucide-react";
-import { DevisEntete, DevisVueToggle } from "../entete";
+import { ArrowLeft, Search, ChevronRight, FileSignature, Download } from "lucide-react";
+import { DevisEntete } from "../entete";
 import { eur } from "../registre-liste";
 
 export type ClientGroupe = {
@@ -33,11 +33,23 @@ export function ParClientListe({
 
   return (
     <div>
+      <Link
+        href="/devis"
+        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+        Retour
+      </Link>
+
       <DevisEntete isAdmin={isAdmin} />
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
-        <DevisVueToggle vueActive="client" />
-        <span className="mx-1 h-6 w-px bg-slate-200" />
+        <Link
+          href="/devis"
+          className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+        >
+          Chrono Devis
+        </Link>
         <Link
           href="/devis/par-client"
           className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${

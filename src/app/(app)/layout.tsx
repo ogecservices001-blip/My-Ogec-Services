@@ -1,7 +1,6 @@
 import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
+import { AppShell } from "@/components/app-shell";
 import { SidebarProvider } from "@/components/sidebar-context";
-import { ContentWidth } from "@/components/content-width";
 import { getCurrentProfile } from "@/lib/profile";
 
 export default async function AppLayout({
@@ -15,12 +14,7 @@ export default async function AppLayout({
     <SidebarProvider>
       <div className="min-h-screen bg-slate-100">
         <Header />
-        <div className="mx-auto flex max-w-6xl">
-          <Sidebar isAdmin={profile?.role === "admin"} />
-          <main className="min-w-0 flex-1 p-4 sm:p-6">
-            <ContentWidth>{children}</ContentWidth>
-          </main>
-        </div>
+        <AppShell isAdmin={profile?.role === "admin"}>{children}</AppShell>
       </div>
     </SidebarProvider>
   );

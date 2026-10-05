@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { DevisEntete } from "./entete";
 import { TableauRegistreDevis, eur, type DevisRegistreLigne } from "./registre-liste";
+import { calculerStatutDevis, type StatutDevis } from "./statut";
 
 export function ChronoDevis({
   registre,
@@ -15,7 +16,7 @@ export function ChronoDevis({
 }) {
   const [recherche, setRecherche] = useState("");
   const [client, setClient] = useState("");
-  const [statut, setStatut] = useState<"" | "attente" | "commande" | "annule">("");
+  const [statut, setStatut] = useState<"" | StatutDevis>("");
 
   const clients = useMemo(
     () => [...new Set(registre.map((d) => d.clientNom).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
@@ -26,9 +27,7 @@ export function ChronoDevis({
     () =>
       registre.filter((d) => {
         if (client && d.clientNom !== client) return false;
-        if (statut === "attente" && (d.annule || d.commande)) return false;
-        if (statut === "commande" && (d.annule || !d.commande)) return false;
-        if (statut === "annule" && !d.annule) return false;
+        if (statut && calculerStatutDevis(d) !== statut) return false;
         return (
           d.clientNom.toLowerCase().includes(recherche.toLowerCase()) ||
           d.numero.toLowerCase().includes(recherche.toLowerCase())
@@ -120,6 +119,7 @@ export function ChronoDevis({
           <option value="">Tous les statuts</option>
           <option value="attente">En attente</option>
           <option value="commande">Commandé</option>
+          <option value="realise">Réalisé</option>
           <option value="annule">Annulée</option>
         </select>
       </div>

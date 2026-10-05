@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { labelNatureDevis } from "@/lib/devis/constants";
+import { calculerStatutDevis, LABEL_STATUT_DEVIS, TEINTE_STATUT_DEVIS } from "./statut";
 
 export type DevisRegistreLigne = {
   id: string;
@@ -11,6 +12,7 @@ export type DevisRegistreLigne = {
   montant: number | null;
   dateDevis: string;
   commande: boolean;
+  realise: boolean;
   annule: boolean;
 };
 
@@ -26,9 +28,8 @@ function numeroCourt(numero: string): string {
   return numero.split("-").slice(0, 3).join("-");
 }
 
-const TEINTE_STATUT = (d: DevisRegistreLigne) =>
-  d.annule ? "bg-red-100 text-red-700" : d.commande ? "bg-green-100 text-brand-green-dark" : "bg-slate-100 text-slate-500";
-const LABEL_STATUT = (d: DevisRegistreLigne) => (d.annule ? "Annulée" : d.commande ? "Commandé" : "En attente");
+const TEINTE_STATUT = (d: DevisRegistreLigne) => TEINTE_STATUT_DEVIS[calculerStatutDevis(d)];
+const LABEL_STATUT = (d: DevisRegistreLigne) => LABEL_STATUT_DEVIS[calculerStatutDevis(d)];
 
 /// Tableau façon classeur Excel pour le Chrono Devis (/devis, onglet
 /// "Chrono Devis") — même esprit que l'Audit Heures GMAO : une ligne

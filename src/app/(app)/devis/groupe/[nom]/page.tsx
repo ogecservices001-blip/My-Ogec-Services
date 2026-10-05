@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { Site } from "@/lib/types";
 import { ListeRegistreDevis, eur, type DevisRegistreLigne } from "../../registre-liste";
+import { STATUTS_BI_REALISE } from "../../statut";
 
 export default async function DevisDuClientPage({
   params,
@@ -30,11 +31,14 @@ export default async function DevisDuClientPage({
   const sites = (data as Site[]) ?? [];
   const siteParId = new Map(sites.map((s) => [s.id, s]));
 
-  const { data: devis } = await supabase
-    .from("devis")
-    .select("*")
-    .in("site_id", sites.map((s) => s.id))
-    .order("created_at", { ascending: false });
+  const siteIds = sites.map((s) => s.id);
+  const [{ data: devis }, { data: bons }] = await Promise.all([
+    supabase.from("devis").select("*").in("site_id", siteIds).order("created_at", { ascending: false }),
+    supabase.from("bons_intervention").select("devis_id, statut").in("site_id", siteIds),
+  ]);
+  const devisRealises = new Set(
+    (bons ?? []).filter((b) => b.devis_id && STATUTS_BI_REALISE.has(b.statut)).map((b) => b.devis_id as string),
+  );
 
   const lignes: DevisRegistreLigne[] = (devis ?? []).map((d) => {
     const site = siteParId.get(d.site_id);
@@ -48,6 +52,7 @@ export default async function DevisDuClientPage({
       montant: d.montant,
       dateDevis: d.date_devis,
       commande: Boolean(d.date_commande_client),
+      realise: devisRealises.has(d.id),
       annule: d.annule,
     };
   });

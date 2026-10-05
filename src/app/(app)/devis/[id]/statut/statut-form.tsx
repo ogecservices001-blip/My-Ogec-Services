@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { changerStatutDevis, type StatutDevisInput } from "../../actions";
+import { calculerStatutDevis, LABEL_STATUT_DEVIS } from "../../statut";
 
 type Devis = Tables<"devis">;
 type Mode = "choix" | "commander";
@@ -13,9 +14,11 @@ type Mode = "choix" | "commander";
 export function StatutDevisForm({
   devis,
   site,
+  realise,
 }: {
   devis: Devis;
   site: { nom: string; site: string } | null;
+  realise: boolean;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("choix");
@@ -24,7 +27,9 @@ export function StatutDevisForm({
   const [pending, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
-  const statutActuel = devis.annule ? "Annulée" : devis.date_commande_client ? "Commandé" : "En attente";
+  const statutActuel = LABEL_STATUT_DEVIS[
+    calculerStatutDevis({ annule: devis.annule, commande: Boolean(devis.date_commande_client), realise })
+  ];
 
   function appliquer(input: StatutDevisInput) {
     setErreur(null);
@@ -60,7 +65,12 @@ export function StatutDevisForm({
 
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}
 
-      {mode === "choix" ? (
+      {realise ? (
+        <p className="rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          Ce devis est réalisé (le technicien a transmis son bon d&apos;intervention) — il ne peut plus être
+          annulé ni remis en attente.
+        </p>
+      ) : mode === "choix" ? (
         <div className="space-y-2">
           <button
             onClick={() => setMode("commander")}

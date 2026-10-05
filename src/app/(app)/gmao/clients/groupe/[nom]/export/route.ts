@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
 import { COLONNES_SOMMAIRE, ligneSommaire } from "@/lib/gmao/equipement-export";
 import { finaliserFeuille } from "@/lib/excel-export";
+import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 
 /// Exporte tous les équipements de tous les sites d'un client — port de
 /// `GmaoClientsScreen._exporterTousLesSites`.
@@ -19,11 +20,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ nom
   const siteIds = (sites ?? []).map((s) => s.id);
   if (siteIds.length === 0) return NextResponse.json({ erreur: "Client introuvable." }, { status: 404 });
 
-  const [{ data: equipements, error }, { data: types }] = await Promise.all([
-    supabase.from("equipements").select("*").in("site_id", siteIds).order("nom"),
+  const [equipements, { data: types }] = await Promise.all([
+    recupererToutesLesLignes<Equipement>((debut, fin) =>
+      supabase.from("equipements").select("*").in("site_id", siteIds).order("nom").range(debut, fin),
+    ),
     supabase.from("types_equipement").select("*"),
   ]);
-  if (error) return NextResponse.json({ erreur: error.message }, { status: 500 });
 
   const sitesById: Record<string, { nom: string; site: string }> = {};
   for (const s of sites ?? []) sitesById[s.id] = { nom: s.nom, site: s.site };
@@ -33,7 +35,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ nom
   const workbook = new ExcelJS.Workbook();
   const feuille = workbook.addWorksheet("Sommaire");
   feuille.addRow(COLONNES_SOMMAIRE);
-  for (const eq of (equipements ?? []) as Equipement[]) {
+  for (const eq of equipements) {
     const site = sitesById[eq.site_id];
     if (site) feuille.addRow(ligneSommaire(eq, site, typesById));
   }

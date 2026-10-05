@@ -6,6 +6,7 @@ import type { Equipement, ReferenceHoraire } from "@/lib/gmao/types";
 import { freqCouranteCalculeeBatch } from "@/lib/gmao/releve-service";
 import { sommeHeuresAnnee } from "@/lib/gmao/calcul-heures-visite";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 import { supprimerEquipementsPourSites } from "./actions";
 
 function fmt(h: { heuresTech: number; heuresAssistant: number }): string {
@@ -17,21 +18,18 @@ export default async function GmaoHomePage() {
   const profile = await getCurrentProfile();
   const isAdmin = profile?.role === "admin";
 
-  const [
-    { count: nbContrat },
-    { count: nbHorsContrat },
-    { data: equipements },
-    { data: references },
-    { data: sites },
-  ] = await Promise.all([
-    supabase.from("sites_view").select("*", { count: "exact", head: true }).eq("hors_contrat", false),
-    supabase.from("sites_view").select("*", { count: "exact", head: true }).eq("hors_contrat", true),
-    supabase.from("equipements").select("*"),
-    supabase.from("references_horaires").select("*"),
-    supabase.from("sites").select("id"),
-  ]);
+  const [{ count: nbContrat }, { count: nbHorsContrat }, equipements, { data: references }, { data: sites }] =
+    await Promise.all([
+      supabase.from("sites_view").select("*", { count: "exact", head: true }).eq("hors_contrat", false),
+      supabase.from("sites_view").select("*", { count: "exact", head: true }).eq("hors_contrat", true),
+      recupererToutesLesLignes<Equipement>((debut, fin) =>
+        supabase.from("equipements").select("*").range(debut, fin),
+      ),
+      supabase.from("references_horaires").select("*"),
+      supabase.from("sites").select("id"),
+    ]);
 
-  const listeEquipements = (equipements ?? []) as Equipement[];
+  const listeEquipements = equipements;
   const freqCouranteParEquipement = await freqCouranteCalculeeBatch(
     supabase,
     listeEquipements.map((e) => e.id),

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
 import { calculerDiff, type LigneImportEquipement, type ResultatDiff } from "@/lib/gmao/equipement-import";
+import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 import type { ActionResult } from "@/lib/action-result";
 
 /// Logique d'import "Sommaire" partagée entre l'import par site
@@ -130,17 +131,21 @@ export async function previsualiserImportEquipements(
     .in("id", siteIds);
   if (errSites || !sites || sites.length === 0) return { ok: false, erreur: "Site(s) introuvable(s)." };
 
-  const [{ data: existants, error: errExistants }, { data: types }] = await Promise.all([
-    supabase.from("equipements").select("*").in("site_id", siteIds),
-    supabase.from("types_equipement").select("*"),
-  ]);
-  if (errExistants) return { ok: false, erreur: errExistants.message };
+  let existants: Equipement[];
+  const { data: types } = await supabase.from("types_equipement").select("*");
+  try {
+    existants = await recupererToutesLesLignes<Equipement>((debut, fin) =>
+      supabase.from("equipements").select("*").in("site_id", siteIds).range(debut, fin),
+    );
+  } catch (e) {
+    return { ok: false, erreur: e instanceof Error ? e.message : String(e) };
+  }
 
   const typesById: Record<string, TypeEquipement> = {};
   for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
 
   const existantsParSite = new Map<string, Equipement[]>();
-  for (const e of (existants ?? []) as Equipement[]) {
+  for (const e of existants) {
     const liste = existantsParSite.get(e.site_id) ?? [];
     liste.push(e);
     existantsParSite.set(e.site_id, liste);

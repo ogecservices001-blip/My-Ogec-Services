@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Equipement, ReferenceHoraire } from "@/lib/gmao/types";
 import { freqCouranteCalculeeBatch } from "@/lib/gmao/releve-service";
 import { sommeHeuresAnnee } from "@/lib/gmao/calcul-heures-visite";
+import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 import { GmaoClientsListe, type ClientGroupe } from "./clients-liste";
 
 export default async function GmaoClientsPage({
@@ -19,8 +20,9 @@ export default async function GmaoClientsPage({
   ]);
 
   const siteIds = (sites ?? []).map((s) => s.id);
-  const { data: equipements } = await supabase.from("equipements").select("*").in("site_id", siteIds);
-  const listeEquipements = (equipements ?? []) as Equipement[];
+  const listeEquipements = await recupererToutesLesLignes<Equipement>((debut, fin) =>
+    supabase.from("equipements").select("*").in("site_id", siteIds).range(debut, fin),
+  );
   const freqCouranteParEquipement = await freqCouranteCalculeeBatch(
     supabase,
     listeEquipements.map((e) => e.id),

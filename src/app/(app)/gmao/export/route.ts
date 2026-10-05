@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
 import { COLONNES_SOMMAIRE, ligneSommaire } from "@/lib/gmao/equipement-export";
 import { finaliserFeuille } from "@/lib/excel-export";
+import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 
 /// Exporte le parc GMAO entier, tous clients confondus — port de
 /// `GmaoHomeScreen._exporterTout`.
@@ -12,13 +13,20 @@ export async function GET() {
   await requireAdmin();
 
   const supabase = await createClient();
-  const [{ data: sites, error: errSites }, { data: equipements, error }, { data: types }] = await Promise.all([
+  const [{ data: sites, error: errSites }, { data: types }] = await Promise.all([
     supabase.from("sites").select("id, nom, site"),
-    supabase.from("equipements").select("*").order("nom"),
     supabase.from("types_equipement").select("*"),
   ]);
   if (errSites) return NextResponse.json({ erreur: errSites.message }, { status: 500 });
-  if (error) return NextResponse.json({ erreur: error.message }, { status: 500 });
+
+  let equipements: Equipement[];
+  try {
+    equipements = await recupererToutesLesLignes<Equipement>((debut, fin) =>
+      supabase.from("equipements").select("*").order("nom").range(debut, fin),
+    );
+  } catch (e) {
+    return NextResponse.json({ erreur: e instanceof Error ? e.message : String(e) }, { status: 500 });
+  }
 
   const sitesById: Record<string, { nom: string; site: string }> = {};
   for (const s of sites ?? []) sitesById[s.id] = { nom: s.nom, site: s.site };
@@ -28,7 +36,7 @@ export async function GET() {
   const workbook = new ExcelJS.Workbook();
   const feuille = workbook.addWorksheet("Sommaire");
   feuille.addRow(COLONNES_SOMMAIRE);
-  for (const eq of (equipements ?? []) as Equipement[]) {
+  for (const eq of equipements) {
     const site = sitesById[eq.site_id];
     if (!site) continue;
     feuille.addRow(ligneSommaire(eq, site, typesById));

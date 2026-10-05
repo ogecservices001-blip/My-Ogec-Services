@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, Building, Download, Upload, ChevronRight, ScanLine } from "lucide-react";
+import { Building2, Building, Download, Upload, ChevronRight, ScanLine, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { Equipement, ReferenceHoraire } from "@/lib/gmao/types";
@@ -84,6 +84,21 @@ export default async function GmaoHomePage() {
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
         </Link>
+        {isAdmin && (
+          <Link
+            href="/gmao/audit-heures"
+            className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-100">
+              <Clock className="h-5 w-5 text-teal-600" strokeWidth={2} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold text-slate-900">Audit Heures</span>
+              <span className="block text-sm text-slate-500">Clients sous contrat</span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+          </Link>
+        )}
       </div>
 
       {(heures.prevues.heuresTech > 0 || heures.prevues.heuresAssistant > 0) && (

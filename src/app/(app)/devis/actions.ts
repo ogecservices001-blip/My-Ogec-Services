@@ -44,6 +44,29 @@ export async function modifierDevis(id: string, input: DevisInput): Promise<Acti
   return { ok: true };
 }
 
+export type StatutDevisInput = {
+  date_commande_client: string;
+  reference_client: string;
+  annule: boolean;
+};
+
+/// Changement de statut ciblé (commandé / annulé / remis en attente),
+/// sans passer par le formulaire complet modifierDevis — le badge de
+/// statut sur Chrono Devis ouvre directement cette action.
+export async function changerStatutDevis(id: string, input: StatutDevisInput): Promise<ActionResult> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("devis")
+    .update({ ...input, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { ok: false, erreur: error.message };
+
+  revalidatePath("/devis");
+  revalidatePath("/prestations");
+  return { ok: true };
+}
+
 export async function supprimerDevis(id: string): Promise<ActionResult> {
   await requireAdmin();
   const supabase = await createClient();

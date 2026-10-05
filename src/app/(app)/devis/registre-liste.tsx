@@ -17,6 +17,14 @@ export function eur(v: number): string {
   return `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 }
 
+/// "D-26-279-BG-405-01-30" → "D-26-279" — seules les 3 premières
+/// parties (type-année-chrono) comptent pour reconnaître un devis au
+/// coup d'œil, le reste (rédacteur, affaire, pôle) alourdit la colonne
+/// sans apporter d'info utile dans ce tableau.
+function numeroCourt(numero: string): string {
+  return numero.split("-").slice(0, 3).join("-");
+}
+
 const TEINTE_STATUT = (d: DevisRegistreLigne) =>
   d.annule ? "bg-red-100 text-red-700" : d.commande ? "bg-green-100 text-brand-green-dark" : "bg-slate-100 text-slate-500";
 const LABEL_STATUT = (d: DevisRegistreLigne) => (d.annule ? "Annulée" : d.commande ? "Commandé" : "En attente");
@@ -32,16 +40,16 @@ export function TableauRegistreDevis({ lignes, isAdmin }: { lignes: DevisRegistr
       <table className="w-full min-w-[700px] table-fixed border-collapse text-sm">
         <thead>
           <tr>
-            <th className="sticky left-0 w-[9%] border-b border-slate-200 bg-white px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="sticky left-0 w-[8%] border-b border-slate-200 bg-white px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               N°
             </th>
-            <th className="w-[22%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="w-[27%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               Client — Site
             </th>
-            <th className="w-[24%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="w-[29%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               Libellé
             </th>
-            <th className="w-[15%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="w-[6%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               Nature
             </th>
             <th className="w-[9%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -61,15 +69,13 @@ export function TableauRegistreDevis({ lignes, isAdmin }: { lignes: DevisRegistr
           {lignes.map((d, i) => (
             <tr key={d.id} className={i % 2 === 1 ? "bg-slate-50/50" : ""}>
               <td className="sticky left-0 truncate border-b border-slate-100 bg-inherit px-2 py-2 font-semibold text-slate-900">
-                {d.numero || "—"}
+                {d.numero ? numeroCourt(d.numero) : "—"}
               </td>
               <td className="truncate border-b border-slate-100 px-2 py-2 text-slate-700">
                 {[d.clientNom, d.clientSite].filter(Boolean).join(" — ")}
               </td>
               <td className="truncate border-b border-slate-100 px-2 py-2 text-slate-500">{d.libelle}</td>
-              <td className="truncate border-b border-slate-100 px-2 py-2 text-slate-500">
-                {d.nature ? labelNatureDevis(d.nature) : ""}
-              </td>
+              <td className="truncate border-b border-slate-100 px-2 py-2 text-slate-500">{d.nature}</td>
               <td className="truncate border-b border-slate-100 px-2 py-2 text-slate-500">{d.dateDevis}</td>
               {isAdmin && (
                 <td className="truncate border-b border-slate-100 px-2 py-2 text-right text-slate-700">

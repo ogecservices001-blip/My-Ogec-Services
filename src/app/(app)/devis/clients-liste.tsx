@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, ChevronRight, FileSignature, Upload, Download } from "lucide-react";
-import { labelNatureDevis } from "@/lib/devis/constants";
+import { ListeRegistreDevis, eur, type DevisRegistreLigne } from "./registre-liste";
+
+export type { DevisRegistreLigne };
 
 export type ClientGroupe = {
   nom: string;
@@ -13,23 +15,6 @@ export type ClientGroupe = {
   montantTotal: number;
   montantCommande: number;
 };
-
-export type DevisRegistreLigne = {
-  id: string;
-  numero: string;
-  clientNom: string;
-  clientSite: string;
-  libelle: string;
-  nature: string;
-  montant: number | null;
-  dateDevis: string;
-  commande: boolean;
-  annule: boolean;
-};
-
-function eur(v: number): string {
-  return `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-}
 
 export function DevisClientsListe({
   groupes,
@@ -98,7 +83,7 @@ export function DevisClientsListe({
         )}
       </div>
 
-      <div className="mb-5 flex gap-2">
+      <div className="mb-5 flex flex-wrap items-center gap-2">
         <Link
           href="/devis"
           className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
@@ -115,13 +100,11 @@ export function DevisClientsListe({
         >
           Clients hors contrat
         </Link>
-      </div>
-
-      <div className="mb-5 flex gap-2">
+        <span className="mx-1 h-6 w-px bg-slate-200" />
         <button
           onClick={() => setVue("client")}
           className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-            vue === "client" ? "bg-slate-800 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+            vue === "client" ? "bg-violet-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
           }`}
         >
           Par client
@@ -129,10 +112,10 @@ export function DevisClientsListe({
         <button
           onClick={() => setVue("registre")}
           className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-            vue === "registre" ? "bg-slate-800 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+            vue === "registre" ? "bg-sky-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
           }`}
         >
-          Registre
+          Chrono Devis
         </button>
       </div>
 
@@ -217,39 +200,7 @@ export function DevisClientsListe({
           {registre.length === 0 ? "Aucun devis pour l'instant" : "Aucun résultat"}
         </p>
       ) : (
-        <ul className="space-y-2.5">
-          {registreFiltre.map((d) => (
-            <li key={d.id} className="rounded-2xl bg-white p-4 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-bold text-slate-900">{d.numero || "(sans référence)"}</p>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                    d.annule
-                      ? "bg-red-100 text-red-700"
-                      : d.commande
-                        ? "bg-green-100 text-brand-green-dark"
-                        : "bg-slate-100 text-slate-500"
-                  }`}
-                >
-                  {d.annule ? "Annulée" : d.commande ? "Commandé" : "En attente"}
-                </span>
-                {d.nature && (
-                  <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">
-                    {labelNatureDevis(d.nature)}
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 truncate text-sm font-semibold text-slate-700">
-                {[d.clientNom, d.clientSite].filter(Boolean).join(" — ")}
-              </p>
-              {d.libelle && <p className="truncate text-sm text-slate-500">{d.libelle}</p>}
-              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400">
-                {d.dateDevis && <span>Devis du {d.dateDevis}</span>}
-                {d.montant !== null && <span>{eur(d.montant)}</span>}
-              </div>
-            </li>
-          ))}
-        </ul>
+        <ListeRegistreDevis lignes={registreFiltre} />
       )}
     </div>
   );

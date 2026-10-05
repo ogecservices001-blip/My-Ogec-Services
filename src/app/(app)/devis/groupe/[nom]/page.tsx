@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ArrowLeft, ChevronRight, MapPin } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { Site } from "@/lib/types";
+import { ListeRegistreDevis, eur, type DevisRegistreLigne } from "../../registre-liste";
 
-export default async function DevisSitesDuClientPage({
+export default async function DevisDuClientPage({
   params,
   searchParams,
 }: {
@@ -24,18 +25,34 @@ export default async function DevisSitesDuClientPage({
     .eq("hors_contrat", horsContrat)
     .order("site");
   const sites = (data as Site[]) ?? [];
+  const siteParId = new Map(sites.map((s) => [s.id, s]));
 
   const { data: devis } = await supabase
     .from("devis")
-    .select("site_id, date_commande_client")
-    .in("site_id", sites.map((s) => s.id));
-  const nbParSite = new Map<string, number>();
-  const nbCommandesParSite = new Map<string, number>();
-  for (const d of devis ?? []) {
-    nbParSite.set(d.site_id, (nbParSite.get(d.site_id) ?? 0) + 1);
-    if (d.date_commande_client) nbCommandesParSite.set(d.site_id, (nbCommandesParSite.get(d.site_id) ?? 0) + 1);
-  }
-  const sitesAvecDevis = sites.filter((s) => (nbParSite.get(s.id) ?? 0) > 0);
+    .select("*")
+    .in("site_id", sites.map((s) => s.id))
+    .order("created_at", { ascending: false });
+
+  const lignes: DevisRegistreLigne[] = (devis ?? []).map((d) => {
+    const site = siteParId.get(d.site_id);
+    return {
+      id: d.id,
+      numero: d.numero,
+      clientNom: nomDecode,
+      clientSite: site?.site ?? "",
+      libelle: d.libelle,
+      nature: d.nature,
+      montant: d.montant,
+      dateDevis: d.date_devis,
+      commande: Boolean(d.date_commande_client),
+      annule: d.annule,
+    };
+  });
+
+  const actifs = lignes.filter((l) => !l.annule);
+  const commandes = actifs.filter((l) => l.commande);
+  const montantTotal = actifs.reduce((s, l) => s + (l.montant ?? 0), 0);
+  const montantCommande = commandes.reduce((s, l) => s + (l.montant ?? 0), 0);
 
   return (
     <div>
@@ -47,29 +64,42 @@ export default async function DevisSitesDuClientPage({
         Retour
       </Link>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">{nomDecode}</h1>
-      <p className="mb-5 text-sm text-slate-500">{sitesAvecDevis.length} site(s)</p>
+      <p className="mb-5 text-sm text-slate-500">
+        {actifs.length} devis · {commandes.length} commandé(s) · {eur(montantTotal)}
+      </p>
 
-      <ul className="space-y-3">
-        {sitesAvecDevis.map((s) => (
-          <li key={s.id}>
-            <Link
-              href={`/devis/site/${s.id}`}
-              className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
-            >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100">
-                <MapPin className="h-5 w-5 text-amber-600" strokeWidth={2} />
-              </span>
-              <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">
-                {s.site || "Site sans nom"}
-              </span>
-              <span className="shrink-0 text-sm text-slate-400">
-                {nbParSite.get(s.id) ?? 0} devis · {nbCommandesParSite.get(s.id) ?? 0} commandé(s)
-              </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {lignes.length === 0 ? (
+        <p className="py-10 text-center text-sm text-slate-500">Aucun devis pour ce client pour l&apos;instant</p>
+      ) : (
+        <>
+          <div className="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            <div className="rounded-xl bg-white p-3 shadow-sm">
+              <p className="text-lg font-bold text-slate-900">{actifs.length}</p>
+              <p className="text-xs text-slate-500">Devis</p>
+            </div>
+            <div className="rounded-xl bg-white p-3 shadow-sm">
+              <p className="text-lg font-bold text-brand-green-dark">
+                {commandes.length}
+                <span className="text-sm font-semibold text-slate-400">
+                  {" "}
+                  /{actifs.length > 0 ? Math.round((commandes.length / actifs.length) * 100) : 0}%
+                </span>
+              </p>
+              <p className="text-xs text-slate-500">Commandés</p>
+            </div>
+            <div className="rounded-xl bg-white p-3 shadow-sm">
+              <p className="text-lg font-bold text-slate-900">{eur(montantTotal)}</p>
+              <p className="text-xs text-slate-500">Montant total</p>
+            </div>
+            <div className="rounded-xl bg-white p-3 shadow-sm">
+              <p className="text-lg font-bold text-amber-600">{eur(montantTotal - montantCommande)}</p>
+              <p className="text-xs text-slate-500">En attente</p>
+            </div>
+          </div>
+
+          <ListeRegistreDevis lignes={lignes} masquerClient />
+        </>
+      )}
     </div>
   );
 }

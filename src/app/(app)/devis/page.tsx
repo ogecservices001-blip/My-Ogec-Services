@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
-import type { Site, Tables } from "@/lib/types";
-import { DevisClientsListe, type ClientGroupe, type DevisRegistreLigne } from "./clients-liste";
+import type { Site } from "@/lib/types";
+import { ChronoDevis } from "./chrono-devis";
+import type { DevisRegistreLigne } from "./registre-liste";
 
-export default async function DevisClientsPage({
+export default async function DevisChronoPage({
   searchParams,
 }: {
   searchParams: Promise<{ horsContrat?: string }>;
@@ -19,39 +20,7 @@ export default async function DevisClientsPage({
     supabase.from("devis").select("*"),
   ]);
 
-  const sitesFiltres = (sites ?? []) as Site[];
-  const siteParId = new Map(sitesFiltres.map((s) => [s.id, s]));
-
-  const devisParSite = new Map<string, Tables<"devis">[]>();
-  for (const d of devis ?? []) {
-    if (!siteParId.has(d.site_id)) continue; // hors du filtre sous/hors contrat en cours
-    const liste = devisParSite.get(d.site_id) ?? [];
-    liste.push(d);
-    devisParSite.set(d.site_id, liste);
-  }
-
-  const sitesParNom = new Map<string, Site[]>();
-  for (const s of sitesFiltres) {
-    if (!devisParSite.has(s.id)) continue;
-    const liste = sitesParNom.get(s.nom) ?? [];
-    liste.push(s);
-    sitesParNom.set(s.nom, liste);
-  }
-
-  const groupes: ClientGroupe[] = [...sitesParNom.entries()]
-    .map(([nom, sitesClient]) => {
-      const devisClient = sitesClient.flatMap((s) => devisParSite.get(s.id) ?? []);
-      const commandes = devisClient.filter((d) => d.date_commande_client);
-      return {
-        nom,
-        sites: sitesClient.map((s) => ({ id: s.id, site: s.site, nbDevis: devisParSite.get(s.id)?.length ?? 0 })),
-        nbDevis: devisClient.length,
-        nbCommandes: commandes.length,
-        montantTotal: devisClient.reduce((s, d) => s + (d.montant ?? 0), 0),
-        montantCommande: commandes.reduce((s, d) => s + (d.montant ?? 0), 0),
-      };
-    })
-    .sort((a, b) => a.nom.localeCompare(b.nom));
+  const siteParId = new Map(((sites ?? []) as Site[]).map((s) => [s.id, s]));
 
   // Registre chrono : tous les devis du filtre en cours, à plat, du
   // plus récent au plus ancien (created_at, fiable contrairement à
@@ -75,12 +44,5 @@ export default async function DevisClientsPage({
       };
     });
 
-  return (
-    <DevisClientsListe
-      groupes={groupes}
-      registre={registre}
-      horsContrat={horsContrat}
-      isAdmin={profile?.role === "admin"}
-    />
-  );
+  return <ChronoDevis registre={registre} horsContrat={horsContrat} isAdmin={profile?.role === "admin"} />;
 }

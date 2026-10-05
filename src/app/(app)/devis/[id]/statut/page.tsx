@@ -17,7 +17,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
     supabase.from("sites").select("nom, site").eq("id", devis.site_id).single(),
     supabase.from("bons_intervention").select("statut").eq("devis_id", id),
   ]);
-  const realise = (bons ?? []).some((b) => STATUTS_BI_REALISE.has(b.statut));
+  const realise = (bons ?? []).some((b) => STATUTS_BI_REALISE.has(b.statut)) || Boolean(devis.bi_reference_historique);
 
   return (
     <StatutDevisForm

@@ -41,7 +41,10 @@ export default async function DevisChronoPage() {
         montant: d.montant,
         dateDevis: d.date_devis,
         commande: Boolean(d.date_commande_client),
-        realise: devisRealises.has(d.id),
+        // Un BI réellement créé dans l'appli, ou une référence BI
+        // historique (classeur pré-appli, sans vrai bon en base) —
+        // même règle que Prestation sur commande.
+        realise: devisRealises.has(d.id) || Boolean(d.bi_reference_historique),
         annule: d.annule,
       };
     });

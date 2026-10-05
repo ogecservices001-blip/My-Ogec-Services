@@ -52,7 +52,7 @@ export default async function DevisDuClientPage({
       montant: d.montant,
       dateDevis: d.date_devis,
       commande: Boolean(d.date_commande_client),
-      realise: devisRealises.has(d.id),
+      realise: devisRealises.has(d.id) || Boolean(d.bi_reference_historique),
       annule: d.annule,
     };
   });

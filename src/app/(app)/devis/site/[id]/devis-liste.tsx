@@ -57,7 +57,7 @@ export function DevisDuSite({ site, devis, isAdmin }: { site: Site; devis: Devis
                 {d.libelle && <p className="mt-1 text-sm text-slate-700">{d.libelle}</p>}
                 <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
                   {d.date_devis && <span>Devis du {d.date_devis}</span>}
-                  {d.montant !== null && <span>{d.montant.toFixed(2)} €</span>}
+                  {isAdmin && d.montant !== null && <span>{d.montant.toFixed(2)} €</span>}
                   {d.heures_prevues !== null && <span>{d.heures_prevues} h prévues</span>}
                   {d.date_commande_client && <span>Commandé le {d.date_commande_client}</span>}
                 </div>

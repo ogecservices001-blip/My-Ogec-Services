@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/profile";
 import type { Site } from "@/lib/types";
 import { ListeRegistreDevis, eur, type DevisRegistreLigne } from "../../registre-liste";
 
@@ -17,6 +18,8 @@ export default async function DevisDuClientPage({
   const horsContrat = horsContratParam === "1";
 
   const supabase = await createClient();
+  const profile = await getCurrentProfile();
+  const isAdmin = profile?.role === "admin";
 
   const { data } = await supabase
     .from("sites_view")
@@ -65,7 +68,8 @@ export default async function DevisDuClientPage({
       </Link>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">{nomDecode}</h1>
       <p className="mb-5 text-sm text-slate-500">
-        {actifs.length} devis · {commandes.length} commandé(s) · {eur(montantTotal)}
+        {actifs.length} devis · {commandes.length} commandé(s)
+        {isAdmin && ` · ${eur(montantTotal)}`}
       </p>
 
       {lignes.length === 0 ? (
@@ -87,17 +91,21 @@ export default async function DevisDuClientPage({
               </p>
               <p className="text-xs text-slate-500">Commandés</p>
             </div>
-            <div className="rounded-xl bg-white p-3 shadow-sm">
-              <p className="text-lg font-bold text-slate-900">{eur(montantTotal)}</p>
-              <p className="text-xs text-slate-500">Montant total</p>
-            </div>
-            <div className="rounded-xl bg-white p-3 shadow-sm">
-              <p className="text-lg font-bold text-amber-600">{eur(montantTotal - montantCommande)}</p>
-              <p className="text-xs text-slate-500">En attente</p>
-            </div>
+            {isAdmin && (
+              <>
+                <div className="rounded-xl bg-white p-3 shadow-sm">
+                  <p className="text-lg font-bold text-slate-900">{eur(montantTotal)}</p>
+                  <p className="text-xs text-slate-500">Montant total</p>
+                </div>
+                <div className="rounded-xl bg-white p-3 shadow-sm">
+                  <p className="text-lg font-bold text-amber-600">{eur(montantTotal - montantCommande)}</p>
+                  <p className="text-xs text-slate-500">En attente</p>
+                </div>
+              </>
+            )}
           </div>
 
-          <ListeRegistreDevis lignes={lignes} masquerClient />
+          <ListeRegistreDevis lignes={lignes} masquerClient isAdmin={isAdmin} />
         </>
       )}
     </div>

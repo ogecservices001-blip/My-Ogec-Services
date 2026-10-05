@@ -25,9 +25,11 @@ export function eur(v: number): string {
 export function ListeRegistreDevis({
   lignes,
   masquerClient = false,
+  isAdmin,
 }: {
   lignes: DevisRegistreLigne[];
   masquerClient?: boolean;
+  isAdmin: boolean;
 }) {
   return (
     <ul className="space-y-2.5">
@@ -58,7 +60,7 @@ export function ListeRegistreDevis({
           {d.libelle && <p className="truncate text-sm text-slate-500">{d.libelle}</p>}
           <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400">
             {d.dateDevis && <span>Devis du {d.dateDevis}</span>}
-            {d.montant !== null && <span>{eur(d.montant)}</span>}
+            {isAdmin && d.montant !== null && <span>{eur(d.montant)}</span>}
           </div>
         </li>
       ))}

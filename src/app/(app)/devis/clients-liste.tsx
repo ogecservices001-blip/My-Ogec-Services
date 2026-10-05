@@ -135,16 +135,20 @@ export function DevisClientsListe({
             </p>
             <p className="text-xs text-slate-500">Commandés</p>
           </div>
-          <div className="rounded-xl bg-white p-3 shadow-sm">
-            <p className="text-lg font-bold text-slate-900">{eur(statsGlobales.montantTotal)}</p>
-            <p className="text-xs text-slate-500">Montant total</p>
-          </div>
-          <div className="rounded-xl bg-white p-3 shadow-sm">
-            <p className="text-lg font-bold text-amber-600">
-              {eur(statsGlobales.montantTotal - statsGlobales.montantCommande)}
-            </p>
-            <p className="text-xs text-slate-500">En attente</p>
-          </div>
+          {isAdmin && (
+            <>
+              <div className="rounded-xl bg-white p-3 shadow-sm">
+                <p className="text-lg font-bold text-slate-900">{eur(statsGlobales.montantTotal)}</p>
+                <p className="text-xs text-slate-500">Montant total</p>
+              </div>
+              <div className="rounded-xl bg-white p-3 shadow-sm">
+                <p className="text-lg font-bold text-amber-600">
+                  {eur(statsGlobales.montantTotal - statsGlobales.montantCommande)}
+                </p>
+                <p className="text-xs text-slate-500">En attente</p>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -177,7 +181,8 @@ export function DevisClientsListe({
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-slate-900">{g.nom}</p>
                     <p className="text-sm text-slate-400">
-                      {g.nbDevis} devis · {g.nbCommandes} commandé(s) · {eur(g.montantTotal)}
+                      {g.nbDevis} devis · {g.nbCommandes} commandé(s)
+                      {isAdmin && ` · ${eur(g.montantTotal)}`}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
@@ -200,7 +205,7 @@ export function DevisClientsListe({
           {registre.length === 0 ? "Aucun devis pour l'instant" : "Aucun résultat"}
         </p>
       ) : (
-        <ListeRegistreDevis lignes={registreFiltre} />
+        <ListeRegistreDevis lignes={registreFiltre} isAdmin={isAdmin} />
       )}
     </div>
   );

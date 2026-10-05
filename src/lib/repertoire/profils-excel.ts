@@ -20,6 +20,8 @@ export const ENTETES_PROFILS: Record<number, string> = {
   4: "Email personnel",
   5: "Commune",
   6: "Véhicule",
+  7: "Mdp My Ogec",
+  8: "Email récupération",
 };
 
-export const NB_COLONNES_PROFILS = 7;
+export const NB_COLONNES_PROFILS = 9;

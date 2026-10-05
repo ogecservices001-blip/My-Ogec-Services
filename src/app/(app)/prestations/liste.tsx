@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, ClipboardList, Wrench } from "lucide-react";
+import { Search, ClipboardList, Wrench, Download } from "lucide-react";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import { avecAffaire } from "@/lib/bi/constants";
 
@@ -39,7 +39,18 @@ export function PrestationsListe({ lignes, isAdmin }: { lignes: PrestationLigne[
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Prestation sur commande</h1>
+      <div className="mb-1 flex items-start justify-between gap-2">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Prestation sur commande</h1>
+        {isAdmin && (
+          <a
+            href="/prestations/export"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+            title="Exporter en Excel"
+          >
+            <Download className="h-4 w-4" strokeWidth={2.25} />
+          </a>
+        )}
+      </div>
       <p className="mb-5 text-sm text-slate-500">Devis commandés — Suivi de la réalisation</p>
 
       {isAdmin ? (

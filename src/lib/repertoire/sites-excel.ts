@@ -74,7 +74,10 @@ export const COLONNES_SITES: { index: number; champ: keyof SiteInput }[] = [
 ];
 
 export const ENTETES_SITES: Record<number, string> = {
+  0: "ITEM",
   1: "Nom",
+  3: "N° Client",
+  4: "N° Site",
   2: "Site",
   5: "N° Affaire",
   6: "Nb Heures Vendues",

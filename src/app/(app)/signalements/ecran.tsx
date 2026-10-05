@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, Bug, Lightbulb, MessageSquare, Send, ChevronRight } from "lucide-react";
+import { ArrowLeft, Bug, Lightbulb, MessageSquare, Send, ChevronRight, Download } from "lucide-react";
 import { envoyerSignalement } from "./actions";
 import { TypeBadge } from "@/components/signalements/type-badge";
 import { construireModules } from "@/lib/menus";
@@ -275,27 +275,36 @@ function ListeAdmin({ signalements }: { signalements: Signalement[] }) {
 
   return (
     <div>
-      <div className="mb-4 flex gap-2">
-        <button
-          onClick={() => setFiltre("a_traiter")}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-            filtre === "a_traiter"
-              ? "bg-slate-800 text-white shadow-sm"
-              : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-          }`}
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setFiltre("a_traiter")}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+              filtre === "a_traiter"
+                ? "bg-slate-800 text-white shadow-sm"
+                : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+            }`}
+          >
+            À traiter ({aTraiter.length})
+          </button>
+          <button
+            onClick={() => setFiltre("traites")}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+              filtre === "traites"
+                ? "bg-brand-green text-white shadow-sm"
+                : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+            }`}
+          >
+            Traités ({traites.length})
+          </button>
+        </div>
+        <Link
+          href="/signalements/export"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+          title="Exporter en Excel"
         >
-          À traiter ({aTraiter.length})
-        </button>
-        <button
-          onClick={() => setFiltre("traites")}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-            filtre === "traites"
-              ? "bg-brand-green text-white shadow-sm"
-              : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-          }`}
-        >
-          Traités ({traites.length})
-        </button>
+          <Download className="h-4 w-4" strokeWidth={2.25} />
+        </Link>
       </div>
 
       {affiches.length === 0 ? (

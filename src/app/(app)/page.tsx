@@ -36,7 +36,7 @@ const modules: {
   {
     href: "/depannages",
     titre: "Suivi Dépannages",
-    sousTitre: "Demandes reçues via QR équipement",
+    sousTitre: "",
     icone: Construction,
     fond: "bg-red-100",
     couleur: "text-red-600",

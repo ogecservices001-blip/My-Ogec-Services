@@ -85,13 +85,13 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
         <p className="py-10 text-center text-sm text-slate-500">Aucun résultat</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
-          <table className="w-full min-w-[920px] border-collapse text-sm">
+          <table className="w-full min-w-[680px] border-collapse text-sm">
             <thead>
               <tr>
-                <th rowSpan={2} className="sticky left-0 border-b border-slate-200 bg-white px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                <th rowSpan={2} className="sticky left-0 border-b border-slate-200 bg-white px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
                   N°
                 </th>
-                <th rowSpan={2} className="border-b border-slate-200 bg-white px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                <th rowSpan={2} className="border-b border-slate-200 bg-white px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
                   Client — Site
                 </th>
                 <Entete titre="À programmer" teinte="bg-amber-50 text-amber-700" />
@@ -99,12 +99,12 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
                 <Entete titre="Total dû au contrat" teinte="bg-slate-50 text-slate-600" />
               </tr>
               <tr>
-                <th className="border-b border-slate-200 bg-amber-50/60 px-3 py-1.5 text-right text-[11px] font-semibold text-amber-700">Tech</th>
-                <th className="border-b border-slate-200 bg-amber-50/60 px-3 py-1.5 text-right text-[11px] font-semibold text-amber-700">Assist.</th>
-                <th className="border-b border-slate-200 bg-green-50/60 px-3 py-1.5 text-right text-[11px] font-semibold text-brand-green-dark">Tech</th>
-                <th className="border-b border-slate-200 bg-green-50/60 px-3 py-1.5 text-right text-[11px] font-semibold text-brand-green-dark">Assist.</th>
-                <th className="border-b border-slate-200 bg-slate-50 px-3 py-1.5 text-right text-[11px] font-semibold text-slate-600">Tech</th>
-                <th className="border-b border-slate-200 bg-slate-50 px-3 py-1.5 text-right text-[11px] font-semibold text-slate-600">Assist.</th>
+                <th className="border-b border-slate-200 bg-amber-50/60 px-2 py-1.5 text-right text-[11px] font-semibold text-amber-700">Tech</th>
+                <th className="border-b border-slate-200 bg-amber-50/60 px-2 py-1.5 text-right text-[11px] font-semibold text-amber-700">Assist.</th>
+                <th className="border-b border-slate-200 bg-green-50/60 px-2 py-1.5 text-right text-[11px] font-semibold text-brand-green-dark">Tech</th>
+                <th className="border-b border-slate-200 bg-green-50/60 px-2 py-1.5 text-right text-[11px] font-semibold text-brand-green-dark">Assist.</th>
+                <th className="border-b border-slate-200 bg-slate-50 px-2 py-1.5 text-right text-[11px] font-semibold text-slate-600">Tech</th>
+                <th className="border-b border-slate-200 bg-slate-50 px-2 py-1.5 text-right text-[11px] font-semibold text-slate-600">Assist.</th>
               </tr>
             </thead>
             <tbody>
@@ -116,12 +116,12 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
                   <td className="border-b border-slate-100 px-3 py-2 text-slate-700">
                     {[l.clientNom, l.clientSite].filter(Boolean).join(" — ")}
                   </td>
-                  <td className="border-b border-slate-100 px-3 py-2 text-right text-amber-700">{fmtH(l.progTech)}</td>
-                  <td className="border-b border-slate-100 px-3 py-2 text-right text-amber-700">{fmtH(l.progAssistant)}</td>
-                  <td className="border-b border-slate-100 px-3 py-2 text-right text-brand-green-dark">{fmtH(l.realTech)}</td>
-                  <td className="border-b border-slate-100 px-3 py-2 text-right text-brand-green-dark">{fmtH(l.realAssistant)}</td>
-                  <td className="border-b border-slate-100 px-3 py-2 text-right text-slate-600">{fmtH(l.contratTech)}</td>
-                  <td className="border-b border-slate-100 px-3 py-2 text-right text-slate-600">{fmtH(l.contratAssistant)}</td>
+                  <td className="border-b border-slate-100 px-2 py-2 text-right text-amber-700">{fmtH(l.progTech)}</td>
+                  <td className="border-b border-slate-100 px-2 py-2 text-right text-amber-700">{fmtH(l.progAssistant)}</td>
+                  <td className="border-b border-slate-100 px-2 py-2 text-right text-brand-green-dark">{fmtH(l.realTech)}</td>
+                  <td className="border-b border-slate-100 px-2 py-2 text-right text-brand-green-dark">{fmtH(l.realAssistant)}</td>
+                  <td className="border-b border-slate-100 px-2 py-2 text-right text-slate-600">{fmtH(l.contratTech)}</td>
+                  <td className="border-b border-slate-100 px-2 py-2 text-right text-slate-600">{fmtH(l.contratAssistant)}</td>
                 </tr>
               ))}
             </tbody>
@@ -130,12 +130,12 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
                 <td className="sticky left-0 bg-slate-100 px-3 py-2" colSpan={2}>
                   Total
                 </td>
-                <td className="px-3 py-2 text-right text-amber-700">{fmtH(totaux.progTech)}</td>
-                <td className="px-3 py-2 text-right text-amber-700">{fmtH(totaux.progAssistant)}</td>
-                <td className="px-3 py-2 text-right text-brand-green-dark">{fmtH(totaux.realTech)}</td>
-                <td className="px-3 py-2 text-right text-brand-green-dark">{fmtH(totaux.realAssistant)}</td>
-                <td className="px-3 py-2 text-right text-slate-600">{fmtH(totaux.contratTech)}</td>
-                <td className="px-3 py-2 text-right text-slate-600">{fmtH(totaux.contratAssistant)}</td>
+                <td className="px-2 py-2 text-right text-amber-700">{fmtH(totaux.progTech)}</td>
+                <td className="px-2 py-2 text-right text-amber-700">{fmtH(totaux.progAssistant)}</td>
+                <td className="px-2 py-2 text-right text-brand-green-dark">{fmtH(totaux.realTech)}</td>
+                <td className="px-2 py-2 text-right text-brand-green-dark">{fmtH(totaux.realAssistant)}</td>
+                <td className="px-2 py-2 text-right text-slate-600">{fmtH(totaux.contratTech)}</td>
+                <td className="px-2 py-2 text-right text-slate-600">{fmtH(totaux.contratAssistant)}</td>
               </tr>
             </tfoot>
           </table>

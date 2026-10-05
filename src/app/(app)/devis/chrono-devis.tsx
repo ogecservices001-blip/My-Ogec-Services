@@ -2,16 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { DevisEntete } from "./entete";
+import { DevisEntete, DevisVueToggle } from "./entete";
 import { TableauRegistreDevis, eur, type DevisRegistreLigne } from "./registre-liste";
 
 export function ChronoDevis({
   registre,
-  horsContrat,
   isAdmin,
 }: {
   registre: DevisRegistreLigne[];
-  horsContrat: boolean;
   isAdmin: boolean;
 }) {
   const [recherche, setRecherche] = useState("");
@@ -39,7 +37,11 @@ export function ChronoDevis({
 
   return (
     <div>
-      <DevisEntete horsContrat={horsContrat} isAdmin={isAdmin} vueActive="registre" />
+      <DevisEntete isAdmin={isAdmin} />
+
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <DevisVueToggle vueActive="registre" />
+      </div>
 
       <div className="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <div className="rounded-xl bg-white p-3 shadow-sm">

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, ChevronRight, FileSignature, Download } from "lucide-react";
-import { DevisEntete } from "../entete";
+import { DevisEntete, DevisVueToggle } from "../entete";
 import { eur } from "../registre-liste";
 
 export type ClientGroupe = {
@@ -33,7 +33,28 @@ export function ParClientListe({
 
   return (
     <div>
-      <DevisEntete horsContrat={horsContrat} isAdmin={isAdmin} vueActive="client" />
+      <DevisEntete isAdmin={isAdmin} />
+
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <DevisVueToggle vueActive="client" />
+        <span className="mx-1 h-6 w-px bg-slate-200" />
+        <Link
+          href="/devis/par-client"
+          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+            !horsContrat ? "bg-brand-green text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+          }`}
+        >
+          Clients sous contrat
+        </Link>
+        <Link
+          href="/devis/par-client?horsContrat=1"
+          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+            horsContrat ? "bg-orange-500 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+          }`}
+        >
+          Clients hors contrat
+        </Link>
+      </div>
 
       <div className="relative mb-4">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

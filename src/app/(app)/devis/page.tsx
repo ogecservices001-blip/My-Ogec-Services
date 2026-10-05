@@ -4,29 +4,25 @@ import type { Site } from "@/lib/types";
 import { ChronoDevis } from "./chrono-devis";
 import type { DevisRegistreLigne } from "./registre-liste";
 
-export default async function DevisChronoPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ horsContrat?: string }>;
-}) {
-  const { horsContrat: horsContratParam } = await searchParams;
-  const horsContrat = horsContratParam === "1";
-
+/// Tous les devis, tous clients confondus (sous ET hors contrat) —
+/// contrairement à /devis/par-client, Chrono Devis n'a pas de filtre
+/// contrat : c'est le registre complet, point.
+export default async function DevisChronoPage() {
   const supabase = await createClient();
   const profile = await getCurrentProfile();
 
   const [{ data: sites }, { data: devis }] = await Promise.all([
-    supabase.from("sites_view").select("*").eq("hors_contrat", horsContrat).order("nom"),
+    supabase.from("sites_view").select("*"),
     supabase.from("devis").select("*"),
   ]);
 
   const siteParId = new Map(((sites ?? []) as Site[]).map((s) => [s.id, s]));
 
-  // Registre chrono : tous les devis du filtre en cours, à plat, du
-  // plus récent au plus ancien (created_at, fiable contrairement à
-  // date_devis saisi en texte libre côté import).
+  // Registre chrono : tous les devis, à plat, du plus récent au plus
+  // ancien (created_at, fiable contrairement à date_devis saisi en
+  // texte libre côté import).
   const registre: DevisRegistreLigne[] = (devis ?? [])
-    .filter((d) => siteParId.has(d.site_id))
+    .slice()
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .map((d) => {
       const site = siteParId.get(d.site_id);
@@ -44,5 +40,5 @@ export default async function DevisChronoPage({
       };
     });
 
-  return <ChronoDevis registre={registre} horsContrat={horsContrat} isAdmin={profile?.role === "admin"} />;
+  return <ChronoDevis registre={registre} isAdmin={profile?.role === "admin"} />;
 }

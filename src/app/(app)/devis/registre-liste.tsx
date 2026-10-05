@@ -29,30 +29,30 @@ export function TableauRegistreDevis({ lignes, isAdmin }: { lignes: DevisRegistr
 
   return (
     <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
-      <table className="w-full min-w-[820px] border-collapse text-sm">
+      <table className="w-full min-w-[700px] table-fixed border-collapse text-sm">
         <thead>
           <tr>
-            <th className="sticky left-0 border-b border-slate-200 bg-white px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="sticky left-0 w-[9%] border-b border-slate-200 bg-white px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               N°
             </th>
-            <th className="border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="w-[22%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               Client — Site
             </th>
-            <th className="border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="w-[24%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               Libellé
             </th>
-            <th className="border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="w-[15%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               Nature
             </th>
-            <th className="border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="w-[9%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               Date devis
             </th>
             {isAdmin && (
-              <th className="border-b border-slate-200 px-2 py-2 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+              <th className="w-[11%] border-b border-slate-200 px-2 py-2 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
                 Montant
               </th>
             )}
-            <th className="border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="w-[10%] border-b border-slate-200 px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               Statut
             </th>
           </tr>
@@ -60,23 +60,23 @@ export function TableauRegistreDevis({ lignes, isAdmin }: { lignes: DevisRegistr
         <tbody>
           {lignes.map((d, i) => (
             <tr key={d.id} className={i % 2 === 1 ? "bg-slate-50/50" : ""}>
-              <td className="sticky left-0 whitespace-nowrap border-b border-slate-100 bg-inherit px-2 py-2 font-semibold text-slate-900">
+              <td className="sticky left-0 truncate border-b border-slate-100 bg-inherit px-2 py-2 font-semibold text-slate-900">
                 {d.numero || "—"}
               </td>
-              <td className="border-b border-slate-100 px-2 py-2 text-slate-700">
+              <td className="truncate border-b border-slate-100 px-2 py-2 text-slate-700">
                 {[d.clientNom, d.clientSite].filter(Boolean).join(" — ")}
               </td>
-              <td className="max-w-xs truncate border-b border-slate-100 px-2 py-2 text-slate-500">{d.libelle}</td>
-              <td className="whitespace-nowrap border-b border-slate-100 px-2 py-2 text-slate-500">
+              <td className="truncate border-b border-slate-100 px-2 py-2 text-slate-500">{d.libelle}</td>
+              <td className="truncate border-b border-slate-100 px-2 py-2 text-slate-500">
                 {d.nature ? labelNatureDevis(d.nature) : ""}
               </td>
-              <td className="whitespace-nowrap border-b border-slate-100 px-2 py-2 text-slate-500">{d.dateDevis}</td>
+              <td className="truncate border-b border-slate-100 px-2 py-2 text-slate-500">{d.dateDevis}</td>
               {isAdmin && (
-                <td className="whitespace-nowrap border-b border-slate-100 px-2 py-2 text-right text-slate-700">
+                <td className="truncate border-b border-slate-100 px-2 py-2 text-right text-slate-700">
                   {d.montant !== null ? eur(d.montant) : ""}
                 </td>
               )}
-              <td className="whitespace-nowrap border-b border-slate-100 px-2 py-2">
+              <td className="truncate border-b border-slate-100 px-2 py-2">
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${TEINTE_STATUT(d)}`}>
                   {LABEL_STATUT(d)}
                 </span>

@@ -27,7 +27,7 @@ export function DevisClientsListe({
   horsContrat: boolean;
   isAdmin: boolean;
 }) {
-  const [vue, setVue] = useState<"client" | "registre">("client");
+  const [vue, setVue] = useState<"client" | "registre">("registre");
   const [recherche, setRecherche] = useState("");
 
   const filtres = useMemo(
@@ -102,20 +102,20 @@ export function DevisClientsListe({
         </Link>
         <span className="mx-1 h-6 w-px bg-slate-200" />
         <button
-          onClick={() => setVue("client")}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-            vue === "client" ? "bg-violet-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-          }`}
-        >
-          Par client
-        </button>
-        <button
           onClick={() => setVue("registre")}
           className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
             vue === "registre" ? "bg-sky-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
           }`}
         >
           Chrono Devis
+        </button>
+        <button
+          onClick={() => setVue("client")}
+          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+            vue === "client" ? "bg-violet-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+          }`}
+        >
+          Par client
         </button>
       </div>
 

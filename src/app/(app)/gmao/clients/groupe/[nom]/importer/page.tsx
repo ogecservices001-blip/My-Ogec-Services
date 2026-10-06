@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ImporterEquipementsClient } from "@/app/(app)/gmao/importer-client";
 
@@ -9,7 +9,7 @@ export default async function ImporterPourClientPage({
   params: Promise<{ nom: string }>;
   searchParams: Promise<{ horsContrat?: string }>;
 }) {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const { nom } = await params;
   const nomDecode = decodeURIComponent(nom);
   const { horsContrat } = await searchParams;

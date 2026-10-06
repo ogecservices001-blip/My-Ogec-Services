@@ -143,16 +143,20 @@ export function construireModules(isAdmin: boolean): Module[] {
       couleur: "bg-purple-100 text-purple-600",
       sousMenus: [{ nom: "Envoyer / consulter", href: "/signalements" }],
     },
-    {
-      nom: "Référentiel GMAO",
-      actif: true,
-      icone: BookOpen,
-      couleur: "bg-cyan-100 text-cyan-600",
-      sousMenus: [
-        { nom: "Référentiel Heures", href: "/gmao/referentiel/heures" },
-        { nom: "Référentiel Gammes de maintenance", href: "/gmao/referentiel/familles" },
-      ],
-    },
+    ...(isAdmin
+      ? [
+          {
+            nom: "Référentiel GMAO",
+            actif: true,
+            icone: BookOpen,
+            couleur: "bg-cyan-100 text-cyan-600",
+            sousMenus: [
+              { nom: "Référentiel Heures", href: "/gmao/referentiel/heures" },
+              { nom: "Référentiel Gammes de maintenance", href: "/gmao/referentiel/familles" },
+            ],
+          },
+        ]
+      : []),
     ...(isAdmin
       ? [
           {

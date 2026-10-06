@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Poles, labelPole } from "@/lib/bi/constants";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 import { ModeleBiEditor } from "./editor";
 
 export default async function ModeleBiPage({ params }: { params: Promise<{ pole: string }> }) {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const { pole } = await params;
   if (!Object.values(Poles).includes(pole as (typeof Poles)[keyof typeof Poles])) notFound();
 

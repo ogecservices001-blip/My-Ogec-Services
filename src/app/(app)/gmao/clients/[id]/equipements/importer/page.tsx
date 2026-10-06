@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ImporterEquipementsClient } from "@/app/(app)/gmao/importer-client";
 
@@ -7,7 +7,7 @@ export default async function ImporterEquipementsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const { id } = await params;
   const supabase = await createClient();
   const { data: site } = await supabase.from("sites").select("nom, site").eq("id", id).single();

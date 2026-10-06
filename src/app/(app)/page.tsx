@@ -115,6 +115,7 @@ const modules: {
     fond: "bg-lime-100",
     couleur: "text-lime-600",
     actif: true,
+    adminSeulement: true,
   },
 ];
 

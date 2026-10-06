@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { SiteForm } from "../site-form";
 
 export default async function NouveauSitePage() {
-  await requireAdmin();
+  await requireAdminOuAccueil();
 
   return (
     <div>

@@ -1,9 +1,9 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ImporterEquipementsClient } from "../importer-client";
 
 export default async function ImporterGlobalPage() {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const supabase = await createClient();
   const { data: sites } = await supabase.from("sites").select("id");
   const siteIds = (sites ?? []).map((s) => s.id);

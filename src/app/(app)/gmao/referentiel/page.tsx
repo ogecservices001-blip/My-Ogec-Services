@@ -1,3 +1,4 @@
+import { requireAdminOuAccueil } from "@/lib/auth";
 import Link from "next/link";
 import { ArrowLeft, Clock, Wrench, ChevronRight, type LucideIcon } from "lucide-react";
 
@@ -27,7 +28,8 @@ const cartes: {
   },
 ];
 
-export default function ReferentielGmaoPage() {
+export default async function ReferentielGmaoPage() {
+  await requireAdminOuAccueil();
   return (
     <div>
       <Link

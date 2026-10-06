@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import type { Site } from "@/lib/types";
 import { SiteForm } from "../../site-form";
 
@@ -11,7 +11,7 @@ export default async function ModifierSitePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const { id } = await params;
 
   const supabase = await createClient();

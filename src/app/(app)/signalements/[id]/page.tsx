@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Signalement, SignalementHistorique } from "@/lib/types";
 import { DetailSignalement } from "./detail";
@@ -9,7 +9,7 @@ export default async function SignalementDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const { id } = await params;
 
   const supabase = await createClient();

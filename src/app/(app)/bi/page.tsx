@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { BiListe } from "./liste";
 
@@ -7,7 +7,7 @@ import { BiListe } from "./liste";
 /// consulter un BI précis en lecture seule via /bi/[id] si on lui en
 /// donne le lien, juste pas cette liste.
 export default async function BiPage() {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const supabase = await createClient();
 
   const { data: bons } = await supabase

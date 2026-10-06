@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { FournisseurForm } from "../fournisseur-form";
 
 export default async function NouveauFournisseurPage() {
-  await requireAdmin();
+  await requireAdminOuAccueil();
 
   return (
     <div>

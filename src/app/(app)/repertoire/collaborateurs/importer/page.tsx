@@ -1,7 +1,7 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { ImporterCollaborateursClient } from "./importer-client";
 
 export default async function ImporterCollaborateursPage() {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   return <ImporterCollaborateursClient />;
 }

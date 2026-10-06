@@ -1,11 +1,11 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/types";
 import { DepannagesListe } from "../depannages-liste";
 import { chargerDevisEnCoursParEquipement } from "@/lib/devis/en-cours";
 
 export default async function DepannagesTraiteesPage() {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const supabase = await createClient();
   const [{ data }, { data: techniciens }, devisEnCours] = await Promise.all([
     supabase.from("demandes_depannage").select("*").order("date_creation", { ascending: false }),

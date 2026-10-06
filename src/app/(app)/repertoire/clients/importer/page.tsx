@@ -1,7 +1,7 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { ImporterSitesClient } from "./importer-client";
 
 export default async function ImporterSitesPage() {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   return <ImporterSitesClient />;
 }

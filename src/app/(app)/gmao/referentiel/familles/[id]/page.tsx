@@ -1,3 +1,4 @@
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Wrench } from "lucide-react";
@@ -21,6 +22,7 @@ export default async function FamilleDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await requireAdminOuAccueil();
   const supabase = await createClient();
   const { data } = await supabase.from("types_equipement").select("*").eq("id", id).single();
 

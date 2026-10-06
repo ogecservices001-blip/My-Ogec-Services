@@ -1,10 +1,10 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/types";
 import { StatistiquesTab } from "../statistiques";
 
 export default async function DepannagesStatistiquesPage() {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const supabase = await createClient();
   const [{ data }, { data: techniciens }] = await Promise.all([
     supabase.from("demandes_depannage").select("*").order("date_creation", { ascending: false }),

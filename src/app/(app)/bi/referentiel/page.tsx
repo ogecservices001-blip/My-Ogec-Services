@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, ClipboardList } from "lucide-react";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ORDRE_AFFICHAGE_POLES, labelPole } from "@/lib/bi/constants";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
@@ -12,7 +12,7 @@ import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 const POLES_TRIES = [...ORDRE_AFFICHAGE_POLES].sort((a, b) => Number(a) - Number(b));
 
 export default async function ReferentielBiPage() {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const supabase = await createClient();
   const { data } = await supabase.from("bi_modeles").select("pole, champs, checklist");
 

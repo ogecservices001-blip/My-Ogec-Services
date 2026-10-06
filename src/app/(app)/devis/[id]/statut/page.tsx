@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Site, Tables } from "@/lib/types";
 import { STATUTS_BI_REALISE } from "../../statut";
 import { StatutDevisForm } from "./statut-form";
 
 export default async function StatutDevisPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const { id } = await params;
 
   const supabase = await createClient();

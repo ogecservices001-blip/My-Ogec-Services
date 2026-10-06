@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOuAccueil } from "@/lib/auth";
 import type { Site, Tables } from "@/lib/types";
 import { ParClientListe, type ClientGroupe } from "./par-client-liste";
 
@@ -12,7 +12,7 @@ export default async function DevisParClientPage({
   const { horsContrat: horsContratParam } = await searchParams;
   const horsContrat = horsContratParam === "1";
 
-  await requireAdmin();
+  await requireAdminOuAccueil();
   const supabase = await createClient();
   const profile = await getCurrentProfile();
 

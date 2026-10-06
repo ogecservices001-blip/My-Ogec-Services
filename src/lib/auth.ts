@@ -21,3 +21,12 @@ export async function requireAdmin(): Promise<Profile> {
   if (profile.role !== "admin") forbidden();
   return profile;
 }
+
+/// Pour une page d'écran réservé au bureau qu'un non-admin peut ouvrir
+/// par une ancienne adresse : redirige vers l'accueil au lieu d'afficher
+/// une erreur 403.
+export async function requireAdminOuAccueil(): Promise<Profile> {
+  const profile = await requireProfile();
+  if (profile.role !== "admin") redirect("/");
+  return profile;
+}

@@ -23,6 +23,7 @@ const modules: {
   fond: string;
   couleur: string;
   actif: boolean;
+  adminSeulement?: boolean;
 }[] = [
   {
     href: "/repertoire",
@@ -95,6 +96,7 @@ const modules: {
     fond: "bg-amber-100",
     couleur: "text-amber-600",
     actif: true,
+    adminSeulement: true,
   },
   {
     href: "/signalements",
@@ -119,6 +121,7 @@ const modules: {
 export default async function AccueilPage() {
   const profile = await getCurrentProfile();
   const prenom = profile?.name.trim().split(/\s+/)[0] ?? "";
+  const isAdmin = profile?.role === "admin";
 
   return (
     <div>
@@ -129,7 +132,7 @@ export default async function AccueilPage() {
         {prenom ? `Bonjour ${prenom}` : "Bonjour"}
       </p>
       <div className="space-y-3">
-        {modules.map((m) =>
+        {modules.filter((m) => !m.adminSeulement || isAdmin).map((m) =>
           m.actif ? (
             <Link
               key={m.titre}

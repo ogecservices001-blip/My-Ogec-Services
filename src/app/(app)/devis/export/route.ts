@@ -9,6 +9,7 @@ const COLONNES = [
   "Référence devis",
   "Client",
   "Site",
+  "Équipement concerné",
   "Item",
   "Rédacteur",
   "Nature",
@@ -45,16 +46,29 @@ export async function GET(request: Request) {
   const { data: devis, error } = await requete;
   if (error) return NextResponse.json({ erreur: error.message }, { status: 500 });
 
+  const idsEquipements = [...new Set((devis ?? []).map((d) => d.equipement_id).filter((id): id is string => Boolean(id)))];
+  const { data: equipements, error: errEquipements } = idsEquipements.length
+    ? await supabase.from("equipements").select("id, nom, numero_equipement").in("id", idsEquipements)
+    : { data: [], error: null };
+  if (errEquipements) return NextResponse.json({ erreur: errEquipements.message }, { status: 500 });
+  const equipementParId = new Map((equipements ?? []).map((e) => [e.id, e]));
+
   const workbook = new ExcelJS.Workbook();
   const feuille = workbook.addWorksheet("Devis");
   feuille.addRow(COLONNES);
 
   for (const d of devis ?? []) {
     const site = siteParId.get(d.site_id);
+    const equipement = d.equipement_id ? equipementParId.get(d.equipement_id) : undefined;
     feuille.addRow([
       d.numero,
       site?.nom ?? "",
       site?.site ?? "",
+      equipement
+        ? [equipement.nom, equipement.numero_equipement ? `(${equipement.numero_equipement})` : ""]
+            .filter(Boolean)
+            .join(" ")
+        : "",
       d.item,
       d.redacteur,
       d.nature ? labelNatureDevis(d.nature) : "",

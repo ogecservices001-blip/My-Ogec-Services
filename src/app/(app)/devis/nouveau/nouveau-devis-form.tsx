@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { creerDevis, listerEquipementsDuSite } from "../actions";
 
 type Option = { valeur: string; label: string };
-type SiteOption = { id: string; label: string };
+type SiteOption = { id: string; nom: string; site: string; horsContrat: boolean };
 type Equipement = { id: string; nom: string; numero_equipement: string };
 
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
@@ -18,6 +18,12 @@ export function NouveauDevisForm({ sites, natures }: { sites: SiteOption[]; natu
   const [pending, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
+  const [type, setType] = useState<"" | "sous" | "hors">("");
+  const [clientNom, setClientNom] = useState("");
+  const sitesDuType = type ? sites.filter((s) => s.horsContrat === (type === "hors")) : [];
+  const clients = [...new Set(sitesDuType.map((s) => s.nom))].filter(Boolean).sort((a, b) => a.localeCompare(b));
+  const sitesDuClient = clientNom ? sitesDuType.filter((s) => s.nom === clientNom) : [];
+
   const [siteId, setSiteId] = useState("");
   const [equipements, setEquipements] = useState<Equipement[]>([]);
   const [equipementId, setEquipementId] = useState("");
@@ -25,6 +31,17 @@ export function NouveauDevisForm({ sites, natures }: { sites: SiteOption[]; natu
   const [nature, setNature] = useState("");
   const [montant, setMontant] = useState("");
   const [heures, setHeures] = useState("");
+
+  function changerType(valeur: "" | "sous" | "hors") {
+    setType(valeur);
+    setClientNom("");
+    changerSite("");
+  }
+
+  function changerClient(nom: string) {
+    setClientNom(nom);
+    changerSite("");
+  }
 
   function changerSite(id: string) {
     setSiteId(id);
@@ -71,12 +88,47 @@ export function NouveauDevisForm({ sites, natures }: { sites: SiteOption[]; natu
 
       <div className="space-y-4 rounded-2xl bg-white p-5 shadow-sm">
         <div>
+          <label className={ETIQUETTE}>Type de client *</label>
+          <select
+            value={type}
+            onChange={(e) => changerType(e.target.value as "" | "sous" | "hors")}
+            className={CHAMP}
+          >
+            <option value="">— Choisir —</option>
+            <option value="sous">Client sous contrat</option>
+            <option value="hors">Client hors contrat</option>
+          </select>
+        </div>
+
+        <div>
+          <label className={ETIQUETTE}>Client *</label>
+          <select
+            value={clientNom}
+            onChange={(e) => changerClient(e.target.value)}
+            disabled={!type}
+            className={`${CHAMP} disabled:bg-slate-50`}
+          >
+            <option value="">— Choisir un client —</option>
+            {clients.map((nom) => (
+              <option key={nom} value={nom}>
+                {nom}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
           <label className={ETIQUETTE}>Site *</label>
-          <select value={siteId} onChange={(e) => changerSite(e.target.value)} className={CHAMP}>
+          <select
+            value={siteId}
+            onChange={(e) => changerSite(e.target.value)}
+            disabled={!clientNom}
+            className={`${CHAMP} disabled:bg-slate-50`}
+          >
             <option value="">— Choisir un site —</option>
-            {sites.map((s) => (
+            {sitesDuClient.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.label}
+                {s.site || "(sans nom de site)"}
               </option>
             ))}
           </select>

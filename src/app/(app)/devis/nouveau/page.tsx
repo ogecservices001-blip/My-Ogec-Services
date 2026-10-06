@@ -6,7 +6,7 @@ import { NouveauDevisForm } from "./nouveau-devis-form";
 export default async function NouveauDevisPage() {
   await requireAdminOuAccueil();
   const supabase = await createClient();
-  const { data: sites } = await supabase.from("sites").select("id, nom, site, hors_contrat").order("nom");
+  const { data: sites } = await supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom");
 
   return (
     <NouveauDevisForm

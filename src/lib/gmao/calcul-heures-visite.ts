@@ -36,6 +36,14 @@ export function calculerHeuresVisite(
       if (courante === 3) return { heuresTech: reference.hrs_tech_sem, heuresAssistant: reference.hrs_assistant_sem };
       if (courante === 4) return { heuresTech: reference.hrs_tech_tri, heuresAssistant: reference.hrs_assistant_tri };
       return null;
+    case 12:
+      if (courante === 1) return { heuresTech: reference.hrs_tech_an, heuresAssistant: reference.hrs_assistant_an };
+      if (courante === 7) return { heuresTech: reference.hrs_tech_sem, heuresAssistant: reference.hrs_assistant_sem };
+      if (courante === 4 || courante === 10)
+        return { heuresTech: reference.hrs_tech_tri, heuresAssistant: reference.hrs_assistant_tri };
+      if (courante >= 1 && courante <= 12)
+        return { heuresTech: reference.hrs_tech_men, heuresAssistant: reference.hrs_assistant_men };
+      return null;
     default:
       return null;
   }

@@ -759,9 +759,11 @@ export type Database = {
           created_at: string
           designation: string
           hrs_assistant_an: number
+          hrs_assistant_men: number
           hrs_assistant_sem: number
           hrs_assistant_tri: number
           hrs_tech_an: number
+          hrs_tech_men: number
           hrs_tech_sem: number
           hrs_tech_tri: number
           id: string
@@ -775,9 +777,11 @@ export type Database = {
           created_at?: string
           designation?: string
           hrs_assistant_an?: number
+          hrs_assistant_men?: number
           hrs_assistant_sem?: number
           hrs_assistant_tri?: number
           hrs_tech_an?: number
+          hrs_tech_men?: number
           hrs_tech_sem?: number
           hrs_tech_tri?: number
           id?: string
@@ -791,9 +795,11 @@ export type Database = {
           created_at?: string
           designation?: string
           hrs_assistant_an?: number
+          hrs_assistant_men?: number
           hrs_assistant_sem?: number
           hrs_assistant_tri?: number
           hrs_tech_an?: number
+          hrs_tech_men?: number
           hrs_tech_sem?: number
           hrs_tech_tri?: number
           id?: string

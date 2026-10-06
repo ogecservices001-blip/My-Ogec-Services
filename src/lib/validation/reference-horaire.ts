@@ -16,6 +16,8 @@ export const referenceHoraireSchema = z.object({
   hrs_assistant_sem: heureSchema,
   hrs_tech_tri: heureSchema,
   hrs_assistant_tri: heureSchema,
+  hrs_tech_men: heureSchema,
+  hrs_assistant_men: heureSchema,
 });
 export type ReferenceHoraireInput = z.infer<typeof referenceHoraireSchema>;
 
@@ -30,4 +32,6 @@ export const champsReferenceHoraire: { cle: keyof ReferenceHoraireInput; label: 
   { cle: "hrs_assistant_sem", label: "Hrs Assistant Semestrielle" },
   { cle: "hrs_tech_tri", label: "Hrs Tech Trimestrielle" },
   { cle: "hrs_assistant_tri", label: "Hrs Assistant Trimestrielle" },
+  { cle: "hrs_tech_men", label: "Hrs Tech Mensuelle" },
+  { cle: "hrs_assistant_men", label: "Hrs Assistant Mensuelle" },
 ];

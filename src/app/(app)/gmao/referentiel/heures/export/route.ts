@@ -32,6 +32,8 @@ export async function GET() {
     "Hrs assistant Sem",
     "Hrs Tech Tri",
     "Hrs assistant Tri",
+    "Hrs Tech Mens",
+    "Hrs assistant Mens",
   ]);
 
   for (const r of references ?? []) {
@@ -46,6 +48,8 @@ export async function GET() {
       r.hrs_assistant_sem,
       r.hrs_tech_tri,
       r.hrs_assistant_tri,
+      r.hrs_tech_men,
+      r.hrs_assistant_men,
     ]);
   }
 

@@ -26,6 +26,8 @@ const ENTETES: Record<string, keyof ReferenceHoraireInput> = {
   "hrs assistant sem": "hrs_assistant_sem",
   "hrs tech tri": "hrs_tech_tri",
   "hrs assistant tri": "hrs_assistant_tri",
+  "hrs tech mens": "hrs_tech_men",
+  "hrs assistant mens": "hrs_assistant_men",
 };
 
 function normaliser(s: string): string {

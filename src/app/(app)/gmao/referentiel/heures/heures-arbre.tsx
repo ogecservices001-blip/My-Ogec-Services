@@ -206,12 +206,13 @@ function CarteReference({
           <div>
             <p className="text-sm font-semibold text-slate-900">{reference.designation}</p>
             <p className="mt-0.5 text-xs text-slate-500">
-              Tech : {reference.hrs_tech_an}h / {reference.hrs_tech_sem}h / {reference.hrs_tech_tri}h
+              Tech : {reference.hrs_tech_an}h / {reference.hrs_tech_sem}h / {reference.hrs_tech_tri}h /{" "}
+              {reference.hrs_tech_men}h
               {"  ·  "}
               Assistant : {reference.hrs_assistant_an}h / {reference.hrs_assistant_sem}h /{" "}
-              {reference.hrs_assistant_tri}h
+              {reference.hrs_assistant_tri}h / {reference.hrs_assistant_men}h
             </p>
-            <p className="text-[11px] text-slate-400">(Annuelle / Semestrielle / Trimestrielle)</p>
+            <p className="text-[11px] text-slate-400">(Annuelle / Semestrielle / Trimestrielle / Mensuelle)</p>
           </div>
         </div>
         {isAdmin && (

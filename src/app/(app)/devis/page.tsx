@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
+import { requireAdmin } from "@/lib/auth";
 import type { Site } from "@/lib/types";
 import { ChronoDevis } from "./chrono-devis";
 import type { DevisRegistreLigne } from "./registre-liste";
@@ -9,6 +10,7 @@ import { STATUTS_BI_REALISE } from "./statut";
 /// contrairement à /devis/par-client, Chrono Devis n'a pas de filtre
 /// contrat : c'est le registre complet, point.
 export default async function DevisChronoPage() {
+  await requireAdmin();
   const supabase = await createClient();
   const profile = await getCurrentProfile();
 

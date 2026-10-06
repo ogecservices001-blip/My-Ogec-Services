@@ -6,6 +6,7 @@ import type { Equipement, TypeEquipement, ChampListeLigne } from "@/lib/gmao/typ
 import { concatTypeEquipement, analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { calculerHeuresVisite, heuresCumulAnnee } from "@/lib/gmao/calcul-heures-visite";
 import { freqCouranteCalculee } from "@/lib/gmao/releve-service";
+import { chargerDevisEnCoursParEquipement } from "@/lib/devis/en-cours";
 
 export default async function VisualiserEquipementPage({
   params,
@@ -38,6 +39,7 @@ export default async function VisualiserEquipementPage({
 
   const resultatReference = analyserReference(c, references ?? []);
   const freqCourante = await freqCouranteCalculee(supabase, equipementId);
+  const devisEnCours = (await chargerDevisEnCoursParEquipement())[equipementId] ?? [];
   const cumul =
     resultatReference.reference && Number.isFinite(freqAnnuelleNum)
       ? heuresCumulAnnee(freqAnnuelleNum, resultatReference.reference)
@@ -90,6 +92,17 @@ export default async function VisualiserEquipementPage({
           {typeConcat && <p className="mt-1 text-sm font-bold text-teal-800">{typeConcat}</p>}
         </div>
       </div>
+
+      {devisEnCours.length > 0 && (
+        <div className="mb-3 rounded-2xl bg-amber-50 p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-amber-800">Devis en cours</p>
+          {devisEnCours.map((libelle, i) => (
+            <p key={i} className="mt-1 text-sm font-semibold text-amber-900">
+              {libelle}
+            </p>
+          ))}
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         {champsRenseignes.length === 0 && !freqEntretienAnnuelle ? (

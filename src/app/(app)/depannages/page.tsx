@@ -2,13 +2,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { Tables } from "@/lib/types";
 import { DepannagesListe } from "./depannages-liste";
+import { chargerDevisEnCoursParEquipement } from "@/lib/devis/en-cours";
 
 export default async function DepannagesPage() {
   const supabase = await createClient();
-  const [{ data }, { data: techniciens }, profile] = await Promise.all([
+  const [{ data }, { data: techniciens }, profile, devisEnCours] = await Promise.all([
     supabase.from("demandes_depannage").select("*").order("date_creation", { ascending: false }),
     supabase.from("profiles").select("id, name, portable"),
     getCurrentProfile(),
+    chargerDevisEnCoursParEquipement(),
   ]);
 
   const techniciensParId: Record<string, { name: string; portable: string }> = {};
@@ -20,6 +22,7 @@ export default async function DepannagesPage() {
       techniciensParId={techniciensParId}
       isAdmin={profile?.role === "admin"}
       vue="en_cours"
+      devisEnCours={devisEnCours}
     />
   );
 }

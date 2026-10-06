@@ -35,11 +35,13 @@ export function DepannagesListe({
   techniciensParId,
   isAdmin,
   vue,
+  devisEnCours,
 }: {
   demandes: Tables<"demandes_depannage">[];
   techniciensParId: TechniciensParId;
   isAdmin: boolean;
   vue: "en_cours" | "traitees";
+  devisEnCours: Record<string, string[]>;
 }) {
   const enCours = demandes.filter((d) => d.statut !== "traitee");
   const traitees = demandes.filter((d) => d.statut === "traitee");
@@ -87,6 +89,7 @@ export function DepannagesListe({
               demande={d}
               intervenant={d.intervenant_id ? techniciensParId[d.intervenant_id] : undefined}
               isAdmin={isAdmin}
+              devisEnCours={d.equipement_id ? (devisEnCours[d.equipement_id] ?? []) : []}
             />
           ))}
         </ul>
@@ -99,10 +102,12 @@ function CarteDemande({
   demande,
   intervenant,
   isAdmin,
+  devisEnCours,
 }: {
   demande: Tables<"demandes_depannage">;
   intervenant: { name: string; portable: string } | undefined;
   isAdmin: boolean;
+  devisEnCours: string[];
 }) {
   const [modaleOuverte, setModaleOuverte] = useState(false);
   const nouvelle = demande.statut !== "traitee";
@@ -128,6 +133,9 @@ function CarteDemande({
       </div>
       {demande.equipement_nom && (
         <p className="text-sm font-semibold text-slate-800">{demande.equipement_nom}</p>
+      )}
+      {devisEnCours.length > 0 && (
+        <p className="mt-1 text-xs font-semibold text-amber-800">Devis en cours : {devisEnCours.join(" · ")}</p>
       )}
       {demande.lieu_panne && <p className="text-xs text-slate-500">Lieu : {demande.lieu_panne}</p>}
       <p className="mt-1.5 text-sm text-slate-700">{demande.message}</p>

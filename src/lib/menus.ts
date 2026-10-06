@@ -122,16 +122,20 @@ export function construireModules(isAdmin: boolean): Module[] {
       couleur: "bg-cyan-100 text-cyan-600",
       sousMenus: [],
     },
-    {
-      nom: "Devis",
-      actif: true,
-      icone: FileSignature,
-      couleur: "bg-amber-100 text-amber-600",
-      sousMenus: [
-        { nom: "Clients sous contrat", href: "/devis" },
-        { nom: "Clients hors contrat", href: "/devis?horsContrat=1" },
-      ],
-    },
+    ...(isAdmin
+      ? [
+          {
+            nom: "Devis",
+            actif: true,
+            icone: FileSignature,
+            couleur: "bg-amber-100 text-amber-600",
+            sousMenus: [
+              { nom: "Clients sous contrat", href: "/devis" },
+              { nom: "Clients hors contrat", href: "/devis?horsContrat=1" },
+            ],
+          },
+        ]
+      : []),
     {
       nom: "Signalement retour information terrain",
       actif: true,

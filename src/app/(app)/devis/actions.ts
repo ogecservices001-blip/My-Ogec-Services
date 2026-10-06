@@ -67,6 +67,21 @@ export async function changerStatutDevis(id: string, input: StatutDevisInput): P
   return { ok: true };
 }
 
+export async function lierEquipementDevis(id: string, equipementId: string | null): Promise<ActionResult> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("devis")
+    .update({ equipement_id: equipementId, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { ok: false, erreur: error.message };
+
+  revalidatePath("/devis");
+  revalidatePath("/depannages");
+  revalidatePath("/gmao", "layout");
+  return { ok: true };
+}
+
 export async function supprimerDevis(id: string): Promise<ActionResult> {
   await requireAdmin();
   const supabase = await createClient();

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { Tables } from "@/lib/types";
-import { changerStatutDevis, type StatutDevisInput } from "../../actions";
+import { changerStatutDevis, lierEquipementDevis, type StatutDevisInput } from "../../actions";
 import { calculerStatutDevis, LABEL_STATUT_DEVIS } from "../../statut";
 
 type Devis = Tables<"devis">;
@@ -15,17 +15,32 @@ export function StatutDevisForm({
   devis,
   site,
   realise,
+  equipements,
 }: {
   devis: Devis;
   site: { nom: string; site: string } | null;
   realise: boolean;
+  equipements: { id: string; nom: string; numero_equipement: string }[];
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("choix");
   const [dateCommande, setDateCommande] = useState(devis.date_commande_client);
   const [reference, setReference] = useState(devis.reference_client || "BPA par mail");
+  const [equipementId, setEquipementId] = useState(devis.equipement_id ?? "");
   const [pending, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+
+  function enregistrerEquipement() {
+    setErreur(null);
+    startTransition(async () => {
+      const res = await lierEquipementDevis(devis.id, equipementId || null);
+      if (!res.ok) {
+        setErreur(res.erreur);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   const statutActuel = LABEL_STATUT_DEVIS[
     calculerStatutDevis({ annule: devis.annule, commande: Boolean(devis.date_commande_client), realise })
@@ -145,6 +160,31 @@ export function StatutDevisForm({
           </div>
         </div>
       )}
+
+      <div className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
+        <label className="mb-1 block text-xs font-medium text-slate-600">Équipement concerné (facultatif)</label>
+        <select
+          value={equipementId}
+          onChange={(e) => setEquipementId(e.target.value)}
+          disabled={pending}
+          className="mb-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+        >
+          <option value="">— aucun —</option>
+          {equipements.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.nom}
+              {e.numero_equipement ? ` (${e.numero_equipement})` : ""}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={enregistrerEquipement}
+          disabled={pending || equipementId === (devis.equipement_id ?? "")}
+          className="w-full rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
+        >
+          Enregistrer l&apos;équipement
+        </button>
+      </div>
     </div>
   );
 }

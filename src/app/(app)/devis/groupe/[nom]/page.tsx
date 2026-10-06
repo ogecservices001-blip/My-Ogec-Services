@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
+import { requireAdmin } from "@/lib/auth";
 import type { Site } from "@/lib/types";
 import { ListeRegistreDevis, eur, type DevisRegistreLigne } from "../../registre-liste";
 import { STATUTS_BI_REALISE } from "../../statut";
@@ -18,6 +19,7 @@ export default async function DevisDuClientPage({
   const { horsContrat: horsContratParam } = await searchParams;
   const horsContrat = horsContratParam === "1";
 
+  await requireAdmin();
   const supabase = await createClient();
   const profile = await getCurrentProfile();
   const isAdmin = profile?.role === "admin";

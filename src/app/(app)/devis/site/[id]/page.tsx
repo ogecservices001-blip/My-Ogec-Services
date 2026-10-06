@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
+import { requireAdmin } from "@/lib/auth";
 import type { Site } from "@/lib/types";
 import { DevisDuSite } from "./devis-liste";
 
 export default async function DevisSitePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireAdmin();
   const supabase = await createClient();
   const profile = await getCurrentProfile();
 

@@ -10,7 +10,9 @@ import { Sidebar } from "@/components/sidebar";
 /// reste la colonne centrée pour ne jamais élargir un écran par
 /// accident. Contrôle à la fois le conteneur global (sidebar incluse)
 /// et la colonne de contenu, pour que les deux s'accordent.
-const LARGEUR_PLEINE = ["/gmao/audit-heures", "/devis", "/depannages/traitees"];
+const LARGEUR_PLEINE = ["/gmao/audit-heures", "/depannages/traitees"];
+/// Sections entières (toutes les sous-pages), réservées à l'admin.
+const LARGEUR_PLEINE_SECTIONS = ["/devis"];
 
 export function AppShell({
   isAdmin,
@@ -20,7 +22,9 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const pleine = LARGEUR_PLEINE.includes(pathname);
+  const pleine =
+    LARGEUR_PLEINE.includes(pathname) ||
+    LARGEUR_PLEINE_SECTIONS.some((s) => pathname === s || pathname.startsWith(`${s}/`));
 
   return (
     <div className={`mx-auto flex ${pleine ? "" : "max-w-6xl"}`}>

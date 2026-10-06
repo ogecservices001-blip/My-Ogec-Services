@@ -460,6 +460,7 @@ export type Database = {
           date_mise_a_disposition_fourniture: string
           debours_materiel_prevu: number | null
           email_responsable_contrat: string
+          equipement_id: string | null
           heures_prevues: number | null
           id: string
           item: string
@@ -485,6 +486,7 @@ export type Database = {
           date_mise_a_disposition_fourniture?: string
           debours_materiel_prevu?: number | null
           email_responsable_contrat?: string
+          equipement_id?: string | null
           heures_prevues?: number | null
           id?: string
           item?: string
@@ -510,6 +512,7 @@ export type Database = {
           date_mise_a_disposition_fourniture?: string
           debours_materiel_prevu?: number | null
           email_responsable_contrat?: string
+          equipement_id?: string | null
           heures_prevues?: number | null
           id?: string
           item?: string
@@ -527,6 +530,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "devis_equipement_id_fkey"
+            columns: ["equipement_id"]
+            isOneToOne: false
+            referencedRelation: "equipements"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "devis_site_id_fkey"
             columns: ["site_id"]

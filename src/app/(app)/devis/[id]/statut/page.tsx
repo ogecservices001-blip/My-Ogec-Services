@@ -13,9 +13,10 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
   const { data: devis } = await supabase.from("devis").select("*").eq("id", id).single();
   if (!devis) notFound();
 
-  const [{ data: site }, { data: bons }] = await Promise.all([
+  const [{ data: site }, { data: bons }, { data: equipements }] = await Promise.all([
     supabase.from("sites").select("nom, site").eq("id", devis.site_id).single(),
     supabase.from("bons_intervention").select("statut").eq("devis_id", id),
+    supabase.from("equipements").select("id, nom, numero_equipement").eq("site_id", devis.site_id).order("nom"),
   ]);
   const realise = (bons ?? []).some((b) => STATUTS_BI_REALISE.has(b.statut)) || Boolean(devis.bi_reference_historique);
 
@@ -24,6 +25,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
       devis={devis as Tables<"devis">}
       site={site as Pick<Site, "nom" | "site"> | null}
       realise={realise}
+      equipements={equipements ?? []}
     />
   );
 }

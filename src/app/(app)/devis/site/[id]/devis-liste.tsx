@@ -7,6 +7,7 @@ import { ArrowLeft, Pencil, Trash2, X } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import type { Site } from "@/lib/types";
 import { Tableur } from "@/components/tableur";
+import { FiltreSelect } from "@/components/filtre-select";
 import { NATURE_DEVIS, labelNatureDevis } from "@/lib/devis/constants";
 import { modifierDevis, supprimerDevis, type DevisInput } from "../../actions";
 import { eur } from "../../registre-liste";
@@ -15,6 +16,11 @@ type Devis = Tables<"devis">;
 
 export function DevisDuSite({ site, devis, isAdmin }: { site: Site; devis: Devis[]; isAdmin: boolean }) {
   const [modifie, setModifie] = useState<Devis | null>(null);
+  const [statut, setStatut] = useState("");
+  const filtres = devis.filter((d) => {
+    const s = d.annule ? "annule" : d.date_commande_client ? "commande" : "attente";
+    return !statut || s === statut;
+  });
 
   return (
     <div>
@@ -30,6 +36,18 @@ export function DevisDuSite({ site, devis, isAdmin }: { site: Site; devis: Devis
       </h1>
       <p className="mb-5 text-sm text-slate-500">{devis.length} devis</p>
 
+      <div className="mb-3 flex justify-end">
+        <FiltreSelect
+          valeur={statut}
+          onChange={setStatut}
+          toutes="Tous les statuts"
+          options={[
+            { valeur: "commande", label: "Commandé" },
+            { valeur: "attente", label: "En attente" },
+            { valeur: "annule", label: "Annulée" },
+          ]}
+        />
+      </div>
       <Tableur
         colonnes={[
           { titre: "N°", largeur: "11%" },
@@ -42,7 +60,7 @@ export function DevisDuSite({ site, devis, isAdmin }: { site: Site; devis: Devis
           { titre: "Statut", largeur: "10%" },
           ...(isAdmin ? [{ titre: "", largeur: "6%" }] : []),
         ]}
-        lignes={devis.map((d) => [
+        lignes={filtres.map((d) => [
           d.numero || "(sans référence)",
           d.libelle,
           labelNatureDevis(d.nature) || "—",

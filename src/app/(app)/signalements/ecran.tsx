@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Bug, Lightbulb, MessageSquare, Send, ChevronRight, Download } from "lucide-react";
 import { envoyerSignalement } from "./actions";
 import { Tableur } from "@/components/tableur";
+import { FiltreSelect } from "@/components/filtre-select";
 import { construireModules } from "@/lib/menus";
 import type { Signalement, TypeSignalement } from "@/lib/types";
 
@@ -272,6 +273,12 @@ function ListeAdmin({ signalements }: { signalements: Signalement[] }) {
   const aTraiter = signalements.filter((s) => !s.traite);
   const traites = signalements.filter((s) => s.traite);
   const affiches = filtre === "a_traiter" ? aTraiter : traites;
+  const [typeFiltre, setTypeFiltre] = useState("");
+  const [menuFiltre, setMenuFiltre] = useState("");
+  const menus = [...new Set(affiches.map((s) => s.menu).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const filtrees = affiches.filter(
+    (s) => (!typeFiltre || s.type === typeFiltre) && (!menuFiltre || s.menu === menuFiltre),
+  );
 
   return (
     <div>
@@ -307,6 +314,24 @@ function ListeAdmin({ signalements }: { signalements: Signalement[] }) {
         </Link>
       </div>
 
+      <div className="mb-3 flex flex-wrap justify-end gap-2">
+        <FiltreSelect
+          valeur={typeFiltre}
+          onChange={setTypeFiltre}
+          toutes="Tous les types"
+          options={[
+            { valeur: "bug", label: "Bug" },
+            { valeur: "suggestion", label: "Suggestion" },
+            { valeur: "remarque", label: "Remarque" },
+          ]}
+        />
+        <FiltreSelect
+          valeur={menuFiltre}
+          onChange={setMenuFiltre}
+          toutes="Tous les menus"
+          options={menus.map((m) => ({ valeur: m, label: m }))}
+        />
+      </div>
       <Tableur
         colonnes={[
           { titre: "N°", largeur: "9%" },
@@ -318,7 +343,7 @@ function ListeAdmin({ signalements }: { signalements: Signalement[] }) {
           { titre: "Auteur", largeur: "10%" },
           { titre: "Traité", largeur: "6%" },
         ]}
-        lignes={affiches.map((s) => [
+        lignes={filtrees.map((s) => [
           <Link key="numero" href={`/signalements/${s.id}`} className="font-mono font-bold text-slate-900 hover:underline">
             {s.numero}
           </Link>,

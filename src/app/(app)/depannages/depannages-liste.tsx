@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Plus, Download, MessageCircle, Mail, User, CalendarClock, X, Wrench } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { Tableur } from "@/components/tableur";
+import { FiltreSelect } from "@/components/filtre-select";
 import { envoyerConfirmation } from "./actions";
 
 function deuxChiffres(n: number): string {
@@ -54,7 +55,9 @@ export function DepannagesListe({
 }) {
   const enCours = demandes.filter((d) => d.statut !== "traitee");
   const traitees = demandes.filter((d) => d.statut === "traitee");
-  const filtrees = vue === "en_cours" ? enCours : traitees;
+  const [client, setClient] = useState("");
+  const clients = [...new Set(traitees.map((d) => d.client_nom).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const filtrees = (vue === "en_cours" ? enCours : traitees).filter((d) => !client || d.client_nom === client);
 
   return (
     <div>
@@ -87,6 +90,15 @@ export function DepannagesListe({
       </div>
 
       {vue === "traitees" ? (
+        <>
+        <div className="mb-3 flex justify-end">
+          <FiltreSelect
+            valeur={client}
+            onChange={setClient}
+            toutes="Tous les clients"
+            options={clients.map((c) => ({ valeur: c, label: c }))}
+          />
+        </div>
         <Tableur
           colonnes={[
             { titre: "N°", largeur: "8%" },
@@ -110,6 +122,7 @@ export function DepannagesListe({
           ])}
           vide="Aucun dépannage traité"
         />
+        </>
       ) : filtrees.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">Aucun dépannage en cours</p>
       ) : (

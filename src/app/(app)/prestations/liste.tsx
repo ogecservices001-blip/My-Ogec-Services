@@ -6,6 +6,7 @@ import { Search, ClipboardList, Wrench, Download } from "lucide-react";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import { avecAffaire } from "@/lib/bi/constants";
 import { Tableur } from "@/components/tableur";
+import { FiltreSelect } from "@/components/filtre-select";
 import type { PrestationLigne } from "@/lib/prestations/charger-lignes";
 
 export function PrestationsListe({
@@ -24,8 +25,14 @@ export function PrestationsListe({
     realisees: lignes.filter((l) => !l.annulee && l.realisee),
     annulees: lignes.filter((l) => l.annulee),
   };
-  const filtrees = parVue[vue].filter((l) =>
-    `${l.clientNom} ${l.clientSite} ${l.libelle}`.toLowerCase().includes(recherche.toLowerCase()),
+  const [client, setClient] = useState("");
+  const clients = [...new Set(parVue[vue].map((l) => l.clientNom).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+  const filtrees = parVue[vue].filter(
+    (l) =>
+      (!client || l.clientNom === client) &&
+      `${l.clientNom} ${l.clientSite} ${l.libelle}`.toLowerCase().includes(recherche.toLowerCase()),
   );
 
   return (
@@ -57,6 +64,15 @@ export function PrestationsListe({
       </div>
 
       {vue !== "a_realiser" ? (
+        <>
+        <div className="mb-3 flex justify-end">
+          <FiltreSelect
+            valeur={client}
+            onChange={setClient}
+            toutes="Tous les clients"
+            options={clients.map((c) => ({ valeur: c, label: c }))}
+          />
+        </div>
         <Tableur
           colonnes={[
             { titre: "N°", largeur: "9%" },
@@ -88,6 +104,7 @@ export function PrestationsListe({
           ])}
           vide={vue === "realisees" ? "Aucune prestation réalisée" : "Aucune prestation annulée"}
         />
+        </>
       ) : filtrees.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">Aucune prestation à réaliser</p>
       ) : (

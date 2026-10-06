@@ -4,25 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { requireAdmin } from "@/lib/auth";
 import type { Site } from "@/lib/types";
-import { Tableur, type ColonneTableur } from "@/components/tableur";
-import { labelNatureDevis } from "@/lib/devis/constants";
-import { eur, numeroCourt, type DevisRegistreLigne } from "../../registre-liste";
-import {
-  STATUTS_BI_REALISE,
-  calculerStatutDevis,
-  LABEL_STATUT_DEVIS,
-  TEINTE_STATUT_DEVIS,
-} from "../../statut";
-
-const COLONNES_GROUPE: ColonneTableur[] = [
-  { titre: "N°", largeur: "10%" },
-  { titre: "Site", largeur: "16%" },
-  { titre: "Libellé", largeur: "30%" },
-  { titre: "Nature", largeur: "8%" },
-  { titre: "Date devis", largeur: "9%" },
-  { titre: "Montant", largeur: "11%", droite: true },
-  { titre: "Statut", largeur: "12%" },
-];
+import { eur, type DevisRegistreLigne } from "../../registre-liste";
+import { STATUTS_BI_REALISE } from "../../statut";
+import { TableauGroupe } from "./tableau-groupe";
 
 export default async function DevisDuClientPage({
   params,
@@ -129,29 +113,7 @@ export default async function DevisDuClientPage({
             )}
           </div>
 
-          <Tableur
-            colonnes={COLONNES_GROUPE}
-            lignes={lignes.map((d) => {
-              const statut = calculerStatutDevis(d);
-              return [
-                numeroCourt(d.numero) || "—",
-                d.clientSite || "—",
-                d.libelle,
-                labelNatureDevis(d.nature) || "—",
-                d.dateDevis,
-                d.montant !== null ? eur(d.montant) : "",
-                <Link
-                  key="statut"
-                  href={`/devis/${d.id}/statut`}
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-bold transition hover:opacity-75 ${TEINTE_STATUT_DEVIS[statut]}`}
-                >
-                  {LABEL_STATUT_DEVIS[statut]}
-                </Link>,
-              ];
-            })}
-            pied={["Total", "", "", "", "", eur(montantTotal), ""]}
-            vide="Aucun devis pour ce client pour l'instant"
-          />
+          <TableauGroupe lignes={lignes} />
         </>
       )}
     </div>

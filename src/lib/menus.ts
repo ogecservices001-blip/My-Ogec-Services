@@ -105,7 +105,15 @@ export function construireModules(isAdmin: boolean): Module[] {
       actif: true,
       icone: FileCheck,
       couleur: "bg-indigo-100 text-indigo-600",
-      sousMenus: [{ nom: "À réaliser / Réalisées", href: "/prestations" }],
+      sousMenus: [
+        { nom: "À réaliser", href: "/prestations" },
+        ...(isAdmin
+          ? [
+              { nom: "Réalisées", href: "/prestations/realisees" },
+              { nom: "Annulées", href: "/prestations/annulees" },
+            ]
+          : []),
+      ],
     },
     {
       nom: "Planning Maintenance",

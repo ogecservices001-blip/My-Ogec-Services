@@ -5,42 +5,34 @@ import Link from "next/link";
 import { Search, ClipboardList, Wrench, Download } from "lucide-react";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import { avecAffaire } from "@/lib/bi/constants";
+import type { PrestationLigne } from "@/lib/prestations/charger-lignes";
 
-export type PrestationLigne = {
-  id: string;
-  numero: string;
-  clientNom: string;
-  clientSite: string;
-  nature: string;
-  libelle: string;
-  montant: number | null;
-  heuresPrevues: number | null;
-  dateCommandeClient: string;
-  biId: string | null;
-  biNumero: string | null;
-  realisee: boolean;
-  annulee: boolean;
-};
-
-type Onglet = "a_realiser" | "realisees" | "annulees";
-
-export function PrestationsListe({ lignes, isAdmin }: { lignes: PrestationLigne[]; isAdmin: boolean }) {
-  const [ongletAdmin, setOngletAdmin] = useState<Onglet>("a_realiser");
-  const onglet = isAdmin ? ongletAdmin : "a_realiser";
+export function PrestationsListe({
+  lignes,
+  isAdmin,
+  vue,
+}: {
+  lignes: PrestationLigne[];
+  isAdmin: boolean;
+  vue: "a_realiser" | "realisees" | "annulees";
+}) {
   const [recherche, setRecherche] = useState("");
 
-  const aRealiser = lignes.filter((l) => !l.annulee && !l.realisee);
-  const realisees = lignes.filter((l) => !l.annulee && l.realisee);
-  const annulees = lignes.filter((l) => l.annulee);
-  const parOnglet: Record<Onglet, PrestationLigne[]> = { a_realiser: aRealiser, realisees, annulees };
-  const filtrees = parOnglet[onglet].filter((l) =>
+  const parVue: Record<typeof vue, PrestationLigne[]> = {
+    a_realiser: lignes.filter((l) => !l.annulee && !l.realisee),
+    realisees: lignes.filter((l) => !l.annulee && l.realisee),
+    annulees: lignes.filter((l) => l.annulee),
+  };
+  const filtrees = parVue[vue].filter((l) =>
     `${l.clientNom} ${l.clientSite} ${l.libelle}`.toLowerCase().includes(recherche.toLowerCase()),
   );
 
   return (
     <div>
       <div className="mb-1 flex items-start justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Prestation sur commande</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          {vue === "a_realiser" ? "Prestation sur commande" : vue === "realisees" ? "Prestations réalisées" : "Prestations annulées"}
+        </h1>
         {isAdmin && (
           <a
             href="/prestations/export"
@@ -52,37 +44,6 @@ export function PrestationsListe({ lignes, isAdmin }: { lignes: PrestationLigne[
         )}
       </div>
       <p className="mb-5 text-sm text-slate-500">Devis commandés — Suivi de la réalisation</p>
-
-      {isAdmin ? (
-        <div className="mb-4 flex flex-col gap-2">
-          <button
-            onClick={() => setOngletAdmin("a_realiser")}
-            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-              onglet === "a_realiser" ? "bg-violet-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-            }`}
-          >
-            À réaliser ({aRealiser.length})
-          </button>
-          <button
-            onClick={() => setOngletAdmin("realisees")}
-            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-              onglet === "realisees" ? "bg-brand-green text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-            }`}
-          >
-            Réalisées ({realisees.length})
-          </button>
-          <button
-            onClick={() => setOngletAdmin("annulees")}
-            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-              onglet === "annulees" ? "bg-red-600 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-            }`}
-          >
-            Annulées ({annulees.length})
-          </button>
-        </div>
-      ) : (
-        <p className="mb-4 text-sm font-semibold text-slate-700">À réaliser ({aRealiser.length})</p>
-      )}
 
       <div className="relative mb-4">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -96,9 +57,9 @@ export function PrestationsListe({ lignes, isAdmin }: { lignes: PrestationLigne[
 
       {filtrees.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">
-          {onglet === "a_realiser"
+          {vue === "a_realiser"
             ? "Aucune prestation à réaliser"
-            : onglet === "realisees"
+            : vue === "realisees"
               ? "Aucune prestation réalisée"
               : "Aucune prestation annulée"}
         </p>
@@ -140,7 +101,7 @@ export function PrestationsListe({ lignes, isAdmin }: { lignes: PrestationLigne[
                   {l.biNumero} (historique)
                 </span>
               )}
-              {onglet === "a_realiser" && !isAdmin && avecAffaire(l.nature) && (
+              {vue === "a_realiser" && !isAdmin && avecAffaire(l.nature) && (
                 <Link
                   href={`/bi/nouveau?devisId=${l.id}`}
                   className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700"

@@ -1,59 +1,10 @@
 import { requireProfile } from "@/lib/auth";
-import { getCurrentProfile } from "@/lib/profile";
-import { createClient } from "@/lib/supabase/server";
-import { Statuts } from "@/lib/bi/constants";
-import { PrestationsListe, type PrestationLigne } from "./liste";
-
-// Comme pour un dépannage : dès que le technicien a transmis le BI
-// (statut différent de brouillon), la prestation est considérée
-// réalisée — le reste du workflow (vérif bureau, facturation) ne
-// concerne plus le suivi "à réaliser / réalisées".
-const STATUTS_REALISE = new Set<string>(
-  Object.values(Statuts).filter((s) => s !== Statuts.brouillon),
-);
+import { chargerLignesPrestations } from "@/lib/prestations/charger-lignes";
+import { PrestationsListe } from "./liste";
 
 export default async function PrestationsPage() {
-  await requireProfile();
-  const profile = await getCurrentProfile();
-  const supabase = await createClient();
+  const profile = await requireProfile();
+  const lignes = await chargerLignesPrestations();
 
-  const [{ data: devis }, { data: bons }, { data: sites }] = await Promise.all([
-    supabase.from("devis").select("*").neq("date_commande_client", ""),
-    supabase.from("bons_intervention").select("id, devis_id, numero, statut"),
-    supabase.from("sites").select("id, nom, site"),
-  ]);
-
-  const siteParId = new Map((sites ?? []).map((s) => [s.id, s]));
-  const bonParDevisId = new Map<string, { id: string; numero: string; statut: string }>();
-  for (const b of bons ?? []) {
-    if (!b.devis_id) continue;
-    // Un devis peut en théorie avoir plusieurs BI (reprise après
-    // erreur) — le plus avancé (réalisé) prime sur un brouillon.
-    const existant = bonParDevisId.get(b.devis_id);
-    if (!existant || (STATUTS_REALISE.has(b.statut) && !STATUTS_REALISE.has(existant.statut))) {
-      bonParDevisId.set(b.devis_id, { id: b.id, numero: b.numero, statut: b.statut });
-    }
-  }
-
-  const lignes: PrestationLigne[] = (devis ?? []).map((d) => {
-    const site = siteParId.get(d.site_id);
-    const bon = bonParDevisId.get(d.id);
-    return {
-      id: d.id,
-      numero: d.numero,
-      clientNom: site?.nom ?? "",
-      clientSite: site?.site ?? "",
-      nature: d.nature,
-      libelle: d.libelle,
-      montant: d.montant,
-      heuresPrevues: d.heures_prevues,
-      dateCommandeClient: d.date_commande_client,
-      biId: bon?.id ?? null,
-      biNumero: bon?.numero ?? d.bi_reference_historique ?? null,
-      realisee: (bon ? STATUTS_REALISE.has(bon.statut) : false) || Boolean(d.bi_reference_historique),
-      annulee: d.annule,
-    };
-  });
-
-  return <PrestationsListe lignes={lignes} isAdmin={profile?.role === "admin"} />;
+  return <PrestationsListe lignes={lignes} isAdmin={profile.role === "admin"} vue="a_realiser" />;
 }

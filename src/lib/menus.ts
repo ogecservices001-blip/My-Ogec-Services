@@ -51,7 +51,15 @@ export function construireModules(isAdmin: boolean): Module[] {
       actif: true,
       icone: Zap,
       couleur: "bg-red-100 text-red-600",
-      sousMenus: [{ nom: "Demandes reçues", href: "/depannages" }],
+      sousMenus: [
+        { nom: "Dépannages en cours", href: "/depannages" },
+        ...(isAdmin
+          ? [
+              { nom: "Dépannages traités", href: "/depannages/traitees" },
+              { nom: "Statistiques", href: "/depannages/statistiques" },
+            ]
+          : []),
+      ],
     },
     {
       nom: "Bon d'intervention",

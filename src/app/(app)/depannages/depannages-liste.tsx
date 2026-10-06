@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Plus, Download, MessageCircle, Mail, User, CalendarClock, X, Wrench } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { envoyerConfirmation } from "./actions";
-import { StatistiquesTab } from "./statistiques";
 
 function deuxChiffres(n: number): string {
   return String(n).padStart(2, "0");
@@ -31,31 +30,28 @@ function lienWhatsapp(portable: string, texte: string): string | null {
 
 type TechniciensParId = Record<string, { name: string; portable: string }>;
 
-type Onglet = "en_cours" | "traitees" | "statistiques";
-
 export function DepannagesListe({
   demandes,
   techniciensParId,
   isAdmin,
+  vue,
 }: {
   demandes: Tables<"demandes_depannage">[];
   techniciensParId: TechniciensParId;
   isAdmin: boolean;
+  vue: "en_cours" | "traitees";
 }) {
-  const [onglet, setOnglet] = useState<Onglet>("en_cours");
-
   const enCours = demandes.filter((d) => d.statut !== "traitee");
   const traitees = demandes.filter((d) => d.statut === "traitee");
-  // Vue technicien minimale : uniquement les dépannages en cours, pas
-  // d'onglets "Traitées"/"Statistiques" ni de création manuelle —
-  // réservés au bureau (voir /bi pour la même logique côté BI).
-  const filtrees = !isAdmin ? enCours : onglet === "en_cours" ? enCours : traitees;
+  const filtrees = vue === "en_cours" ? enCours : traitees;
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Suivi Dépannage</h1>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
+            {vue === "en_cours" ? "Dépannages en cours" : "Dépannages traités"}
+          </h1>
         </div>
         {isAdmin && (
           <div className="flex items-center gap-2">
@@ -66,57 +62,22 @@ export function DepannagesListe({
             >
               <Download className="h-4 w-4" strokeWidth={2.25} />
             </a>
-            <Link
-              href="/depannages/nouveau"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.5} />
-              Nouveau dépannage
-            </Link>
+            {vue === "en_cours" && (
+              <Link
+                href="/depannages/nouveau"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.5} />
+                Nouveau dépannage
+              </Link>
+            )}
           </div>
         )}
       </div>
 
-      {isAdmin && (
-        <div className="mb-5 flex flex-col gap-2">
-          <button
-            onClick={() => setOnglet("en_cours")}
-            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-              onglet === "en_cours"
-                ? "bg-red-600 text-white shadow-sm"
-                : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-            }`}
-          >
-            Dépannages en cours ({enCours.length})
-          </button>
-          <button
-            onClick={() => setOnglet("traitees")}
-            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-              onglet === "traitees"
-                ? "bg-brand-green text-white shadow-sm"
-                : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-            }`}
-          >
-            Dépannages traitées ({traitees.length})
-          </button>
-          <button
-            onClick={() => setOnglet("statistiques")}
-            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-              onglet === "statistiques"
-                ? "bg-slate-800 text-white shadow-sm"
-                : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-            }`}
-          >
-            Statistiques
-          </button>
-        </div>
-      )}
-
-      {isAdmin && onglet === "statistiques" ? (
-        <StatistiquesTab demandes={demandes} techniciensParId={techniciensParId} />
-      ) : filtrees.length === 0 ? (
+      {filtrees.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">
-          {!isAdmin || onglet === "en_cours" ? "Aucun dépannage en cours" : "Aucun dépannage traité"}
+          {vue === "en_cours" ? "Aucun dépannage en cours" : "Aucun dépannage traité"}
         </p>
       ) : (
         <ul className="space-y-3">

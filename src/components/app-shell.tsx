@@ -10,7 +10,7 @@ import { Sidebar } from "@/components/sidebar";
 /// reste la colonne centrée pour ne jamais élargir un écran par
 /// accident. Contrôle à la fois le conteneur global (sidebar incluse)
 /// et la colonne de contenu, pour que les deux s'accordent.
-const LARGEUR_PLEINE = ["/gmao/audit-heures", "/devis"];
+const LARGEUR_PLEINE = ["/gmao/audit-heures", "/devis", "/depannages/traitees"];
 
 export function AppShell({
   isAdmin,

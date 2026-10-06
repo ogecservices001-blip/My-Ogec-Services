@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Upload } from "lucide-react";
+import { Download, Plus, Upload } from "lucide-react";
 
 /// En-tête commun aux deux écrans Devis : titre + export/import. Le
 /// reste (onglets de filtre) est propre à chaque écran, affiché par
@@ -24,6 +24,14 @@ export function DevisEntete({ isAdmin }: { isAdmin: boolean }) {
           >
             <Download className="h-4 w-4" strokeWidth={2.25} />
           </a>
+          <Link
+            href="/devis/nouveau"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
+            title="Nouveau devis"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            Nouveau devis
+          </Link>
           <Link
             href="/devis/importer"
             className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"

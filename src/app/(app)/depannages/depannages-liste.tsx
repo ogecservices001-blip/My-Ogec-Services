@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Download, MessageCircle, Mail, User, CalendarClock, X, Wrench } from "lucide-react";
 import type { Tables } from "@/lib/types";
+import { Tableur } from "@/components/tableur";
 import { envoyerConfirmation } from "./actions";
 
 function deuxChiffres(n: number): string {
@@ -14,6 +15,14 @@ function deuxChiffres(n: number): string {
 function formaterDateHeure(iso: string): string {
   const d = new Date(iso);
   return `${deuxChiffres(d.getDate())}/${deuxChiffres(d.getMonth() + 1)}/${d.getFullYear()} ${deuxChiffres(d.getHours())}:${deuxChiffres(d.getMinutes())}`;
+}
+
+function formaterDelaiEntre(debut: string, fin: string | null): string {
+  if (!fin) return "";
+  const heures = (new Date(fin).getTime() - new Date(debut).getTime()) / 3_600_000;
+  if (heures < 1) return `${Math.round(heures * 60)} min`;
+  if (heures < 24) return `${heures.toFixed(1)} h`;
+  return `${Math.floor(heures / 24)} j ${Math.round(heures % 24)} h`;
 }
 
 function formaterDate(iso: string): string {
@@ -77,10 +86,32 @@ export function DepannagesListe({
         )}
       </div>
 
-      {filtrees.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">
-          {vue === "en_cours" ? "Aucun dépannage en cours" : "Aucun dépannage traité"}
-        </p>
+      {vue === "traitees" ? (
+        <Tableur
+          colonnes={[
+            { titre: "N°", largeur: "8%" },
+            { titre: "Client — Site", largeur: "20%" },
+            { titre: "Équipement", largeur: "16%" },
+            { titre: "Motif", largeur: "20%" },
+            { titre: "Créé le", largeur: "11%" },
+            { titre: "Traité le", largeur: "11%" },
+            { titre: "Technicien", largeur: "9%" },
+            { titre: "Délai", largeur: "5%", droite: true },
+          ]}
+          lignes={filtrees.map((d) => [
+            d.numero,
+            [d.client_nom, d.client_site].filter(Boolean).join(" — "),
+            d.equipement_nom,
+            d.message,
+            formaterDateHeure(d.date_creation),
+            d.date_traitement ? formaterDateHeure(d.date_traitement) : "",
+            d.intervenant_id ? (techniciensParId[d.intervenant_id]?.name ?? "") : "",
+            formaterDelaiEntre(d.date_creation, d.date_traitement),
+          ])}
+          vide="Aucun dépannage traité"
+        />
+      ) : filtrees.length === 0 ? (
+        <p className="py-10 text-center text-sm text-slate-500">Aucun dépannage en cours</p>
       ) : (
         <ul className="space-y-3">
           {filtrees.map((d) => (

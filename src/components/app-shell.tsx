@@ -10,7 +10,13 @@ import { Sidebar } from "@/components/sidebar";
 /// reste la colonne centrée pour ne jamais élargir un écran par
 /// accident. Contrôle à la fois le conteneur global (sidebar incluse)
 /// et la colonne de contenu, pour que les deux s'accordent.
-const LARGEUR_PLEINE = ["/gmao/audit-heures", "/depannages/traitees"];
+const LARGEUR_PLEINE = [
+  "/gmao/audit-heures",
+  "/depannages/traitees",
+  "/depannages/statistiques",
+  "/prestations/realisees",
+  "/prestations/annulees",
+];
 /// Sections entières (toutes les sous-pages), réservées à l'admin.
 const LARGEUR_PLEINE_SECTIONS = ["/devis"];
 

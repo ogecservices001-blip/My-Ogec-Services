@@ -6,8 +6,10 @@ import Link from "next/link";
 import { ArrowLeft, Pencil, Trash2, X } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import type { Site } from "@/lib/types";
+import { Tableur } from "@/components/tableur";
 import { NATURE_DEVIS, labelNatureDevis } from "@/lib/devis/constants";
 import { modifierDevis, supprimerDevis, type DevisInput } from "../../actions";
+import { eur } from "../../registre-liste";
 
 type Devis = Tables<"devis">;
 
@@ -28,53 +30,42 @@ export function DevisDuSite({ site, devis, isAdmin }: { site: Site; devis: Devis
       </h1>
       <p className="mb-5 text-sm text-slate-500">{devis.length} devis</p>
 
-      {devis.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">Aucun devis pour ce site pour l&apos;instant</p>
-      ) : (
-        <ul className="space-y-3">
-          {devis.map((d) => (
-            <li key={d.id} className="flex items-start justify-between gap-3 rounded-2xl bg-white p-4 shadow-sm">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-bold text-slate-900">{d.numero || "(sans référence)"}</p>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                      d.annule
-                        ? "bg-red-100 text-red-700"
-                        : d.date_commande_client
-                          ? "bg-green-100 text-brand-green-dark"
-                          : "bg-slate-100 text-slate-500"
-                    }`}
-                  >
-                    {d.annule ? "Annulée" : d.date_commande_client ? "Commandé" : "En attente"}
-                  </span>
-                  {d.nature && (
-                    <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">
-                      {labelNatureDevis(d.nature)}
-                    </span>
-                  )}
-                </div>
-                {d.libelle && <p className="mt-1 text-sm text-slate-700">{d.libelle}</p>}
-                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                  {d.date_devis && <span>Devis du {d.date_devis}</span>}
-                  {isAdmin && d.montant !== null && <span>{d.montant.toFixed(2)} €</span>}
-                  {d.heures_prevues !== null && <span>{d.heures_prevues} h prévues</span>}
-                  {d.date_commande_client && <span>Commandé le {d.date_commande_client}</span>}
-                </div>
-              </div>
-              {isAdmin && (
+      <Tableur
+        colonnes={[
+          { titre: "N°", largeur: "11%" },
+          { titre: "Libellé", largeur: "28%" },
+          { titre: "Nature", largeur: "8%" },
+          { titre: "Date devis", largeur: "9%" },
+          { titre: "Commandé le", largeur: "10%" },
+          { titre: "H. prévues", largeur: "8%", droite: true },
+          { titre: "Montant", largeur: "10%", droite: true },
+          { titre: "Statut", largeur: "10%" },
+          ...(isAdmin ? [{ titre: "", largeur: "6%" }] : []),
+        ]}
+        lignes={devis.map((d) => [
+          d.numero || "(sans référence)",
+          d.libelle,
+          labelNatureDevis(d.nature) || "—",
+          d.date_devis,
+          d.date_commande_client,
+          d.heures_prevues !== null ? String(d.heures_prevues) : "",
+          isAdmin && d.montant !== null ? eur(d.montant) : "",
+          d.annule ? "Annulée" : d.date_commande_client ? "Commandé" : "En attente",
+          ...(isAdmin
+            ? [
                 <button
+                  key="modifier"
                   onClick={() => setModifie(d)}
-                  className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
+                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
                   title="Modifier"
                 >
                   <Pencil className="h-4 w-4" strokeWidth={2} />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                </button>,
+              ]
+            : []),
+        ])}
+        vide="Aucun devis pour ce site pour l'instant"
+      />
 
       {modifie && <ModaleDevis devis={modifie} onClose={() => setModifie(null)} />}
     </div>

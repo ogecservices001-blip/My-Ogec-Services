@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, ClipboardList, Wrench, Download } from "lucide-react";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import { avecAffaire } from "@/lib/bi/constants";
+import { Tableur } from "@/components/tableur";
 import type { PrestationLigne } from "@/lib/prestations/charger-lignes";
 
 export function PrestationsListe({
@@ -55,14 +56,40 @@ export function PrestationsListe({
         />
       </div>
 
-      {filtrees.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">
-          {vue === "a_realiser"
-            ? "Aucune prestation à réaliser"
-            : vue === "realisees"
-              ? "Aucune prestation réalisée"
-              : "Aucune prestation annulée"}
-        </p>
+      {vue !== "a_realiser" ? (
+        <Tableur
+          colonnes={[
+            { titre: "N°", largeur: "9%" },
+            { titre: "Client — Site", largeur: "20%" },
+            { titre: "Libellé", largeur: "26%" },
+            { titre: "Nature", largeur: "8%" },
+            { titre: "Commandé le", largeur: "10%" },
+            { titre: "H. prévues", largeur: "8%", droite: true },
+            { titre: "Montant", largeur: "10%", droite: true },
+            { titre: "N° BI", largeur: "9%" },
+          ]}
+          lignes={filtrees.map((l) => [
+            l.numero,
+            [l.clientNom, l.clientSite].filter(Boolean).join(" — "),
+            l.libelle,
+            labelNatureDevis(l.nature) || "—",
+            l.dateCommandeClient,
+            l.heuresPrevues !== null ? String(l.heuresPrevues) : "",
+            l.montant !== null
+              ? `${l.montant.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+              : "",
+            l.biId && l.biNumero ? (
+              <Link key="bi" href={`/bi/${l.biId}`} className="font-semibold text-violet-700 hover:underline">
+                {l.biNumero}
+              </Link>
+            ) : (
+              (l.biNumero ?? "")
+            ),
+          ])}
+          vide={vue === "realisees" ? "Aucune prestation réalisée" : "Aucune prestation annulée"}
+        />
+      ) : filtrees.length === 0 ? (
+        <p className="py-10 text-center text-sm text-slate-500">Aucune prestation à réaliser</p>
       ) : (
         <ul className="space-y-2.5">
           {filtrees.map((l) => (

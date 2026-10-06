@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
 import type { Tables } from "@/lib/types";
+import { Tableur, type ColonneTableur } from "@/components/tableur";
 
 type Demande = Tables<"demandes_depannage">;
 type TechniciensParId = Record<string, { name: string; portable: string }>;
@@ -50,7 +50,8 @@ function calculerStats(
   return lignes.sort((a, b) => b.total - a.total);
 }
 
-function formaterDelai(heures: number): string {
+function formaterDelai(heures: number | null): string {
+  if (heures === null) return "—";
   if (heures < 1) return `${Math.round(heures * 60)} min`;
   if (heures < 24) return `${heures.toFixed(1)} h`;
   const jours = Math.floor(heures / 24);
@@ -58,18 +59,13 @@ function formaterDelai(heures: number): string {
   return `${jours} j ${reste} h`;
 }
 
-function StatChiffres({ s, compact }: { s: StatLigne; compact?: boolean }) {
-  return (
-    <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 ${compact ? "text-xs" : "mt-1 text-sm"} text-slate-500`}>
-      <span>{s.total} total</span>
-      <span className="text-red-600">{s.enCours} en cours</span>
-      <span className="text-brand-green-dark">{s.traitees} traité(s)</span>
-      {s.delaiMoyenHeures !== null && <span>Délai moyen : {formaterDelai(s.delaiMoyenHeures)}</span>}
-    </div>
-  );
-}
-
-type Vue = "clients" | "techniciens";
+const COLONNES_STATS: ColonneTableur[] = [
+  { titre: "Nom", largeur: "40%" },
+  { titre: "Total", largeur: "15%", droite: true },
+  { titre: "En cours", largeur: "15%", droite: true },
+  { titre: "Traités", largeur: "15%", droite: true },
+  { titre: "Délai moyen", largeur: "15%", droite: true },
+];
 
 export function StatistiquesTab({
   demandes,
@@ -78,10 +74,12 @@ export function StatistiquesTab({
   demandes: Demande[];
   techniciensParId: TechniciensParId;
 }) {
-  const [vue, setVue] = useState<Vue>("clients");
   const [clientOuvert, setClientOuvert] = useState<string | null>(null);
 
-  const statsClients = useMemo(() => calculerStats(demandes, (d) => d.client_nom, (cle) => cle || "Client inconnu"), [demandes]);
+  const statsClients = useMemo(
+    () => calculerStats(demandes, (d) => d.client_nom, (cle) => cle || "Client inconnu"),
+    [demandes],
+  );
   const statsTechniciens = useMemo(
     () =>
       calculerStats(
@@ -96,70 +94,58 @@ export function StatistiquesTab({
     return <p className="py-10 text-center text-sm text-slate-500">Aucune donnée pour l&apos;instant</p>;
   }
 
-  return (
-    <div>
-      <div className="mb-4 flex gap-2">
-        <button
-          onClick={() => setVue("clients")}
-          className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${
-            vue === "clients" ? "bg-slate-800 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-          }`}
-        >
-          Par client
-        </button>
-        <button
-          onClick={() => setVue("techniciens")}
-          className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${
-            vue === "techniciens" ? "bg-slate-800 text-white shadow-sm" : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-          }`}
-        >
-          Par technicien
-        </button>
-      </div>
+  const lignesClients = statsClients.flatMap((s) => {
+    const ouvert = clientOuvert === s.cle;
+    const ligneClient = [
+      <button
+        key="client"
+        onClick={() => setClientOuvert(ouvert ? null : s.cle)}
+        className="font-semibold text-slate-900 hover:underline"
+      >
+        {ouvert ? "▾" : "▸"} {s.label}
+      </button>,
+      String(s.total),
+      String(s.enCours),
+      String(s.traitees),
+      formaterDelai(s.delaiMoyenHeures),
+    ];
+    if (!ouvert) return [ligneClient];
 
-      {vue === "clients" ? (
-        <div className="space-y-2">
-          {statsClients.map((s) => {
-            const ouvert = clientOuvert === s.cle;
-            const sitesDuClient = calculerStats(
-              demandes.filter((d) => d.client_nom === s.cle),
-              (d) => d.client_site,
-              (cle) => cle || "Site sans nom",
-            );
-            return (
-              <div key={s.cle} className="rounded-2xl bg-white p-4 shadow-sm">
-                <button
-                  onClick={() => setClientOuvert(ouvert ? null : s.cle)}
-                  className="flex w-full items-center justify-between gap-2 text-left"
-                >
-                  <span className="font-semibold text-slate-900">{s.label}</span>
-                  <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${ouvert ? "rotate-180" : ""}`} />
-                </button>
-                <StatChiffres s={s} />
-                {ouvert && (
-                  <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
-                    {sitesDuClient.map((site) => (
-                      <div key={site.cle} className="rounded-xl bg-slate-50 p-3">
-                        <p className="text-sm font-medium text-slate-800">{site.label}</p>
-                        <StatChiffres s={site} compact />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {statsTechniciens.map((s) => (
-            <div key={s.cle} className="rounded-2xl bg-white p-4 shadow-sm">
-              <p className="font-semibold text-slate-900">{s.label}</p>
-              <StatChiffres s={s} />
-            </div>
-          ))}
-        </div>
-      )}
+    const sites = calculerStats(
+      demandes.filter((d) => d.client_nom === s.cle),
+      (d) => d.client_site,
+      (cle) => cle || "Site sans nom",
+    );
+    return [
+      ligneClient,
+      ...sites.map((site) => [
+        `      ↳ ${site.label}`,
+        String(site.total),
+        String(site.enCours),
+        String(site.traitees),
+        formaterDelai(site.delaiMoyenHeures),
+      ]),
+    ];
+  });
+
+  const lignesTechniciens = statsTechniciens.map((s) => [
+    s.label,
+    String(s.total),
+    String(s.enCours),
+    String(s.traitees),
+    formaterDelai(s.delaiMoyenHeures),
+  ]);
+
+  return (
+    <div className="space-y-8">
+      <section>
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Par client</h2>
+        <Tableur colonnes={COLONNES_STATS} lignes={lignesClients} />
+      </section>
+      <section>
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Par technicien</h2>
+        <Tableur colonnes={COLONNES_STATS} lignes={lignesTechniciens} />
+      </section>
     </div>
   );
 }

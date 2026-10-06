@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowLeft, Bug, Lightbulb, MessageSquare, Send, ChevronRight, Download } from "lucide-react";
 import { envoyerSignalement } from "./actions";
-import { TypeBadge } from "@/components/signalements/type-badge";
+import { Tableur } from "@/components/tableur";
 import { construireModules } from "@/lib/menus";
 import type { Signalement, TypeSignalement } from "@/lib/types";
 
@@ -307,34 +307,31 @@ function ListeAdmin({ signalements }: { signalements: Signalement[] }) {
         </Link>
       </div>
 
-      {affiches.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">
-          {filtre === "a_traiter" ? "Aucun signalement en attente" : "Aucun signalement traité"}
-        </p>
-      ) : (
-        <ul className="space-y-2.5">
-          {affiches.map((s) => (
-            <li key={s.id}>
-              <Link
-                href={`/signalements/${s.id}`}
-                className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate font-mono text-sm font-bold text-slate-900">{s.numero}</p>
-                    <TypeBadge type={s.type} />
-                  </div>
-                  <p className="truncate text-sm text-slate-500">
-                    {s.menu} — {s.sous_menu}
-                  </p>
-                  <p className="truncate text-xs text-slate-400">{s.nature}</p>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      <Tableur
+        colonnes={[
+          { titre: "N°", largeur: "9%" },
+          { titre: "Date", largeur: "10%" },
+          { titre: "Type", largeur: "9%" },
+          { titre: "Menu", largeur: "18%" },
+          { titre: "Sous-menu", largeur: "18%" },
+          { titre: "Nature", largeur: "22%" },
+          { titre: "Auteur", largeur: "10%" },
+          { titre: "Traité", largeur: "6%" },
+        ]}
+        lignes={affiches.map((s) => [
+          <Link key="numero" href={`/signalements/${s.id}`} className="font-mono font-bold text-slate-900 hover:underline">
+            {s.numero}
+          </Link>,
+          new Date(s.created_at).toLocaleDateString("fr-FR"),
+          LABEL_TYPE[s.type],
+          s.menu,
+          s.sous_menu,
+          s.nature,
+          s.auteur_nom,
+          s.traite ? "Oui" : "Non",
+        ])}
+        vide={filtre === "a_traiter" ? "Aucun signalement en attente" : "Aucun signalement traité"}
+      />
     </div>
   );
 }

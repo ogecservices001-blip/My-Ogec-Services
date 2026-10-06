@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Search, ChevronRight, FileSignature, Download } from "lucide-react";
+import { ArrowLeft, Search, Download } from "lucide-react";
+import { Tableur } from "@/components/tableur";
 import { DevisEntete } from "../entete";
 import { eur } from "../registre-liste";
 
@@ -78,43 +79,52 @@ export function ParClientListe({
         />
       </div>
 
-      {filtres.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">
-          {groupes.length === 0 ? 'Aucun devis pour l\'instant — "Importer" pour commencer' : "Aucun résultat"}
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {filtres.map((g) => (
-            <li key={g.nom} className="flex items-center gap-2">
-              <Link
-                href={g.sites.length === 1 ? `/devis/site/${g.sites[0].id}` : `/devis/groupe/${encodeURIComponent(g.nom)}?horsContrat=${horsContrat ? 1 : 0}`}
-                className="flex flex-1 items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
-              >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100">
-                  <FileSignature className="h-5 w-5 text-amber-600" strokeWidth={2} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-slate-900">{g.nom}</p>
-                  <p className="text-sm text-slate-400">
-                    {g.nbDevis} devis · {g.nbCommandes} commandé(s)
-                    {isAdmin && ` · ${eur(g.montantTotal)}`}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
-              </Link>
-              {isAdmin && (
-                <a
-                  href={`/devis/export?nom=${encodeURIComponent(g.nom)}`}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-700"
-                  title={`Exporter les devis de ${g.nom}`}
-                >
-                  <Download className="h-4 w-4" strokeWidth={2} />
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <Tableur
+          colonnes={[
+            { titre: "Client", largeur: "30%" },
+            { titre: "Sites", largeur: "8%", droite: true },
+            { titre: "Devis", largeur: "8%", droite: true },
+            { titre: "Commandés", largeur: "10%", droite: true },
+            ...(isAdmin
+              ? [
+                  { titre: "Montant total", largeur: "14%", droite: true },
+                  { titre: "En attente", largeur: "14%", droite: true },
+                  { titre: "", largeur: "6%" },
+                ]
+              : []),
+          ]}
+          lignes={filtres.map((g) => [
+            <Link
+              key="nom"
+              href={
+                g.sites.length === 1
+                  ? `/devis/site/${g.sites[0].id}`
+                  : `/devis/groupe/${encodeURIComponent(g.nom)}?horsContrat=${horsContrat ? 1 : 0}`
+              }
+              className="font-semibold text-slate-900 hover:underline"
+            >
+              {g.nom}
+            </Link>,
+            String(g.sites.length),
+            String(g.nbDevis),
+            String(g.nbCommandes),
+            ...(isAdmin
+              ? [
+                  eur(g.montantTotal),
+                  eur(g.montantTotal - g.montantCommande),
+                  <a
+                    key="export"
+                    href={`/devis/export?nom=${encodeURIComponent(g.nom)}`}
+                    className="inline-flex rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
+                    title={`Exporter les devis de ${g.nom}`}
+                  >
+                    <Download className="h-4 w-4" strokeWidth={2} />
+                  </a>,
+                ]
+              : []),
+          ])}
+          vide={groupes.length === 0 ? "Aucun devis pour l'instant — « Importer » pour commencer" : "Aucun résultat"}
+        />
     </div>
   );
 }

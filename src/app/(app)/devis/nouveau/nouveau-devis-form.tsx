@@ -8,7 +8,7 @@ import { creerDevis, listerEquipementsDuSite } from "../actions";
 
 type Option = { valeur: string; label: string };
 type SiteOption = { id: string; nom: string; site: string; horsContrat: boolean };
-type Equipement = { id: string; nom: string; numero_equipement: string };
+type Equipement = { id: string; libelle: string };
 
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
 const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
@@ -145,8 +145,7 @@ export function NouveauDevisForm({ sites, natures }: { sites: SiteOption[]; natu
             <option value="">— aucun —</option>
             {equipements.map((e) => (
               <option key={e.id} value={e.id}>
-                {e.nom}
-                {e.numero_equipement ? ` (${e.numero_equipement})` : ""}
+                {e.libelle}
               </option>
             ))}
           </select>

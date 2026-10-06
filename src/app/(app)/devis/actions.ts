@@ -24,17 +24,21 @@ export type NouveauDevisInput = {
 const ERREUR_DOUBLON = "23505";
 const ESSAIS_NUMERO = 5;
 
-export async function listerEquipementsDuSite(
-  siteId: string,
-): Promise<{ id: string; nom: string; numero_equipement: string }[]> {
+export async function listerEquipementsDuSite(siteId: string): Promise<{ id: string; libelle: string }[]> {
   await requireAdmin();
   const supabase = await createClient();
   const { data } = await supabase
     .from("equipements")
-    .select("id, nom, numero_equipement")
+    .select("id, numero_equipement, localisation, champs_en_tete")
     .eq("site_id", siteId)
     .order("nom");
-  return data ?? [];
+  return (data ?? []).map((e) => {
+    const typeEquipement1 = typeof e.champs_en_tete.typeEquipement1 === "string" ? e.champs_en_tete.typeEquipement1 : "";
+    return {
+      id: e.id,
+      libelle: [typeEquipement1, e.numero_equipement, e.localisation].filter(Boolean).join(" — "),
+    };
+  });
 }
 
 /// Crée un devis avec son numéro attribué au moment de l'enregistrement :

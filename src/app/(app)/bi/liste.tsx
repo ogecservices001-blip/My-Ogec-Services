@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { StatutBadge } from "@/components/bi/statut-badge";
-import { Statuts, labelPole } from "@/lib/bi/constants";
+import { labelPole } from "@/lib/bi/constants";
 
 type BonResume = {
   id: string;
@@ -15,40 +15,22 @@ type BonResume = {
   updated_at: string;
 };
 
-export function BiListe({ bons }: { bons: BonResume[] }) {
-  const aVerifier = bons.filter((b) => b.statut === Statuts.aVerifier);
-  const autres = bons.filter((b) => b.statut !== Statuts.aVerifier);
-
+export function BiListe({ bons, titre, vide }: { bons: BonResume[]; titre: string; vide: string }) {
   return (
     <div>
       <div className="mb-4">
-        <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Bon d&apos;intervention</h1>
+        <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">{titre}</h1>
         <p className="text-sm text-slate-500">Petits travaux, maintenance, dépannage</p>
       </div>
 
       {bons.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">Aucun bon d&apos;intervention pour l&apos;instant</p>
+        <p className="py-10 text-center text-sm text-slate-500">{vide}</p>
       ) : (
-        <>
-          {aVerifier.length > 0 && (
-            <>
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-orange-600">
-                À vérifier ({aVerifier.length})
-              </p>
-              <ul className="mb-5 space-y-2.5">
-                {aVerifier.map((b) => (
-                  <CarteBon key={b.id} bon={b} />
-                ))}
-              </ul>
-            </>
-          )}
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Tous les bons</p>
-          <ul className="space-y-2.5">
-            {autres.map((b) => (
-              <CarteBon key={b.id} bon={b} />
-            ))}
-          </ul>
-        </>
+        <ul className="space-y-2.5">
+          {bons.map((b) => (
+            <CarteBon key={b.id} bon={b} />
+          ))}
+        </ul>
       )}
     </div>
   );

@@ -67,7 +67,10 @@ export function construireModules(isAdmin: boolean): Module[] {
       icone: ClipboardList,
       couleur: "bg-violet-100 text-violet-600",
       sousMenus: isAdmin
-        ? [{ nom: "Tous les bons", href: "/bi" }]
+        ? [
+            { nom: "Bon à vérifier", href: "/bi" },
+            { nom: "Bons validés", href: "/bi/valides" },
+          ]
         : [
             { nom: "Dépannage", href: "/bi/nouveau?pole=60" },
             { nom: "Entretien sous contrat", href: "/bi/nouveau?pole=20" },

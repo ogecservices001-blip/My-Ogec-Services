@@ -11,6 +11,8 @@ import { Sidebar } from "@/components/sidebar";
 /// accident. Contrôle à la fois le conteneur global (sidebar incluse)
 /// et la colonne de contenu, pour que les deux s'accordent.
 const LARGEUR_PLEINE = [
+  "/bi",
+  "/bi/valides",
   "/gmao/audit-heures",
   "/depannages/traitees",
   "/depannages/statistiques",

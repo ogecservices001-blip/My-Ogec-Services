@@ -135,11 +135,10 @@ export function ReleveForm({
         </div>
       </div>
 
-      {devisEnCours.length > 0 && (
-        <div className="mb-3 rounded-2xl bg-red-50 p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-red-700">Devis</p>
+      {(devisEnCours.length > 0 || depannagesOuverts.length > 0) && (
+        <div className="mb-5 space-y-1.5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
           {devisEnCours.map((d, i) => (
-            <p key={i} className="mt-1 flex flex-wrap items-center gap-1.5 text-sm font-semibold text-red-700">
+            <p key={`devis-${i}`} className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-red-700">
               {d.numero}
               <span
                 className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${TEINTE_STATUT_DEVIS[d.statut]}`}
@@ -149,14 +148,8 @@ export function ReleveForm({
               — {d.libelle}
             </p>
           ))}
-        </div>
-      )}
-
-      {depannagesOuverts.length > 0 && (
-        <div className="mb-5 rounded-2xl bg-blue-50 p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-blue-700">Dépannage en cours</p>
           {depannagesOuverts.map((d) => (
-            <p key={d.id} className="mt-1 text-sm font-semibold text-blue-700">
+            <p key={`dep-${d.id}`} className="text-sm font-semibold text-blue-700">
               N°{d.numero} — {d.message}
             </p>
           ))}

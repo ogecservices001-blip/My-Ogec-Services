@@ -121,7 +121,8 @@ const modules: {
 
 export default async function AccueilPage() {
   const profile = await getCurrentProfile();
-  const prenom = profile?.name.trim().split(/\s+/)[0] ?? "";
+  const mots = profile?.name.trim().split(/\s+/) ?? [];
+  const prenom = mots.length > 0 ? mots[mots.length - 1] : "";
   const isAdmin = profile?.role === "admin";
 
   return (

@@ -7,9 +7,14 @@ import { BiWizard } from "./wizard";
 
 /// Le bureau (admin) ne crée jamais de BI lui-même — il ne fait que
 /// vérifier/valider ceux créés par les techniciens (page /bi).
-export default async function NouveauBiPage() {
+export default async function NouveauBiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pole?: string; devisId?: string; depannageId?: string }>;
+}) {
   const profile = await requireProfile();
   if (profile.role === "admin") redirect("/");
+  const { pole, devisId, depannageId } = await searchParams;
   const supabase = await createClient();
 
   const [{ data: sites }, { data: techniciens }, { data: typesEquipement }, depannagesEnCours, devisARealiser] = await Promise.all([
@@ -27,6 +32,7 @@ export default async function NouveauBiPage() {
 
   return (
     <BiWizard
+      key={`${pole ?? ""}|${devisId ?? ""}|${depannageId ?? ""}`}
       sites={sites ?? []}
       techniciensDisponibles={(techniciens ?? []).map((t) => t.name)}
       typesEquipement={(typesEquipement ?? []) as TypeEquipement[]}

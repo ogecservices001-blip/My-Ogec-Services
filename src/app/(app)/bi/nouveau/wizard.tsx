@@ -92,11 +92,13 @@ export function BiWizard({
   const searchParams = useSearchParams();
 
   // Boutons contextuels (carte devis dans /prestations, carte ticket
-  // dans /depannages) et lien "Dépannage" de la sidebar : pré-
-  // remplissage calculé dès le premier rendu, pas dans un effet après
-  // coup — /bi/nouveau est la même route pour tous les BI, donc passer
-  // d'une carte à une autre peut réutiliser l'instance déjà montée
-  // sans jamais redéclencher un effet qui ne tournerait qu'au montage.
+  // dans /depannages) et liens de la sidebar : pré-remplissage calculé
+  // dès le premier rendu, pas dans un effet après coup — /bi/nouveau
+  // est la même route pour tous les BI, donc la page (Server Component)
+  // met pole/devisId/depannageId en `key` du wizard pour forcer un vrai
+  // remontage (et donc un nouveau calcul ici) quand on passe d'un
+  // contexte à l'autre, plutôt que de réutiliser une instance déjà
+  // montée dont les useState ne se réinitialiseraient pas tout seuls.
   function compteRenduDepuisDepannage(d: DepannageEnCours): string {
     return [d.lieu_panne ? `Lieu : ${d.lieu_panne}` : "", `Motif : ${d.message}`].filter(Boolean).join("\n");
   }

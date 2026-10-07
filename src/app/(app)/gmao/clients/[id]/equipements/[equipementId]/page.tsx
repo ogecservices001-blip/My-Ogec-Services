@@ -40,7 +40,15 @@ export default async function VisualiserEquipementPage({
 
   const resultatReference = analyserReference(c, references ?? []);
   const freqCourante = await freqCouranteCalculee(supabase, equipementId);
-  const devisEnCours = (await chargerDevisEnCoursParEquipement())[equipementId] ?? [];
+  const [devisEnCours, { data: depannagesOuverts }] = await Promise.all([
+    chargerDevisEnCoursParEquipement().then((parEquipement) => parEquipement[equipementId] ?? []),
+    supabase
+      .from("demandes_depannage")
+      .select("id, numero, message")
+      .eq("equipement_id", equipementId)
+      .neq("statut", "traitee")
+      .order("date_creation", { ascending: false }),
+  ]);
   const cumul =
     resultatReference.reference && Number.isFinite(freqAnnuelleNum)
       ? heuresCumulAnnee(freqAnnuelleNum, resultatReference.reference)
@@ -94,11 +102,10 @@ export default async function VisualiserEquipementPage({
         </div>
       </div>
 
-      {devisEnCours.length > 0 && (
-        <div className="mb-3 rounded-2xl bg-amber-50 p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-amber-800">Devis</p>
+      {(devisEnCours.length > 0 || (depannagesOuverts ?? []).length > 0) && (
+        <div className="mb-5 space-y-1.5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
           {devisEnCours.map((d, i) => (
-            <p key={i} className="mt-1 flex flex-wrap items-center gap-1.5 text-sm font-semibold text-amber-900">
+            <p key={`devis-${i}`} className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-red-700">
               {d.numero}
               <span
                 className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${TEINTE_STATUT_DEVIS[d.statut]}`}
@@ -106,6 +113,11 @@ export default async function VisualiserEquipementPage({
                 {LABEL_STATUT_DEVIS[d.statut]}
               </span>
               — {d.libelle}
+            </p>
+          ))}
+          {(depannagesOuverts ?? []).map((d) => (
+            <p key={`dep-${d.id}`} className="text-sm font-semibold text-blue-700">
+              N°{d.numero} — {d.message}
             </p>
           ))}
         </div>

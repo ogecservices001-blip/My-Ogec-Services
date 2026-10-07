@@ -1,17 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
-import { STATUTS_BI_REALISE } from "@/app/(app)/devis/statut";
+import { STATUTS_BI_REALISE, calculerStatutDevis, type StatutDevis } from "@/app/(app)/devis/statut";
 
-/// Libellés des devis "en cours" (non annulés, non réalisés — dès la
-/// création, pas besoin d'être commandé) par équipement — sans montant,
-/// pour l'affichage technicien. Objet plutôt que Map : ce résultat
-/// traverse la frontière serveur → client.
-export async function chargerDevisEnCoursParEquipement(): Promise<Record<string, string[]>> {
+export type DevisEnCours = { numero: string; libelle: string; statut: StatutDevis };
+
+/// Devis liés à un équipement, hors ceux déjà réalisés — dès la
+/// création, pas besoin d'être commandé, et les annulés restent
+/// affichés (étiquetés) plutôt que masqués. Objet plutôt que Map : ce
+/// résultat traverse la frontière serveur → client.
+export async function chargerDevisEnCoursParEquipement(): Promise<Record<string, DevisEnCours[]>> {
   const supabase = await createClient();
   const { data: devis } = await supabase
     .from("devis")
-    .select("id, libelle, equipement_id, bi_reference_historique")
-    .not("equipement_id", "is", null)
-    .eq("annule", false);
+    .select("id, numero, libelle, equipement_id, annule, date_commande_client, bi_reference_historique")
+    .not("equipement_id", "is", null);
   if (!devis || devis.length === 0) return {};
 
   const { data: bons } = await supabase
@@ -22,10 +23,19 @@ export async function chargerDevisEnCoursParEquipement(): Promise<Record<string,
     (bons ?? []).filter((b) => b.devis_id && STATUTS_BI_REALISE.has(b.statut)).map((b) => b.devis_id),
   );
 
-  const parEquipement: Record<string, string[]> = {};
+  const parEquipement: Record<string, DevisEnCours[]> = {};
   for (const d of devis) {
     if (!d.equipement_id || dejaRealises.has(d.id) || d.bi_reference_historique) continue;
-    (parEquipement[d.equipement_id] ??= []).push(d.libelle || "Devis sans libellé");
+    const statut = calculerStatutDevis({
+      annule: d.annule,
+      commande: Boolean(d.date_commande_client),
+      realise: false,
+    });
+    (parEquipement[d.equipement_id] ??= []).push({
+      numero: d.numero,
+      libelle: d.libelle || "Devis sans libellé",
+      statut,
+    });
   }
   return parEquipement;
 }

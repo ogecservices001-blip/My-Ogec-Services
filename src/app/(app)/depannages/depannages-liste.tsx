@@ -8,6 +8,8 @@ import type { Tables } from "@/lib/types";
 import { Tableur } from "@/components/tableur";
 import { FiltreSelect } from "@/components/filtre-select";
 import { envoyerConfirmation } from "./actions";
+import type { DevisEnCours } from "@/lib/devis/en-cours";
+import { LABEL_STATUT_DEVIS, TEINTE_STATUT_DEVIS } from "@/app/(app)/devis/statut";
 
 function deuxChiffres(n: number): string {
   return String(n).padStart(2, "0");
@@ -51,7 +53,7 @@ export function DepannagesListe({
   techniciensParId: TechniciensParId;
   isAdmin: boolean;
   vue: "en_cours" | "traitees";
-  devisEnCours: Record<string, string[]>;
+  devisEnCours: Record<string, DevisEnCours[]>;
 }) {
   const enCours = demandes.filter((d) => d.statut !== "traitee");
   const traitees = demandes.filter((d) => d.statut === "traitee");
@@ -151,7 +153,7 @@ function CarteDemande({
   demande: Tables<"demandes_depannage">;
   intervenant: { name: string; portable: string } | undefined;
   isAdmin: boolean;
-  devisEnCours: string[];
+  devisEnCours: DevisEnCours[];
 }) {
   const [modaleOuverte, setModaleOuverte] = useState(false);
   const nouvelle = demande.statut !== "traitee";
@@ -179,7 +181,19 @@ function CarteDemande({
         <p className="text-sm font-semibold text-slate-800">{demande.equipement_nom}</p>
       )}
       {devisEnCours.length > 0 && (
-        <p className="mt-1 text-xs font-semibold text-amber-800">Devis en cours : {devisEnCours.join(" · ")}</p>
+        <div className="mt-1 space-y-0.5">
+          {devisEnCours.map((d, i) => (
+            <p key={i} className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-amber-800">
+              {d.numero}
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${TEINTE_STATUT_DEVIS[d.statut]}`}
+              >
+                {LABEL_STATUT_DEVIS[d.statut]}
+              </span>
+              — {d.libelle}
+            </p>
+          ))}
+        </div>
       )}
       {demande.lieu_panne && <p className="text-xs text-slate-500">Lieu : {demande.lieu_panne}</p>}
       <p className="mt-1.5 text-sm text-slate-700">{demande.message}</p>

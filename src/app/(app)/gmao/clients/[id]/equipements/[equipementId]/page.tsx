@@ -7,6 +7,7 @@ import { concatTypeEquipement, analyserReference } from "@/lib/gmao/suggestion-r
 import { calculerHeuresVisite, heuresCumulAnnee } from "@/lib/gmao/calcul-heures-visite";
 import { freqCouranteCalculee } from "@/lib/gmao/releve-service";
 import { chargerDevisEnCoursParEquipement } from "@/lib/devis/en-cours";
+import { LABEL_STATUT_DEVIS, TEINTE_STATUT_DEVIS } from "@/app/(app)/devis/statut";
 
 export default async function VisualiserEquipementPage({
   params,
@@ -95,10 +96,16 @@ export default async function VisualiserEquipementPage({
 
       {devisEnCours.length > 0 && (
         <div className="mb-3 rounded-2xl bg-amber-50 p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-amber-800">Devis en cours</p>
-          {devisEnCours.map((libelle, i) => (
-            <p key={i} className="mt-1 text-sm font-semibold text-amber-900">
-              {libelle}
+          <p className="text-xs font-bold uppercase tracking-wide text-amber-800">Devis</p>
+          {devisEnCours.map((d, i) => (
+            <p key={i} className="mt-1 flex flex-wrap items-center gap-1.5 text-sm font-semibold text-amber-900">
+              {d.numero}
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${TEINTE_STATUT_DEVIS[d.statut]}`}
+              >
+                {LABEL_STATUT_DEVIS[d.statut]}
+              </span>
+              — {d.libelle}
             </p>
           ))}
         </div>

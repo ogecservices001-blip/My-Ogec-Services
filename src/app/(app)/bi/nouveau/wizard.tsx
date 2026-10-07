@@ -36,6 +36,7 @@ import {
   type PhotoInput,
   type PrestaInput,
   type DepannageEnCours,
+  type InterventionSupplementaireInput,
 } from "./actions";
 
 type SiteOption = {
@@ -301,6 +302,38 @@ export function BiWizard({
   const [photos, setPhotos] = useState<(PhotoInput & { preview: string; enCours: boolean })[]>([]);
   const [fourniture, setFourniture] = useState<PrestaInput[]>([{ designation: "", quantite: "" }]);
 
+  // Pôle Dépannage uniquement : un technicien touche souvent plusieurs
+  // équipements dans la même visite. Chaque "Autre équipement" referme
+  // l'intervention en cours (équipement/compte rendu/fourniture) ici et
+  // ramène à l'étape équipement pour la suivante ; obs/photos restent
+  // communes à la visite entière.
+  const [interventionsSupplementaires, setInterventionsSupplementaires] = useState<InterventionSupplementaireInput[]>([]);
+
+  function ajouterAutreEquipement() {
+    const nom = avecNouvelEquipement(pole) ? "" : equipement ? equipement.nom : equipementLibre.trim();
+    if (!nom) return;
+    setInterventionsSupplementaires((prev) => [
+      ...prev,
+      {
+        equipement_id: equipement?.id ?? null,
+        equipement_nom: nom,
+        equipement_groupe: equipement?.groupe ?? "",
+        equipement_localisation: equipement?.localisation ?? "",
+        compte_rendu: compteRendu.trim(),
+        prestas: fourniture.filter((p) => p.designation.trim()),
+      },
+    ]);
+    setEquipementId("");
+    setEquipementLibre("");
+    setCompteRendu("");
+    setFourniture([{ designation: "", quantite: "" }]);
+    setEtape(1);
+  }
+
+  function retirerAutreEquipement(index: number) {
+    setInterventionsSupplementaires((prev) => prev.filter((_, i) => i !== index));
+  }
+
   // Modèle du pôle (voir Référentiel BI) — champs guidés + checklist,
   // consultés en direct à chaque changement de pôle, jamais mis en
   // cache au-delà de cette session de l'assistant.
@@ -478,6 +511,7 @@ export function BiWizard({
       modele_champs: modeleChamps,
       checklist_values: checklistValues,
       prestas: avecFournitureMateriel(pole) ? fourniture.filter((p) => p.designation.trim()) : [],
+      interventions_supplementaires: interventionsSupplementaires,
       photos: photos.filter((p) => !p.enCours).map(({ type, storage_path, horodatage }) => ({ type, storage_path, horodatage })),
       sig_tech: sigTechRef.current?.getDataUrl() ?? "",
       sig_client: sigClientRef.current?.getDataUrl() ?? "",
@@ -517,9 +551,14 @@ export function BiWizard({
           <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
         </button>
         <div className="flex-1">
-          <p className="text-sm font-bold text-slate-900">Bon d&apos;intervention — Étape {etape + 1}/{TOTAL_ETAPES}</p>
+          <p className="text-sm font-bold text-slate-900">
+            Bon d&apos;intervention — Étape {etape - etapeDepart + 1}/{TOTAL_ETAPES - etapeDepart}
+          </p>
           <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-violet-100">
-            <div className={`h-full ${ACCENT}`} style={{ width: `${((etape + 1) / TOTAL_ETAPES) * 100}%` }} />
+            <div
+              className={`h-full ${ACCENT}`}
+              style={{ width: `${((etape - etapeDepart + 1) / (TOTAL_ETAPES - etapeDepart)) * 100}%` }}
+            />
           </div>
         </div>
       </div>
@@ -827,6 +866,22 @@ export function BiWizard({
             </div>
           )}
 
+          {pole === Poles.depannage && interventionsSupplementaires.length > 0 && (
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <p className="mb-1.5 text-xs font-medium text-slate-600">Déjà renseignés sur cette visite</p>
+              <div className="space-y-1.5">
+                {interventionsSupplementaires.map((inter, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                    <span className="min-w-0 truncate font-medium text-slate-700">{inter.equipement_nom}</span>
+                    <button onClick={() => retirerAutreEquipement(i)} className="shrink-0 text-red-500">
+                      <X className="h-4 w-4" strokeWidth={2} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {siteId && avecEquipementOptionnel(pole) && (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <label className="mb-1 block text-xs font-medium text-slate-600">Équipement (optionnel)</label>
@@ -1007,6 +1062,32 @@ export function BiWizard({
               >
                 <Plus className="h-4 w-4" strokeWidth={2} />
                 Ajouter une ligne
+              </button>
+            </div>
+          )}
+
+          {pole === Poles.depannage && (
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              {interventionsSupplementaires.length > 0 && (
+                <div className="mb-3 space-y-1.5">
+                  {interventionsSupplementaires.map((inter, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                      <span className="min-w-0 truncate font-medium text-slate-700">{inter.equipement_nom}</span>
+                      <button onClick={() => retirerAutreEquipement(i)} className="shrink-0 text-red-500">
+                        <X className="h-4 w-4" strokeWidth={2} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={ajouterAutreEquipement}
+                disabled={!equipement && !equipementLibre.trim()}
+                className="inline-flex items-center gap-1 text-sm font-semibold text-violet-700 disabled:opacity-40"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2} />
+                Autre équipement
               </button>
             </div>
           )}

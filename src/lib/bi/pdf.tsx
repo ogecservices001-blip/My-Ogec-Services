@@ -3,7 +3,7 @@ import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { Tables } from "@/lib/types";
 import { Poles, avecPeriode, labelPole, PHOTO_TYPES } from "./constants";
-import { equipementLabel, eur, montantLigne, parsePu, totalHT, type Presta } from "./format";
+import { equipementLabel, eur, montantLigne, parsePu, totalHT, interventionsDuBon, type Presta } from "./format";
 
 type Bon = Tables<"bons_intervention">;
 
@@ -170,6 +170,8 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
   const prestas = bon.prestas as unknown as Presta[];
   const nonDesservis = bon.entretien_non_desservis as unknown as { nom?: string; motif?: string }[];
   const avecPrestas = prestas.some((p) => p.designation.trim());
+  const interventions = interventionsDuBon(bon);
+  const multiEquipement = interventions.length > 1;
 
   return (
     <Document>
@@ -204,7 +206,7 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
         {bon.devis_numero && <Kv k="Affaire" v={bon.devis_numero} />}
         {bon.devis_reference_client && <Kv k="Réf commande client" v={bon.devis_reference_client} />}
         {bon.devis_date_commande_client && <Kv k="Date commande client" v={bon.devis_date_commande_client} />}
-        {bon.equipement_nom && (
+        {!multiEquipement && bon.equipement_nom && (
           <>
             {descriptionEquipement(bon.pole) && <Text style={{ fontSize: 9.5, marginBottom: 1 }}>{descriptionEquipement(bon.pole)}</Text>}
             <Kv k="Équipement" v={equipementLabel(bon)} />
@@ -217,10 +219,12 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
         {bon.numero_devis && <Kv k="N° devis lié" v={bon.numero_devis} />}
         <View style={{ height: 10 }} />
 
-        <View style={styles.bloc}>
-          <Section titre="DESCRIPTION DE L'INTERVENTION" />
-          <Text style={{ fontSize: 9.5 }}>{bon.compte_rendu || "—"}</Text>
-        </View>
+        {!multiEquipement && (
+          <View style={styles.bloc}>
+            <Section titre="DESCRIPTION DE L'INTERVENTION" />
+            <Text style={{ fontSize: 9.5 }}>{bon.compte_rendu || "—"}</Text>
+          </View>
+        )}
 
         {nonDesservis.length > 0 && (
           <View style={styles.bloc}>
@@ -231,7 +235,22 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
           </View>
         )}
 
-        {avecPrestas && (
+        {multiEquipement &&
+          interventions.map((inter, i) => {
+            const label = equipementLabel({ pole: bon.pole, ...inter });
+            const prestasInter = inter.prestas.filter((p) => p.designation.trim());
+            return (
+              <View key={i} style={styles.bloc}>
+                <Section titre={label ? `ÉQUIPEMENT : ${label.toUpperCase()}` : `INTERVENTION ${i + 1}`} />
+                <Text style={{ fontSize: 9.5, marginBottom: prestasInter.length > 0 ? 4 : 0 }}>
+                  {inter.compte_rendu || "—"}
+                </Text>
+                {prestasInter.length > 0 && <TablePrestas prestas={inter.prestas} />}
+              </View>
+            );
+          })}
+
+        {!multiEquipement && avecPrestas && (
           <View style={styles.bloc}>
             <Section titre="DÉTAIL DES PRESTATIONS ET FOURNITURES" />
             <TablePrestas prestas={prestas} />

@@ -151,6 +151,14 @@ export async function chargerDepannagesEnCours(): Promise<DepannageEnCours[]> {
 export type PhotoInput = { type: string; storage_path: string; horodatage: string };
 export type PrestaInput = { designation: string; quantite: string };
 export type NonDesserviInput = { nom: string; motif: string };
+export type InterventionSupplementaireInput = {
+  equipement_id: string | null;
+  equipement_nom: string;
+  equipement_groupe: string;
+  equipement_localisation: string;
+  compte_rendu: string;
+  prestas: PrestaInput[];
+};
 
 export type BiInput = {
   pole: string;
@@ -195,6 +203,7 @@ export type BiInput = {
   checklist_values: Record<string, boolean | string>;
 
   prestas: PrestaInput[];
+  interventions_supplementaires: InterventionSupplementaireInput[];
   photos: PhotoInput[];
 
   sig_tech: string;
@@ -259,6 +268,7 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
     modele_champs: input.modele_champs,
     checklist_values: input.checklist_values,
     prestas: input.prestas,
+    interventions_supplementaires: input.interventions_supplementaires,
     photos: input.photos,
     sig_tech: input.sig_tech,
     sig_client: input.sig_client,

@@ -7,7 +7,7 @@ import { ArrowLeft, Lock, X, FileText, ExternalLink, Mail } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { Poles, Statuts, avecPeriode, sansTempsPasse, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI } from "@/lib/bi/constants";
-import { equipementLabel, eur, montantLigne, totalHT, type Presta } from "@/lib/bi/format";
+import { equipementLabel, eur, montantLigne, totalHT, interventionsDuBon, type InterventionEquipement } from "@/lib/bi/format";
 import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, type CorrectionInput } from "./actions";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 
@@ -204,6 +204,8 @@ function VueLectureSeule({
   typesEquipement: TypeEquipementResume[];
   modele: ModeleResume;
 }) {
+  const interventions = interventionsDuBon(bon);
+  const multiEquipement = interventions.length > 1;
   const prestas = (bon.prestas as { designation: string; quantite: string; pu?: string }[]).filter((p) => p.designation.trim());
   const total = totalHT(prestas);
   const nonDesservis = bon.entretien_non_desservis as { nom?: string; motif?: string }[];
@@ -217,7 +219,7 @@ function VueLectureSeule({
         <Ligne label="Technicien(s)" valeur={bon.techniciens.join(", ")} />
         {bon.devis_numero && <Ligne label="Affaire" valeur={bon.devis_numero} />}
         {bon.devis_reference_client && <Ligne label="Réf. client" valeur={bon.devis_reference_client} />}
-        {bon.equipement_nom && <Ligne label="Équipement" valeur={equipementLabel(bon)} />}
+        {!multiEquipement && bon.equipement_nom && <Ligne label="Équipement" valeur={equipementLabel(bon)} />}
         {bon.entretien_groupes.length > 0 && <Ligne label="Groupes entretenus" valeur={bon.entretien_groupes.join(", ")} />}
         {avecPeriode(bon.pole) ? (
           <Ligne
@@ -267,9 +269,11 @@ function VueLectureSeule({
         </Section>
       )}
 
-      <Section titre="Compte rendu">
-        <p className="text-sm text-slate-700">{bon.compte_rendu || "—"}</p>
-      </Section>
+      {!multiEquipement && (
+        <Section titre="Compte rendu">
+          <p className="text-sm text-slate-700">{bon.compte_rendu || "—"}</p>
+        </Section>
+      )}
 
       {nonDesservis.length > 0 && (
         <Section titre="Équipements non entretenus">
@@ -279,7 +283,31 @@ function VueLectureSeule({
         </Section>
       )}
 
-      {prestas.length > 0 && (
+      {multiEquipement &&
+        interventions.map((inter, i) => {
+          const totalInter = totalHT(inter.prestas);
+          const prestasInter = inter.prestas.filter((p) => p.designation.trim());
+          const label = equipementLabel({ pole: bon.pole, ...inter });
+          return (
+            <Section key={i} titre={label ? `Équipement : ${label}` : `Intervention ${i + 1}`}>
+              <p className="text-sm text-slate-700">{inter.compte_rendu || "—"}</p>
+              {prestasInter.length > 0 && (
+                <div className="mt-2 space-y-0.5">
+                  {prestasInter.map((p, j) => (
+                    <Ligne
+                      key={j}
+                      label={p.designation}
+                      valeur={`× ${p.quantite}   Montant ${montantLigne(p) !== null ? eur(montantLigne(p)!) : "—"}`}
+                    />
+                  ))}
+                  {totalInter > 0 && <Ligne label="Total HT" valeur={eur(totalInter)} />}
+                </div>
+              )}
+            </Section>
+          );
+        })}
+
+      {!multiEquipement && prestas.length > 0 && (
         <Section titre="Prestations & fournitures">
           {prestas.map((p, i) => (
             <Ligne
@@ -355,10 +383,9 @@ function VueCorrection({
   const [dateFin, setDateFin] = useState(bon.date_fin);
   const [dateIntervention, setDateIntervention] = useState(bon.date_intervention);
   const [tempsPasse, setTempsPasse] = useState(bon.temps_passe);
-  const [compteRendu, setCompteRendu] = useState(bon.compte_rendu);
   const [obsTech, setObsTech] = useState(bon.obs_tech);
-  const [prestas, setPrestas] = useState<Presta[]>(
-    ((bon.prestas as Presta[] | null) ?? []).filter((p) => p.designation.trim()),
+  const [interventions, setInterventions] = useState<InterventionEquipement[]>(() =>
+    interventionsDuBon(bon).map((inter) => ({ ...inter, prestas: inter.prestas.filter((p) => p.designation.trim()) })),
   );
   const [noteInterne, setNoteInterne] = useState(bon.note_interne);
   const [email, setEmail] = useState(bon.email);
@@ -378,11 +405,12 @@ function VueCorrection({
       date_fin: dateFin,
       date_intervention: dateIntervention,
       temps_passe: tempsPasse,
-      compte_rendu: compteRendu,
+      compte_rendu: interventions[0]?.compte_rendu ?? "",
       obs_tech: obsTech,
       note_interne: noteInterne,
       email,
-      prestas,
+      prestas: interventions[0]?.prestas ?? [],
+      interventions_supplementaires: interventions.slice(1),
     };
     startTransition(async () => {
       const res = await validerBI(bon.id, bon, input);
@@ -452,15 +480,57 @@ function VueCorrection({
           </div>
         )}
 
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-600">Compte rendu</label>
-          <textarea
-            value={compteRendu}
-            onChange={(e) => setCompteRendu(e.target.value)}
-            rows={4}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
-          />
-        </div>
+        {interventions.map((inter, i) => {
+          const label = equipementLabel({ pole, ...inter });
+          function majIntervention(champs: Partial<InterventionEquipement>) {
+            setInterventions((prev) => prev.map((ligne, j) => (j === i ? { ...ligne, ...champs } : ligne)));
+          }
+          return (
+            <div key={i} className="rounded-xl border border-slate-200 p-3">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                {label ? `Équipement : ${label}` : interventions.length > 1 ? `Intervention ${i + 1}` : "Compte rendu"}
+              </p>
+              <textarea
+                value={inter.compte_rendu}
+                onChange={(e) => majIntervention({ compte_rendu: e.target.value })}
+                rows={4}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+              />
+              {inter.prestas.length > 0 && (
+                <div className="mt-2">
+                  <p className="mb-1 text-xs font-medium text-slate-600">
+                    Fourniture de matériel — prix à saisir par le bureau
+                  </p>
+                  <div className="space-y-2">
+                    {inter.prestas.map((p, j) => (
+                      <div key={j} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2">
+                        <div className="min-w-0 flex-1 text-sm text-slate-700">
+                          {p.designation} <span className="text-slate-400">× {p.quantite}</span>
+                        </div>
+                        <input
+                          value={p.pu ?? ""}
+                          onChange={(e) =>
+                            majIntervention({
+                              prestas: inter.prestas.map((ligne, k) => (k === j ? { ...ligne, pu: e.target.value } : ligne)),
+                            })
+                          }
+                          placeholder="PU €"
+                          className="w-20 shrink-0 rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:border-violet-600"
+                        />
+                        <span className="w-20 shrink-0 text-right text-xs text-slate-500">
+                          {montantLigne(p) !== null ? eur(montantLigne(p)!) : "—"}
+                        </span>
+                      </div>
+                    ))}
+                    {totalHT(inter.prestas) > 0 && (
+                      <p className="text-right text-sm font-bold text-slate-900">Total HT : {eur(totalHT(inter.prestas))}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Observations technicien</label>
           <textarea
@@ -470,36 +540,6 @@ function VueCorrection({
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
           />
         </div>
-        {prestas.length > 0 && (
-          <div>
-            <p className="mb-1 text-xs font-medium text-slate-600">
-              Fourniture de matériel — prix à saisir par le bureau
-            </p>
-            <div className="space-y-2">
-              {prestas.map((p, i) => (
-                <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2">
-                  <div className="min-w-0 flex-1 text-sm text-slate-700">
-                    {p.designation} <span className="text-slate-400">× {p.quantite}</span>
-                  </div>
-                  <input
-                    value={p.pu ?? ""}
-                    onChange={(e) =>
-                      setPrestas((prev) => prev.map((ligne, j) => (j === i ? { ...ligne, pu: e.target.value } : ligne)))
-                    }
-                    placeholder="PU €"
-                    className="w-20 shrink-0 rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:border-violet-600"
-                  />
-                  <span className="w-20 shrink-0 text-right text-xs text-slate-500">
-                    {montantLigne(p) !== null ? eur(montantLigne(p)!) : "—"}
-                  </span>
-                </div>
-              ))}
-              {totalHT(prestas) > 0 && (
-                <p className="text-right text-sm font-bold text-slate-900">Total HT : {eur(totalHT(prestas))}</p>
-              )}
-            </div>
-          </div>
-        )}
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Remarque interne (non imprimée)</label>
           <textarea

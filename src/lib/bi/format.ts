@@ -160,3 +160,45 @@ export function equipementLabel(b: {
   if (!base) return base;
   return b.pole === Poles.installationNeuve ? `${base} (à confirmer)` : base;
 }
+
+/// Une intervention sur un équipement au sein d'un même bon — pôle
+/// Dépannage uniquement, un technicien touchant souvent plusieurs
+/// équipements dans la même visite ("Autre équipement" dans
+/// l'assistant). Même forme que les champs équipement/compte-rendu/
+/// prestas historiques du bon, pour pouvoir les traiter avec la même
+/// logique une fois fusionnés (voir `interventionsDuBon`).
+export type InterventionEquipement = {
+  equipement_id: string | null;
+  equipement_nom: string;
+  equipement_groupe: string;
+  equipement_localisation: string;
+  compte_rendu: string;
+  prestas: Presta[];
+};
+
+/// Fusionne l'intervention "historique" (champs equipement_*/
+/// compte_rendu/prestas directement sur le bon — la seule qui existait
+/// avant le multi-équipement, toujours la première) avec celles
+/// ajoutées via "Autre équipement". Un bon d'un seul équipement (tous
+/// les pôles sauf Dépannage, et la plupart des Dépannages) ne renvoie
+/// toujours qu'un seul élément : rien ne change pour eux.
+export function interventionsDuBon(bon: {
+  equipement_id: string | null;
+  equipement_nom: string;
+  equipement_groupe: string;
+  equipement_localisation: string;
+  compte_rendu: string;
+  prestas: unknown;
+  interventions_supplementaires: unknown;
+}): InterventionEquipement[] {
+  const primaire: InterventionEquipement = {
+    equipement_id: bon.equipement_id,
+    equipement_nom: bon.equipement_nom,
+    equipement_groupe: bon.equipement_groupe,
+    equipement_localisation: bon.equipement_localisation,
+    compte_rendu: bon.compte_rendu,
+    prestas: (bon.prestas as Presta[] | null) ?? [],
+  };
+  const supplementaires = (bon.interventions_supplementaires as InterventionEquipement[] | null) ?? [];
+  return [primaire, ...supplementaires];
+}

@@ -155,6 +155,7 @@ export type Database = {
           history: Json
           hors_contrat: boolean
           id: string
+          interventions_supplementaires: Json
           json_storage_path: string
           legacy_id: string | null
           materiel_champs_en_tete: Json
@@ -211,6 +212,7 @@ export type Database = {
           history?: Json
           hors_contrat?: boolean
           id?: string
+          interventions_supplementaires?: Json
           json_storage_path?: string
           legacy_id?: string | null
           materiel_champs_en_tete?: Json
@@ -267,6 +269,7 @@ export type Database = {
           history?: Json
           hors_contrat?: boolean
           id?: string
+          interventions_supplementaires?: Json
           json_storage_path?: string
           legacy_id?: string | null
           materiel_champs_en_tete?: Json

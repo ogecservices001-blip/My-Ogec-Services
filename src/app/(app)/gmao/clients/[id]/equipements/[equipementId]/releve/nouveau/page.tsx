@@ -3,6 +3,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { freqCouranteCalculee } from "@/lib/gmao/releve-service";
 import type { Equipement, TypeEquipement, ReferenceHoraire } from "@/lib/gmao/types";
+import { chargerDevisEnCoursParEquipement } from "@/lib/devis/en-cours";
 import { ReleveForm } from "./releve-form";
 
 export default async function NouveauRelevePage({
@@ -34,6 +35,16 @@ export default async function NouveauRelevePage({
   const freqCourante = await freqCouranteCalculee(supabase, equipementId);
   const nomsTechniciens = [...new Set((techniciens ?? []).map((t) => t.name).filter(Boolean))];
 
+  const [devisEnCours, { data: depannagesOuverts }] = await Promise.all([
+    chargerDevisEnCoursParEquipement().then((parEquipement) => parEquipement[equipementId] ?? []),
+    supabase
+      .from("demandes_depannage")
+      .select("id, numero, message")
+      .eq("equipement_id", equipementId)
+      .neq("statut", "traitee")
+      .order("date_creation", { ascending: false }),
+  ]);
+
   return (
     <ReleveForm
       siteId={id}
@@ -44,6 +55,8 @@ export default async function NouveauRelevePage({
       freqCourante={freqCourante}
       nomTechInitial={profile.name}
       nomsTechniciens={nomsTechniciens}
+      devisEnCours={devisEnCours}
+      depannagesOuverts={depannagesOuverts ?? []}
     />
   );
 }

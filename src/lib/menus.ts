@@ -133,8 +133,8 @@ export function construireModules(isAdmin: boolean): Module[] {
             icone: FileSignature,
             couleur: "bg-amber-100 text-amber-600",
             sousMenus: [
-              { nom: "Clients sous contrat", href: "/devis" },
-              { nom: "Clients hors contrat", href: "/devis?horsContrat=1" },
+              { nom: "Liste des devis", href: "/devis" },
+              { nom: "Nouveau devis", href: "/devis/nouveau" },
             ],
           },
         ]

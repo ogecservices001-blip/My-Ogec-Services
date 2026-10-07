@@ -1,16 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { STATUTS_BI_REALISE } from "@/app/(app)/devis/statut";
 
-/// Libellés des devis "en cours" (commandés, non annulés, non réalisés)
-/// par équipement — sans montant, pour l'affichage technicien. Objet
-/// plutôt que Map : ce résultat traverse la frontière serveur → client.
+/// Libellés des devis "en cours" (non annulés, non réalisés — dès la
+/// création, pas besoin d'être commandé) par équipement — sans montant,
+/// pour l'affichage technicien. Objet plutôt que Map : ce résultat
+/// traverse la frontière serveur → client.
 export async function chargerDevisEnCoursParEquipement(): Promise<Record<string, string[]>> {
   const supabase = await createClient();
   const { data: devis } = await supabase
     .from("devis")
     .select("id, libelle, equipement_id, bi_reference_historique")
     .not("equipement_id", "is", null)
-    .neq("date_commande_client", "")
     .eq("annule", false);
   if (!devis || devis.length === 0) return {};
 

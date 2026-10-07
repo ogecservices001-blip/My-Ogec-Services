@@ -30,12 +30,15 @@ export function numeroAffaireDuSite(nAffaire: string): { client: number; site: n
   return { client, site };
 }
 
+/// Le nom est enregistré "NOM Prénom" (ex. "GAUDIN Bruno") — les
+/// initiales voulues sont dans l'ordre prénom-nom ("BG"), donc le
+/// dernier mot d'abord.
 export function initialesDe(nomComplet: string): string {
   const mots = nomComplet.trim().split(/\s+/).filter(Boolean);
   if (mots.length === 0) return "";
-  const premiere = mots[0][0];
-  const derniere = mots.length > 1 ? mots[mots.length - 1][0] : "";
-  return `${premiere}${derniere}`.toUpperCase();
+  const prenom = mots[mots.length - 1][0];
+  const nom = mots.length > 1 ? mots[0][0] : "";
+  return `${prenom}${nom}`.toUpperCase();
 }
 
 /// Plus haut chrono déjà attribué pour l'année, + 1.

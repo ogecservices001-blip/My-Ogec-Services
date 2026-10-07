@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, requireProfile } from "@/lib/auth";
 import { Poles, Statuts, CHAMPS_MATERIEL_EXCLUS_BI } from "@/lib/bi/constants";
-import { now } from "@/lib/bi/format";
+import { now, type Presta } from "@/lib/bi/format";
 import { archiverBiSiBesoin, genererPdfAvecPhotos } from "@/lib/bi/archive";
 import { envoyerConfirmationBI } from "@/lib/bi/email";
 import type { ActionResult } from "@/lib/action-result";
@@ -21,6 +21,7 @@ export type CorrectionInput = {
   obs_tech: string;
   note_interne: string;
   email: string;
+  prestas: Presta[];
 };
 
 type Bon = Tables<"bons_intervention">;
@@ -137,6 +138,7 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
       obs_tech: input.obs_tech,
       note_interne: input.note_interne,
       email: input.email,
+      prestas: input.prestas,
       history: nouvelHistory,
     })
     .eq("id", id)

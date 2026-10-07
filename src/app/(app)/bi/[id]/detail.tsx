@@ -7,7 +7,7 @@ import { ArrowLeft, Lock, X, FileText, ExternalLink, Mail } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { Poles, Statuts, avecPeriode, sansTempsPasse, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI } from "@/lib/bi/constants";
-import { equipementLabel, eur, montantLigne, totalHT } from "@/lib/bi/format";
+import { equipementLabel, eur, montantLigne, totalHT, type Presta } from "@/lib/bi/format";
 import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, type CorrectionInput } from "./actions";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 
@@ -357,6 +357,9 @@ function VueCorrection({
   const [tempsPasse, setTempsPasse] = useState(bon.temps_passe);
   const [compteRendu, setCompteRendu] = useState(bon.compte_rendu);
   const [obsTech, setObsTech] = useState(bon.obs_tech);
+  const [prestas, setPrestas] = useState<Presta[]>(
+    ((bon.prestas as Presta[] | null) ?? []).filter((p) => p.designation.trim()),
+  );
   const [noteInterne, setNoteInterne] = useState(bon.note_interne);
   const [email, setEmail] = useState(bon.email);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -379,6 +382,7 @@ function VueCorrection({
       obs_tech: obsTech,
       note_interne: noteInterne,
       email,
+      prestas,
     };
     startTransition(async () => {
       const res = await validerBI(bon.id, bon, input);
@@ -466,6 +470,36 @@ function VueCorrection({
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
           />
         </div>
+        {prestas.length > 0 && (
+          <div>
+            <p className="mb-1 text-xs font-medium text-slate-600">
+              Fourniture de matériel — prix à saisir par le bureau
+            </p>
+            <div className="space-y-2">
+              {prestas.map((p, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2">
+                  <div className="min-w-0 flex-1 text-sm text-slate-700">
+                    {p.designation} <span className="text-slate-400">× {p.quantite}</span>
+                  </div>
+                  <input
+                    value={p.pu ?? ""}
+                    onChange={(e) =>
+                      setPrestas((prev) => prev.map((ligne, j) => (j === i ? { ...ligne, pu: e.target.value } : ligne)))
+                    }
+                    placeholder="PU €"
+                    className="w-20 shrink-0 rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:border-violet-600"
+                  />
+                  <span className="w-20 shrink-0 text-right text-xs text-slate-500">
+                    {montantLigne(p) !== null ? eur(montantLigne(p)!) : "—"}
+                  </span>
+                </div>
+              ))}
+              {totalHT(prestas) > 0 && (
+                <p className="text-right text-sm font-bold text-slate-900">Total HT : {eur(totalHT(prestas))}</p>
+              )}
+            </div>
+          </div>
+        )}
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Remarque interne (non imprimée)</label>
           <textarea

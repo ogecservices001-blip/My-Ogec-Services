@@ -446,6 +446,22 @@ export function BiWizard({
   }, [siteId, pole, devisId, equipementId, materielComplet, installationNom, installationLocalisation, groupesSelectionnes, nonDesservisIds, motifsNonDesservi]);
 
   const photosEnCours = photos.some((p) => p.enCours);
+
+  // Résumé affiché juste avant signature (étape 3) : le client doit
+  // voir ce qu'il signe, surtout quand plusieurs équipements ont été
+  // traités dans la même visite.
+  const recapInterventions =
+    pole === Poles.depannage
+      ? [
+          ...interventionsSupplementaires,
+          {
+            equipement_nom: equipement ? equipement.nom : equipementLibre.trim(),
+            compte_rendu: compteRendu.trim(),
+            prestas: fourniture.filter((p) => p.designation.trim()),
+          },
+        ]
+      : [];
+
   const peutTransmettre =
     pole !== "" && siteId !== "" && techniciens.length > 0 && !sigTechVide && !sigClientVide && signataire.trim() !== "" && !photosEnCours;
 
@@ -1066,29 +1082,19 @@ export function BiWizard({
             </div>
           )}
 
-          {pole === Poles.depannage && (
+          {pole === Poles.depannage && interventionsSupplementaires.length > 0 && (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-              {interventionsSupplementaires.length > 0 && (
-                <div className="mb-3 space-y-1.5">
-                  {interventionsSupplementaires.map((inter, i) => (
-                    <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                      <span className="min-w-0 truncate font-medium text-slate-700">{inter.equipement_nom}</span>
-                      <button onClick={() => retirerAutreEquipement(i)} className="shrink-0 text-red-500">
-                        <X className="h-4 w-4" strokeWidth={2} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={ajouterAutreEquipement}
-                disabled={!equipement && !equipementLibre.trim()}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-violet-700 disabled:opacity-40"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2} />
-                Autre équipement
-              </button>
+              <p className="mb-1.5 text-xs font-medium text-slate-600">Déjà renseignés sur cette visite</p>
+              <div className="space-y-1.5">
+                {interventionsSupplementaires.map((inter, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                    <span className="min-w-0 truncate font-medium text-slate-700">{inter.equipement_nom}</span>
+                    <button onClick={() => retirerAutreEquipement(i)} className="shrink-0 text-red-500">
+                      <X className="h-4 w-4" strokeWidth={2} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -1096,6 +1102,27 @@ export function BiWizard({
 
       {etape === 3 && (
         <div className="space-y-4">
+          {recapInterventions.length > 0 && (
+            <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-violet-700">
+                Résumé de l&apos;intervention{recapInterventions.length > 1 ? "s" : ""}
+              </p>
+              <div className="space-y-2.5">
+                {recapInterventions.map((r, i) => (
+                  <div key={i} className={i > 0 ? "border-t border-violet-100 pt-2" : ""}>
+                    <p className="text-sm font-bold text-slate-900">{r.equipement_nom || "Équipement non précisé"}</p>
+                    <p className="text-sm text-slate-700">{r.compte_rendu || "—"}</p>
+                    {r.prestas.length > 0 && (
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        Fourniture : {r.prestas.map((p) => `${p.designation} ×${p.quantite}`).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <p className="mb-2 text-xs font-medium text-slate-600">Techniciens intervenus</p>
             <div className="mb-2 flex flex-wrap gap-1.5">
@@ -1213,6 +1240,16 @@ export function BiWizard({
             className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
           >
             Précédent
+          </button>
+        )}
+        {etape === 2 && pole === Poles.depannage && (
+          <button
+            type="button"
+            onClick={ajouterAutreEquipement}
+            disabled={!equipement && !equipementLibre.trim()}
+            className="flex-1 rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-semibold text-violet-700 shadow-sm hover:bg-violet-50 disabled:opacity-40"
+          >
+            Autre équipement
           </button>
         )}
         {etape > 0 && etape < TOTAL_ETAPES - 1 && (

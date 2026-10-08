@@ -648,59 +648,86 @@ export type Database = {
       fournisseurs: {
         Row: {
           adresse: string
+          cgv_recues: string
           code_postal: string
           commune: string
           complement_adresse: string
-          courriel: string
           created_at: string
+          delai_paiement: string
           denomination_courte: string
+          fiche_maj_le: string
+          forme_juridique: string
           id: string
-          interlocuteurs: string
+          interlocuteurs: Json
           legacy_id: string | null
+          localisation: string
+          mode_reglement: string
+          nature_fourniture: string
           nom: string
-          portable: string
           produits_cles: string
+          raison_sociale_exacte: string
+          rcs_rm: string
           remarques: string
+          siren: string
+          siret: string
           site_web: string
-          tel: string
+          tva_intracom: string
           updated_at: string
         }
         Insert: {
           adresse?: string
+          cgv_recues?: string
           code_postal?: string
           commune?: string
           complement_adresse?: string
-          courriel?: string
           created_at?: string
+          delai_paiement?: string
           denomination_courte?: string
+          fiche_maj_le?: string
+          forme_juridique?: string
           id?: string
-          interlocuteurs?: string
+          interlocuteurs?: Json
           legacy_id?: string | null
+          localisation?: string
+          mode_reglement?: string
+          nature_fourniture?: string
           nom?: string
-          portable?: string
           produits_cles?: string
+          raison_sociale_exacte?: string
+          rcs_rm?: string
           remarques?: string
+          siren?: string
+          siret?: string
           site_web?: string
-          tel?: string
+          tva_intracom?: string
           updated_at?: string
         }
         Update: {
           adresse?: string
+          cgv_recues?: string
           code_postal?: string
           commune?: string
           complement_adresse?: string
-          courriel?: string
           created_at?: string
+          delai_paiement?: string
           denomination_courte?: string
+          fiche_maj_le?: string
+          forme_juridique?: string
           id?: string
-          interlocuteurs?: string
+          interlocuteurs?: Json
           legacy_id?: string | null
+          localisation?: string
+          mode_reglement?: string
+          nature_fourniture?: string
           nom?: string
-          portable?: string
           produits_cles?: string
+          raison_sociale_exacte?: string
+          rcs_rm?: string
           remarques?: string
+          siren?: string
+          siret?: string
           site_web?: string
-          tel?: string
+          tva_intracom?: string
           updated_at?: string
         }
         Relationships: []

@@ -4,7 +4,7 @@ import ExcelJS from "exceljs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
-import { fournisseurSchema, type FournisseurInput } from "@/lib/validation/fournisseur";
+import { fournisseurSchema, type FournisseurInput, type Interlocuteur } from "@/lib/validation/fournisseur";
 import type { ActionResult } from "@/lib/action-result";
 
 export type LigneDiffFournisseur = {
@@ -18,49 +18,107 @@ export type ResultatPreviewFournisseurs =
   | { ok: true; lignes: LigneDiffFournisseur[]; avertissements: string[] }
   | { ok: false; erreur: string };
 
+// Champs "société" : mêmes pour toutes les lignes d'un même fournisseur
+// dans le classeur (une ligne = un interlocuteur). Champs "contact" :
+// propres à chaque ligne, regroupés dans `interlocuteurs`.
+const EN_TETES_SOCIETE: Record<string, keyof FournisseurInput> = {
+  "noms fournisseurs": "nom",
+  nom: "nom",
+  "dénomination courte fournisseurs": "denomination_courte",
+  "dénomination courte": "denomination_courte",
+  "nature fourniture": "nature_fourniture",
+  adresse: "adresse",
+  "complément d'adresse": "complement_adresse",
+  "complément adresse": "complement_adresse",
+  "code postal": "code_postal",
+  ville: "commune",
+  commune: "commune",
+  localisation: "localisation",
+  "site web": "site_web",
+  "produits clés": "produits_cles",
+  remarques: "remarques",
+  "raison sociale exacte": "raison_sociale_exacte",
+  "forme juridique": "forme_juridique",
+  "siren\n(9 chiffres)": "siren",
+  "siren (9 chiffres)": "siren",
+  siren: "siren",
+  "siret\n(14 chiffres)": "siret",
+  "siret (14 chiffres)": "siret",
+  siret: "siret",
+  "n° tva intracom.": "tva_intracom",
+  "rcs / rm\n(ville)": "rcs_rm",
+  "rcs / rm (ville)": "rcs_rm",
+  "délai de paiement": "delai_paiement",
+  "mode de règlement": "mode_reglement",
+  "cgv reçues": "cgv_recues",
+  "fiche mise à jour le": "fiche_maj_le",
+};
+
+const EN_TETES_CONTACT: Record<string, keyof Interlocuteur> = {
+  interlocuteurs: "nom",
+  tel: "tel",
+  "tél": "tel",
+  "tél fixe": "tel",
+  portable: "portable",
+  email: "email",
+  courriel: "email",
+};
+
 const LABELS: Record<keyof FournisseurInput, string> = {
   nom: "Nom",
   denomination_courte: "Dénomination courte",
+  nature_fourniture: "Nature fourniture",
   interlocuteurs: "Interlocuteurs",
-  tel: "Tél fixe",
-  portable: "Portable",
-  courriel: "Courriel",
   site_web: "Site web",
-  commune: "Commune",
+  commune: "Ville",
   code_postal: "Code postal",
   adresse: "Adresse",
   complement_adresse: "Complément d'adresse",
+  localisation: "Localisation",
   produits_cles: "Produits clés",
   remarques: "Remarques",
-};
-
-// En-têtes reconnus (insensible à la casse) — une colonne non reconnue
-// est ignorée, ce qui permet de réimporter directement le fichier
-// exporté par l'appli, même si l'ordre des colonnes change.
-const EN_TETES_CONNUS: Record<string, keyof FournisseurInput> = {
-  nom: "nom",
-  "dénomination courte": "denomination_courte",
-  interlocuteurs: "interlocuteurs",
-  tél: "tel",
-  "tél fixe": "tel",
-  portable: "portable",
-  courriel: "courriel",
-  "site web": "site_web",
-  commune: "commune",
-  "code postal": "code_postal",
-  adresse: "adresse",
-  "complément adresse": "complement_adresse",
-  "produits clés": "produits_cles",
-  remarques: "remarques",
+  raison_sociale_exacte: "Raison sociale exacte",
+  forme_juridique: "Forme juridique",
+  siren: "SIREN",
+  siret: "SIRET",
+  tva_intracom: "N° TVA intracom.",
+  rcs_rm: "RCS / RM",
+  delai_paiement: "Délai de paiement",
+  mode_reglement: "Mode de règlement",
+  cgv_recues: "CGV reçues",
+  fiche_maj_le: "Fiche mise à jour le",
 };
 
 function normaliser(s: string): string {
   return s.trim().toLowerCase();
 }
 
-/// Classeur Excel (.xlsx/.xlsm), colonnes reconnues par en-tête —
-/// même format que l'import Sites/Collaborateurs. Rapprochement par
-/// nom exact.
+/// Lit une cellule quel que soit son type réel dans le classeur :
+/// texte simple, texte enrichi ({richText}/{text}), formule ({formula,
+/// result} ou {sharedFormula, result} — le cas des lignes "contact"
+/// recopiant les infos société via INDEX/MATCH), ou date (objet Date,
+/// ex. "Fiche mise à jour le").
+function valeurCellule(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "object") {
+    const o = v as { result?: unknown; text?: unknown; richText?: { text: string }[] };
+    if ("result" in o) return valeurCellule(o.result);
+    if ("richText" in o && Array.isArray(o.richText)) return o.richText.map((r) => r.text).join("").trim();
+    if ("text" in o) return String(o.text ?? "").trim();
+    return "";
+  }
+  return String(v).trim();
+}
+
+type LigneBrute = { societe: Partial<Record<keyof FournisseurInput, string>>; contact: Partial<Interlocuteur> };
+
+/// Classeur Excel (.xlsx/.xlsm), colonnes reconnues par en-tête — une
+/// ligne par interlocuteur, plusieurs lignes possibles pour un même
+/// fournisseur (même format que "Base Fournisseurs"). Les lignes d'un
+/// même nom sont regroupées : la première valeur non vide rencontrée
+/// l'emporte pour les champs société, chaque ligne apporte un
+/// interlocuteur.
 export async function previsualiserImportFournisseurs(
   formData: FormData,
 ): Promise<ResultatPreviewFournisseurs> {
@@ -78,19 +136,45 @@ export async function previsualiserImportFournisseurs(
     return { ok: false, erreur: "Fichier illisible — un .xlsx/.xlsm est attendu." };
   }
 
-  const feuille = workbook.getWorksheet("FOURNISSEURS") ?? workbook.worksheets[0];
+  const feuille = workbook.getWorksheet("Base Fournisseurs") ?? workbook.worksheets[0];
   if (!feuille) {
     return { ok: false, erreur: "Feuille introuvable dans ce classeur." };
   }
 
   const ligneEntetes = feuille.getRow(1);
-  const indexParChamp = new Map<keyof FournisseurInput, number>();
+  const colSociete = new Map<number, keyof FournisseurInput>();
+  const colContact = new Map<number, keyof Interlocuteur>();
   ligneEntetes.eachCell((cellule, index1Based) => {
-    const champ = EN_TETES_CONNUS[normaliser(String(cellule.value ?? ""))];
-    if (champ) indexParChamp.set(champ, index1Based - 1); // exceljs 1-based
+    const entete = normaliser(valeurCellule(cellule.value));
+    if (EN_TETES_SOCIETE[entete]) colSociete.set(index1Based, EN_TETES_SOCIETE[entete]);
+    else if (EN_TETES_CONTACT[entete]) colContact.set(index1Based, EN_TETES_CONTACT[entete]);
   });
-  if (!indexParChamp.has("nom")) {
-    return { ok: false, erreur: 'Colonne "Nom" introuvable — en-têtes de colonnes attendues en première ligne.' };
+  if (![...colSociete.values()].includes("nom")) {
+    return { ok: false, erreur: 'Colonne "Noms Fournisseurs" introuvable — en-têtes attendues en première ligne.' };
+  }
+
+  // --- 1. Lire toutes les lignes brutes ---
+  const brutes: LigneBrute[] = [];
+  feuille.eachRow((row, numeroLigne) => {
+    if (numeroLigne === 1) return;
+    const societe: Partial<Record<keyof FournisseurInput, string>> = {};
+    for (const [col, champ] of colSociete) societe[champ] = valeurCellule(row.getCell(col).value);
+    const contact: Partial<Interlocuteur> = {};
+    for (const [col, champ] of colContact) contact[champ] = valeurCellule(row.getCell(col).value);
+    if (!societe.nom) return;
+    brutes.push({ societe, contact });
+  });
+
+  // --- 2. Regrouper par nom de fournisseur ---
+  const groupes = new Map<string, LigneBrute[]>();
+  const ordre: string[] = [];
+  for (const ligne of brutes) {
+    const cle = ligne.societe.nom!.toLowerCase();
+    if (!groupes.has(cle)) {
+      groupes.set(cle, []);
+      ordre.push(cle);
+    }
+    groupes.get(cle)!.push(ligne);
   }
 
   const supabase = await createClient();
@@ -98,57 +182,54 @@ export async function previsualiserImportFournisseurs(
   if (error) return { ok: false, erreur: error.message };
   const parNom = new Map((existants ?? []).map((f) => [f.nom.trim().toLowerCase(), f]));
 
-  const lignes: LigneDiffFournisseur[] = [];
+  const lignesResultat: LigneDiffFournisseur[] = [];
   const avertissements: string[] = [];
-  const vus = new Set<string>();
 
-  feuille.eachRow((row, numeroLigne) => {
-    if (numeroLigne === 1) return; // en-tête
-
-    const valeur = (index0: number): string => {
-      const cellule = row.getCell(index0 + 1); // exceljs 1-based
-      const v = cellule.value;
-      if (v === null || v === undefined) return "";
-      if (typeof v === "object" && "text" in v) return String((v as { text: unknown }).text ?? "").trim();
-      return String(v).trim();
-    };
-
-    const nom = valeur(indexParChamp.get("nom")!);
-    if (!nom) return;
-    const cleNom = nom.toLowerCase();
-    if (vus.has(cleNom)) {
-      avertissements.push(`"${nom}" en double dans le fichier — seule la première occurrence est prise en compte.`);
-      return;
+  for (const cle of ordre) {
+    const groupe = groupes.get(cle)!;
+    const societe: Record<string, string> = {};
+    for (const ligne of groupe) {
+      for (const [champ, valeur] of Object.entries(ligne.societe)) {
+        if (valeur && !societe[champ]) societe[champ] = valeur;
+      }
     }
-    vus.add(cleNom);
+    const interlocuteurs: Interlocuteur[] = groupe
+      .map((l) => ({ nom: l.contact.nom ?? "", tel: l.contact.tel ?? "", portable: l.contact.portable ?? "", email: l.contact.email ?? "" }))
+      .filter((c) => c.nom || c.tel || c.portable || c.email);
 
-    const brut: Record<string, string> = {};
-    for (const [champ, index0] of indexParChamp) brut[champ] = valeur(index0);
-    const parsed = fournisseurSchema.safeParse(brut);
+    const parsed = fournisseurSchema.safeParse({ ...societe, interlocuteurs });
     if (!parsed.success) {
-      avertissements.push(`Ligne ${numeroLigne} ("${nom}") ignorée : ${parsed.error.issues[0]?.message}`);
-      return;
+      avertissements.push(`"${groupe[0].societe.nom}" ignoré : ${parsed.error.issues[0]?.message}`);
+      continue;
     }
     const donnees = parsed.data;
 
-    const existant = parNom.get(cleNom);
+    const existant = parNom.get(cle);
     if (!existant) {
-      lignes.push({ donnees, statut: "ajout", differences: [] });
-      return;
+      lignesResultat.push({ donnees, statut: "ajout", differences: [] });
+      continue;
     }
 
     const differences: [string, string, string][] = [];
-    for (const champ of indexParChamp.keys()) {
-      const nouvelle = donnees[champ];
+    for (const champ of Object.keys(societe) as (keyof FournisseurInput)[]) {
+      const nouvelle = String(donnees[champ] ?? "");
       const ancienne = String(existant[champ as keyof typeof existant] ?? "");
       if (nouvelle && nouvelle !== ancienne) differences.push([LABELS[champ], ancienne, nouvelle]);
     }
-    if (differences.length > 0) {
-      lignes.push({ donnees, statut: "modification", fournisseurExistantId: existant.id, differences });
+    const interlocuteursExistants = JSON.stringify(existant.interlocuteurs ?? []);
+    if (interlocuteurs.length > 0 && JSON.stringify(interlocuteurs) !== interlocuteursExistants) {
+      differences.push([
+        "Interlocuteurs",
+        `${((existant.interlocuteurs as unknown as Interlocuteur[] | null) ?? []).length} contact(s)`,
+        `${interlocuteurs.length} contact(s)`,
+      ]);
     }
-  });
+    if (differences.length > 0) {
+      lignesResultat.push({ donnees, statut: "modification", fournisseurExistantId: existant.id, differences });
+    }
+  }
 
-  return { ok: true, lignes, avertissements };
+  return { ok: true, lignes: lignesResultat, avertissements };
 }
 
 export async function appliquerImportFournisseurs(

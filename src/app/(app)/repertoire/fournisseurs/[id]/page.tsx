@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Phone } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import type { Fournisseur } from "@/lib/types";
+import type { Interlocuteur } from "@/lib/validation/fournisseur";
+import { tvaSurFacture } from "@/lib/validation/fournisseur";
 import { supprimerFournisseur } from "../actions";
 
 export default async function FournisseurDetailPage({
@@ -24,20 +26,31 @@ export default async function FournisseurDetailPage({
 
   if (!data) notFound();
   const f = data as Fournisseur;
+  const interlocuteurs = (f.interlocuteurs as unknown as Interlocuteur[] | null) ?? [];
 
-  const champs: [string, string][] = [
+  const champsTechnicien: [string, string][] = [
+    ["Nature fourniture", f.nature_fourniture],
+    ["Adresse", [f.adresse, f.complement_adresse].filter(Boolean).join(" — ")],
+    ["Ville", [f.code_postal, f.commune].filter(Boolean).join(" ")],
+  ];
+
+  const champsAdmin: [string, string][] = [
     ["Dénomination courte", f.denomination_courte],
-    ["Interlocuteurs", f.interlocuteurs],
-    ["Tél fixe", f.tel],
-    ["Portable", f.portable],
-    ["Courriel", f.courriel],
+    ["Localisation", f.localisation],
     ["Site web", f.site_web],
-    ["Commune", f.commune],
-    ["Code postal", f.code_postal],
-    ["Adresse", f.adresse],
-    ["Complément d'adresse", f.complement_adresse],
     ["Produits clés", f.produits_cles],
     ["Remarques", f.remarques],
+    ["Raison sociale exacte", f.raison_sociale_exacte],
+    ["Forme juridique", f.forme_juridique],
+    ["SIREN", f.siren],
+    ["SIRET", f.siret],
+    ["N° TVA intracom.", f.tva_intracom],
+    ["RCS / RM", f.rcs_rm],
+    ["TVA sur facture", tvaSurFacture(f.localisation)],
+    ["Délai de paiement", f.delai_paiement],
+    ["Mode de règlement", f.mode_reglement],
+    ["CGV reçues", f.cgv_recues],
+    ["Fiche mise à jour le", f.fiche_maj_le],
   ];
 
   return (
@@ -68,9 +81,46 @@ export default async function FournisseurDetailPage({
           />
         </div>
       )}
+
+      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <p className="border-b border-slate-100 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-400">
+          Interlocuteurs
+        </p>
+        {interlocuteurs.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-slate-300">Aucun interlocuteur renseigné</p>
+        ) : (
+          <ul className="divide-y divide-slate-50">
+            {interlocuteurs.map((it, i) => (
+              <li key={i} className="px-4 py-3">
+                <p className="text-sm font-semibold text-slate-900">{it.nom || "—"}</p>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
+                  {it.portable && (
+                    <a href={`tel:${it.portable}`} className="inline-flex items-center gap-1.5 text-brand-green-dark hover:underline">
+                      <Phone className="h-3.5 w-3.5" strokeWidth={2} />
+                      {it.portable}
+                    </a>
+                  )}
+                  {it.tel && (
+                    <a href={`tel:${it.tel}`} className="inline-flex items-center gap-1.5 text-brand-green-dark hover:underline">
+                      <Phone className="h-3.5 w-3.5" strokeWidth={2} />
+                      {it.tel}
+                    </a>
+                  )}
+                  {it.email && (
+                    <a href={`mailto:${it.email}`} className="hover:underline">
+                      {it.email}
+                    </a>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <dl>
-          {champs.map(([label, valeur], i) => (
+          {[...champsTechnicien, ...(isAdmin ? champsAdmin : [])].map(([label, valeur], i) => (
             <div
               key={label}
               className={`flex flex-col gap-0.5 px-4 py-2.5 sm:flex-row sm:items-baseline sm:gap-2 ${

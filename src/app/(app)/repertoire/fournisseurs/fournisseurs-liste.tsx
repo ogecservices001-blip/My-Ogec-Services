@@ -115,17 +115,15 @@ export function FournisseursListe({
             </option>
           ))}
         </select>
-        {isAdmin && (
-          <select
-            value={localisation}
-            onChange={(e) => setLocalisation(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-          >
-            <option value="">Toutes localisations</option>
-            <option value="Réunion">Réunion</option>
-            <option value="Métropole">Métropole</option>
-          </select>
-        )}
+        <select
+          value={localisation}
+          onChange={(e) => setLocalisation(e.target.value)}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+        >
+          <option value="">Toutes localisations</option>
+          <option value="Réunion">Réunion</option>
+          <option value="Métropole">Métropole</option>
+        </select>
       </div>
 
       {isAdmin ? <VueAdmin fournisseurs={filtres} /> : <VueTechnicien fournisseurs={filtres} />}

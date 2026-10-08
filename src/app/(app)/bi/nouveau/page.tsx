@@ -10,11 +10,11 @@ import { BiWizard } from "./wizard";
 export default async function NouveauBiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ pole?: string; devisId?: string; depannageId?: string }>;
+  searchParams: Promise<{ pole?: string; devisId?: string; depannageId?: string; horsContrat?: string }>;
 }) {
   const profile = await requireProfile();
   if (profile.role === "admin") redirect("/");
-  const { pole, devisId, depannageId } = await searchParams;
+  const { pole, devisId, depannageId, horsContrat } = await searchParams;
   const supabase = await createClient();
 
   const [{ data: sites }, { data: techniciens }, { data: typesEquipement }, depannagesEnCours, devisARealiser] = await Promise.all([
@@ -32,7 +32,7 @@ export default async function NouveauBiPage({
 
   return (
     <BiWizard
-      key={`${pole ?? ""}|${devisId ?? ""}|${depannageId ?? ""}`}
+      key={`${pole ?? ""}|${devisId ?? ""}|${depannageId ?? ""}|${horsContrat ?? ""}`}
       sites={sites ?? []}
       techniciensDisponibles={(techniciens ?? []).map((t) => t.name)}
       typesEquipement={(typesEquipement ?? []) as TypeEquipement[]}

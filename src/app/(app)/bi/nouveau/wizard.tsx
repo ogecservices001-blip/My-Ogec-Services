@@ -170,8 +170,19 @@ export function BiWizard({
   const [nonDesservisIds, setNonDesservisIds] = useState<Set<string>>(new Set());
   const [motifsNonDesservi, setMotifsNonDesservi] = useState<Record<string, string>>({});
 
-  const nomsClients = useMemo(() => [...new Set(sites.map((s) => s.nom))].sort((a, b) => a.localeCompare(b)), [sites]);
-  const sitesDuClient = sites.filter((s) => s.nom === clientNom);
+  // "Dépannage — Clients sous/hors contrat" (sidebar) : pré-filtre la
+  // liste de clients proposée, pour que le technicien n'ait pas à
+  // chercher parmi tous les clients confondus.
+  const horsContratParam = searchParams.get("horsContrat");
+  const sitesFiltres = useMemo(
+    () => (horsContratParam !== null ? sites.filter((s) => s.hors_contrat === (horsContratParam === "1")) : sites),
+    [sites, horsContratParam],
+  );
+  const nomsClients = useMemo(
+    () => [...new Set(sitesFiltres.map((s) => s.nom))].sort((a, b) => a.localeCompare(b)),
+    [sitesFiltres],
+  );
+  const sitesDuClient = sitesFiltres.filter((s) => s.nom === clientNom);
   const site = sites.find((s) => s.id === siteId) ?? null;
   const typeActif = typesEquipement.find((t) => t.id === typeActifId) ?? null;
   const equipement = equipementsSite.find((e) => e.id === equipementId) ?? null;

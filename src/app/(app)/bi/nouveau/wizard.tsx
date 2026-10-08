@@ -23,7 +23,7 @@ import {
   avecFournitureMateriel,
   CHAMPS_MATERIEL_EXCLUS_BI,
 } from "@/lib/bi/constants";
-import { today, tempsStandard, multiplierDuree } from "@/lib/bi/format";
+import { today, tempsStandard, multiplierDuree, ETATS_EQUIPEMENT } from "@/lib/bi/format";
 import {
   chargerEquipementsDuSite,
   chargerDevisDuSite,
@@ -302,6 +302,18 @@ export function BiWizard({
   const [photos, setPhotos] = useState<(PhotoInput & { preview: string; enCours: boolean })[]>([]);
   const [fourniture, setFourniture] = useState<PrestaInput[]>([{ designation: "", quantite: "" }]);
 
+  // Pôle Dépannage uniquement : remplace "Observation technicien" (texte
+  // libre, par visite) par un état par équipement. Coché seul ou avec
+  // "Devis à établir", "Équipement opérationnel" vide le tableau au
+  // moment d'enregistrer plutôt que d'y ajouter une valeur.
+  const [etatEquipement, setEtatEquipement] = useState<string[]>([]);
+  function toggleEtatEquipement(valeur: string) {
+    setEtatEquipement((prev) => (prev.includes(valeur) ? prev.filter((v) => v !== valeur) : [...prev, valeur]));
+  }
+  function etatEquipementAEnregistrer(etats: string[]): string[] {
+    return etats.includes("operationnel") ? [] : etats;
+  }
+
   // Pôle Dépannage uniquement : un technicien touche souvent plusieurs
   // équipements dans la même visite. Chaque "Autre équipement" referme
   // l'intervention en cours (équipement/compte rendu/fourniture) ici et
@@ -321,12 +333,14 @@ export function BiWizard({
         equipement_localisation: equipement?.localisation ?? "",
         compte_rendu: compteRendu.trim(),
         prestas: fourniture.filter((p) => p.designation.trim()),
+        etat_equipement: etatEquipementAEnregistrer(etatEquipement),
       },
     ]);
     setEquipementId("");
     setEquipementLibre("");
     setCompteRendu("");
     setFourniture([{ designation: "", quantite: "" }]);
+    setEtatEquipement([]);
     setEtape(1);
   }
 
@@ -458,6 +472,7 @@ export function BiWizard({
             equipement_nom: equipement ? equipement.nom : equipementLibre.trim(),
             compte_rendu: compteRendu.trim(),
             prestas: fourniture.filter((p) => p.designation.trim()),
+            etat_equipement: etatEquipementAEnregistrer(etatEquipement),
           },
         ]
       : [];
@@ -522,11 +537,12 @@ export function BiWizard({
       techniciens,
       technicien_signataire: nomUtilisateur,
       compte_rendu: compteRendu.trim(),
-      obs_tech: obsTech.trim(),
+      obs_tech: pole === Poles.depannage ? "" : obsTech.trim(),
       obs_client: obsClient.trim(),
       modele_champs: modeleChamps,
       checklist_values: checklistValues,
       prestas: avecFournitureMateriel(pole) ? fourniture.filter((p) => p.designation.trim()) : [],
+      etat_equipement: pole === Poles.depannage ? etatEquipementAEnregistrer(etatEquipement) : [],
       interventions_supplementaires: interventionsSupplementaires,
       photos: photos.filter((p) => !p.enCours).map(({ type, storage_path, horodatage }) => ({ type, storage_path, horodatage })),
       sig_tech: sigTechRef.current?.getDataUrl() ?? "",
@@ -985,15 +1001,50 @@ export function BiWizard({
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
             />
           </div>
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Observation technicien</label>
-            <textarea
-              value={obsTech}
-              onChange={(e) => setObsTech(e.target.value)}
-              rows={2}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
-            />
-          </div>
+          {pole === Poles.depannage ? (
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <p className="mb-2 text-xs font-medium text-slate-600">État de l&apos;équipement</p>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={etatEquipement.includes("devis_a_etablir")}
+                    onChange={() => toggleEtatEquipement("devis_a_etablir")}
+                    className="h-4 w-4 accent-violet-600"
+                  />
+                  {ETATS_EQUIPEMENT.devis_a_etablir}
+                </label>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={etatEquipement.includes("operationnel")}
+                    onChange={() => toggleEtatEquipement("operationnel")}
+                    className="h-4 w-4 accent-violet-600"
+                  />
+                  Équipement opérationnel
+                </label>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={etatEquipement.includes("hors_service")}
+                    onChange={() => toggleEtatEquipement("hors_service")}
+                    className="h-4 w-4 accent-violet-600"
+                  />
+                  {ETATS_EQUIPEMENT.hors_service}
+                </label>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <label className="mb-1 block text-xs font-medium text-slate-600">Observation technicien</label>
+              <textarea
+                value={obsTech}
+                onChange={(e) => setObsTech(e.target.value)}
+                rows={2}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+              />
+            </div>
+          )}
 
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <p className="mb-2 text-xs font-medium text-slate-600">Photos ({photos.length}/4)</p>
@@ -1112,6 +1163,15 @@ export function BiWizard({
                   <div key={i} className={i > 0 ? "border-t border-violet-100 pt-2" : ""}>
                     <p className="text-sm font-bold text-slate-900">{r.equipement_nom || "Équipement non précisé"}</p>
                     <p className="text-sm text-slate-700">{r.compte_rendu || "—"}</p>
+                    {r.etat_equipement.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {r.etat_equipement.map((e) => (
+                          <span key={e} className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">
+                            {ETATS_EQUIPEMENT[e] ?? e}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {r.prestas.length > 0 && (
                       <p className="mt-0.5 text-xs text-slate-500">
                         Fourniture : {r.prestas.map((p) => `${p.designation} ×${p.quantite}`).join(", ")}

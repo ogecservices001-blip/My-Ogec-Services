@@ -158,6 +158,7 @@ export type InterventionSupplementaireInput = {
   equipement_localisation: string;
   compte_rendu: string;
   prestas: PrestaInput[];
+  etat_equipement: string[];
 };
 
 export type BiInput = {
@@ -203,6 +204,7 @@ export type BiInput = {
   checklist_values: Record<string, boolean | string>;
 
   prestas: PrestaInput[];
+  etat_equipement: string[];
   interventions_supplementaires: InterventionSupplementaireInput[];
   photos: PhotoInput[];
 
@@ -268,6 +270,7 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
     modele_champs: input.modele_champs,
     checklist_values: input.checklist_values,
     prestas: input.prestas,
+    etat_equipement: input.etat_equipement,
     interventions_supplementaires: input.interventions_supplementaires,
     photos: input.photos,
     sig_tech: input.sig_tech,

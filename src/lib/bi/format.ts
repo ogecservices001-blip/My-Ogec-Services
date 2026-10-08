@@ -174,6 +174,16 @@ export type InterventionEquipement = {
   equipement_localisation: string;
   compte_rendu: string;
   prestas: Presta[];
+  etat_equipement: string[];
+};
+
+/// États possibles d'un équipement sur une intervention Dépannage —
+/// remplace le texte libre "Observation technicien" pour ce pôle.
+/// "Équipement opérationnel" n'apparaît jamais ici : le cocher vide le
+/// tableau au lieu d'y ajouter une valeur (rien à signaler).
+export const ETATS_EQUIPEMENT: Record<string, string> = {
+  devis_a_etablir: "Devis à établir",
+  hors_service: "Équipement hors service",
 };
 
 /// Fusionne l'intervention "historique" (champs equipement_*/
@@ -189,6 +199,7 @@ export function interventionsDuBon(bon: {
   equipement_localisation: string;
   compte_rendu: string;
   prestas: unknown;
+  etat_equipement: unknown;
   interventions_supplementaires: unknown;
 }): InterventionEquipement[] {
   const primaire: InterventionEquipement = {
@@ -198,6 +209,7 @@ export function interventionsDuBon(bon: {
     equipement_localisation: bon.equipement_localisation,
     compte_rendu: bon.compte_rendu,
     prestas: (bon.prestas as Presta[] | null) ?? [],
+    etat_equipement: (bon.etat_equipement as string[] | null) ?? [],
   };
   const supplementaires = (bon.interventions_supplementaires as InterventionEquipement[] | null) ?? [];
   return [primaire, ...supplementaires];

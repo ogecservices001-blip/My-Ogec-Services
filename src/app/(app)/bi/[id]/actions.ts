@@ -22,6 +22,7 @@ export type CorrectionInput = {
   note_interne: string;
   email: string;
   prestas: Presta[];
+  etat_equipement: string[];
   interventions_supplementaires: InterventionEquipement[];
 };
 
@@ -140,6 +141,7 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
       note_interne: input.note_interne,
       email: input.email,
       prestas: input.prestas,
+      etat_equipement: input.etat_equipement,
       interventions_supplementaires: input.interventions_supplementaires,
       history: nouvelHistory,
     })

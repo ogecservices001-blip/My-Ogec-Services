@@ -7,7 +7,15 @@ import { ArrowLeft, Lock, X, FileText, ExternalLink, Mail } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { Poles, Statuts, avecPeriode, sansTempsPasse, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI } from "@/lib/bi/constants";
-import { equipementLabel, eur, montantLigne, totalHT, interventionsDuBon, type InterventionEquipement } from "@/lib/bi/format";
+import {
+  equipementLabel,
+  eur,
+  montantLigne,
+  totalHT,
+  interventionsDuBon,
+  ETATS_EQUIPEMENT,
+  type InterventionEquipement,
+} from "@/lib/bi/format";
 import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, type CorrectionInput } from "./actions";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 
@@ -271,6 +279,15 @@ function VueLectureSeule({
 
       {!multiEquipement && (
         <Section titre="Compte rendu">
+          {(bon.etat_equipement as string[] | null) && (bon.etat_equipement as string[]).length > 0 && (
+            <div className="mb-1.5 flex flex-wrap gap-1">
+              {(bon.etat_equipement as string[]).map((e) => (
+                <span key={e} className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">
+                  {ETATS_EQUIPEMENT[e] ?? e}
+                </span>
+              ))}
+            </div>
+          )}
           <p className="text-sm text-slate-700">{bon.compte_rendu || "—"}</p>
         </Section>
       )}
@@ -290,6 +307,15 @@ function VueLectureSeule({
           const label = equipementLabel({ pole: bon.pole, ...inter });
           return (
             <Section key={i} titre={label ? `Équipement : ${label}` : `Intervention ${i + 1}`}>
+              {inter.etat_equipement.length > 0 && (
+                <div className="mb-1.5 flex flex-wrap gap-1">
+                  {inter.etat_equipement.map((e) => (
+                    <span key={e} className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">
+                      {ETATS_EQUIPEMENT[e] ?? e}
+                    </span>
+                  ))}
+                </div>
+              )}
               <p className="text-sm text-slate-700">{inter.compte_rendu || "—"}</p>
               {prestasInter.length > 0 && (
                 <div className="mt-2 space-y-0.5">
@@ -410,6 +436,7 @@ function VueCorrection({
       note_interne: noteInterne,
       email,
       prestas: interventions[0]?.prestas ?? [],
+      etat_equipement: interventions[0]?.etat_equipement ?? [],
       interventions_supplementaires: interventions.slice(1),
     };
     startTransition(async () => {
@@ -490,6 +517,15 @@ function VueCorrection({
               <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
                 {label ? `Équipement : ${label}` : interventions.length > 1 ? `Intervention ${i + 1}` : "Compte rendu"}
               </p>
+              {inter.etat_equipement.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-1">
+                  {inter.etat_equipement.map((e) => (
+                    <span key={e} className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">
+                      {ETATS_EQUIPEMENT[e] ?? e}
+                    </span>
+                  ))}
+                </div>
+              )}
               <textarea
                 value={inter.compte_rendu}
                 onChange={(e) => majIntervention({ compte_rendu: e.target.value })}

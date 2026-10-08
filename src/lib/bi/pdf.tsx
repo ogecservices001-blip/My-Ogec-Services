@@ -3,7 +3,7 @@ import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { Tables } from "@/lib/types";
 import { Poles, avecPeriode, labelPole, PHOTO_TYPES } from "./constants";
-import { equipementLabel, eur, montantLigne, parsePu, totalHT, interventionsDuBon, type Presta } from "./format";
+import { equipementLabel, eur, montantLigne, parsePu, totalHT, interventionsDuBon, ETATS_EQUIPEMENT, type Presta } from "./format";
 
 type Bon = Tables<"bons_intervention">;
 
@@ -210,6 +210,9 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
           <>
             {descriptionEquipement(bon.pole) && <Text style={{ fontSize: 9.5, marginBottom: 1 }}>{descriptionEquipement(bon.pole)}</Text>}
             <Kv k="Équipement" v={equipementLabel(bon)} />
+            {(bon.etat_equipement as string[] | null) && (bon.etat_equipement as string[]).length > 0 && (
+              <Kv k="État" v={(bon.etat_equipement as string[]).map((e) => ETATS_EQUIPEMENT[e] ?? e).join(", ")} />
+            )}
           </>
         )}
         {bon.entretien_groupes.length > 0 && <Kv k="Groupes entretenus" v={bon.entretien_groupes.join(", ")} />}
@@ -242,6 +245,9 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
             return (
               <View key={i} style={styles.bloc}>
                 <Section titre={label ? `ÉQUIPEMENT : ${label.toUpperCase()}` : `INTERVENTION ${i + 1}`} />
+                {inter.etat_equipement.length > 0 && (
+                  <Kv k="État" v={inter.etat_equipement.map((e) => ETATS_EQUIPEMENT[e] ?? e).join(", ")} />
+                )}
                 <Text style={{ fontSize: 9.5, marginBottom: prestasInter.length > 0 ? 4 : 0 }}>
                   {inter.compte_rendu || "—"}
                 </Text>

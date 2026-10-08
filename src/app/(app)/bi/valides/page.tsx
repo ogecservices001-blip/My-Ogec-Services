@@ -11,7 +11,7 @@ export default async function BiValidesPage() {
 
   const { data: bons } = await supabase
     .from("bons_intervention")
-    .select("id, numero, statut, pole, client_nom, site, updated_at")
+    .select("id, numero, statut, pole, client_nom, site, equipement_nom, equipement_localisation, updated_at")
     .in("statut", STATUTS_VALIDES)
     .order("updated_at", { ascending: false });
 

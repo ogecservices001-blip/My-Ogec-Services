@@ -12,14 +12,17 @@ type BonResume = {
   pole: string;
   client_nom: string;
   site: string;
+  equipement_nom: string;
+  equipement_localisation: string;
   updated_at: string;
 };
 
 const COLONNES = [
-  { titre: "N°", largeur: "14%" },
-  { titre: "Client — Site", largeur: "26%" },
-  { titre: "Pôle", largeur: "22%" },
-  { titre: "Statut", largeur: "14%" },
+  { titre: "N°", largeur: "12%" },
+  { titre: "Client — Site", largeur: "22%" },
+  { titre: "Équipement", largeur: "18%" },
+  { titre: "Pôle", largeur: "18%" },
+  { titre: "Statut", largeur: "16%" },
   { titre: "Mis à jour le", largeur: "14%" },
 ];
 
@@ -38,6 +41,7 @@ export function BiListe({ bons, titre, vide }: { bons: BonResume[]; titre: strin
             {b.numero || "BI (brouillon)"}
           </Link>,
           [b.client_nom, b.site].filter(Boolean).join(" — "),
+          [b.equipement_nom, b.equipement_localisation].filter(Boolean).join(" — "),
           `Pôle ${b.pole} · ${labelPole(b.pole)}`,
           <StatutBadge key="statut" statut={b.statut} />,
           new Date(b.updated_at).toLocaleDateString("fr-FR"),

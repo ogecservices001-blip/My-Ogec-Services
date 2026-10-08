@@ -821,6 +821,9 @@ export function BiWizard({
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <label className="mb-1 block text-xs font-medium text-slate-600">Équipement</label>
               <SelectEquipement equipements={equipementsSite} value={equipementId} onChange={setEquipementId} disabled={chargementSite} />
+              {equipement?.localisation && (
+                <p className="mt-1.5 text-xs font-semibold text-teal-700">Localisation : {equipement.localisation}</p>
+              )}
               {equipement && pole === Poles.remplacementIdentique && (
                 <div className="mt-3 space-y-3 border-t border-slate-100 pt-3">
                   <p className="text-xs font-medium text-slate-600">Nouveau matériel</p>
@@ -933,6 +936,9 @@ export function BiWizard({
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <label className="mb-1 block text-xs font-medium text-slate-600">Équipement (optionnel)</label>
               <SelectEquipement equipements={equipementsSite} value={equipementId} onChange={setEquipementId} disabled={chargementSite} />
+              {equipement?.localisation && (
+                <p className="mt-1.5 text-xs font-semibold text-teal-700">Localisation : {equipement.localisation}</p>
+              )}
               {avecEquipementLibre(pole) && !equipementId && (
                 <input
                   value={equipementLibre}

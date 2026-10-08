@@ -66,9 +66,10 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
 
   for (let essai = 0; essai < ESSAIS_NUMERO; essai++) {
     const { data: existants } = await supabase.from("devis").select("numero").like("numero", `D-${annee}-%`);
+    const chrono = prochainChrono((existants ?? []).map((d) => d.numero), annee);
     const numero = formaterNumeroDevis({
       annee,
-      chrono: prochainChrono((existants ?? []).map((d) => d.numero), annee),
+      chrono,
       initiales,
       client: affaire.client,
       site: affaire.site,
@@ -77,6 +78,7 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
 
     const { error } = await supabase.from("devis").insert({
       numero,
+      item: String(chrono),
       site_id: input.siteId,
       libelle: input.libelle.trim(),
       nature: input.nature,

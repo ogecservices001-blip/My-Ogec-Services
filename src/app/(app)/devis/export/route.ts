@@ -4,12 +4,14 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import { finaliserFeuille } from "@/lib/excel-export";
+import { STATUTS_BI_REALISE, calculerStatutDevis, LABEL_STATUT_DEVIS } from "../statut";
 
 const COLONNES = [
   "Référence devis",
   "Client",
   "Site",
   "Équipement concerné",
+  "Localisation",
   "Item",
   "Rédacteur",
   "Nature",
@@ -25,7 +27,7 @@ const COLONNES = [
   "Remarques",
   "Débours matériel prévu",
   "Heures prévues",
-  "Annulé",
+  "Statut",
 ];
 
 export async function GET(request: Request) {
@@ -47,11 +49,18 @@ export async function GET(request: Request) {
   if (error) return NextResponse.json({ erreur: error.message }, { status: 500 });
 
   const idsEquipements = [...new Set((devis ?? []).map((d) => d.equipement_id).filter((id): id is string => Boolean(id)))];
-  const { data: equipements, error: errEquipements } = idsEquipements.length
-    ? await supabase.from("equipements").select("id, nom, numero_equipement").in("id", idsEquipements)
-    : { data: [], error: null };
+  const [{ data: equipements, error: errEquipements }, { data: bons, error: errBons }] = await Promise.all([
+    idsEquipements.length
+      ? supabase.from("equipements").select("id, nom, numero_equipement, localisation").in("id", idsEquipements)
+      : Promise.resolve({ data: [], error: null }),
+    supabase.from("bons_intervention").select("devis_id, statut"),
+  ]);
   if (errEquipements) return NextResponse.json({ erreur: errEquipements.message }, { status: 500 });
+  if (errBons) return NextResponse.json({ erreur: errBons.message }, { status: 500 });
   const equipementParId = new Map((equipements ?? []).map((e) => [e.id, e]));
+  const devisRealises = new Set(
+    (bons ?? []).filter((b) => b.devis_id && STATUTS_BI_REALISE.has(b.statut)).map((b) => b.devis_id as string),
+  );
 
   const workbook = new ExcelJS.Workbook();
   const feuille = workbook.addWorksheet("Devis");
@@ -60,6 +69,11 @@ export async function GET(request: Request) {
   for (const d of devis ?? []) {
     const site = siteParId.get(d.site_id);
     const equipement = d.equipement_id ? equipementParId.get(d.equipement_id) : undefined;
+    const statut = calculerStatutDevis({
+      annule: d.annule,
+      commande: Boolean(d.date_commande_client),
+      realise: devisRealises.has(d.id) || Boolean(d.bi_reference_historique),
+    });
     feuille.addRow([
       d.numero,
       site?.nom ?? "",
@@ -69,6 +83,7 @@ export async function GET(request: Request) {
             .filter(Boolean)
             .join(" ")
         : "",
+      equipement?.localisation ?? "",
       d.item,
       d.redacteur,
       d.nature ? labelNatureDevis(d.nature) : "",
@@ -84,7 +99,7 @@ export async function GET(request: Request) {
       d.remarques,
       d.debours_materiel_prevu,
       d.heures_prevues,
-      d.annule ? "Oui" : "",
+      LABEL_STATUT_DEVIS[statut],
     ]);
   }
 

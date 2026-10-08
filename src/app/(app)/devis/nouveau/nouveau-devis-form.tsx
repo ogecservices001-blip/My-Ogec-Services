@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -13,20 +13,40 @@ type Equipement = { id: string; libelle: string };
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
 const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
 
-export function NouveauDevisForm({ sites, natures }: { sites: SiteOption[]; natures: Option[] }) {
+type Prefill = { equipementId: string; siteId: string; clientNom: string; type: "sous" | "hors" } | null;
+
+export function NouveauDevisForm({
+  sites,
+  natures,
+  prefill,
+}: {
+  sites: SiteOption[];
+  natures: Option[];
+  prefill: Prefill;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
-  const [type, setType] = useState<"" | "sous" | "hors">("");
-  const [clientNom, setClientNom] = useState("");
+  const [type, setType] = useState<"" | "sous" | "hors">(prefill?.type ?? "");
+  const [clientNom, setClientNom] = useState(prefill?.clientNom ?? "");
   const sitesDuType = type ? sites.filter((s) => s.horsContrat === (type === "hors")) : [];
   const clients = [...new Set(sitesDuType.map((s) => s.nom))].filter(Boolean).sort((a, b) => a.localeCompare(b));
   const sitesDuClient = clientNom ? sitesDuType.filter((s) => s.nom === clientNom) : [];
 
-  const [siteId, setSiteId] = useState("");
+  const [siteId, setSiteId] = useState(prefill?.siteId ?? "");
   const [equipements, setEquipements] = useState<Equipement[]>([]);
-  const [equipementId, setEquipementId] = useState("");
+  const [equipementId, setEquipementId] = useState(prefill?.equipementId ?? "");
+
+  useEffect(() => {
+    if (!prefill) return;
+    startTransition(async () => {
+      setEquipements(await listerEquipementsDuSite(prefill.siteId));
+    });
+    // Pré-remplissage ponctuel au chargement (depuis "Devis à établir"),
+    // pas une synchro continue — pas de dépendances à surveiller.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [libelle, setLibelle] = useState("");
   const [nature, setNature] = useState("");
   const [montant, setMontant] = useState("");
@@ -85,6 +105,12 @@ export function NouveauDevisForm({ sites, natures }: { sites: SiteOption[]; natu
         Retour
       </Link>
       <h1 className="mb-5 text-2xl font-bold tracking-tight text-slate-900">Nouveau devis</h1>
+
+      {prefill && (
+        <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+          Pré-rempli depuis &quot;Devis à établir&quot;
+        </p>
+      )}
 
       <div className="space-y-4 rounded-2xl bg-white p-5 shadow-sm">
         <div>

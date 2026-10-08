@@ -30,7 +30,7 @@ export default async function DevisAEtablirPage() {
           l.biNumero,
           <Link
             key="creer"
-            href={`/devis/nouveau?equipementId=${l.equipementId}`}
+            href={`/devis/nouveau?equipementId=${l.equipementId}&compteRendu=${encodeURIComponent(l.compteRendu)}`}
             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand-green-dark hover:bg-green-50"
             title="Créer le devis"
           >

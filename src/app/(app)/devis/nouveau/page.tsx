@@ -6,16 +6,17 @@ import { NouveauDevisForm } from "./nouveau-devis-form";
 export default async function NouveauDevisPage({
   searchParams,
 }: {
-  searchParams: Promise<{ equipementId?: string }>;
+  searchParams: Promise<{ equipementId?: string; compteRendu?: string }>;
 }) {
   await requireAdminOuAccueil();
-  const { equipementId } = await searchParams;
+  const { equipementId, compteRendu } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: sites }, prefill] = await Promise.all([
+  const [{ data: sites }, prefillSite] = await Promise.all([
     supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom"),
     equipementId ? chargerPrefill(supabase, equipementId) : Promise.resolve(null),
   ]);
+  const prefill = prefillSite ? { ...prefillSite, compteRendu: compteRendu ?? "" } : null;
 
   return (
     <NouveauDevisForm

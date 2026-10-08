@@ -13,7 +13,13 @@ type Equipement = { id: string; libelle: string };
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
 const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
 
-type Prefill = { equipementId: string; siteId: string; clientNom: string; type: "sous" | "hors" } | null;
+type Prefill = {
+  equipementId: string;
+  siteId: string;
+  clientNom: string;
+  type: "sous" | "hors";
+  compteRendu: string;
+} | null;
 
 export function NouveauDevisForm({
   sites,
@@ -47,7 +53,7 @@ export function NouveauDevisForm({
     // pas une synchro continue — pas de dépendances à surveiller.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const [libelle, setLibelle] = useState("");
+  const [libelle, setLibelle] = useState(prefill?.compteRendu ?? "");
   const [nature, setNature] = useState("");
   const [montant, setMontant] = useState("");
   const [heures, setHeures] = useState("");

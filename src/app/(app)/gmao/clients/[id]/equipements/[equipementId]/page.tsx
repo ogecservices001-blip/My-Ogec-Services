@@ -8,6 +8,9 @@ import { calculerHeuresVisite, heuresCumulAnnee } from "@/lib/gmao/calcul-heures
 import { freqCouranteCalculee } from "@/lib/gmao/releve-service";
 import { chargerDevisEnCoursParEquipement } from "@/lib/devis/en-cours";
 import { LABEL_STATUT_DEVIS, TEINTE_STATUT_DEVIS } from "@/app/(app)/devis/statut";
+import { chargerBonsInterventionParEquipement } from "@/lib/bi/bons-par-equipement";
+import { ETATS_EQUIPEMENT } from "@/lib/bi/format";
+import { StatutBadge } from "@/components/bi/statut-badge";
 
 export default async function VisualiserEquipementPage({
   params,
@@ -40,7 +43,7 @@ export default async function VisualiserEquipementPage({
 
   const resultatReference = analyserReference(c, references ?? []);
   const freqCourante = await freqCouranteCalculee(supabase, equipementId);
-  const [devisEnCours, { data: depannagesOuverts }] = await Promise.all([
+  const [devisEnCours, { data: depannagesOuverts }, bonsIntervention] = await Promise.all([
     chargerDevisEnCoursParEquipement().then((parEquipement) => parEquipement[equipementId] ?? []),
     supabase
       .from("demandes_depannage")
@@ -48,6 +51,7 @@ export default async function VisualiserEquipementPage({
       .eq("equipement_id", equipementId)
       .neq("statut", "traitee")
       .order("date_creation", { ascending: false }),
+    chargerBonsInterventionParEquipement(equipementId),
   ]);
   const cumul =
     resultatReference.reference && Number.isFinite(freqAnnuelleNum)
@@ -102,7 +106,7 @@ export default async function VisualiserEquipementPage({
         </div>
       </div>
 
-      {(devisEnCours.length > 0 || (depannagesOuverts ?? []).length > 0) && (
+      {(devisEnCours.length > 0 || (depannagesOuverts ?? []).length > 0 || bonsIntervention.length > 0) && (
         <div className="mb-5 space-y-1.5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
           {devisEnCours.map((d, i) => (
             <p key={`devis-${i}`} className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-red-700">
@@ -119,6 +123,20 @@ export default async function VisualiserEquipementPage({
             <p key={`dep-${d.id}`} className="text-sm font-semibold text-blue-700">
               N°{d.numero} — {d.message}
             </p>
+          ))}
+          {bonsIntervention.map((b, i) => (
+            <div key={`bi-${i}`} className="text-sm font-semibold text-violet-700">
+              <p className="flex flex-wrap items-center gap-1.5">
+                {b.numero}
+                <StatutBadge statut={b.statut} />
+                {b.etat_equipement.map((e) => (
+                  <span key={e} className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">
+                    {ETATS_EQUIPEMENT[e] ?? e}
+                  </span>
+                ))}
+              </p>
+              <p className="font-normal text-violet-900">{b.compte_rendu || "—"}</p>
+            </div>
           ))}
         </div>
       )}

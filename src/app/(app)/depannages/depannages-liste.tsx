@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Download, MessageCircle, Mail, User, CalendarClock, X, Wrench } from "lucide-react";
+import { Download, MessageCircle, Mail, User, CalendarClock, X, Wrench } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { Tableur } from "@/components/tableur";
 import { FiltreSelect } from "@/components/filtre-select";
@@ -78,15 +78,6 @@ export function DepannagesListe({
             >
               <Download className="h-4 w-4" strokeWidth={2.25} />
             </a>
-            {vue === "en_cours" && (
-              <Link
-                href="/depannages/nouveau"
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.5} />
-                Nouveau dépannage
-              </Link>
-            )}
           </div>
         )}
       </div>

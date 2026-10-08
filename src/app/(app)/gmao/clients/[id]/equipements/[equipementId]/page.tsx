@@ -129,11 +129,16 @@ export default async function VisualiserEquipementPage({
               <p className="flex flex-wrap items-center gap-1.5">
                 {b.numero}
                 <StatutBadge statut={b.statut} />
-                {b.etat_equipement.map((e) => (
-                  <span key={e} className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">
-                    {ETATS_EQUIPEMENT[e] ?? e}
-                  </span>
-                ))}
+                {b.etat_equipement
+                  // "Devis à établir" disparaît dès qu'un vrai devis existe pour
+                  // cet équipement (déjà listé juste au-dessus) — inutile de
+                  // garder l'étiquette, le devis réel fait foi.
+                  .filter((e) => e !== "devis_a_etablir" || devisEnCours.length === 0)
+                  .map((e) => (
+                    <span key={e} className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">
+                      {ETATS_EQUIPEMENT[e] ?? e}
+                    </span>
+                  ))}
               </p>
               <p className="font-normal text-violet-900">{b.compte_rendu || "—"}</p>
             </div>

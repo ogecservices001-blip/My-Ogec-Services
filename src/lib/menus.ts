@@ -135,6 +135,7 @@ export function construireModules(isAdmin: boolean): Module[] {
             sousMenus: [
               { nom: "Liste des devis", href: "/devis" },
               { nom: "Nouveau devis", href: "/devis/nouveau" },
+              { nom: "Devis à établir", href: "/devis/a-etablir" },
             ],
           },
         ]

@@ -240,6 +240,7 @@ function VueLectureSeule({
             {!sansTempsPasse(bon.pole) && <Ligne label="Temps passé" valeur={bon.temps_passe || "—"} />}
           </>
         )}
+        <Ligne label="Nombre de déplacements" valeur={String(bon.nombre_deplacements)} />
       </Section>
 
       {(bon.materiel_champs_en_tete as Record<string, unknown>) &&
@@ -409,6 +410,7 @@ function VueCorrection({
   const [dateFin, setDateFin] = useState(bon.date_fin);
   const [dateIntervention, setDateIntervention] = useState(bon.date_intervention);
   const [tempsPasse, setTempsPasse] = useState(bon.temps_passe);
+  const [nombreDeplacements, setNombreDeplacements] = useState(bon.nombre_deplacements);
   const [obsTech, setObsTech] = useState(bon.obs_tech);
   const [interventions, setInterventions] = useState<InterventionEquipement[]>(() =>
     interventionsDuBon(bon).map((inter) => ({ ...inter, prestas: inter.prestas.filter((p) => p.designation.trim()) })),
@@ -431,6 +433,7 @@ function VueCorrection({
       date_fin: dateFin,
       date_intervention: dateIntervention,
       temps_passe: tempsPasse,
+      nombre_deplacements: nombreDeplacements,
       compte_rendu: interventions[0]?.compte_rendu ?? "",
       obs_tech: obsTech,
       note_interne: noteInterne,
@@ -506,6 +509,12 @@ function VueCorrection({
             {!sansTempsPasse(pole) && <Champ label="Temps passé" valeur={tempsPasse} onChange={setTempsPasse} />}
           </div>
         )}
+
+        <Champ
+          label="Nombre de déplacements"
+          valeur={String(nombreDeplacements)}
+          onChange={(v) => setNombreDeplacements(Math.max(1, parseInt(v, 10) || 1))}
+        />
 
         {interventions.map((inter, i) => {
           const label = equipementLabel({ pole, ...inter });

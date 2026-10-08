@@ -17,6 +17,7 @@ export type CorrectionInput = {
   date_fin: string;
   date_intervention: string;
   temps_passe: string;
+  nombre_deplacements: number;
   compte_rendu: string;
   obs_tech: string;
   note_interne: string;
@@ -136,6 +137,7 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
       date_fin: input.date_fin,
       date_intervention: input.date_intervention,
       temps_passe: input.temps_passe,
+      nombre_deplacements: input.nombre_deplacements,
       compte_rendu: input.compte_rendu,
       obs_tech: input.obs_tech,
       note_interne: input.note_interne,

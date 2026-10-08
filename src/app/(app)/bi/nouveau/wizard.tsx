@@ -419,6 +419,8 @@ export function BiWizard({
   const sigClientRef = useRef<SignaturePadHandle>(null);
   const [sigTechVide, setSigTechVide] = useState(true);
   const [sigClientVide, setSigClientVide] = useState(true);
+  const [nombreDeplacements, setNombreDeplacements] = useState(1);
+  const [confirmationDeplacement, setConfirmationDeplacement] = useState(false);
 
   useEffect(() => {
     if (tempsManuel) return;
@@ -478,7 +480,14 @@ export function BiWizard({
       : [];
 
   const peutTransmettre =
-    pole !== "" && siteId !== "" && techniciens.length > 0 && !sigTechVide && !sigClientVide && signataire.trim() !== "" && !photosEnCours;
+    pole !== "" &&
+    siteId !== "" &&
+    techniciens.length > 0 &&
+    !sigTechVide &&
+    !sigClientVide &&
+    signataire.trim() !== "" &&
+    !photosEnCours &&
+    (sansTempsPasse(pole) || tempsPasse.trim() !== "");
 
   // ==================== Construction + envoi ====================
 
@@ -551,12 +560,18 @@ export function BiWizard({
       signataire_tel_portable: signataireTelPortable.trim(),
       signataire_tel_fixe: signataireTelFixe.trim(),
       depannage_id: depannageId,
+      nombre_deplacements: nombreDeplacements,
     };
   }
 
   function soumettre(statut: "brouillon" | "averif") {
     if (statut === "averif" && !peutTransmettre) {
-      setErreur("Pôle, client, technicien(s), signataire et les 2 signatures sont obligatoires.");
+      setErreur("Pôle, client, technicien(s), temps passé, signataire et les 2 signatures sont obligatoires.");
+      return;
+    }
+    if (statut === "averif" && !confirmationDeplacement) {
+      setErreur(null);
+      setConfirmationDeplacement(true);
       return;
     }
     setErreur(null);
@@ -1340,6 +1355,44 @@ export function BiWizard({
           </>
         )}
       </div>
+
+      {confirmationDeplacement && (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4"
+          onClick={() => setConfirmationDeplacement(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="mb-1 text-base font-bold text-slate-900">Nombre de déplacements</h2>
+            <p className="mb-3 text-xs text-slate-500">Combien de déplacements pour cette intervention ?</p>
+            <input
+              type="number"
+              min={1}
+              value={nombreDeplacements}
+              onChange={(e) => setNombreDeplacements(Math.max(1, parseInt(e.target.value, 10) || 1))}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmationDeplacement(false)}
+                disabled={enregistrement}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => soumettre("averif")}
+                disabled={enregistrement}
+                className={`rounded-xl px-5 py-2 text-sm font-semibold text-white shadow-sm disabled:opacity-60 ${ACCENT}`}
+              >
+                {enregistrement ? "..." : "Confirmer et transmettre"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

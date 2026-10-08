@@ -162,6 +162,7 @@ export type Database = {
           materiel_champs_en_tete: Json
           materiel_type_equipement_id: string | null
           modele_champs: Json
+          nombre_deplacements: number
           note_interne: string
           numero: string
           numero_devis: string
@@ -220,6 +221,7 @@ export type Database = {
           materiel_champs_en_tete?: Json
           materiel_type_equipement_id?: string | null
           modele_champs?: Json
+          nombre_deplacements?: number
           note_interne?: string
           numero?: string
           numero_devis?: string
@@ -278,6 +280,7 @@ export type Database = {
           materiel_champs_en_tete?: Json
           materiel_type_equipement_id?: string | null
           modele_champs?: Json
+          nombre_deplacements?: number
           note_interne?: string
           numero?: string
           numero_devis?: string

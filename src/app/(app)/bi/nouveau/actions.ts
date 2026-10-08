@@ -218,6 +218,10 @@ export type BiInput = {
   /// l'assistant a été pré-rempli depuis un ticket : marqué "traitée"
   /// et lié au bon créé une fois l'insertion réussie.
   depannage_id: string | null;
+
+  /// Confirmé juste avant transmission au bureau (voir modale dans
+  /// l'assistant), par défaut 1.
+  nombre_deplacements: number;
 };
 
 /// Crée le bon d'intervention — un seul enregistrement terminal par
@@ -278,6 +282,7 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
     signataire: input.signataire,
     signataire_tel_portable: input.signataire_tel_portable,
     signataire_tel_fixe: input.signataire_tel_fixe,
+    nombre_deplacements: input.nombre_deplacements,
     date_signature: statut === "averif" ? now() : "",
     created_by: profile.name,
     history:

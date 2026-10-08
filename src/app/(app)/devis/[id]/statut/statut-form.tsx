@@ -16,11 +16,13 @@ export function StatutDevisForm({
   site,
   realise,
   equipements,
+  commandesFournisseur,
 }: {
   devis: Devis;
   site: { nom: string; site: string } | null;
   realise: boolean;
   equipements: { id: string; nom: string; numero_equipement: string }[];
+  commandesFournisseur: { id: string; numero: string; fournisseurNom: string }[];
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("choix");
@@ -184,6 +186,31 @@ export function StatutDevisForm({
         >
           Enregistrer l&apos;équipement
         </button>
+      </div>
+
+      <div className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
+        <h2 className="mb-2 text-sm font-bold text-slate-900">Commande fournisseur</h2>
+        {commandesFournisseur.length > 0 && (
+          <ul className="mb-3 space-y-1.5">
+            {commandesFournisseur.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/commandes-fournisseur/${c.id}`}
+                  className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm hover:bg-slate-100"
+                >
+                  <span className="font-semibold text-slate-900">{c.numero}</span>
+                  <span className="text-slate-500">{c.fournisseurNom}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link
+          href={`/commandes-fournisseur/nouveau?devisId=${devis.id}`}
+          className="block w-full rounded-xl border border-dashed border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+        >
+          + Bon de commande fournisseur
+        </Link>
       </div>
     </div>
   );

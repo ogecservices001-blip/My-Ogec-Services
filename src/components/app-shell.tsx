@@ -20,7 +20,7 @@ const LARGEUR_PLEINE = [
   "/prestations/annulees",
 ];
 /// Sections entières (toutes les sous-pages), réservées à l'admin.
-const LARGEUR_PLEINE_SECTIONS = ["/devis"];
+const LARGEUR_PLEINE_SECTIONS = ["/devis", "/commandes-fournisseur"];
 
 export function AppShell({
   isAdmin,

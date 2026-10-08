@@ -342,6 +342,99 @@ export type Database = {
           },
         ]
       }
+      commandes_fournisseur: {
+        Row: {
+          adresse_livraison: string
+          ar_fournisseur: string
+          chrono_fournisseur: number
+          created_at: string
+          date_commande: string
+          date_livraison_prevue: string
+          devis_fournisseur_date: string
+          devis_fournisseur_numero: string
+          devis_id: string
+          envoyee_le: string
+          fournisseur_id: string
+          id: string
+          incoterm: string
+          interlocuteur: Json
+          lignes: Json
+          livre: boolean
+          numero: string
+          observations: string
+          port: string
+          redacteur: string
+          relance: string
+          taux_tva: number
+          updated_at: string
+        }
+        Insert: {
+          adresse_livraison?: string
+          ar_fournisseur?: string
+          chrono_fournisseur?: number
+          created_at?: string
+          date_commande?: string
+          date_livraison_prevue?: string
+          devis_fournisseur_date?: string
+          devis_fournisseur_numero?: string
+          devis_id: string
+          envoyee_le?: string
+          fournisseur_id: string
+          id?: string
+          incoterm?: string
+          interlocuteur?: Json
+          lignes?: Json
+          livre?: boolean
+          numero?: string
+          observations?: string
+          port?: string
+          redacteur?: string
+          relance?: string
+          taux_tva?: number
+          updated_at?: string
+        }
+        Update: {
+          adresse_livraison?: string
+          ar_fournisseur?: string
+          chrono_fournisseur?: number
+          created_at?: string
+          date_commande?: string
+          date_livraison_prevue?: string
+          devis_fournisseur_date?: string
+          devis_fournisseur_numero?: string
+          devis_id?: string
+          envoyee_le?: string
+          fournisseur_id?: string
+          id?: string
+          incoterm?: string
+          interlocuteur?: Json
+          lignes?: Json
+          livre?: boolean
+          numero?: string
+          observations?: string
+          port?: string
+          redacteur?: string
+          relance?: string
+          taux_tva?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commandes_fournisseur_devis_id_fkey"
+            columns: ["devis_id"]
+            isOneToOne: false
+            referencedRelation: "devis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commandes_fournisseur_fournisseur_id_fkey"
+            columns: ["fournisseur_id"]
+            isOneToOne: false
+            referencedRelation: "fournisseurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compteurs: {
         Row: {
           annee: number

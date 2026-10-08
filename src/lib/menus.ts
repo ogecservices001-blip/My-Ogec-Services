@@ -7,6 +7,7 @@ import {
   FileSignature,
   Flag,
   BookOpen,
+  ShoppingCart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -137,6 +138,13 @@ export function construireModules(isAdmin: boolean): Module[] {
               { nom: "Nouveau devis", href: "/devis/nouveau" },
               { nom: "Devis à établir", href: "/devis/a-etablir" },
             ],
+          },
+          {
+            nom: "Commande fournisseur",
+            actif: true,
+            icone: ShoppingCart,
+            couleur: "bg-orange-100 text-orange-600",
+            sousMenus: [{ nom: "Toutes les commandes", href: "/commandes-fournisseur" }],
           },
         ]
       : []),

@@ -10,7 +10,7 @@ import { piecesDepuisNumeroDevis, formaterNumeroCommande } from "@/lib/commandes
 import type { LigneCommande } from "@/lib/commandes-fournisseur/format";
 import { genererPdfCommande } from "@/lib/commandes-fournisseur/pdf";
 import { envoyerCommandeFournisseur } from "@/lib/commandes-fournisseur/email";
-import { extraireLignesDevisFournisseur } from "@/lib/commandes-fournisseur/ocr";
+import { extraireDevisFournisseur, type DevisExtraitResultat } from "@/lib/commandes-fournisseur/ocr";
 
 const ERREUR_DOUBLON = "23505";
 const ESSAIS_NUMERO = 5;
@@ -23,6 +23,8 @@ export type NouvelleCommandeInput = {
   tauxTva: number;
   devisFournisseurNumero: string;
   devisFournisseurDate: string;
+  validiteOffre: string;
+  conditionsPaiement: string;
   adresseLivraison: string;
   dateLivraisonPrevue: string;
   port: string;
@@ -85,6 +87,8 @@ export async function creerCommandeFournisseur(input: NouvelleCommandeInput): Pr
         taux_tva: input.tauxTva,
         devis_fournisseur_numero: input.devisFournisseurNumero,
         devis_fournisseur_date: input.devisFournisseurDate,
+        validite_offre: input.validiteOffre,
+        conditions_paiement: input.conditionsPaiement,
         adresse_livraison: input.adresseLivraison,
         date_livraison_prevue: input.dateLivraisonPrevue,
         port: input.port,
@@ -107,7 +111,7 @@ export async function creerCommandeFournisseur(input: NouvelleCommandeInput): Pr
 /// directement (voir extraireLignesDevisFournisseur).
 export async function analyserDevisFournisseur(
   formData: FormData,
-): Promise<{ ok: true; lignes: LigneCommande[] } | { ok: false; erreur: string }> {
+): Promise<{ ok: true; resultat: DevisExtraitResultat } | { ok: false; erreur: string }> {
   await requireAdmin();
 
   const fichier = formData.get("fichier");
@@ -121,9 +125,9 @@ export async function analyserDevisFournisseur(
 
   try {
     const bytes = Buffer.from(await fichier.arrayBuffer());
-    const lignes = await extraireLignesDevisFournisseur({ bytes, mimeType: fichier.type });
-    if (lignes.length === 0) return { ok: false, erreur: "Aucun article détecté sur ce fichier." };
-    return { ok: true, lignes };
+    const resultat = await extraireDevisFournisseur({ bytes, mimeType: fichier.type });
+    if (resultat.lignes.length === 0) return { ok: false, erreur: "Aucun article détecté sur ce fichier." };
+    return { ok: true, resultat };
   } catch (e) {
     return { ok: false, erreur: e instanceof Error ? e.message : "Échec de la lecture automatique." };
   }

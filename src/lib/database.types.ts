@@ -347,6 +347,7 @@ export type Database = {
           adresse_livraison: string
           ar_fournisseur: string
           chrono_fournisseur: number
+          conditions_paiement: string
           created_at: string
           date_commande: string
           date_livraison_prevue: string
@@ -367,11 +368,13 @@ export type Database = {
           relance: string
           taux_tva: number
           updated_at: string
+          validite_offre: string
         }
         Insert: {
           adresse_livraison?: string
           ar_fournisseur?: string
           chrono_fournisseur?: number
+          conditions_paiement?: string
           created_at?: string
           date_commande?: string
           date_livraison_prevue?: string
@@ -392,11 +395,13 @@ export type Database = {
           relance?: string
           taux_tva?: number
           updated_at?: string
+          validite_offre?: string
         }
         Update: {
           adresse_livraison?: string
           ar_fournisseur?: string
           chrono_fournisseur?: number
+          conditions_paiement?: string
           created_at?: string
           date_commande?: string
           date_livraison_prevue?: string
@@ -417,6 +422,7 @@ export type Database = {
           relance?: string
           taux_tva?: number
           updated_at?: string
+          validite_offre?: string
         }
         Relationships: [
           {

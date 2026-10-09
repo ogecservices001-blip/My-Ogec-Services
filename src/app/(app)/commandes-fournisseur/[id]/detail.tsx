@@ -128,6 +128,14 @@ export function CommandeDetail({
           <p className="font-semibold text-slate-900">{interlocuteur?.nom || "—"}</p>
           <p className="text-slate-600">{interlocuteur?.portable || interlocuteur?.tel}</p>
           <p className="text-slate-600">{interlocuteur?.email}</p>
+          {commande.devis_fournisseur_numero && (
+            <p className="pt-1 text-slate-500">
+              Devis fournisseur {commande.devis_fournisseur_numero}
+              {commande.devis_fournisseur_date ? ` du ${commande.devis_fournisseur_date}` : ""}
+            </p>
+          )}
+          {commande.validite_offre && <p className="text-slate-500">Validité de l&apos;offre : {commande.validite_offre}</p>}
+          {commande.conditions_paiement && <p className="text-slate-500">Conditions de paiement : {commande.conditions_paiement}</p>}
         </div>
       </div>
 

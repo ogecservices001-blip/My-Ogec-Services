@@ -134,7 +134,8 @@ function CommandeDocument({
             <Kv k="Désignation devis" v={devis.libelle} />
             <Kv k="Devis fournisseur n°" v={commande.devis_fournisseur_numero} />
             <Kv k="En date du" v={commande.devis_fournisseur_date} />
-            <Kv k="Délai de paiement" v={fournisseur.delai_paiement} />
+            <Kv k="Validité de l'offre" v={commande.validite_offre} />
+            <Kv k="Conditions de paiement" v={commande.conditions_paiement || fournisseur.delai_paiement} />
             <Kv k="Mode de règlement" v={fournisseur.mode_reglement} />
           </View>
         </View>

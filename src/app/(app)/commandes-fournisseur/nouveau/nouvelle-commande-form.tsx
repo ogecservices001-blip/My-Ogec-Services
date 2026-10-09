@@ -40,6 +40,8 @@ export function NouvelleCommandeForm({
   const [tauxTva, setTauxTva] = useState(0);
   const [devisFournisseurNumero, setDevisFournisseurNumero] = useState("");
   const [devisFournisseurDate, setDevisFournisseurDate] = useState("");
+  const [validiteOffre, setValiditeOffre] = useState("");
+  const [conditionsPaiement, setConditionsPaiement] = useState("");
   const [adresseLivraison, setAdresseLivraison] = useState("");
   const [dateLivraisonPrevue, setDateLivraisonPrevue] = useState("");
   const [port, setPort] = useState("");
@@ -50,6 +52,15 @@ export function NouvelleCommandeForm({
   const [erreurAnalyse, setErreurAnalyse] = useState<string | null>(null);
   const [lignesExtraites, setLignesExtraites] = useState(false);
   const fichierRef = useRef<HTMLInputElement>(null);
+
+  function trouverFournisseurPar(nom: string): Fournisseur | undefined {
+    const cible = nom.trim().toLowerCase();
+    if (!cible) return undefined;
+    return fournisseurs.find((f) => {
+      const n = f.nom.trim().toLowerCase();
+      return n === cible || n.includes(cible) || cible.includes(n);
+    });
+  }
 
   function analyserFichier() {
     const fichier = fichierRef.current?.files?.[0];
@@ -63,7 +74,26 @@ export function NouvelleCommandeForm({
         setErreurAnalyse(res.erreur);
         return;
       }
-      setLignes(res.lignes);
+      const r = res.resultat;
+      setLignes(r.lignes);
+      setDevisFournisseurNumero(r.numero_devis);
+      setDevisFournisseurDate(r.date_devis);
+      setValiditeOffre(r.validite_offre);
+      setConditionsPaiement(r.conditions_paiement);
+      if (r.incoterm) setIncoterm(r.incoterm.toUpperCase());
+
+      const f = trouverFournisseurPar(r.nom_societe);
+      if (f) {
+        setFournisseurId(f.id);
+        setTauxTva(tauxTvaDefaut(f.localisation));
+        const contacts = interlocuteursDe(f);
+        const cibleContact = r.nom_contact.trim().toLowerCase();
+        const idxContact = cibleContact
+          ? contacts.findIndex((c) => c.nom.toLowerCase().includes(cibleContact) || cibleContact.includes(c.nom.toLowerCase()))
+          : -1;
+        setInterlocuteurIndex(idxContact >= 0 ? idxContact : 0);
+      }
+
       setLignesExtraites(true);
       if (fichierRef.current) fichierRef.current.value = "";
     });
@@ -106,6 +136,8 @@ export function NouvelleCommandeForm({
         tauxTva,
         devisFournisseurNumero,
         devisFournisseurDate,
+        validiteOffre,
+        conditionsPaiement,
         adresseLivraison,
         dateLivraisonPrevue,
         port,
@@ -177,9 +209,9 @@ export function NouvelleCommandeForm({
           <div>
             <label className={ETIQUETTE}>Devis fournisseur en date du</label>
             <input
-              type="date"
               value={devisFournisseurDate}
               onChange={(e) => setDevisFournisseurDate(e.target.value)}
+              placeholder="jj/mm/aaaa"
               className={CHAMP}
             />
           </div>
@@ -190,6 +222,24 @@ export function NouvelleCommandeForm({
               step="0.1"
               value={tauxTva}
               onChange={(e) => setTauxTva(parseFloat(e.target.value) || 0)}
+              className={CHAMP}
+            />
+          </div>
+          <div>
+            <label className={ETIQUETTE}>Validité de l&apos;offre</label>
+            <input
+              value={validiteOffre}
+              onChange={(e) => setValiditeOffre(e.target.value)}
+              placeholder="Ex : 30 jours"
+              className={CHAMP}
+            />
+          </div>
+          <div>
+            <label className={ETIQUETTE}>Conditions de paiement</label>
+            <input
+              value={conditionsPaiement}
+              onChange={(e) => setConditionsPaiement(e.target.value)}
+              placeholder="Ex : 30 jours net"
               className={CHAMP}
             />
           </div>
@@ -206,9 +256,9 @@ export function NouvelleCommandeForm({
           <div>
             <label className={ETIQUETTE}>Date de livraison prévue</label>
             <input
-              type="date"
               value={dateLivraisonPrevue}
               onChange={(e) => setDateLivraisonPrevue(e.target.value)}
+              placeholder="jj/mm/aaaa"
               className={CHAMP}
             />
           </div>
@@ -255,7 +305,8 @@ export function NouvelleCommandeForm({
         {erreurAnalyse && <p className="mt-2 text-xs text-red-600">{erreurAnalyse}</p>}
         {lignesExtraites && !erreurAnalyse && (
           <p className="mt-2 text-xs font-semibold text-amber-600">
-            Lignes extraites automatiquement — vérifie bien les quantités et prix avant d&apos;enregistrer.
+            Informations extraites automatiquement (fournisseur, devis, articles...) — vérifie tout avant
+            d&apos;enregistrer.
           </p>
         )}
       </div>

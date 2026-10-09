@@ -68,12 +68,17 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
         [site.responsable_contrat, site.courriel_responsable],
       ]
     : [];
-  const demandeurNom = demande.email
-    ? (contactsSite.find(([, courriel]) => courriel && courriel.toLowerCase() === demande.email.toLowerCase())?.[0] ?? "")
-    : "";
-  const demandeurLabel = demande.email
-    ? [demandeurNom, demande.email].filter(Boolean).join(" — ")
-    : "Créé par le bureau";
+  // Si l'email saisi matche un contact précis du site, on le préfère ;
+  // sinon le contact principal du site (interlocuteur_site) reste la
+  // meilleure info disponible sur "qui, chez le client" — même quand la
+  // demande a été créée par le bureau (appel téléphonique, etc.).
+  const demandeurNom =
+    (demande.email
+      ? contactsSite.find(([, courriel]) => courriel && courriel.toLowerCase() === demande.email.toLowerCase())?.[0]
+      : undefined) ||
+    site?.interlocuteur_site ||
+    "";
+  const demandeurLabel = [demandeurNom, demande.email].filter(Boolean).join(" — ") || "Créé par le bureau";
 
   const infos: [string, string][] = [
     ["N°", demande.numero],

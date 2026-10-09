@@ -31,7 +31,7 @@ export function StatutDevisForm({
   site: { nom: string; site: string } | null;
   realise: boolean;
   equipements: { id: string; nom: string; numero_equipement: string }[];
-  commandesFournisseur: { id: string; numero: string; fournisseurNom: string }[];
+  commandesFournisseur: { id: string; numero: string; fournisseurNom: string; montantTtc: number }[];
   dateExecution: string;
   heuresExecutees: string;
 }) {
@@ -116,7 +116,7 @@ export function StatutDevisForm({
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <Link
         href="/devis"
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
@@ -138,7 +138,7 @@ export function StatutDevisForm({
         <p className="border-b border-slate-100 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-400">
           Informations du devis
         </p>
-        <dl className="grid gap-x-6 gap-y-0.5 px-4 py-3 sm:grid-cols-2">
+        <dl className="grid gap-x-6 gap-y-0.5 px-4 py-3 sm:grid-cols-2 xl:grid-cols-3">
           {infosDevis.map(([label, valeur]) => (
             <div key={label} className="flex items-baseline gap-1.5 py-1 text-sm">
               <dt className="shrink-0 text-slate-400">{label} :</dt>
@@ -150,9 +150,9 @@ export function StatutDevisForm({
         </dl>
       </div>
 
-      <div className="mx-auto max-w-xl">
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}
 
+      <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
       {realise ? (
         <p className="rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-800">
           Ce devis est réalisé (le technicien a transmis son bon d&apos;intervention) — il ne peut plus être
@@ -234,7 +234,7 @@ export function StatutDevisForm({
         </div>
       )}
 
-      <div className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
+      <div className="rounded-2xl bg-white p-4 shadow-sm">
         <label className="mb-1 block text-xs font-medium text-slate-600">Équipement concerné (facultatif)</label>
         <select
           value={equipementId}
@@ -259,33 +259,37 @@ export function StatutDevisForm({
         </button>
       </div>
 
-      <div className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
-        <h2 className="mb-2 text-sm font-bold text-slate-900">Commande fournisseur</h2>
-        {commandesFournisseur.length > 0 && (
-          <ul className="mb-3 space-y-1.5">
+      <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-slate-900">Commande fournisseur</h2>
+          {commandesFournisseur.length > 0 && (
+            <span className="text-sm font-bold text-slate-900">
+              {eur(commandesFournisseur.reduce((s, c) => s + c.montantTtc, 0))} TTC
+            </span>
+          )}
+        </div>
+        {commandesFournisseur.length > 0 ? (
+          <ul className="space-y-1.5">
             {commandesFournisseur.map((c) => (
               <li key={c.id}>
                 <Link
                   href={`/commandes-fournisseur/${c.id}`}
-                  className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm hover:bg-slate-100"
+                  className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm hover:bg-slate-100"
                 >
                   <span className="font-semibold text-slate-900">{c.numero}</span>
-                  <span className="text-slate-500">{c.fournisseurNom}</span>
+                  <span className="truncate text-slate-500">{c.fournisseurNom}</span>
+                  <span className="shrink-0 font-medium text-slate-700">{eur(c.montantTtc)}</span>
                 </Link>
               </li>
             ))}
           </ul>
+        ) : (
+          <p className="text-sm text-slate-400">Aucune commande fournisseur liée à ce devis.</p>
         )}
-        <Link
-          href={`/commandes-fournisseur/nouveau?devisId=${devis.id}`}
-          className="block w-full rounded-xl border border-dashed border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-        >
-          + Bon de commande fournisseur
-        </Link>
       </div>
 
       {realise && (
-        <div className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
           <h2 className="mb-2 text-sm font-bold text-slate-900">Exécution</h2>
           <dl className="space-y-0.5 text-sm text-slate-600">
             <p>Date d&apos;exécution : {dateExecution || "—"}</p>
@@ -294,7 +298,7 @@ export function StatutDevisForm({
         </div>
       )}
 
-      <div className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
+      <div className="rounded-2xl bg-white p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-bold text-slate-900">Mise en facturation</h2>
         <label className="mb-1 block text-xs font-medium text-slate-600">Mois de facturation (MM-AAAA)</label>
         <div className="flex gap-2">

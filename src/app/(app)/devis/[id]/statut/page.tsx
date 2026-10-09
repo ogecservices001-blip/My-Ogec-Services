@@ -3,6 +3,7 @@ import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Site, Tables } from "@/lib/types";
 import { sommeDurees } from "@/lib/bi/format";
+import { calculerTotaux, type LigneCommande } from "@/lib/commandes-fournisseur/format";
 import { STATUTS_BI_REALISE } from "../../statut";
 import { StatutDevisForm } from "./statut-form";
 
@@ -23,7 +24,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
     supabase.from("equipements").select("id, nom, numero_equipement").eq("site_id", devis.site_id).order("nom"),
     supabase
       .from("commandes_fournisseur")
-      .select("id, numero, fournisseur_id")
+      .select("id, numero, fournisseur_id, lignes, taux_tva")
       .eq("devis_id", id)
       .order("created_at", { ascending: false }),
   ]);
@@ -50,6 +51,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
     id: c.id,
     numero: c.numero,
     fournisseurNom: fournisseurParId.get(c.fournisseur_id) ?? "",
+    montantTtc: calculerTotaux((c.lignes as unknown as LigneCommande[]) ?? [], c.taux_tva).ttc,
   }));
 
   return (

@@ -218,3 +218,28 @@ export async function envoyerBiParEmail(id: string, informationComplementaire: s
   revalidatePath(`/bi/${id}`);
   return { ok: true };
 }
+
+const CLASSEMENTS_VALIDES = new Set(["", "archiver", "facturer"]);
+const FORMAT_MOIS_ANNEE = /^\d{2}-\d{4}$/;
+
+/// Classement du BI une fois vérifié : "archiver" (rien à facturer) ou
+/// "facturer" (mois de facturation saisi ensuite) — voir
+/// modifierMoisFacturation côté devis, même principe.
+export async function classerBI(id: string, classement: string, moisFacturation: string): Promise<ActionResult> {
+  await requireAdmin();
+  if (!CLASSEMENTS_VALIDES.has(classement)) return { ok: false, erreur: "Classement invalide." };
+  if (moisFacturation && !FORMAT_MOIS_ANNEE.test(moisFacturation)) {
+    return { ok: false, erreur: "Format attendu : MM-AAAA (ex : 10-2026)." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("bons_intervention")
+    .update({ classement, mois_facturation: classement === "facturer" ? moisFacturation : "" })
+    .eq("id", id);
+  if (error) return { ok: false, erreur: error.message };
+
+  revalidatePath(`/bi/${id}`);
+  revalidatePath("/bi/valides");
+  return { ok: true };
+}

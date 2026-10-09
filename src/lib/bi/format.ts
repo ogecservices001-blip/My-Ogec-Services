@@ -66,6 +66,13 @@ function parserDuree(duree: string): number | null {
   return Number.isNaN(nombre) ? null : Math.round(nombre * 60);
 }
 
+/// Même lecture que parserDuree ("7h30", "3.5"...) mais renvoyée en
+/// heures décimales — pour multiplier par un taux horaire.
+export function dureeEnHeures(duree: string): number | null {
+  const minutes = parserDuree(duree);
+  return minutes === null ? null : minutes / 60;
+}
+
 /// Multiplie une durée par le nombre de techniciens intervenus — le
 /// temps passé standard représente le temps de présence sur site, mais
 /// la main d'œuvre facturée compte chaque technicien. Laisse la durée

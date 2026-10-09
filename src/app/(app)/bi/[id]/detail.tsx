@@ -14,9 +14,12 @@ import {
   totalHT,
   interventionsDuBon,
   ETATS_EQUIPEMENT,
+  dureeEnHeures,
+  parsePu,
   type InterventionEquipement,
+  type Presta,
 } from "@/lib/bi/format";
-import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, type CorrectionInput } from "./actions";
+import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, classerBI, type CorrectionInput } from "./actions";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 
 const STATUTS_AVEC_PDF = new Set<string>([Statuts.valide, Statuts.pdfGenere, Statuts.pretEnvoi, Statuts.envoye]);
@@ -24,6 +27,13 @@ const STATUTS_AVEC_PDF = new Set<string>([Statuts.valide, Statuts.pdfGenere, Sta
 type Bon = Tables<"bons_intervention">;
 type TypeEquipementResume = { id: string; nom: string; champs_en_tete_supplementaires: unknown };
 type ModeleResume = { champs: ChampEnTete[]; checklist: ChecklistItem[] } | null;
+type TauxSite = {
+  taux_horaire_regie: string;
+  taux_horaire_revise: string;
+  taux_horaire_vendu: string;
+  forfait_deplacement: string;
+  forfait_deplacement_revise: string;
+} | null;
 
 export function BiDetail({
   bon,
@@ -31,12 +41,14 @@ export function BiDetail({
   typesEquipement,
   modele,
   isAdmin,
+  tauxSite,
 }: {
   bon: Bon;
   techniciensDisponibles: string[];
   typesEquipement: TypeEquipementResume[];
   modele: ModeleResume;
   isAdmin: boolean;
+  tauxSite: TauxSite;
 }) {
   const router = useRouter();
   const enCorrection = isAdmin && bon.statut === Statuts.aVerifier;
@@ -112,6 +124,8 @@ export function BiDetail({
       ) : (
         <VueLectureSeule bon={bon} typesEquipement={typesEquipement} modele={modele} />
       )}
+
+      {isAdmin && !enCorrection && <BlocClassement bon={bon} tauxSite={tauxSite} />}
 
       {Array.isArray(bon.history) && bon.history.length > 0 && (
         <Section titre="Historique des corrections">
@@ -368,6 +382,126 @@ function VueLectureSeule({
         </Section>
       )}
     </>
+  );
+}
+
+/// Une fois le BI vérifié : le bureau choisit s'il part à l'archivage
+/// chantier (rien à facturer) ou à facturer — avec les taux du site
+/// (Répertoire) affichés pour vérifier avant de cocher, et le mois de
+/// facturation une fois "À facturer" coché (même principe que les
+/// devis : mention "Facturable" dès que le mois est renseigné).
+function BlocClassement({ bon, tauxSite }: { bon: Bon; tauxSite: TauxSite }) {
+  const router = useRouter();
+  const [classement, setClassement] = useState(bon.classement);
+  const [moisFacturation, setMoisFacturation] = useState(bon.mois_facturation);
+  const [pending, startTransition] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  const heures = dureeEnHeures(bon.temps_passe);
+  const tauxVendu = parsePu(tauxSite?.taux_horaire_vendu ?? "");
+  const montantHeures = heures !== null && tauxVendu !== null ? heures * tauxVendu : null;
+  const forfaitDeplacement = parsePu(tauxSite?.forfait_deplacement ?? "");
+  const montantDeplacements = forfaitDeplacement !== null ? forfaitDeplacement * bon.nombre_deplacements : null;
+  const prestas = interventionsDuBon(bon).flatMap((i) => i.prestas.filter((p: Presta) => p.designation.trim()));
+  const montantMateriel = totalHT(prestas);
+
+  function choisir(valeur: string) {
+    setErreur(null);
+    const nouveau = classement === valeur ? "" : valeur;
+    startTransition(async () => {
+      const res = await classerBI(bon.id, nouveau, nouveau === "facturer" ? moisFacturation : "");
+      if (!res.ok) {
+        setErreur(res.erreur);
+        return;
+      }
+      setClassement(nouveau);
+      router.refresh();
+    });
+  }
+
+  function enregistrerMois() {
+    setErreur(null);
+    startTransition(async () => {
+      const res = await classerBI(bon.id, "facturer", moisFacturation.trim());
+      if (!res.ok) {
+        setErreur(res.erreur);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  return (
+    <Section titre="Classement">
+      <div className="mb-3 space-y-0.5">
+        <Ligne label="Temps passé" valeur={bon.temps_passe || "—"} />
+        {tauxSite ? (
+          <>
+            <Ligne label="Taux horaire vendu" valeur={tauxSite.taux_horaire_vendu ? `${tauxSite.taux_horaire_vendu} €/h` : "—"} />
+            {montantHeures !== null && <Ligne label="→ Montant main d'œuvre" valeur={eur(montantHeures)} />}
+            <Ligne label="Taux horaire régie" valeur={tauxSite.taux_horaire_regie || "—"} />
+            <Ligne label="Taux horaire révisé" valeur={tauxSite.taux_horaire_revise || "—"} />
+            <Ligne
+              label="Forfait déplacement"
+              valeur={tauxSite.forfait_deplacement ? `${tauxSite.forfait_deplacement} € × ${bon.nombre_deplacements}` : "—"}
+            />
+            {montantDeplacements !== null && <Ligne label="→ Montant déplacements" valeur={eur(montantDeplacements)} />}
+            <Ligne label="Forfait déplacement révisé" valeur={tauxSite.forfait_deplacement_revise || "—"} />
+          </>
+        ) : (
+          <p className="text-sm text-slate-400">Aucun taux connu pour ce client (fiche site).</p>
+        )}
+        {montantMateriel > 0 && <Ligne label="Matériel / fournitures" valeur={eur(montantMateriel)} />}
+      </div>
+
+      <div className="flex flex-wrap gap-4">
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <input
+            type="checkbox"
+            checked={classement === "archiver"}
+            onChange={() => choisir("archiver")}
+            disabled={pending}
+            className="h-4 w-4 accent-brand-green"
+          />
+          À archiver
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <input
+            type="checkbox"
+            checked={classement === "facturer"}
+            onChange={() => choisir("facturer")}
+            disabled={pending}
+            className="h-4 w-4 accent-brand-green"
+          />
+          À facturer
+        </label>
+      </div>
+
+      {classement === "facturer" && (
+        <div className="mt-3 flex items-end gap-2">
+          <div className="flex-1">
+            <label className="mb-1 block text-xs font-medium text-slate-600">Mois de facturation (MM-AAAA)</label>
+            <input
+              value={moisFacturation}
+              onChange={(e) => setMoisFacturation(e.target.value)}
+              placeholder="10-2026"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+            />
+          </div>
+          <button
+            onClick={enregistrerMois}
+            disabled={pending || moisFacturation === bon.mois_facturation}
+            className="shrink-0 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:opacity-60"
+          >
+            {pending ? "..." : "Enregistrer"}
+          </button>
+        </div>
+      )}
+      {classement === "facturer" && bon.mois_facturation && (
+        <p className="mt-2 inline-flex rounded-full bg-teal-100 px-2 py-0.5 text-[11px] font-bold text-teal-700">Facturable</p>
+      )}
+      {erreur && <p className="mt-2 text-xs text-red-600">{erreur}</p>}
+    </Section>
   );
 }
 

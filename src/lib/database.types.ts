@@ -131,6 +131,7 @@ export type Database = {
           adresse: string
           checklist_values: Json
           chrono: number
+          classement: string
           client_nom: string
           compte_rendu: string
           created_at: string
@@ -162,6 +163,7 @@ export type Database = {
           materiel_champs_en_tete: Json
           materiel_type_equipement_id: string | null
           modele_champs: Json
+          mois_facturation: string
           nombre_deplacements: number
           note_interne: string
           numero: string
@@ -190,6 +192,7 @@ export type Database = {
           adresse?: string
           checklist_values?: Json
           chrono?: number
+          classement?: string
           client_nom?: string
           compte_rendu?: string
           created_at?: string
@@ -221,6 +224,7 @@ export type Database = {
           materiel_champs_en_tete?: Json
           materiel_type_equipement_id?: string | null
           modele_champs?: Json
+          mois_facturation?: string
           nombre_deplacements?: number
           note_interne?: string
           numero?: string
@@ -249,6 +253,7 @@ export type Database = {
           adresse?: string
           checklist_values?: Json
           chrono?: number
+          classement?: string
           client_nom?: string
           compte_rendu?: string
           created_at?: string
@@ -280,6 +285,7 @@ export type Database = {
           materiel_champs_en_tete?: Json
           materiel_type_equipement_id?: string | null
           modele_champs?: Json
+          mois_facturation?: string
           nombre_deplacements?: number
           note_interne?: string
           numero?: string

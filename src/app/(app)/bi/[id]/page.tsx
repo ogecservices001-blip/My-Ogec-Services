@@ -22,6 +22,14 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
     .eq("pole", bon.pole)
     .maybeSingle();
 
+  const { data: site } = bon.site_id
+    ? await supabase
+        .from("sites")
+        .select("taux_horaire_regie, taux_horaire_revise, taux_horaire_vendu, forfait_deplacement, forfait_deplacement_revise")
+        .eq("id", bon.site_id)
+        .single()
+    : { data: null };
+
   return (
     <BiDetail
       bon={bon as Tables<"bons_intervention">}
@@ -29,6 +37,7 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
       typesEquipement={typesEquipement ?? []}
       modele={modele ?? null}
       isAdmin={profile?.role === "admin"}
+      tauxSite={site}
     />
   );
 }

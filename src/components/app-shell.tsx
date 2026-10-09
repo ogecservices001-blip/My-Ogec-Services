@@ -21,10 +21,11 @@ const LARGEUR_PLEINE = [
 ];
 /// Sections entières (toutes les sous-pages), réservées à l'admin.
 const LARGEUR_PLEINE_SECTIONS = ["/devis", "/commandes-fournisseur"];
-/// Fiches de détail dynamiques (/depannages/{id}) — un préfixe sur
-/// "/depannages" élargirait aussi "en cours" (liste de cartes) et
-/// "nouveau" (formulaire), qui doivent rester en colonne centrée.
-const LARGEUR_PLEINE_PATTERNS = [/^\/depannages\/[0-9a-f-]{20,}$/i];
+/// Fiches de détail dynamiques (/depannages/{id}, /bi/{id}) — un
+/// préfixe sur "/bi" élargirait aussi "nouveau" (assistant technicien),
+/// qui doit rester en colonne centrée ; "/bi/{id}/pdf" ne matche pas
+/// (pas une page).
+const LARGEUR_PLEINE_PATTERNS = [/^\/depannages\/[0-9a-f-]{20,}$/i, /^\/bi\/[0-9a-f-]{20,}$/i];
 
 export function AppShell({
   isAdmin,

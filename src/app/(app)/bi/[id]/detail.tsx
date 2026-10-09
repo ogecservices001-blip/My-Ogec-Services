@@ -60,7 +60,7 @@ export function BiDetail({
   }, [bon.pdf_storage_path]);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <Link
         href={isAdmin ? "/bi" : "/"}
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
@@ -108,6 +108,7 @@ export function BiDetail({
         </div>
       )}
 
+      <div className="grid items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
       <Section titre="Le client">
         <div className="mb-2 flex items-center gap-1.5 text-xs text-slate-500">
           <Lock className="h-3.5 w-3.5" strokeWidth={2} />
@@ -125,7 +126,12 @@ export function BiDetail({
         <VueLectureSeule bon={bon} typesEquipement={typesEquipement} modele={modele} />
       )}
 
-      {isAdmin && !enCorrection && <BlocClassement bon={bon} tauxSite={tauxSite} />}
+      {isAdmin && !enCorrection && (
+        <>
+          <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />
+          <BlocClassement bon={bon} />
+        </>
+      )}
 
       {Array.isArray(bon.history) && bon.history.length > 0 && (
         <Section titre="Historique des corrections">
@@ -146,6 +152,7 @@ export function BiDetail({
           )}
         </Section>
       )}
+      </div>
 
       {modaleEmailOuverte && (
         <ModaleEmail biId={bon.id} destinataire={bon.email} onClose={() => setModaleEmailOuverte(false)} />
@@ -390,20 +397,56 @@ function VueLectureSeule({
 /// (Répertoire) affichés pour vérifier avant de cocher, et le mois de
 /// facturation une fois "À facturer" coché (même principe que les
 /// devis : mention "Facturable" dès que le mois est renseigné).
-function BlocClassement({ bon, tauxSite }: { bon: Bon; tauxSite: TauxSite }) {
+/// Montant estimé à facturer — toujours au taux horaire régie (pas le
+/// taux vendu, affiché juste pour référence), + forfait déplacement et
+/// matériel, pour que le bureau voie le total avant de cocher "À
+/// facturer".
+function BlocMontantFacturation({ bon, tauxSite }: { bon: Bon; tauxSite: TauxSite }) {
+  const heures = dureeEnHeures(bon.temps_passe);
+  const tauxRegie = parsePu(tauxSite?.taux_horaire_regie ?? "");
+  const montantHeures = heures !== null && tauxRegie !== null ? heures * tauxRegie : null;
+  const forfaitDeplacement = parsePu(tauxSite?.forfait_deplacement ?? "");
+  const montantDeplacements = forfaitDeplacement !== null ? forfaitDeplacement * bon.nombre_deplacements : null;
+  const prestas = interventionsDuBon(bon).flatMap((i) => i.prestas.filter((p: Presta) => p.designation.trim()));
+  const montantMateriel = totalHT(prestas);
+  const total = (montantHeures ?? 0) + (montantDeplacements ?? 0) + montantMateriel;
+
+  return (
+    <Section titre="Montant à facturer">
+      <div className="space-y-0.5">
+        <Ligne label="Temps passé" valeur={bon.temps_passe || "—"} />
+        {tauxSite ? (
+          <>
+            <Ligne label="Taux horaire régie" valeur={tauxSite.taux_horaire_regie ? `${tauxSite.taux_horaire_regie} €/h` : "—"} />
+            {montantHeures !== null && <Ligne label="→ Montant main d'œuvre" valeur={eur(montantHeures)} />}
+            <Ligne label="Taux horaire vendu" valeur={tauxSite.taux_horaire_vendu || "—"} />
+            <Ligne label="Taux horaire révisé" valeur={tauxSite.taux_horaire_revise || "—"} />
+            <Ligne
+              label="Forfait déplacement"
+              valeur={tauxSite.forfait_deplacement ? `${tauxSite.forfait_deplacement} € × ${bon.nombre_deplacements}` : "—"}
+            />
+            {montantDeplacements !== null && <Ligne label="→ Montant déplacements" valeur={eur(montantDeplacements)} />}
+            <Ligne label="Forfait déplacement révisé" valeur={tauxSite.forfait_deplacement_revise || "—"} />
+          </>
+        ) : (
+          <p className="text-sm text-slate-400">Aucun taux connu pour ce client (fiche site).</p>
+        )}
+        {montantMateriel > 0 && <Ligne label="Matériel / fournitures" valeur={eur(montantMateriel)} />}
+      </div>
+      <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 pt-2">
+        <span className="text-sm font-bold text-slate-900">Total estimé</span>
+        <span className="text-lg font-bold text-slate-900">{eur(total)}</span>
+      </div>
+    </Section>
+  );
+}
+
+function BlocClassement({ bon }: { bon: Bon }) {
   const router = useRouter();
   const [classement, setClassement] = useState(bon.classement);
   const [moisFacturation, setMoisFacturation] = useState(bon.mois_facturation);
   const [pending, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
-
-  const heures = dureeEnHeures(bon.temps_passe);
-  const tauxVendu = parsePu(tauxSite?.taux_horaire_vendu ?? "");
-  const montantHeures = heures !== null && tauxVendu !== null ? heures * tauxVendu : null;
-  const forfaitDeplacement = parsePu(tauxSite?.forfait_deplacement ?? "");
-  const montantDeplacements = forfaitDeplacement !== null ? forfaitDeplacement * bon.nombre_deplacements : null;
-  const prestas = interventionsDuBon(bon).flatMap((i) => i.prestas.filter((p: Presta) => p.designation.trim()));
-  const montantMateriel = totalHT(prestas);
 
   function choisir(valeur: string) {
     setErreur(null);
@@ -433,27 +476,6 @@ function BlocClassement({ bon, tauxSite }: { bon: Bon; tauxSite: TauxSite }) {
 
   return (
     <Section titre="Classement">
-      <div className="mb-3 space-y-0.5">
-        <Ligne label="Temps passé" valeur={bon.temps_passe || "—"} />
-        {tauxSite ? (
-          <>
-            <Ligne label="Taux horaire vendu" valeur={tauxSite.taux_horaire_vendu ? `${tauxSite.taux_horaire_vendu} €/h` : "—"} />
-            {montantHeures !== null && <Ligne label="→ Montant main d'œuvre" valeur={eur(montantHeures)} />}
-            <Ligne label="Taux horaire régie" valeur={tauxSite.taux_horaire_regie || "—"} />
-            <Ligne label="Taux horaire révisé" valeur={tauxSite.taux_horaire_revise || "—"} />
-            <Ligne
-              label="Forfait déplacement"
-              valeur={tauxSite.forfait_deplacement ? `${tauxSite.forfait_deplacement} € × ${bon.nombre_deplacements}` : "—"}
-            />
-            {montantDeplacements !== null && <Ligne label="→ Montant déplacements" valeur={eur(montantDeplacements)} />}
-            <Ligne label="Forfait déplacement révisé" valeur={tauxSite.forfait_deplacement_revise || "—"} />
-          </>
-        ) : (
-          <p className="text-sm text-slate-400">Aucun taux connu pour ce client (fiche site).</p>
-        )}
-        {montantMateriel > 0 && <Ligne label="Matériel / fournitures" valeur={eur(montantMateriel)} />}
-      </div>
-
       <div className="flex flex-wrap gap-4">
         <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <input

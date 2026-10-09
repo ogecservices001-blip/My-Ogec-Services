@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Download } from "lucide-react";
 import { BiListe } from "../liste";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { labelPole } from "@/lib/bi/constants";
@@ -41,20 +42,30 @@ export function BiValidesOnglets({ bons }: { bons: BonResume[] }) {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {(Object.keys(TITRES) as Onglet[]).map((o) => (
-          <button
-            key={o}
-            onClick={() => setOnglet(o)}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-              onglet === o
-                ? "bg-slate-800 text-white shadow-sm"
-                : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-            }`}
-          >
-            {TITRES[o]} ({parOnglet[o].length})
-          </button>
-        ))}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {(Object.keys(TITRES) as Onglet[]).map((o) => (
+            <button
+              key={o}
+              onClick={() => setOnglet(o)}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                onglet === o
+                  ? "bg-slate-800 text-white shadow-sm"
+                  : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+              }`}
+            >
+              {TITRES[o]} ({parOnglet[o].length})
+            </button>
+          ))}
+        </div>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- téléchargement de fichier, pas une page interne */}
+        <a
+          href="/bi/valides/export"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+          title="Exporter en Excel (toutes les données)"
+        >
+          <Download className="h-4 w-4" strokeWidth={2.25} />
+        </a>
       </div>
       {onglet === "facturer" && <BiFacturerListe bons={parOnglet.facturer} />}
       {onglet === "archiver" && <BiArchiveListe bons={parOnglet.archiver} />}

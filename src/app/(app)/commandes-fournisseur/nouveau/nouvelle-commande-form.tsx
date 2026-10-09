@@ -1,14 +1,14 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, ScanLine } from "lucide-react";
 import type { Fournisseur } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
 import { INCOTERMS, tauxTvaDefaut } from "@/lib/commandes-fournisseur/constants";
 import { ligneVide, montantLigne, calculerTotaux, eur, type LigneCommande } from "@/lib/commandes-fournisseur/format";
-import { creerCommandeFournisseur } from "../actions";
+import { creerCommandeFournisseur, analyserDevisFournisseur } from "../actions";
 
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
 const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
@@ -45,6 +45,29 @@ export function NouvelleCommandeForm({
   const [port, setPort] = useState("");
   const [incoterm, setIncoterm] = useState("");
   const [lignes, setLignes] = useState<LigneCommande[]>([ligneVide()]);
+
+  const [analyse, startAnalyse] = useTransition();
+  const [erreurAnalyse, setErreurAnalyse] = useState<string | null>(null);
+  const [lignesExtraites, setLignesExtraites] = useState(false);
+  const fichierRef = useRef<HTMLInputElement>(null);
+
+  function analyserFichier() {
+    const fichier = fichierRef.current?.files?.[0];
+    if (!fichier) return;
+    setErreurAnalyse(null);
+    const formData = new FormData();
+    formData.set("fichier", fichier);
+    startAnalyse(async () => {
+      const res = await analyserDevisFournisseur(formData);
+      if (!res.ok) {
+        setErreurAnalyse(res.erreur);
+        return;
+      }
+      setLignes(res.lignes);
+      setLignesExtraites(true);
+      if (fichierRef.current) fichierRef.current.value = "";
+    });
+  }
 
   function choisirFournisseur(id: string) {
     setFournisseurId(id);
@@ -209,6 +232,32 @@ export function NouvelleCommandeForm({
             </>
           )}
         </div>
+      </div>
+
+      <div className="mb-4 rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+        <h2 className="mb-1 text-sm font-bold text-slate-900">Lecture automatique</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Devis du fournisseur en PDF ou en photo — les articles détectés remplissent le tableau ci-dessous, à
+          vérifier avant d&apos;enregistrer.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input ref={fichierRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="text-sm text-slate-600" />
+          <button
+            type="button"
+            onClick={analyserFichier}
+            disabled={analyse}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-900 disabled:opacity-60"
+          >
+            <ScanLine className="h-3.5 w-3.5" strokeWidth={2} />
+            {analyse ? "Lecture..." : "Analyser"}
+          </button>
+        </div>
+        {erreurAnalyse && <p className="mt-2 text-xs text-red-600">{erreurAnalyse}</p>}
+        {lignesExtraites && !erreurAnalyse && (
+          <p className="mt-2 text-xs font-semibold text-amber-600">
+            Lignes extraites automatiquement — vérifie bien les quantités et prix avant d&apos;enregistrer.
+          </p>
+        )}
       </div>
 
       <div className="mb-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">

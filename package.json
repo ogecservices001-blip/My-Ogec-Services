@@ -12,6 +12,7 @@
     "import:firestore": "tsx scripts/import-firestore.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.1",
     "@react-pdf/renderer": "^4.9.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",

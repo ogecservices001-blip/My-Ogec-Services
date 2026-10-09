@@ -10,6 +10,7 @@ import { piecesDepuisNumeroDevis, formaterNumeroCommande } from "@/lib/commandes
 import type { LigneCommande } from "@/lib/commandes-fournisseur/format";
 import { genererPdfCommande } from "@/lib/commandes-fournisseur/pdf";
 import { envoyerCommandeFournisseur } from "@/lib/commandes-fournisseur/email";
+import { extraireLignesDevisFournisseur } from "@/lib/commandes-fournisseur/ocr";
 
 const ERREUR_DOUBLON = "23505";
 const ESSAIS_NUMERO = 5;
@@ -99,6 +100,33 @@ export async function creerCommandeFournisseur(input: NouvelleCommandeInput): Pr
     if (error && error.code !== ERREUR_DOUBLON) return { ok: false, erreur: error.message };
   }
   return { ok: false, erreur: "Impossible d'attribuer un numéro, réessaie." };
+}
+
+/// Lit le devis fournisseur envoyé (PDF/photo) et renvoie les lignes
+/// d'articles détectées — à relire par le bureau, jamais appliqué
+/// directement (voir extraireLignesDevisFournisseur).
+export async function analyserDevisFournisseur(
+  formData: FormData,
+): Promise<{ ok: true; lignes: LigneCommande[] } | { ok: false; erreur: string }> {
+  await requireAdmin();
+
+  const fichier = formData.get("fichier");
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { ok: false, erreur: "Aucun fichier sélectionné." };
+  }
+  const typesAcceptes = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+  if (!typesAcceptes.includes(fichier.type)) {
+    return { ok: false, erreur: "Fichier non pris en charge — envoie un PDF ou une photo (PNG/JPEG)." };
+  }
+
+  try {
+    const bytes = Buffer.from(await fichier.arrayBuffer());
+    const lignes = await extraireLignesDevisFournisseur({ bytes, mimeType: fichier.type });
+    if (lignes.length === 0) return { ok: false, erreur: "Aucun article détecté sur ce fichier." };
+    return { ok: true, lignes };
+  } catch (e) {
+    return { ok: false, erreur: e instanceof Error ? e.message : "Échec de la lecture automatique." };
+  }
 }
 
 export type SuiviCommandeInput = {

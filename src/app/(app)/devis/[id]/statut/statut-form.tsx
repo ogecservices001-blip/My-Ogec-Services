@@ -139,14 +139,14 @@ export function StatutDevisForm({
           Informations du devis
         </p>
         <dl className="grid gap-x-6 gap-y-0.5 px-4 py-3 sm:grid-cols-2">
-          {infosDevis
-            .filter(([, valeur]) => valeur)
-            .map(([label, valeur]) => (
-              <div key={label} className="flex items-baseline gap-1.5 py-1 text-sm">
-                <dt className="shrink-0 text-slate-400">{label} :</dt>
-                <dd className="min-w-0 truncate font-medium text-slate-800">{valeur}</dd>
-              </div>
-            ))}
+          {infosDevis.map(([label, valeur]) => (
+            <div key={label} className="flex items-baseline gap-1.5 py-1 text-sm">
+              <dt className="shrink-0 text-slate-400">{label} :</dt>
+              <dd className={`min-w-0 truncate font-medium ${valeur ? "text-slate-800" : "text-slate-300"}`}>
+                {valeur || "—"}
+              </dd>
+            </div>
+          ))}
         </dl>
       </div>
 

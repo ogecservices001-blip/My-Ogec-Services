@@ -81,7 +81,6 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
   const demandeurLabel = [demandeurNom, demande.email].filter(Boolean).join(" — ") || "Créé par le bureau";
 
   const infos: [string, string][] = [
-    ["N°", demande.numero],
     ["Client — Site", [demande.client_nom, demande.client_site].filter(Boolean).join(" — ")],
     ["Demandé par", demandeurLabel],
     ["Équipement", demande.equipement_nom],
@@ -105,11 +104,19 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
       </Link>
 
       <div className="mb-5 rounded-2xl bg-white p-4 shadow-sm">
-        <p className="font-bold text-slate-900">N°{demande.numero}</p>
+        <p className="font-bold text-slate-900">Dépannage N°{demande.numero}</p>
         <p className="mt-0.5 text-sm font-semibold text-slate-700">
           {[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}
         </p>
         <p className="mt-1 text-sm text-slate-500">Demandé par : {demandeurLabel}</p>
+        {bon && (
+          <p className="mt-1 text-sm text-slate-500">
+            Bon d&apos;intervention :{" "}
+            <Link href={`/bi/${bon.id}`} className="font-semibold text-violet-700 hover:underline">
+              {bon.numero || "BI (brouillon)"}
+            </Link>
+          </p>
+        )}
         <span
           className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${
             demande.statut === "traitee" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"

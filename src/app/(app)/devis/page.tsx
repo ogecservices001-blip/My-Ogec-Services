@@ -47,6 +47,7 @@ export default async function DevisChronoPage() {
         // historique (classeur pré-appli, sans vrai bon en base) —
         // même règle que Prestation sur commande.
         realise: devisRealises.has(d.id) || Boolean(d.bi_reference_historique),
+        facturable: Boolean(d.mois_facturation),
         annule: d.annule,
       };
     });

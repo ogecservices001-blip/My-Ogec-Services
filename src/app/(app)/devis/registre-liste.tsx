@@ -12,6 +12,7 @@ export type DevisRegistreLigne = {
   dateDevis: string;
   commande: boolean;
   realise: boolean;
+  facturable: boolean;
   annule: boolean;
 };
 

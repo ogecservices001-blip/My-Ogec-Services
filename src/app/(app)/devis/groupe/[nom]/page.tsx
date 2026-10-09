@@ -56,6 +56,7 @@ export default async function DevisDuClientPage({
       dateDevis: d.date_devis,
       commande: Boolean(d.date_commande_client),
       realise: devisRealises.has(d.id) || Boolean(d.bi_reference_historique),
+      facturable: Boolean(d.mois_facturation),
       annule: d.annule,
     };
   });

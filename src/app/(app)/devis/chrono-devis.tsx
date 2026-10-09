@@ -120,6 +120,7 @@ export function ChronoDevis({
           <option value="attente">En attente</option>
           <option value="commande">Commandé</option>
           <option value="realise">Réalisé</option>
+          <option value="facturable">Facturable</option>
           <option value="annule">Annulée</option>
         </select>
       </div>

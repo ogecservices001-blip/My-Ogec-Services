@@ -73,6 +73,7 @@ export async function GET(request: Request) {
       annule: d.annule,
       commande: Boolean(d.date_commande_client),
       realise: devisRealises.has(d.id) || Boolean(d.bi_reference_historique),
+      facturable: Boolean(d.mois_facturation),
     });
     feuille.addRow([
       d.numero,

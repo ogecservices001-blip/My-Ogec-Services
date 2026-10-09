@@ -31,6 +31,7 @@ export function TableauGroupe({ lignes }: { lignes: DevisRegistreLigne[] }) {
           onChange={setStatut}
           toutes="Tous les statuts"
           options={[
+            { valeur: "facturable", label: "Facturable" },
             { valeur: "realise", label: "Réalisé" },
             { valeur: "commande", label: "Commandé" },
             { valeur: "attente", label: "En attente" },

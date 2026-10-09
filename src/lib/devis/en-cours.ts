@@ -11,7 +11,7 @@ export async function chargerDevisEnCoursParEquipement(): Promise<Record<string,
   const supabase = await createClient();
   const { data: devis } = await supabase
     .from("devis")
-    .select("id, numero, libelle, equipement_id, annule, date_commande_client, bi_reference_historique")
+    .select("id, numero, libelle, equipement_id, annule, date_commande_client, bi_reference_historique, mois_facturation")
     .not("equipement_id", "is", null);
   if (!devis || devis.length === 0) return {};
 
@@ -25,11 +25,13 @@ export async function chargerDevisEnCoursParEquipement(): Promise<Record<string,
 
   const parEquipement: Record<string, DevisEnCours[]> = {};
   for (const d of devis) {
-    if (!d.equipement_id || dejaRealises.has(d.id) || d.bi_reference_historique) continue;
+    // Facturable = déjà finalisé, ne doit plus apparaître comme "en cours".
+    if (!d.equipement_id || dejaRealises.has(d.id) || d.bi_reference_historique || d.mois_facturation) continue;
     const statut = calculerStatutDevis({
       annule: d.annule,
       commande: Boolean(d.date_commande_client),
       realise: false,
+      facturable: false,
     });
     (parEquipement[d.equipement_id] ??= []).push({
       numero: d.numero,

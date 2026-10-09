@@ -71,6 +71,7 @@ export function DepannagesListe({
         </div>
         {isAdmin && (
           <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- téléchargement de fichier, pas une page interne */}
             <a
               href="/depannages/export"
               className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
@@ -104,7 +105,9 @@ export function DepannagesListe({
             { titre: "Délai", largeur: "5%", droite: true },
           ]}
           lignes={filtrees.map((d) => [
-            d.numero,
+            <Link key="numero" href={`/depannages/${d.id}`} className="font-bold text-slate-900 hover:underline">
+              {d.numero}
+            </Link>,
             [d.client_nom, d.client_site].filter(Boolean).join(" — "),
             d.equipement_nom,
             d.message,
@@ -113,6 +116,7 @@ export function DepannagesListe({
             d.intervenant_id ? (techniciensParId[d.intervenant_id]?.name ?? "") : "",
             formaterDelaiEntre(d.date_creation, d.date_traitement),
           ])}
+          valeurs={filtrees.map((d) => [d.numero])}
           vide="Aucun dépannage traité"
         />
         </>

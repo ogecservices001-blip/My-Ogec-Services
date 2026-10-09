@@ -35,6 +35,26 @@ export async function modifierFournisseur(id: string, input: FournisseurInput): 
   return { ok: true };
 }
 
+/// Mémorise dans la fiche fournisseur des conditions de paiement
+/// découvertes sur un devis scanné (commande fournisseur) — seulement
+/// si la fiche n'en a pas déjà, pour ne plus avoir à les relire ensuite.
+/// N'écrase jamais une valeur déjà saisie.
+export async function enregistrerConditionsPaiementFournisseur(id: string, delaiPaiement: string): Promise<ActionResult> {
+  await requireAdmin();
+  if (!delaiPaiement.trim()) return { ok: true };
+
+  const supabase = await createClient();
+  const { data: fournisseur } = await supabase.from("fournisseurs").select("delai_paiement").eq("id", id).single();
+  if (!fournisseur || fournisseur.delai_paiement) return { ok: true };
+
+  const { error } = await supabase.from("fournisseurs").update({ delai_paiement: delaiPaiement.trim() }).eq("id", id);
+  if (error) return { ok: false, erreur: error.message };
+
+  revalidatePath("/repertoire/fournisseurs");
+  revalidatePath(`/repertoire/fournisseurs/${id}`);
+  return { ok: true };
+}
+
 export async function supprimerFournisseur(id: string): Promise<ActionResult> {
   await requireAdmin();
 

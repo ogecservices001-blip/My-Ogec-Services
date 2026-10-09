@@ -6,9 +6,10 @@ import Link from "next/link";
 import { ArrowLeft, Plus, Trash2, ScanLine } from "lucide-react";
 import type { Fournisseur } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
-import { INCOTERMS, tauxTvaDefaut } from "@/lib/commandes-fournisseur/constants";
+import { INCOTERMS, ADRESSES_LIVRAISON_PRESETS, tauxTvaDefaut } from "@/lib/commandes-fournisseur/constants";
 import { ligneVide, montantLigne, calculerTotaux, eur, type LigneCommande } from "@/lib/commandes-fournisseur/format";
 import { creerCommandeFournisseur, analyserDevisFournisseur } from "../actions";
+import { enregistrerConditionsPaiementFournisseur } from "@/app/(app)/repertoire/fournisseurs/actions";
 
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
 const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
@@ -17,6 +18,15 @@ const MAX_LIGNES = 20;
 function interlocuteursDe(f: Fournisseur | undefined): Interlocuteur[] {
   return (f?.interlocuteurs as unknown as Interlocuteur[] | null) ?? [];
 }
+
+/// Le fournisseur connaît déjà ses propres conditions ? Pas la peine de
+/// les rechercher sur chaque devis scanné, on les reprend directement.
+function conditionsConnuesDe(f: Fournisseur | undefined): string {
+  if (!f) return "";
+  return [f.delai_paiement, f.mode_reglement].filter(Boolean).join(" — ");
+}
+
+const AUTRE_ADRESSE = "__autre__";
 
 export function NouvelleCommandeForm({
   devis,
@@ -42,7 +52,9 @@ export function NouvelleCommandeForm({
   const [devisFournisseurDate, setDevisFournisseurDate] = useState("");
   const [validiteOffre, setValiditeOffre] = useState("");
   const [conditionsPaiement, setConditionsPaiement] = useState("");
-  const [adresseLivraison, setAdresseLivraison] = useState("");
+  const [adresseLivraisonChoix, setAdresseLivraisonChoix] = useState("");
+  const [adresseLivraisonLibre, setAdresseLivraisonLibre] = useState("");
+  const adresseLivraison = adresseLivraisonChoix === AUTRE_ADRESSE ? adresseLivraisonLibre : adresseLivraisonChoix;
   const [dateLivraisonPrevue, setDateLivraisonPrevue] = useState("");
   const [port, setPort] = useState("");
   const [incoterm, setIncoterm] = useState("");
@@ -79,7 +91,6 @@ export function NouvelleCommandeForm({
       setDevisFournisseurNumero(r.numero_devis);
       setDevisFournisseurDate(r.date_devis);
       setValiditeOffre(r.validite_offre);
-      setConditionsPaiement(r.conditions_paiement);
       if (r.incoterm) setIncoterm(r.incoterm.toUpperCase());
 
       const f = trouverFournisseurPar(r.nom_societe);
@@ -93,6 +104,15 @@ export function NouvelleCommandeForm({
           : -1;
         setInterlocuteurIndex(idxContact >= 0 ? idxContact : 0);
       }
+      // Conditions déjà connues du fournisseur (fiche répertoire) en
+      // priorité — ne lire celles du devis que si rien n'est déjà su.
+      const connues = conditionsConnuesDe(f);
+      setConditionsPaiement(connues || r.conditions_paiement);
+      // Et si on vient de les découvrir, on les mémorise dans la fiche
+      // fournisseur pour ne plus avoir à les relire la prochaine fois.
+      if (f && !connues && r.conditions_paiement) {
+        await enregistrerConditionsPaiementFournisseur(f.id, r.conditions_paiement);
+      }
 
       setLignesExtraites(true);
       if (fichierRef.current) fichierRef.current.value = "";
@@ -104,6 +124,8 @@ export function NouvelleCommandeForm({
     const f = fournisseurs.find((x) => x.id === id);
     setInterlocuteurIndex(0);
     setTauxTva(tauxTvaDefaut(f?.localisation ?? ""));
+    const connues = conditionsConnuesDe(f);
+    if (connues) setConditionsPaiement(connues);
   }
 
   function majLigne(i: number, champ: keyof LigneCommande, valeur: string) {
@@ -249,9 +271,29 @@ export function NouvelleCommandeForm({
       <div className="mb-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
         <h2 className="mb-3 text-sm font-bold text-slate-900">Livraison</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div>
+          <div className="sm:col-span-2">
             <label className={ETIQUETTE}>Adresse de livraison</label>
-            <input value={adresseLivraison} onChange={(e) => setAdresseLivraison(e.target.value)} className={CHAMP} />
+            <select
+              value={adresseLivraisonChoix}
+              onChange={(e) => setAdresseLivraisonChoix(e.target.value)}
+              className={CHAMP}
+            >
+              <option value="">— choisir —</option>
+              {ADRESSES_LIVRAISON_PRESETS.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+              <option value={AUTRE_ADRESSE}>Autre (préciser)</option>
+            </select>
+            {adresseLivraisonChoix === AUTRE_ADRESSE && (
+              <input
+                value={adresseLivraisonLibre}
+                onChange={(e) => setAdresseLivraisonLibre(e.target.value)}
+                placeholder="Adresse de livraison"
+                className={`${CHAMP} mt-2`}
+              />
+            )}
           </div>
           <div>
             <label className={ETIQUETTE}>Date de livraison prévue</label>

@@ -29,3 +29,10 @@ export function tauxTvaDefaut(localisation: string): number {
 /// Métropole (ou étranger), où se pose la question du transport et de
 /// l'octroi de mer.
 export const INCOTERMS = ["EXW", "FCA", "FOB", "CFR", "CIF", "DAP", "DDP"];
+
+/// Les deux adresses de livraison habituelles — un choix libre reste
+/// possible dans le formulaire pour les cas particuliers.
+export const ADRESSES_LIVRAISON_PRESETS = [
+  "À laisser à disposition dans vos locaux",
+  `${OGEC.adresse}, ${OGEC.codePostalCommune}`,
+];

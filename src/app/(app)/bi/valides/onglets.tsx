@@ -56,14 +56,10 @@ export function BiValidesOnglets({ bons }: { bons: BonResume[] }) {
           </button>
         ))}
       </div>
-      {onglet === "facturer" ? (
-        <BiFacturerListe bons={parOnglet.facturer} />
-      ) : (
-        <BiListe
-          bons={parOnglet[onglet]}
-          titre={TITRES[onglet]}
-          vide={onglet === "a_classer" ? "Aucun bon à classer" : "Aucun bon archivé"}
-        />
+      {onglet === "facturer" && <BiFacturerListe bons={parOnglet.facturer} />}
+      {onglet === "archiver" && <BiArchiveListe bons={parOnglet.archiver} />}
+      {onglet === "a_classer" && (
+        <BiListe bons={parOnglet.a_classer} titre={TITRES.a_classer} vide="Aucun bon à classer" />
       )}
     </div>
   );
@@ -109,6 +105,43 @@ function BiFacturerListe({ bons }: { bons: BonResume[] }) {
         ])}
         valeurs={bons.map((b) => [b.numero || "BI (brouillon)", undefined, undefined, undefined, undefined, undefined, b.mois_facturation ? "Facturable" : "Mois à définir"])}
         vide="Aucun bon à facturer"
+      />
+    </div>
+  );
+}
+
+const COLONNES_ARCHIVER: ColonneTableur[] = [
+  { titre: "N°", largeur: "12%" },
+  { titre: "Client — Site", largeur: "22%" },
+  { titre: "Équipement", largeur: "18%" },
+  { titre: "Pôle", largeur: "18%" },
+  { titre: "Statut", largeur: "16%" },
+  { titre: "Mis à jour le", largeur: "14%" },
+];
+
+function BiArchiveListe({ bons }: { bons: BonResume[] }) {
+  return (
+    <div>
+      <div className="mb-4">
+        <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Archivage chantier</h1>
+        <p className="text-sm text-slate-500">Petits travaux, maintenance, dépannage</p>
+      </div>
+      <Tableur
+        colonnes={COLONNES_ARCHIVER}
+        lignes={bons.map((b) => [
+          <Link key="numero" href={`/bi/${b.id}`} className="font-bold text-slate-900 hover:underline">
+            {b.numero || "BI (brouillon)"}
+          </Link>,
+          [b.client_nom, b.site].filter(Boolean).join(" — "),
+          [b.equipement_nom, b.equipement_localisation].filter(Boolean).join(" — "),
+          `Pôle ${b.pole} · ${labelPole(b.pole)}`,
+          <span key="statut" className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">
+            Archivé
+          </span>,
+          new Date(b.updated_at).toLocaleDateString("fr-FR"),
+        ])}
+        valeurs={bons.map((b) => [b.numero || "BI (brouillon)", undefined, undefined, undefined, "Archivé"])}
+        vide="Aucun bon archivé"
       />
     </div>
   );

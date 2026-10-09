@@ -43,7 +43,13 @@ export function TableauGroupe({ lignes }: { lignes: DevisRegistreLigne[] }) {
         lignes={filtres.map((d) => {
           const s = calculerStatutDevis(d);
           return [
-            numeroCourt(d.numero) || "—",
+            d.numero ? (
+              <Link key="numero" href={`/devis/${d.id}/statut`} className="font-semibold text-slate-900 hover:underline">
+                {numeroCourt(d.numero)}
+              </Link>
+            ) : (
+              "—"
+            ),
             d.clientSite || "—",
             d.libelle,
             labelNatureDevis(d.nature) || "—",
@@ -58,7 +64,15 @@ export function TableauGroupe({ lignes }: { lignes: DevisRegistreLigne[] }) {
             </Link>,
           ];
         })}
-        valeurs={filtres.map((d) => [undefined, undefined, undefined, undefined, undefined, undefined, LABEL_STATUT_DEVIS[calculerStatutDevis(d)]])}
+        valeurs={filtres.map((d) => [
+          d.numero ? numeroCourt(d.numero) : "—",
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          LABEL_STATUT_DEVIS[calculerStatutDevis(d)],
+        ])}
         pied={["Total", "", "", "", "", eur(totalMontant), ""]}
         vide="Aucun devis ne correspond à ce filtre"
       />

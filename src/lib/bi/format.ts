@@ -89,6 +89,14 @@ export function ajusterDureeEffectif(duree: string, ancienEffectif: number, nouv
   return formaterDuree(Math.round((minutes * nouvelEffectif) / ancienEffectif));
 }
 
+/// Cumule plusieurs "temps_passe" (un par bon d'intervention lié au
+/// même devis) en une seule durée affichable — ignore les entrées
+/// illisibles plutôt que d'échouer.
+export function sommeDurees(durees: string[]): string {
+  const minutes = durees.reduce((total, d) => total + (parserDuree(d) ?? 0), 0);
+  return minutes > 0 ? formaterDuree(minutes) : "";
+}
+
 function parserDateFr(jjMmAaaa: string): Date | null {
   const parts = jjMmAaaa.split("/");
   if (parts.length !== 3) return null;

@@ -61,7 +61,13 @@ export function DevisDuSite({ site, devis, isAdmin }: { site: Site; devis: Devis
           ...(isAdmin ? [{ titre: "", largeur: "6%" }] : []),
         ]}
         lignes={filtres.map((d) => [
-          d.numero || "(sans référence)",
+          d.numero ? (
+            <Link key="numero" href={`/devis/${d.id}/statut`} className="font-semibold text-slate-900 hover:underline">
+              {d.numero}
+            </Link>
+          ) : (
+            "(sans référence)"
+          ),
           d.libelle,
           labelNatureDevis(d.nature) || "—",
           d.date_devis,
@@ -82,6 +88,7 @@ export function DevisDuSite({ site, devis, isAdmin }: { site: Site; devis: Devis
               ]
             : []),
         ])}
+        valeurs={filtres.map((d) => [d.numero || "(sans référence)"])}
         vide="Aucun devis pour ce site pour l'instant"
       />
 

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Site, Tables } from "@/lib/types";
+import { sommeDurees } from "@/lib/bi/format";
 import { STATUTS_BI_REALISE } from "../../statut";
 import { StatutDevisForm } from "./statut-form";
 
@@ -15,7 +16,10 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
 
   const [{ data: site }, { data: bons }, { data: equipements }, { data: commandes }] = await Promise.all([
     supabase.from("sites").select("nom, site").eq("id", devis.site_id).single(),
-    supabase.from("bons_intervention").select("statut").eq("devis_id", id),
+    supabase
+      .from("bons_intervention")
+      .select("statut, date_intervention, date_debut, date_fin, temps_passe")
+      .eq("devis_id", id),
     supabase.from("equipements").select("id, nom, numero_equipement").eq("site_id", devis.site_id).order("nom"),
     supabase
       .from("commandes_fournisseur")
@@ -23,7 +27,18 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
       .eq("devis_id", id)
       .order("created_at", { ascending: false }),
   ]);
-  const realise = (bons ?? []).some((b) => STATUTS_BI_REALISE.has(b.statut)) || Boolean(devis.bi_reference_historique);
+  const bonsRealises = (bons ?? []).filter((b) => STATUTS_BI_REALISE.has(b.statut));
+  const realise = bonsRealises.length > 0 || Boolean(devis.bi_reference_historique);
+
+  // Une seule date d'exécution a du sens à l'affichage : la plus
+  // récente intervention réalisée (date_intervention sinon date_fin/
+  // date_debut pour les pôles à période).
+  const datesExecution = bonsRealises
+    .map((b) => b.date_intervention || b.date_fin || b.date_debut)
+    .filter(Boolean)
+    .sort();
+  const dateExecution = datesExecution[datesExecution.length - 1] ?? "";
+  const heuresExecutees = sommeDurees(bonsRealises.map((b) => b.temps_passe));
 
   const fournisseurIds = [...new Set((commandes ?? []).map((c) => c.fournisseur_id))];
   const { data: fournisseurs } =
@@ -44,6 +59,8 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
       realise={realise}
       equipements={equipements ?? []}
       commandesFournisseur={commandesFournisseur}
+      dateExecution={dateExecution}
+      heuresExecutees={heuresExecutees}
     />
   );
 }

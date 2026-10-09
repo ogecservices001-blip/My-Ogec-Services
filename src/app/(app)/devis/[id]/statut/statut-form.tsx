@@ -5,8 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { Tables } from "@/lib/types";
-import { changerStatutDevis, lierEquipementDevis, type StatutDevisInput } from "../../actions";
+import { labelNatureDevis } from "@/lib/devis/constants";
+import {
+  changerStatutDevis,
+  lierEquipementDevis,
+  modifierMoisFacturation,
+  type StatutDevisInput,
+} from "../../actions";
 import { calculerStatutDevis, LABEL_STATUT_DEVIS } from "../../statut";
+import { eur } from "../../registre-liste";
 
 type Devis = Tables<"devis">;
 type Mode = "choix" | "commander";
@@ -17,20 +24,39 @@ export function StatutDevisForm({
   realise,
   equipements,
   commandesFournisseur,
+  dateExecution,
+  heuresExecutees,
 }: {
   devis: Devis;
   site: { nom: string; site: string } | null;
   realise: boolean;
   equipements: { id: string; nom: string; numero_equipement: string }[];
   commandesFournisseur: { id: string; numero: string; fournisseurNom: string }[];
+  dateExecution: string;
+  heuresExecutees: string;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("choix");
   const [dateCommande, setDateCommande] = useState(devis.date_commande_client);
   const [reference, setReference] = useState(devis.reference_client || "BPA par mail");
   const [equipementId, setEquipementId] = useState(devis.equipement_id ?? "");
+  const [moisFacturation, setMoisFacturation] = useState(devis.mois_facturation);
   const [pending, startTransition] = useTransition();
+  const [facturationPending, startFacturation] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+  const [erreurFacturation, setErreurFacturation] = useState<string | null>(null);
+
+  function enregistrerFacturation() {
+    setErreurFacturation(null);
+    startFacturation(async () => {
+      const res = await modifierMoisFacturation(devis.id, moisFacturation.trim());
+      if (!res.ok) {
+        setErreurFacturation(res.erreur);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   function enregistrerEquipement() {
     setErreur(null);
@@ -77,6 +103,12 @@ export function StatutDevisForm({
           {[site?.nom, site?.site].filter(Boolean).join(" — ")}
         </p>
         {devis.libelle && <p className="text-sm text-slate-500">{devis.libelle}</p>}
+        <dl className="mt-2 space-y-0.5 text-xs text-slate-500">
+          {devis.nature && <p>Nature : {labelNatureDevis(devis.nature)}</p>}
+          {devis.date_devis && <p>Date devis : {devis.date_devis}</p>}
+          {devis.montant !== null && <p>Montant : {eur(devis.montant)}</p>}
+          {devis.heures_prevues !== null && <p>Heures prévues : {devis.heures_prevues}</p>}
+        </dl>
         <p className="mt-2 text-xs text-slate-400">Statut actuel : {statutActuel}</p>
       </div>
 
@@ -211,6 +243,37 @@ export function StatutDevisForm({
         >
           + Bon de commande fournisseur
         </Link>
+      </div>
+
+      {realise && (
+        <div className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
+          <h2 className="mb-2 text-sm font-bold text-slate-900">Exécution</h2>
+          <dl className="space-y-0.5 text-sm text-slate-600">
+            <p>Date d&apos;exécution : {dateExecution || "—"}</p>
+            <p>Heures exécutées : {heuresExecutees || "—"}</p>
+          </dl>
+        </div>
+      )}
+
+      <div className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
+        <h2 className="mb-2 text-sm font-bold text-slate-900">Mise en facturation</h2>
+        <label className="mb-1 block text-xs font-medium text-slate-600">Mois de facturation (MM-AAAA)</label>
+        <div className="flex gap-2">
+          <input
+            value={moisFacturation}
+            onChange={(e) => setMoisFacturation(e.target.value)}
+            placeholder="10-2026"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+          />
+          <button
+            onClick={enregistrerFacturation}
+            disabled={facturationPending || moisFacturation === devis.mois_facturation}
+            className="shrink-0 rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
+          >
+            {facturationPending ? "..." : "Enregistrer"}
+          </button>
+        </div>
+        {erreurFacturation && <p className="mt-2 text-xs text-red-600">{erreurFacturation}</p>}
       </div>
     </div>
   );

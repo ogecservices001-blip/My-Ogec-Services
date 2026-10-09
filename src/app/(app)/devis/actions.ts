@@ -135,6 +135,29 @@ export async function modifierDevis(id: string, input: DevisInput): Promise<Acti
   return { ok: true };
 }
 
+const FORMAT_MOIS_ANNEE = /^\d{2}-\d{4}$/;
+
+/// Mois de mise en facturation, format "MM-AAAA" imposé — séparé de
+/// modifierDevis pour rester accessible depuis la fiche devis (pas de
+/// gros formulaire modal à ouvrir juste pour ce champ).
+export async function modifierMoisFacturation(id: string, moisFacturation: string): Promise<ActionResult> {
+  await requireAdmin();
+  if (moisFacturation && !FORMAT_MOIS_ANNEE.test(moisFacturation)) {
+    return { ok: false, erreur: "Format attendu : MM-AAAA (ex : 10-2026)." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("devis")
+    .update({ mois_facturation: moisFacturation, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { ok: false, erreur: error.message };
+
+  revalidatePath(`/devis/${id}/statut`);
+  revalidatePath("/devis");
+  return { ok: true };
+}
+
 export type StatutDevisInput = {
   date_commande_client: string;
   reference_client: string;

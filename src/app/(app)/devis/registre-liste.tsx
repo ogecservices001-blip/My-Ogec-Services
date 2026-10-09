@@ -70,7 +70,13 @@ export function TableauRegistreDevis({ lignes, isAdmin }: { lignes: DevisRegistr
           {lignes.map((d, i) => (
             <tr key={d.id} className={i % 2 === 1 ? "bg-slate-50/50" : ""}>
               <td className="sticky left-0 truncate border-b border-slate-100 bg-inherit px-2 py-2 font-semibold text-slate-900">
-                {d.numero ? numeroCourt(d.numero) : "—"}
+                {d.numero ? (
+                  <Link href={`/devis/${d.id}/statut`} className="hover:underline">
+                    {numeroCourt(d.numero)}
+                  </Link>
+                ) : (
+                  "—"
+                )}
               </td>
               <td className="truncate border-b border-slate-100 px-2 py-2 text-slate-700">
                 {[d.clientNom, d.clientSite].filter(Boolean).join(" — ")}

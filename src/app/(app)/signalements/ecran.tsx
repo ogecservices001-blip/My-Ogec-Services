@@ -355,6 +355,7 @@ function ListeAdmin({ signalements }: { signalements: Signalement[] }) {
           s.auteur_nom,
           s.traite ? "Oui" : "Non",
         ])}
+        valeurs={filtrees.map((s) => [s.numero])}
         vide={filtre === "a_traiter" ? "Aucun signalement en attente" : "Aucun signalement traité"}
       />
     </div>

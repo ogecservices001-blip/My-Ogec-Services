@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { Tableur } from "@/components/tableur";
-import { labelPole } from "@/lib/bi/constants";
+import { labelPole, labelStatut } from "@/lib/bi/constants";
 
 type BonResume = {
   id: string;
@@ -46,6 +46,7 @@ export function BiListe({ bons, titre, vide }: { bons: BonResume[]; titre: strin
           <StatutBadge key="statut" statut={b.statut} />,
           new Date(b.updated_at).toLocaleDateString("fr-FR"),
         ])}
+        valeurs={bons.map((b) => [b.numero || "BI (brouillon)", undefined, undefined, undefined, labelStatut(b.statut)])}
         vide={vide}
       />
     </div>

@@ -102,6 +102,7 @@ export function PrestationsListe({
               (l.biNumero ?? "")
             ),
           ])}
+          valeurs={filtrees.map((l) => [undefined, undefined, undefined, undefined, undefined, undefined, undefined, l.biNumero])}
           vide={vue === "realisees" ? "Aucune prestation réalisée" : "Aucune prestation annulée"}
         />
         </>

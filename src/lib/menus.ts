@@ -144,7 +144,10 @@ export function construireModules(isAdmin: boolean): Module[] {
             actif: true,
             icone: ShoppingCart,
             couleur: "bg-orange-100 text-orange-600",
-            sousMenus: [{ nom: "Toutes les commandes", href: "/commandes-fournisseur" }],
+            sousMenus: [
+              { nom: "Créer Une Commande", href: "/commandes-fournisseur/creer" },
+              { nom: "Toutes les commandes", href: "/commandes-fournisseur" },
+            ],
           },
         ]
       : []),

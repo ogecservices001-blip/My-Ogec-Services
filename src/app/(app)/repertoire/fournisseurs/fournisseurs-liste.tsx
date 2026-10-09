@@ -251,6 +251,7 @@ function VueAdmin({ fournisseurs }: { fournisseurs: Fournisseur[] }) {
           noms.join(", "),
         ];
       })}
+      valeurs={fournisseurs.map((f) => [f.nom])}
       vide="Aucun fournisseur trouvé"
     />
   );

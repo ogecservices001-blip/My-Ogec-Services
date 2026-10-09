@@ -58,6 +58,7 @@ export function TableauGroupe({ lignes }: { lignes: DevisRegistreLigne[] }) {
             </Link>,
           ];
         })}
+        valeurs={filtres.map((d) => [undefined, undefined, undefined, undefined, undefined, undefined, LABEL_STATUT_DEVIS[calculerStatutDevis(d)]])}
         pied={["Total", "", "", "", "", eur(totalMontant), ""]}
         vide="Aucun devis ne correspond à ce filtre"
       />

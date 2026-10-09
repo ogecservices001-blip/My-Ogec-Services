@@ -123,6 +123,7 @@ export function ParClientListe({
                 ]
               : []),
           ])}
+          valeurs={filtres.map((g) => [g.nom])}
           vide={groupes.length === 0 ? "Aucun devis pour l'instant — « Importer » pour commencer" : "Aucun résultat"}
         />
     </div>

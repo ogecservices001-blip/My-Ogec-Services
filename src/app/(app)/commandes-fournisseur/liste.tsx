@@ -76,6 +76,7 @@ export function CommandesFournisseurListe({ commandes }: { commandes: CommandeRe
             c.livre ? "Oui" : "Non",
           ];
         })}
+        valeurs={filtres.map((c) => [c.numero])}
         vide="Aucune commande fournisseur pour l'instant"
       />
     </div>

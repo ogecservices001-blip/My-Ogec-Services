@@ -21,6 +21,10 @@ const LARGEUR_PLEINE = [
 ];
 /// Sections entières (toutes les sous-pages), réservées à l'admin.
 const LARGEUR_PLEINE_SECTIONS = ["/devis", "/commandes-fournisseur"];
+/// Fiches de détail dynamiques (/depannages/{id}) — un préfixe sur
+/// "/depannages" élargirait aussi "en cours" (liste de cartes) et
+/// "nouveau" (formulaire), qui doivent rester en colonne centrée.
+const LARGEUR_PLEINE_PATTERNS = [/^\/depannages\/[0-9a-f-]{20,}$/i];
 
 export function AppShell({
   isAdmin,
@@ -32,7 +36,8 @@ export function AppShell({
   const pathname = usePathname();
   const pleine =
     LARGEUR_PLEINE.includes(pathname) ||
-    LARGEUR_PLEINE_SECTIONS.some((s) => pathname === s || pathname.startsWith(`${s}/`));
+    LARGEUR_PLEINE_SECTIONS.some((s) => pathname === s || pathname.startsWith(`${s}/`)) ||
+    LARGEUR_PLEINE_PATTERNS.some((re) => re.test(pathname));
 
   return (
     <div className={`mx-auto flex ${pleine ? "" : "max-w-6xl"}`}>

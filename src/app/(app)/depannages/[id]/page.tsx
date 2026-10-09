@@ -37,27 +37,54 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
   const { data: demande } = await supabase.from("demandes_depannage").select("*").eq("id", id).single();
   if (!demande) notFound();
 
-  const [{ data: intervenant }, { data: bon }, devisEnCoursParEquipement] = await Promise.all([
+  const [{ data: intervenant }, { data: bon }, { data: site }, devisEnCoursParEquipement] = await Promise.all([
     demande.intervenant_id
       ? supabase.from("profiles").select("name, portable").eq("id", demande.intervenant_id).single()
       : Promise.resolve({ data: null }),
     demande.bon_intervention_id
       ? supabase.from("bons_intervention").select("id, numero, statut").eq("id", demande.bon_intervention_id).single()
       : Promise.resolve({ data: null }),
+    demande.site_id
+      ? supabase
+          .from("sites")
+          .select(
+            "interlocuteur_site, courriel_interlocuteur_site, interlocuteur_tiers, courriel_tiers, interlocuteur_facturation, courriel_interlocuteur_facturation, responsable_contrat, courriel_responsable",
+          )
+          .eq("id", demande.site_id)
+          .single()
+      : Promise.resolve({ data: null }),
     chargerDevisEnCoursParEquipement(),
   ]);
   const devisEnCours = demande.equipement_id ? (devisEnCoursParEquipement[demande.equipement_id] ?? []) : [];
 
+  // Le nom du demandeur n'est jamais saisi tel quel (juste son email) —
+  // on le retrouve en rapprochant l'email avec les contacts connus du
+  // site (Répertoire).
+  const contactsSite: [string, string][] = site
+    ? [
+        [site.interlocuteur_site, site.courriel_interlocuteur_site],
+        [site.interlocuteur_tiers, site.courriel_tiers],
+        [site.interlocuteur_facturation, site.courriel_interlocuteur_facturation],
+        [site.responsable_contrat, site.courriel_responsable],
+      ]
+    : [];
+  const demandeurNom = demande.email
+    ? (contactsSite.find(([, courriel]) => courriel && courriel.toLowerCase() === demande.email.toLowerCase())?.[0] ?? "")
+    : "";
+  const demandeurLabel = demande.email
+    ? [demandeurNom, demande.email].filter(Boolean).join(" — ")
+    : "Créé par le bureau";
+
   const infos: [string, string][] = [
     ["N°", demande.numero],
     ["Client — Site", [demande.client_nom, demande.client_site].filter(Boolean).join(" — ")],
+    ["Demandé par", demandeurLabel],
     ["Équipement", demande.equipement_nom],
     ["Lieu de la panne", demande.lieu_panne],
     ["Créé le", formaterDateHeure(demande.date_creation)],
     ["Traité le", demande.date_traitement ? formaterDateHeure(demande.date_traitement) : ""],
     ["Délai de traitement", formaterDelaiEntre(demande.date_creation, demande.date_traitement)],
     ["Date d'intervention prévue", demande.date_intervention_prevue ? formaterDate(demande.date_intervention_prevue) : ""],
-    ["Demandé par", demande.email || "Créé par le bureau"],
     ["Réf. demande client", demande.numero_demande_client],
     ["Technicien assigné", intervenant?.name ?? ""],
   ];
@@ -77,6 +104,7 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
         <p className="mt-0.5 text-sm font-semibold text-slate-700">
           {[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}
         </p>
+        <p className="mt-1 text-sm text-slate-500">Demandé par : {demandeurLabel}</p>
         <span
           className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${
             demande.statut === "traitee" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"

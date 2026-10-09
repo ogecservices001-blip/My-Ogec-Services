@@ -57,7 +57,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
   }
 
   return (
-    <div>
+    <div className="mx-auto max-w-xl">
       <Link
         href="/depannages"
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"

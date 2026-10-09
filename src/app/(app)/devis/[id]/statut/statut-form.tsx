@@ -79,6 +79,29 @@ export function StatutDevisForm({
     })
   ];
 
+  const equipementLie = devis.equipement_id ? equipements.find((e) => e.id === devis.equipement_id) : undefined;
+
+  const infosDevis: [string, string][] = [
+    ["Item", devis.item],
+    ["Rédacteur", devis.redacteur],
+    ["Nature", devis.nature ? labelNatureDevis(devis.nature) : ""],
+    ["Date devis", devis.date_devis],
+    ["Montant", devis.montant !== null ? eur(devis.montant) : ""],
+    ["Heures prévues", devis.heures_prevues !== null ? String(devis.heures_prevues) : ""],
+    ["Débours matériel prévu", devis.debours_materiel_prevu !== null ? eur(devis.debours_materiel_prevu) : ""],
+    ["Date commande client", devis.date_commande_client],
+    ["Référence client", devis.reference_client],
+    ["Statut commande fournisseur", devis.statut_commande_fournisseur],
+    ["Date mise à disposition fourniture", devis.date_mise_a_disposition_fourniture],
+    ["Mois de facturation", devis.mois_facturation],
+    ["Email responsable contrat", devis.email_responsable_contrat],
+    ["Équipement lié", equipementLie ? `${equipementLie.nom}${equipementLie.numero_equipement ? ` (${equipementLie.numero_equipement})` : ""}` : ""],
+    ["N° BI historique", devis.bi_reference_historique],
+    ["Remarques", devis.remarques],
+    ["Créé le", new Date(devis.created_at).toLocaleDateString("fr-FR")],
+    ["Dernière modification", new Date(devis.updated_at).toLocaleDateString("fr-FR")],
+  ];
+
   function appliquer(input: StatutDevisInput) {
     setErreur(null);
     startTransition(async () => {
@@ -93,7 +116,7 @@ export function StatutDevisForm({
   }
 
   return (
-    <div className="mx-auto max-w-md">
+    <div className="mx-auto max-w-3xl">
       <Link
         href="/devis"
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
@@ -108,15 +131,26 @@ export function StatutDevisForm({
           {[site?.nom, site?.site].filter(Boolean).join(" — ")}
         </p>
         {devis.libelle && <p className="text-sm text-slate-500">{devis.libelle}</p>}
-        <dl className="mt-2 space-y-0.5 text-xs text-slate-500">
-          {devis.nature && <p>Nature : {labelNatureDevis(devis.nature)}</p>}
-          {devis.date_devis && <p>Date devis : {devis.date_devis}</p>}
-          {devis.montant !== null && <p>Montant : {eur(devis.montant)}</p>}
-          {devis.heures_prevues !== null && <p>Heures prévues : {devis.heures_prevues}</p>}
-        </dl>
         <p className="mt-2 text-xs text-slate-400">Statut actuel : {statutActuel}</p>
       </div>
 
+      <div className="mb-5 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <p className="border-b border-slate-100 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-400">
+          Informations du devis
+        </p>
+        <dl className="grid gap-x-6 gap-y-0.5 px-4 py-3 sm:grid-cols-2">
+          {infosDevis
+            .filter(([, valeur]) => valeur)
+            .map(([label, valeur]) => (
+              <div key={label} className="flex items-baseline gap-1.5 py-1 text-sm">
+                <dt className="shrink-0 text-slate-400">{label} :</dt>
+                <dd className="min-w-0 truncate font-medium text-slate-800">{valeur}</dd>
+              </div>
+            ))}
+        </dl>
+      </div>
+
+      <div className="mx-auto max-w-xl">
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}
 
       {realise ? (
@@ -279,6 +313,7 @@ export function StatutDevisForm({
           </button>
         </div>
         {erreurFacturation && <p className="mt-2 text-xs text-red-600">{erreurFacturation}</p>}
+      </div>
       </div>
     </div>
   );

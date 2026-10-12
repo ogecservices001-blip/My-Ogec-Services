@@ -31,6 +31,9 @@ export const COLONNES_SOMMAIRE = [
   "Charge Réfrigérant Kg",
   "Tension Alim.",
   "Puissance",
+  "Date dernier contrôle",
+  "Date Prochain contrôle",
+  "N° dernier bordereau",
 ];
 
 function cellNumerique(valeur: unknown): number | string {
@@ -83,5 +86,8 @@ export function ligneSommaire(
     cellNumerique(c.chargeRefrigerant),
     champ(c, "tensionAlim"),
     champ(c, "puissance"),
+    champ(c, "dateDernierControle"),
+    champ(c, "dateProchainControle"),
+    champ(c, "numDernierBordereau"),
   ];
 }

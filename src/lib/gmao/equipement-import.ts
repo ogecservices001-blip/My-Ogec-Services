@@ -65,6 +65,9 @@ const CHAMPS_CONNUS_LABELS: Record<string, string> = {
   tensionAlim: "Tension Alim.",
   puissance: "Puissance",
   freqEntretienAnnuelle: "Fréquence entretien annuelle",
+  dateDernierControle: "Date dernier contrôle",
+  dateProchainControle: "Date Prochain contrôle",
+  numDernierBordereau: "N° dernier bordereau",
 };
 
 /// Compare les lignes importées (déjà filtrées pour ce site) à

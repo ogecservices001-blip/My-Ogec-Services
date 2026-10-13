@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronDown, Cog, QrCode, Eye, Play, Clock } from "lucide-react";
 import type { Equipement, TypeEquipement, ReferenceHoraire } from "@/lib/gmao/types";
 import { concatTypeEquipement, analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
-import { sommeHeuresAnnee, calculerHeuresVisite, type HeuresAnnee } from "@/lib/gmao/calcul-heures-visite";
+import { sommeHeuresAnnee, calculerHeuresVisite, heuresCumulAnnee, type HeuresAnnee } from "@/lib/gmao/calcul-heures-visite";
 import { VisiteChips } from "@/components/gmao/visite-chips";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { supprimerEquipement } from "./actions";
@@ -242,6 +242,13 @@ function CarteEquipement({
                   </p>
                 ) : null;
               })()}
+              <p className="mt-0.5 text-[11px] text-slate-500">
+                {freqAnnuelle} visite{freqAnnuelle > 1 ? "s" : ""}/an
+                {(() => {
+                  const cumul = heuresCumulAnnee(freqAnnuelle, resultatReference.reference);
+                  return cumul ? ` — ${fmt(cumul)}/an` : "";
+                })()}
+              </p>
               <div className="mt-1">
                 <VisiteChips freqAnnuelle={freqAnnuelle} freqCourante={freqCourante} />
               </div>

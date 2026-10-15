@@ -43,7 +43,7 @@ export function CreneauCarte({
   }
 
   return (
-    <div className={`rounded-xl border p-3 ${estAbsence ? "border-amber-300 bg-amber-50/40" : "border-slate-200/80 bg-slate-50/50"}`}>
+    <div className={`rounded-xl border p-3 ${estAbsence ? "border-amber-300 bg-amber-50/60" : "border-teal-200 bg-teal-50/50"}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-slate-900">{titre}</p>

@@ -1,20 +1,11 @@
 import { requireProfile } from "@/lib/auth";
 import { chargerMesCreneaux } from "../actions";
 import { MonPlanningListe } from "./mon-planning-liste";
-
-function aujourdhui(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function ajouterJours(dateISO: string, n: number): string {
-  const d = new Date(`${dateISO}T00:00:00`);
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
+import { ajouterJours, aujourdhuiISO } from "@/lib/planning/dates";
 
 export default async function MonPlanningPage() {
   await requireProfile();
-  const debut = aujourdhui();
+  const debut = aujourdhuiISO();
   // Fenêtre large (3 semaines à partir d'aujourd'hui) pour que le
   // technicien voie venir ses prochains jours sans naviguer — les jours
   // déjà passés de la semaine en cours ne l'intéressent plus.

@@ -2,21 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { chargerCreneauxSemaine, chargerTechniciens } from "./actions";
 import { GrilleSemaine } from "./grille-semaine";
-
-/// Lundi de la semaine ISO contenant `date` (ou aujourd'hui).
-function lundiDeLaSemaine(dateISO?: string): string {
-  const d = dateISO ? new Date(`${dateISO}T00:00:00`) : new Date();
-  const jour = d.getDay(); // 0 = dimanche
-  const decalage = jour === 0 ? -6 : 1 - jour;
-  d.setDate(d.getDate() + decalage);
-  return d.toISOString().slice(0, 10);
-}
-
-function ajouterJours(dateISO: string, n: number): string {
-  const d = new Date(`${dateISO}T00:00:00`);
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
+import { ajouterJours, lundiDeLaSemaine } from "@/lib/planning/dates";
 
 export default async function PlanificationPage({
   searchParams,

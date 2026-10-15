@@ -29,10 +29,10 @@ export default async function PlanificationPage({
     <div>
       <Link
         href="/"
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
+        className="mb-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-base font-bold text-white shadow-md hover:bg-red-700"
       >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour
+        <ArrowLeft className="h-5 w-5" strokeWidth={3} />
+        RETOUR (test)
       </Link>
       <div className="mb-4 flex items-start justify-between gap-2">
         <div>

@@ -36,12 +36,13 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
         (t, l) => ({
           progTech: t.progTech + l.progTech,
           progAssistant: t.progAssistant + l.progAssistant,
+          programmeesTech: t.programmeesTech + l.programmeesTech,
           realTech: t.realTech + l.realTech,
           realAssistant: t.realAssistant + l.realAssistant,
           contratTech: t.contratTech + l.contratTech,
           contratAssistant: t.contratAssistant + l.contratAssistant,
         }),
-        { progTech: 0, progAssistant: 0, realTech: 0, realAssistant: 0, contratTech: 0, contratAssistant: 0 },
+        { progTech: 0, progAssistant: 0, programmeesTech: 0, realTech: 0, realAssistant: 0, contratTech: 0, contratAssistant: 0 },
       ),
     [filtrees],
   );
@@ -85,7 +86,7 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
         <p className="py-10 text-center text-sm text-slate-500">Aucun résultat</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
-          <table className="w-full min-w-[680px] border-collapse text-sm">
+          <table className="w-full min-w-[780px] border-collapse text-sm">
             <thead>
               <tr>
                 <th rowSpan={2} className="sticky left-0 border-b border-slate-200 bg-white px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -95,6 +96,9 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
                   Client — Site
                 </th>
                 <Entete titre="À programmer" teinte="bg-amber-50 text-amber-700" />
+                <th rowSpan={2} className="border-b border-slate-200 bg-indigo-50 px-3 py-2 text-right text-xs font-bold uppercase tracking-wide text-indigo-700">
+                  Programmées
+                </th>
                 <Entete titre="Déjà réalisées" teinte="bg-green-50 text-brand-green-dark" />
                 <Entete titre="Total dû au contrat" teinte="bg-slate-50 text-slate-600" />
               </tr>
@@ -118,6 +122,7 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
                   </td>
                   <td className="border-b border-slate-100 px-2 py-2 text-right text-amber-700">{fmtH(l.progTech)}</td>
                   <td className="border-b border-slate-100 px-2 py-2 text-right text-amber-700">{fmtH(l.progAssistant)}</td>
+                  <td className="border-b border-slate-100 bg-indigo-50/40 px-2 py-2 text-right text-indigo-700">{fmtH(l.programmeesTech)}</td>
                   <td className="border-b border-slate-100 px-2 py-2 text-right text-brand-green-dark">{fmtH(l.realTech)}</td>
                   <td className="border-b border-slate-100 px-2 py-2 text-right text-brand-green-dark">{fmtH(l.realAssistant)}</td>
                   <td className="border-b border-slate-100 px-2 py-2 text-right text-slate-600">{fmtH(l.contratTech)}</td>
@@ -132,6 +137,7 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
                 </td>
                 <td className="px-2 py-2 text-right text-amber-700">{fmtH(totaux.progTech)}</td>
                 <td className="px-2 py-2 text-right text-amber-700">{fmtH(totaux.progAssistant)}</td>
+                <td className="px-2 py-2 text-right text-indigo-700">{fmtH(totaux.programmeesTech)}</td>
                 <td className="px-2 py-2 text-right text-brand-green-dark">{fmtH(totaux.realTech)}</td>
                 <td className="px-2 py-2 text-right text-brand-green-dark">{fmtH(totaux.realAssistant)}</td>
                 <td className="px-2 py-2 text-right text-slate-600">{fmtH(totaux.contratTech)}</td>

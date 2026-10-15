@@ -509,11 +509,10 @@ export type Database = {
           heure_debut: string | null
           heures_prevues: number
           id: string
-          motif_absence: string
           observations: string
+          poste_hors_client_id: string | null
           site: string
           site_id: string | null
-          type_creneau: string
           updated_at: string
         }
         Insert: {
@@ -526,11 +525,10 @@ export type Database = {
           heure_debut?: string | null
           heures_prevues: number
           id?: string
-          motif_absence?: string
           observations?: string
+          poste_hors_client_id?: string | null
           site?: string
           site_id?: string | null
-          type_creneau?: string
           updated_at?: string
         }
         Update: {
@@ -543,11 +541,10 @@ export type Database = {
           heure_debut?: string | null
           heures_prevues?: number
           id?: string
-          motif_absence?: string
           observations?: string
+          poste_hors_client_id?: string | null
           site?: string
           site_id?: string | null
-          type_creneau?: string
           updated_at?: string
         }
         Relationships: [
@@ -563,6 +560,13 @@ export type Database = {
             columns: ["devis_id"]
             isOneToOne: false
             referencedRelation: "devis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creneaux_planning_poste_hors_client_id_fkey"
+            columns: ["poste_hors_client_id"]
+            isOneToOne: false
+            referencedRelation: "postes_hors_client"
             referencedColumns: ["id"]
           },
           {
@@ -971,6 +975,36 @@ export type Database = {
           cree_par_admin?: boolean
           date?: string
           libelle?: string
+        }
+        Relationships: []
+      }
+      postes_hors_client: {
+        Row: {
+          client: string
+          created_at: string
+          id: string
+          item: string
+          numero_legacy: string
+          site: string
+          updated_at: string
+        }
+        Insert: {
+          client?: string
+          created_at?: string
+          id?: string
+          item: string
+          numero_legacy?: string
+          site?: string
+          updated_at?: string
+        }
+        Update: {
+          client?: string
+          created_at?: string
+          id?: string
+          item?: string
+          numero_legacy?: string
+          site?: string
+          updated_at?: string
         }
         Relationships: []
       }

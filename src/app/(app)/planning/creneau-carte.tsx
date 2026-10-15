@@ -8,10 +8,9 @@ import { supprimerCreneau } from "./actions";
 
 export type CreneauAffiche = {
   id: string;
-  type_creneau: string;
+  poste_hors_client_id: string | null;
   client_nom: string;
   site: string;
-  motif_absence: string;
   date: string;
   heure_debut: string | null;
   heures_prevues: number;
@@ -31,8 +30,8 @@ export function CreneauCarte({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const estAbsence = creneau.type_creneau === "absence";
-  const titre = estAbsence ? `Absence — ${creneau.motif_absence || "Non précisé"}` : `${creneau.client_nom} — ${creneau.site}`;
+  const estHorsClient = !!creneau.poste_hors_client_id;
+  const titre = `${creneau.client_nom} — ${creneau.site}`;
 
   function supprimer() {
     if (!confirm("Supprimer ce créneau ?")) return;
@@ -43,7 +42,7 @@ export function CreneauCarte({
   }
 
   return (
-    <div className={`rounded-xl border p-3 ${estAbsence ? "border-amber-300 bg-amber-50/60" : "border-teal-200 bg-teal-50/50"}`}>
+    <div className={`rounded-xl border p-3 ${estHorsClient ? "border-amber-300 bg-amber-50/60" : "border-teal-200 bg-teal-50/50"}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-slate-900">{titre}</p>
@@ -69,7 +68,7 @@ export function CreneauCarte({
             heureDebut: creneau.heure_debut,
             heuresPrevues: creneau.heures_prevues,
             titre,
-            lieu: estAbsence ? "" : creneau.site,
+            lieu: estHorsClient ? "" : creneau.site,
             observations: creneau.observations,
           })}
           target="_blank"

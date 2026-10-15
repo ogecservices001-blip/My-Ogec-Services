@@ -125,7 +125,7 @@ export function ImporterPlanningClient() {
                   key={i}
                   cochee={cochesAjouts[i]}
                   onToggle={() => bascule(cochesAjouts, setCochesAjouts, i)}
-                  titre={a.typeCreneau === "absence" ? `Absence — ${a.motifAbsence}` : `${a.clientNom} — ${a.site}`}
+                  titre={`${a.clientNom} — ${a.site}`}
                   sousTitre={`${a.ligne.date} — ${a.ligne.heuresPrevues}h — ${a.ligne.intervenants.join(", ")}`}
                 />
               ))}
@@ -139,7 +139,7 @@ export function ImporterPlanningClient() {
                   key={i}
                   cochee={cochesModifications[i]}
                   onToggle={() => bascule(cochesModifications, setCochesModifications, i)}
-                  titre={m.typeCreneau === "absence" ? `Absence — ${m.motifAbsence}` : `${m.clientNom} — ${m.site}`}
+                  titre={`${m.clientNom} — ${m.site}`}
                   sousTitre={`${m.ligne.date} — ${m.champs.map((c) => `${c.label} : "${c.ancienne}" → "${c.nouvelle}"`).join(" | ")}`}
                   multiline
                 />

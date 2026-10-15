@@ -32,14 +32,13 @@ export type LignePlanningImport = {
 };
 
 export function cleCreneau(params: {
-  typeCreneau: string;
   date: string;
   siteId: string | null;
   devisId: string | null;
-  motifAbsence: string;
+  posteHorsClientId: string | null;
 }): string {
-  if (params.typeCreneau === "absence") {
-    return `absence|${params.date}|${params.motifAbsence.trim().toLowerCase()}`;
+  if (params.posteHorsClientId) {
+    return `poste|${params.date}|${params.posteHorsClientId}`;
   }
   return `intervention|${params.date}|${params.siteId ?? ""}|${params.devisId ?? ""}`;
 }

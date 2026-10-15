@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { CreneauCarte, type CreneauAffiche } from "./creneau-carte";
 import { NouveauCreneauForm } from "./nouveau-creneau-form";
 import { ajouterJours, formaterJourCourt } from "@/lib/planning/dates";
+import type { PosteHorsClientOption } from "./actions";
 
 type SiteOption = { id: string; nom: string; site: string };
 type TechnicienOption = { id: string; name: string };
@@ -34,12 +35,14 @@ export function GrilleSemaine({
   lundiSemaine,
   sites,
   techniciens,
+  postesHorsClient,
   joursFeries,
   creneaux,
 }: {
   lundiSemaine: string;
   sites: SiteOption[];
   techniciens: TechnicienOption[];
+  postesHorsClient: PosteHorsClientOption[];
   joursFeries: string[];
   creneaux: CreneauComplet[];
 }) {
@@ -110,14 +113,12 @@ export function GrilleSemaine({
                       {creneauxCellule.map((c) => (
                         <CreneauCarte key={c.id} creneau={c} isAdmin onModifier={(cr) => setFormulaire({ date: jour.date, creneau: cr as CreneauComplet })} />
                       ))}
-                      {!ferie && (
-                        <button
-                          onClick={() => setFormulaire({ date: jour.date, technicienId: t.id })}
-                          className="flex w-full items-center justify-center rounded-lg py-1 text-slate-300 hover:bg-slate-50 hover:text-slate-500"
-                        >
-                          <Plus className="h-4 w-4" strokeWidth={2.5} />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setFormulaire({ date: jour.date, technicienId: t.id })}
+                        className="flex w-full items-center justify-center rounded-lg py-1 text-slate-300 hover:bg-slate-50 hover:text-slate-500"
+                      >
+                        <Plus className="h-4 w-4" strokeWidth={2.5} />
+                      </button>
                     </div>
                   );
                 })}
@@ -131,6 +132,7 @@ export function GrilleSemaine({
         <NouveauCreneauForm
           sites={sites}
           techniciens={techniciens}
+          postesHorsClient={postesHorsClient}
           joursFeries={joursFeries}
           dateInitiale={formulaire.date}
           technicienInitialId={formulaire.technicienId}

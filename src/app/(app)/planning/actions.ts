@@ -9,12 +9,11 @@ import { quotaJournalier } from "@/lib/planning/quota";
 
 export type CreneauAvecTechniciens = {
   id: string;
-  type_creneau: string;
   site_id: string | null;
   devis_id: string | null;
+  poste_hors_client_id: string | null;
   client_nom: string;
   site: string;
-  motif_absence: string;
   date: string;
   heure_debut: string | null;
   heures_prevues: number;
@@ -31,7 +30,7 @@ export async function chargerCreneauxSemaine(debutISO: string, finISO: string): 
   const { data } = await supabase
     .from("creneaux_planning")
     .select(
-      "id, type_creneau, site_id, devis_id, client_nom, site, motif_absence, date, heure_debut, heures_prevues, observations, creneau_techniciens(technicien_id, profiles(id, name))",
+      "id, site_id, devis_id, poste_hors_client_id, client_nom, site, date, heure_debut, heures_prevues, observations, creneau_techniciens(technicien_id, profiles(id, name))",
     )
     .eq("annule", false)
     .gte("date", debutISO)
@@ -40,12 +39,11 @@ export async function chargerCreneauxSemaine(debutISO: string, finISO: string): 
 
   return (data ?? []).map((c) => ({
     id: c.id,
-    type_creneau: c.type_creneau,
     site_id: c.site_id,
     devis_id: c.devis_id,
+    poste_hors_client_id: c.poste_hors_client_id,
     client_nom: c.client_nom,
     site: c.site,
-    motif_absence: c.motif_absence,
     date: c.date,
     heure_debut: c.heure_debut,
     heures_prevues: Number(c.heures_prevues),
@@ -74,6 +72,17 @@ export async function chargerTechniciens(): Promise<TechnicienOption[]> {
   return data ?? [];
 }
 
+export type PosteHorsClientOption = { id: string; client: string; site: string };
+
+/// Référentiel des postes hors client (formation, bureau, absences...)
+/// — fourni par le bureau, voir migration 0040.
+export async function chargerPostesHorsClient(): Promise<PosteHorsClientOption[]> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { data } = await supabase.from("postes_hors_client").select("id, client, site, item").order("item");
+  return data ?? [];
+}
+
 /// Somme des heures déjà planifiées pour un technicien, à une date —
 /// pour comparer au quota journalier (voir src/lib/planning/quota.ts)
 /// avant d'ajouter un nouveau créneau.
@@ -98,8 +107,8 @@ async function heuresDejaPlanifiees(
 
 /// Vérifie, pour chaque technicien du créneau, si l'ajout dépasse son
 /// quota journalier (7.5h lun-jeu / 5h ven) — alerte non bloquante,
-/// contrairement au jour férié/week-end qui est bloqué en base (voir
-/// migration 0039).
+/// contrairement au jour férié/week-end (bloqué en base, voir migration
+/// 0040, uniquement pour les interventions client).
 export async function verifierQuota(
   technicienIds: string[],
   date: string,
@@ -145,12 +154,11 @@ export async function creerCreneau(input: CreneauInput): Promise<ActionResult> {
   const { data: creneau, error } = await supabase
     .from("creneaux_planning")
     .insert({
-      type_creneau: v.type_creneau,
       site_id: v.site_id,
       devis_id: v.devis_id,
+      poste_hors_client_id: v.poste_hors_client_id,
       client_nom: v.client_nom,
       site: v.site,
-      motif_absence: v.motif_absence,
       date: v.date,
       heure_debut: v.heure_debut,
       heures_prevues: v.heures_prevues,
@@ -186,12 +194,11 @@ export async function modifierCreneau(id: string, input: CreneauInput): Promise<
   const { error } = await supabase
     .from("creneaux_planning")
     .update({
-      type_creneau: v.type_creneau,
       site_id: v.site_id,
       devis_id: v.devis_id,
+      poste_hors_client_id: v.poste_hors_client_id,
       client_nom: v.client_nom,
       site: v.site,
-      motif_absence: v.motif_absence,
       date: v.date,
       heure_debut: v.heure_debut,
       heures_prevues: v.heures_prevues,
@@ -230,7 +237,7 @@ export async function chargerMesCreneaux(debutISO: string, finISO: string): Prom
   const { data } = await supabase
     .from("creneau_techniciens")
     .select(
-      "creneaux_planning!inner(id, type_creneau, site_id, devis_id, client_nom, site, motif_absence, date, heure_debut, heures_prevues, observations, annule)",
+      "creneaux_planning!inner(id, site_id, devis_id, poste_hors_client_id, client_nom, site, date, heure_debut, heures_prevues, observations, annule)",
     )
     .eq("technicien_id", profile.id)
     .eq("creneaux_planning.annule", false)

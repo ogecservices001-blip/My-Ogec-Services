@@ -12,7 +12,7 @@ export async function GET() {
   const { data: creneaux, error } = await supabase
     .from("creneaux_planning")
     .select(
-      "type_creneau, site_id, devis_id, client_nom, site, motif_absence, date, heures_prevues, devis:devis_id(numero), creneau_techniciens(profiles(name))",
+      "site_id, devis_id, poste_hors_client_id, client_nom, site, date, heures_prevues, devis:devis_id(numero), poste:poste_hors_client_id(numero_legacy), creneau_techniciens(profiles(name))",
     )
     .eq("annule", false)
     .order("date");
@@ -28,13 +28,14 @@ export async function GET() {
 
   for (const c of creneaux ?? []) {
     const devis = Array.isArray(c.devis) ? c.devis[0] : c.devis;
-    const numeroAffaire = c.type_creneau === "absence" ? "" : (c.devis_id ? devis?.numero : undefined) || c.site;
-    const cle = cleCreneau({ typeCreneau: c.type_creneau, date: c.date, siteId: c.site_id, devisId: c.devis_id, motifAbsence: c.motif_absence });
+    const poste = Array.isArray(c.poste) ? c.poste[0] : c.poste;
+    const numeroAffaire = c.poste_hors_client_id ? (poste?.numero_legacy ?? "") : (c.devis_id ? devis?.numero : undefined) || c.site;
+    const cle = cleCreneau({ date: c.date, siteId: c.site_id, devisId: c.devis_id, posteHorsClientId: c.poste_hors_client_id });
 
     if (!groupes.has(cle)) {
       groupes.set(cle, {
-        client: c.type_creneau === "absence" ? "Absence" : c.client_nom,
-        site: c.type_creneau === "absence" ? c.motif_absence : c.site,
+        client: c.client_nom,
+        site: c.site,
         numeroAffaire: numeroAffaire ?? "",
         date: c.date,
         heures: 0,

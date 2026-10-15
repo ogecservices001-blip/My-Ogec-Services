@@ -9,12 +9,11 @@ import { cleCreneau, type LignePlanningImport } from "@/lib/planning/export-impo
 
 export type DiffAjoutCreneau = {
   ligne: LignePlanningImport;
-  typeCreneau: "intervention" | "absence";
   siteId: string | null;
   devisId: string | null;
+  posteHorsClientId: string | null;
   clientNom: string;
   site: string;
-  motifAbsence: string;
   technicienIds: string[];
 };
 
@@ -114,29 +113,25 @@ export async function previsualiserImportPlanning(formData: FormData): Promise<R
   if (!lignes || lignes.length === 0) return { ok: false, erreur: "Classeur vide ou format non reconnu." };
 
   const supabase = await createClient();
-  const [{ data: sites }, { data: devis }, { data: techniciens }, { data: existants }] = await Promise.all([
+  const [{ data: sites }, { data: devis }, { data: postes }, { data: techniciens }, { data: existants }] = await Promise.all([
     supabase.from("sites").select("id, nom, site, n_affaire"),
     supabase.from("devis").select("id, numero, site_id"),
+    supabase.from("postes_hors_client").select("id, client, site"),
     supabase.from("profiles").select("id, name").in("role", ["technicien", "en_attente"]),
     supabase
       .from("creneaux_planning")
-      .select("id, type_creneau, site_id, devis_id, motif_absence, date, heures_prevues, creneau_techniciens(technicien_id)")
+      .select("id, site_id, devis_id, poste_hors_client_id, date, heures_prevues, creneau_techniciens(technicien_id)")
       .eq("annule", false),
   ]);
 
   const siteParNAffaire = new Map((sites ?? []).map((s) => [normaliser(s.n_affaire), s]));
   const devisParNumero = new Map((devis ?? []).map((d) => [normaliser(d.numero), d]));
+  const posteParClientSite = new Map((postes ?? []).map((p) => [`${normaliser(p.client)}|${normaliser(p.site)}`, p]));
   const technicienParNom = new Map((techniciens ?? []).map((t) => [normaliser(t.name), t]));
 
   const existantsParCle = new Map<string, (typeof existants extends (infer T)[] | null ? T : never)>();
   for (const e of existants ?? []) {
-    const cle = cleCreneau({
-      typeCreneau: e.type_creneau,
-      date: e.date,
-      siteId: e.site_id,
-      devisId: e.devis_id,
-      motifAbsence: e.motif_absence,
-    });
+    const cle = cleCreneau({ date: e.date, siteId: e.site_id, devisId: e.devis_id, posteHorsClientId: e.poste_hors_client_id });
     existantsParCle.set(cle, e);
   }
 
@@ -145,18 +140,17 @@ export async function previsualiserImportPlanning(formData: FormData): Promise<R
   const avertissements: { message: string }[] = [];
 
   for (const ligne of lignes) {
-    let typeCreneau: "intervention" | "absence" = "intervention";
     let siteId: string | null = null;
     let devisId: string | null = null;
+    let posteHorsClientId: string | null = null;
     let clientNom = ligne.client;
     let site = ligne.site;
-    let motifAbsence = "";
 
-    if (normaliser(ligne.client) === "absence") {
-      typeCreneau = "absence";
-      motifAbsence = ligne.site;
-      clientNom = "";
-      site = "";
+    const poste = posteParClientSite.get(`${normaliser(ligne.client)}|${normaliser(ligne.site)}`);
+    if (poste) {
+      posteHorsClientId = poste.id;
+      clientNom = poste.client;
+      site = poste.site;
     } else if (ligne.numeroAffaire.toUpperCase().startsWith("D-")) {
       const d = devisParNumero.get(normaliser(ligne.numeroAffaire));
       if (!d) {
@@ -168,7 +162,7 @@ export async function previsualiserImportPlanning(formData: FormData): Promise<R
     } else {
       const s = siteParNAffaire.get(normaliser(ligne.numeroAffaire));
       if (!s) {
-        avertissements.push({ message: `Ligne ${ligne.numeroLigne} : N° Affaire "${ligne.numeroAffaire}" introuvable — ignorée.` });
+        avertissements.push({ message: `Ligne ${ligne.numeroLigne} : ni poste hors client "${ligne.client} — ${ligne.site}" ni N° Affaire "${ligne.numeroAffaire}" introuvables — ignorée.` });
         continue;
       }
       siteId = s.id;
@@ -190,10 +184,10 @@ export async function previsualiserImportPlanning(formData: FormData): Promise<R
       continue;
     }
 
-    const cle = cleCreneau({ typeCreneau, date: ligne.date, siteId, devisId, motifAbsence });
+    const cle = cleCreneau({ date: ligne.date, siteId, devisId, posteHorsClientId });
     const existant = existantsParCle.get(cle);
 
-    const base: DiffAjoutCreneau = { ligne, typeCreneau, siteId, devisId, clientNom, site, motifAbsence, technicienIds };
+    const base: DiffAjoutCreneau = { ligne, siteId, devisId, posteHorsClientId, clientNom, site, technicienIds };
 
     if (!existant) {
       ajouts.push(base);
@@ -231,12 +225,11 @@ export async function appliquerImportPlanning(
     const { data: creneau, error } = await supabase
       .from("creneaux_planning")
       .insert({
-        type_creneau: a.typeCreneau,
         site_id: a.siteId,
         devis_id: a.devisId,
+        poste_hors_client_id: a.posteHorsClientId,
         client_nom: a.clientNom,
         site: a.site,
-        motif_absence: a.motifAbsence,
         date: a.ligne.date,
         heures_prevues: a.ligne.heuresPrevues,
         created_by: profile.id,

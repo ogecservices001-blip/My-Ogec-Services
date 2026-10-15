@@ -1,18 +1,17 @@
 import { z } from "zod";
 
-/// Validation d'un créneau de planning — un créneau "intervention" doit
-/// avoir un site (et éventuellement un devis = affaire sur devis) ; un
-/// créneau "absence" n'a ni site ni devis, juste un motif libre. Au
-/// moins un technicien est obligatoire dans les deux cas (un créneau
-/// sans personne assignée n'a pas de sens).
+/// Validation d'un créneau de planning — soit une intervention client
+/// (site obligatoire, devis optionnel = affaire sur devis), soit un
+/// poste hors client (formation, bureau, absence... voir migration
+/// 0040) — jamais les deux, jamais aucun des deux. Au moins un
+/// technicien est obligatoire dans les deux cas.
 export const creneauSchema = z
   .object({
-    type_creneau: z.enum(["intervention", "absence"]),
     site_id: z.string().uuid().nullable(),
     devis_id: z.string().uuid().nullable(),
+    poste_hors_client_id: z.string().uuid().nullable(),
     client_nom: z.string().trim().default(""),
     site: z.string().trim().default(""),
-    motif_absence: z.string().trim().default(""),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide"),
     heure_debut: z
       .string()
@@ -22,8 +21,8 @@ export const creneauSchema = z
     observations: z.string().trim().default(""),
     technicien_ids: z.array(z.string().uuid()).min(1, "Au moins un technicien est obligatoire"),
   })
-  .refine((v) => v.type_creneau !== "intervention" || !!v.site_id, {
-    message: "Le site est obligatoire pour une intervention",
+  .refine((v) => !!v.site_id !== !!v.poste_hors_client_id, {
+    message: "Choisis soit un site, soit un poste hors client",
     path: ["site_id"],
   });
 

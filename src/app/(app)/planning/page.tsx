@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Download, Upload } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { chargerCreneauxSemaine, chargerTechniciens } from "./actions";
+import { chargerCreneauxSemaine, chargerTechniciens, chargerPostesHorsClient } from "./actions";
 import { GrilleSemaine } from "./grille-semaine";
 import { ajouterJours, lundiDeLaSemaine } from "@/lib/planning/dates";
 
@@ -17,9 +17,10 @@ export default async function PlanificationPage({
   const vendredi = ajouterJours(lundi, 4);
 
   const supabase = await createClient();
-  const [{ data: sites }, techniciens, creneaux, { data: joursFeries }] = await Promise.all([
+  const [{ data: sites }, techniciens, postesHorsClient, creneaux, { data: joursFeries }] = await Promise.all([
     supabase.from("sites_view").select("id, nom, site").order("nom"),
     chargerTechniciens(),
+    chargerPostesHorsClient(),
     chargerCreneauxSemaine(lundi, vendredi),
     supabase.from("jours_feries").select("date").gte("date", lundi).lte("date", vendredi),
   ]);
@@ -52,6 +53,7 @@ export default async function PlanificationPage({
         lundiSemaine={lundi}
         sites={sites ?? []}
         techniciens={techniciens}
+        postesHorsClient={postesHorsClient}
         joursFeries={(joursFeries ?? []).map((j) => j.date)}
         creneaux={creneaux}
       />

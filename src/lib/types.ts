@@ -26,3 +26,4 @@ export type SignalementHistorique = Tables<"signalements_historique">;
 
 export type CreneauPlanning = Tables<"creneaux_planning">;
 export type JourFerie = Tables<"jours_feries">;
+export type PosteHorsClient = Tables<"postes_hors_client">;

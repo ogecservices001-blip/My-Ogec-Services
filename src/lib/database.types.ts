@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -465,6 +465,122 @@ export type Database = {
         }
         Relationships: []
       }
+      creneau_techniciens: {
+        Row: {
+          created_at: string
+          creneau_id: string
+          technicien_id: string
+        }
+        Insert: {
+          created_at?: string
+          creneau_id: string
+          technicien_id: string
+        }
+        Update: {
+          created_at?: string
+          creneau_id?: string
+          technicien_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creneau_techniciens_creneau_id_fkey"
+            columns: ["creneau_id"]
+            isOneToOne: false
+            referencedRelation: "creneaux_planning"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creneau_techniciens_technicien_id_fkey"
+            columns: ["technicien_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creneaux_planning: {
+        Row: {
+          annule: boolean
+          client_nom: string
+          created_at: string
+          created_by: string | null
+          date: string
+          devis_id: string | null
+          heure_debut: string | null
+          heures_prevues: number
+          id: string
+          motif_absence: string
+          observations: string
+          site: string
+          site_id: string | null
+          type_creneau: string
+          updated_at: string
+        }
+        Insert: {
+          annule?: boolean
+          client_nom?: string
+          created_at?: string
+          created_by?: string | null
+          date: string
+          devis_id?: string | null
+          heure_debut?: string | null
+          heures_prevues: number
+          id?: string
+          motif_absence?: string
+          observations?: string
+          site?: string
+          site_id?: string | null
+          type_creneau?: string
+          updated_at?: string
+        }
+        Update: {
+          annule?: boolean
+          client_nom?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          devis_id?: string | null
+          heure_debut?: string | null
+          heures_prevues?: number
+          id?: string
+          motif_absence?: string
+          observations?: string
+          site?: string
+          site_id?: string | null
+          type_creneau?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creneaux_planning_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creneaux_planning_devis_id_fkey"
+            columns: ["devis_id"]
+            isOneToOne: false
+            referencedRelation: "devis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creneaux_planning_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creneaux_planning_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demandes_depannage: {
         Row: {
           bon_intervention_id: string | null
@@ -834,6 +950,27 @@ export type Database = {
           site_web?: string
           tva_intracom?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      jours_feries: {
+        Row: {
+          created_at: string
+          cree_par_admin: boolean
+          date: string
+          libelle: string
+        }
+        Insert: {
+          created_at?: string
+          cree_par_admin?: boolean
+          date: string
+          libelle?: string
+        }
+        Update: {
+          created_at?: string
+          cree_par_admin?: boolean
+          date?: string
+          libelle?: string
         }
         Relationships: []
       }
@@ -1589,6 +1726,10 @@ export type Database = {
       }
     }
     Functions: {
+      est_technicien_du_creneau: {
+        Args: { p_creneau_id: string }
+        Returns: boolean
+      }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       prochain_chrono: {

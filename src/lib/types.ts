@@ -23,3 +23,6 @@ export type Role = Enums<"user_role">;
 export type Signalement = Tables<"signalements">;
 export type TypeSignalement = Enums<"signalement_type">;
 export type SignalementHistorique = Tables<"signalements_historique">;
+
+export type CreneauPlanning = Tables<"creneaux_planning">;
+export type JourFerie = Tables<"jours_feries">;

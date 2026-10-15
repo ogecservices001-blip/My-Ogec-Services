@@ -4,16 +4,18 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { creerCreneau, modifierCreneau, verifierQuota, type PosteHorsClientOption } from "./actions";
-import { chargerDevisDuSite, type DevisDuSite } from "@/app/(app)/bi/nouveau/actions";
+import { chargerDevisDuSite, type DevisDuSite, type DevisARealiser } from "@/app/(app)/bi/nouveau/actions";
 import type { CreneauAffiche } from "./creneau-carte";
 
-type SiteOption = { id: string; nom: string; site: string };
+type SiteOption = { id: string; nom: string; site: string; hors_contrat: boolean };
 type TechnicienOption = { id: string; name: string };
+type SourceClient = "sous_contrat" | "hors_contrat" | "prestation";
 
 export function NouveauCreneauForm({
   sites,
   techniciens,
   postesHorsClient,
+  devisARealiser,
   joursFeries,
   dateInitiale,
   technicienInitialId,
@@ -24,6 +26,7 @@ export function NouveauCreneauForm({
   sites: SiteOption[];
   techniciens: TechnicienOption[];
   postesHorsClient: PosteHorsClientOption[];
+  devisARealiser: DevisARealiser[];
   joursFeries: string[];
   dateInitiale?: string;
   technicienInitialId?: string;
@@ -37,10 +40,16 @@ export function NouveauCreneauForm({
   const [typeCreneau, setTypeCreneau] = useState<"intervention" | "hors_client">(
     creneauAModifier?.poste_hors_client_id ? "hors_client" : "intervention",
   );
+  const [sourceClient, setSourceClient] = useState<SourceClient>(() => {
+    if (creneauAModifier?.devis_id && devisARealiser.some((d) => d.id === creneauAModifier.devis_id)) return "prestation";
+    const site = sites.find((s) => s.id === creneauAModifier?.site_id);
+    return site?.hors_contrat ? "hors_contrat" : "sous_contrat";
+  });
   const [clientNom, setClientNom] = useState(creneauAModifier?.client_nom ?? "");
   const [siteId, setSiteId] = useState(creneauAModifier?.site_id ?? "");
   const [devisId, setDevisId] = useState(creneauAModifier?.devis_id ?? "");
   const [devisDuSite, setDevisDuSite] = useState<DevisDuSite[]>([]);
+  const [recherchePrestation, setRecherchePrestation] = useState("");
   const [posteHorsClientId, setPosteHorsClientId] = useState(creneauAModifier?.poste_hors_client_id ?? "");
   const [date, setDate] = useState(creneauAModifier?.date ?? dateInitiale ?? "");
   const [heureDebut, setHeureDebut] = useState(creneauAModifier?.heure_debut ?? "");
@@ -54,8 +63,20 @@ export function NouveauCreneauForm({
   const [alertesQuota, setAlertesQuota] = useState<string[] | null>(null);
   const [confirmationQuota, setConfirmationQuota] = useState(false);
 
-  const nomsClients = useMemo(() => [...new Set(sites.map((s) => s.nom))].sort((a, b) => a.localeCompare(b)), [sites]);
-  const sitesDuClient = sites.filter((s) => s.nom === clientNom);
+  const sitesSource = useMemo(
+    () => sites.filter((s) => s.hors_contrat === (sourceClient === "hors_contrat")),
+    [sites, sourceClient],
+  );
+  const nomsClients = useMemo(() => [...new Set(sitesSource.map((s) => s.nom))].sort((a, b) => a.localeCompare(b)), [sitesSource]);
+  const sitesDuClient = sitesSource.filter((s) => s.nom === clientNom);
+  const affairesFiltrees = useMemo(
+    () =>
+      devisARealiser.filter((d) =>
+        `${d.client_nom} ${d.client_site} ${d.libelle}`.toLowerCase().includes(recherchePrestation.toLowerCase()),
+      ),
+    [devisARealiser, recherchePrestation],
+  );
+
   // Jour férié/week-end : bloqué en base uniquement pour une intervention
   // client (voir migration 0040) — un poste hors client (notamment une
   // absence "Férié") doit justement pouvoir y être posé.
@@ -69,14 +90,27 @@ export function NouveauCreneauForm({
   useEffect(() => {
     let annule = false;
     async function charger() {
-      const devis = siteId ? await chargerDevisDuSite(siteId) : [];
+      const devis = siteId && sourceClient !== "prestation" ? await chargerDevisDuSite(siteId) : [];
       if (!annule) setDevisDuSite(devis);
     }
     charger();
     return () => {
       annule = true;
     };
-  }, [siteId]);
+  }, [siteId, sourceClient]);
+
+  function changerSourceClient(source: SourceClient) {
+    setSourceClient(source);
+    setClientNom("");
+    setSiteId("");
+    setDevisId("");
+  }
+
+  function choisirPrestation(d: DevisARealiser) {
+    setClientNom(d.client_nom);
+    setSiteId(d.site_id);
+    setDevisId(d.id);
+  }
 
   function toggleTechnicien(id: string) {
     setTechnicienIds((prev) => {
@@ -188,56 +222,105 @@ export function NouveauCreneauForm({
 
           {typeCreneau === "intervention" ? (
             <>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Client</label>
-                <select
-                  value={clientNom}
-                  onChange={(e) => {
-                    setClientNom(e.target.value);
-                    const correspondants = sites.filter((s) => s.nom === e.target.value);
-                    setSiteId(correspondants.length === 1 ? correspondants[0].id : "");
-                  }}
-                  className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-                >
-                  <option value="">— Choisir un client —</option>
-                  {nomsClients.map((nom) => (
-                    <option key={nom} value={nom}>
-                      {nom}
-                    </option>
-                  ))}
-                </select>
-                {sitesDuClient.length > 1 && (
-                  <select
-                    value={siteId}
-                    onChange={(e) => setSiteId(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+              <div className="flex gap-1.5 rounded-lg bg-slate-100 p-1">
+                {(
+                  [
+                    { v: "sous_contrat", l: "Sous contrat" },
+                    { v: "hors_contrat", l: "Hors contrat" },
+                    { v: "prestation", l: "Prestation sur commande" },
+                  ] as { v: SourceClient; l: string }[]
+                ).map((o) => (
+                  <button
+                    key={o.v}
+                    onClick={() => changerSourceClient(o.v)}
+                    className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold ${
+                      sourceClient === o.v ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                    }`}
                   >
-                    <option value="">— Choisir un site —</option>
-                    {sitesDuClient.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.site || "Site sans nom"}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                    {o.l}
+                  </button>
+                ))}
               </div>
 
-              {siteId && (
+              {sourceClient === "prestation" ? (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Affaire (devis, optionnel)</label>
-                  <select
-                    value={devisId}
-                    onChange={(e) => setDevisId(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-                  >
-                    <option value="">— Entretien récurrent (pas d&apos;affaire) —</option>
-                    {devisDuSite.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.numero || "(sans référence)"} — {d.libelle.slice(0, 40)}
-                      </option>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Affaire (devis à réaliser)</label>
+                  <input
+                    value={recherchePrestation}
+                    onChange={(e) => setRecherchePrestation(e.target.value)}
+                    placeholder="Rechercher un client, site, devis..."
+                    className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                  />
+                  <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-1.5">
+                    {affairesFiltrees.length === 0 && <p className="px-2 py-1.5 text-xs text-slate-400">Aucune affaire à réaliser trouvée</p>}
+                    {affairesFiltrees.map((d) => (
+                      <button
+                        key={d.id}
+                        onClick={() => choisirPrestation(d)}
+                        className={`block w-full rounded-lg px-2 py-1.5 text-left text-xs ${
+                          devisId === d.id ? "bg-brand-green/10 font-semibold text-brand-green-dark" : "hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className="font-semibold">{d.numero || "(sans référence)"}</span> — {d.client_nom} — {d.client_site}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Client</label>
+                    <select
+                      value={clientNom}
+                      onChange={(e) => {
+                        setClientNom(e.target.value);
+                        const correspondants = sitesSource.filter((s) => s.nom === e.target.value);
+                        setSiteId(correspondants.length === 1 ? correspondants[0].id : "");
+                        setDevisId("");
+                      }}
+                      className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                    >
+                      <option value="">— Choisir un client —</option>
+                      {nomsClients.map((nom) => (
+                        <option key={nom} value={nom}>
+                          {nom}
+                        </option>
+                      ))}
+                    </select>
+                    {sitesDuClient.length > 1 && (
+                      <select
+                        value={siteId}
+                        onChange={(e) => setSiteId(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                      >
+                        <option value="">— Choisir un site —</option>
+                        {sitesDuClient.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.site || "Site sans nom"}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {siteId && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">Affaire (devis, optionnel)</label>
+                      <select
+                        value={devisId}
+                        onChange={(e) => setDevisId(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                      >
+                        <option value="">— Entretien récurrent (pas d&apos;affaire) —</option>
+                        {devisDuSite.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.numero || "(sans référence)"} — {d.libelle.slice(0, 40)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
               )}
             </>
           ) : (

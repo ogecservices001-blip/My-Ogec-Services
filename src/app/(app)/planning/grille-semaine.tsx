@@ -9,8 +9,9 @@ import { CreneauDetail } from "./creneau-detail";
 import { NouveauCreneauForm } from "./nouveau-creneau-form";
 import { ajouterJours, formaterJourCourt, lundiDeLaSemaine } from "@/lib/planning/dates";
 import type { PosteHorsClientOption } from "./actions";
+import type { DevisARealiser } from "@/app/(app)/bi/nouveau/actions";
 
-type SiteOption = { id: string; nom: string; site: string };
+type SiteOption = { id: string; nom: string; site: string; hors_contrat: boolean };
 type TechnicienOption = { id: string; name: string };
 type CreneauComplet = CreneauAffiche & { site_id: string | null; devis_id: string | null };
 
@@ -38,6 +39,7 @@ export function GrilleSemaine({
   sites,
   techniciens,
   postesHorsClient,
+  devisARealiser,
   joursFeries,
   creneaux,
 }: {
@@ -45,6 +47,7 @@ export function GrilleSemaine({
   sites: SiteOption[];
   techniciens: TechnicienOption[];
   postesHorsClient: PosteHorsClientOption[];
+  devisARealiser: DevisARealiser[];
   joursFeries: string[];
   creneaux: CreneauComplet[];
 }) {
@@ -180,6 +183,7 @@ export function GrilleSemaine({
           sites={sites}
           techniciens={techniciens}
           postesHorsClient={postesHorsClient}
+          devisARealiser={devisARealiser}
           joursFeries={joursFeries}
           dateInitiale={formulaire.date}
           technicienInitialId={formulaire.technicienId}

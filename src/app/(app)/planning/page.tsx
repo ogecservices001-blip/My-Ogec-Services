@@ -3,6 +3,7 @@ import { ArrowLeft, Download, Upload } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { chargerCreneauxSemaine, chargerTechniciens, chargerPostesHorsClient } from "./actions";
+import { chargerDevisARealiser } from "@/app/(app)/bi/nouveau/actions";
 import { GrilleSemaine } from "./grille-semaine";
 import { ajouterJours, lundiDeLaSemaine } from "@/lib/planning/dates";
 
@@ -17,10 +18,11 @@ export default async function PlanificationPage({
   const vendredi = ajouterJours(lundi, 4);
 
   const supabase = await createClient();
-  const [{ data: sites }, techniciens, postesHorsClient, creneaux, { data: joursFeries }] = await Promise.all([
-    supabase.from("sites_view").select("id, nom, site").order("nom"),
+  const [{ data: sites }, techniciens, postesHorsClient, devisARealiser, creneaux, { data: joursFeries }] = await Promise.all([
+    supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom"),
     chargerTechniciens(),
     chargerPostesHorsClient(),
+    chargerDevisARealiser(),
     chargerCreneauxSemaine(lundi, vendredi),
     supabase.from("jours_feries").select("date").gte("date", lundi).lte("date", vendredi),
   ]);
@@ -61,6 +63,7 @@ export default async function PlanificationPage({
         sites={sites ?? []}
         techniciens={techniciens}
         postesHorsClient={postesHorsClient}
+        devisARealiser={devisARealiser}
         joursFeries={(joursFeries ?? []).map((j) => j.date)}
         creneaux={creneaux}
       />

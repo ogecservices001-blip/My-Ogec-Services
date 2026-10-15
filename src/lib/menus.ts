@@ -8,6 +8,7 @@ import {
   Flag,
   BookOpen,
   ShoppingCart,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -185,6 +186,17 @@ export function construireModules(isAdmin: boolean): Module[] {
             icone: ClipboardList,
             couleur: "bg-violet-100 text-violet-600",
             sousMenus: [{ nom: "Modèles par pôle", href: "/bi/referentiel" }],
+          },
+        ]
+      : []),
+    ...(isAdmin
+      ? [
+          {
+            nom: "Ressources Humaines",
+            actif: true,
+            icone: Users,
+            couleur: "bg-rose-100 text-rose-600",
+            sousMenus: [{ nom: "Pointage des heures", href: "/ressources-humaines" }],
           },
         ]
       : []),

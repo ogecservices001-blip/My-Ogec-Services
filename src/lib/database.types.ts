@@ -978,6 +978,79 @@ export type Database = {
         }
         Relationships: []
       }
+      pointages: {
+        Row: {
+          client_nom: string
+          created_at: string
+          creneau_id: string | null
+          date: string
+          heures: number
+          id: string
+          importe_le: string
+          importe_par: string | null
+          mois: string
+          observations: string
+          site: string
+          technicien_id: string | null
+          technicien_nom: string
+          updated_at: string
+        }
+        Insert: {
+          client_nom?: string
+          created_at?: string
+          creneau_id?: string | null
+          date: string
+          heures?: number
+          id?: string
+          importe_le?: string
+          importe_par?: string | null
+          mois?: string
+          observations?: string
+          site?: string
+          technicien_id?: string | null
+          technicien_nom?: string
+          updated_at?: string
+        }
+        Update: {
+          client_nom?: string
+          created_at?: string
+          creneau_id?: string | null
+          date?: string
+          heures?: number
+          id?: string
+          importe_le?: string
+          importe_par?: string | null
+          mois?: string
+          observations?: string
+          site?: string
+          technicien_id?: string | null
+          technicien_nom?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pointages_creneau_id_fkey"
+            columns: ["creneau_id"]
+            isOneToOne: false
+            referencedRelation: "creneaux_planning"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pointages_importe_par_fkey"
+            columns: ["importe_par"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pointages_technicien_id_fkey"
+            columns: ["technicien_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       postes_hors_client: {
         Row: {
           client: string

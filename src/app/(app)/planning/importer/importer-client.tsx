@@ -140,7 +140,7 @@ export function ImporterPlanningClient() {
                   cochee={cochesAjouts[i]}
                   onToggle={() => bascule(cochesAjouts, setCochesAjouts, i)}
                   titre={`${a.clientNom} — ${a.site}`}
-                  sousTitre={`${a.ligne.date} — ${a.ligne.heuresPrevues}h — ${a.ligne.intervenants.join(", ")}`}
+                  sousTitre={`${a.ligne.date} — ${a.heuresParPersonne}h/pers. (total ${a.ligne.heuresPrevues}h ÷ ${a.technicienIds.length}) — ${a.ligne.intervenants.join(", ")}`}
                 />
               ))}
             </Section>

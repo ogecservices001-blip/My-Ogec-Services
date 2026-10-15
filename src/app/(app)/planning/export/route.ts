@@ -43,8 +43,15 @@ export async function GET() {
       });
     }
     const g = groupes.get(cle)!;
-    g.heures += Number(c.heures_prevues);
-    for (const ct of c.creneau_techniciens ?? []) {
+    // heures_prevues est UNE durée partagée par toute l'équipe du créneau
+    // (pas une valeur par personne). La colonne "Heures Prévues" legacy
+    // attend la somme des heures de chaque intervenant du jour — un
+    // créneau à 7.5h avec 2 techniciens doit donc remonter 15h ici, pas
+    // 7.5h. Miroir exact de la division faite à l'import.
+    const techniciensDuCreneau = c.creneau_techniciens ?? [];
+    const nbTechniciens = techniciensDuCreneau.length || 1;
+    g.heures += Number(c.heures_prevues) * nbTechniciens;
+    for (const ct of techniciensDuCreneau) {
       const profils = Array.isArray(ct.profiles) ? ct.profiles : ct.profiles ? [ct.profiles] : [];
       for (const p of profils) g.intervenants.add(p.name);
     }

@@ -14,6 +14,14 @@ export type DiffAjoutCreneau = {
   clientNom: string;
   site: string;
   technicienIds: string[];
+  /// La colonne "Heures Prévues" du fichier est le TOTAL cumulé de tous
+  /// les intervenants de la ligne (héritage de l'ancien classeur, où
+  /// chaque technicien avait sa propre valeur d'heures et InterProg.bas
+  /// les additionnait) — alors qu'un créneau ici porte une seule durée
+  /// partagée par toute l'équipe qui y est rattachée. Sans diviser,
+  /// réimporter créditerait chaque intervenant de la totalité plutôt
+  /// que de sa part, multipliant les heures par le nombre de personnes.
+  heuresParPersonne: number;
 };
 
 export type DiffModificationCreneau = DiffAjoutCreneau & {
@@ -190,8 +198,9 @@ export async function previsualiserImportPlanning(formData: FormData): Promise<R
 
     const cle = cleCreneau({ date: ligne.date, siteId, devisId, posteHorsClientId });
     const existant = existantsParCle.get(cle);
+    const heuresParPersonne = Math.round((ligne.heuresPrevues / technicienIds.length) * 100) / 100;
 
-    const base: DiffAjoutCreneau = { ligne, siteId, devisId, posteHorsClientId, clientNom, site, technicienIds };
+    const base: DiffAjoutCreneau = { ligne, siteId, devisId, posteHorsClientId, clientNom, site, technicienIds, heuresParPersonne };
 
     if (!existant) {
       ajouts.push(base);
@@ -201,12 +210,12 @@ export async function previsualiserImportPlanning(formData: FormData): Promise<R
     const technicienIdsExistants = new Set((existant.creneau_techniciens ?? []).map((t) => t.technicien_id));
     const memesTechniciens =
       technicienIdsExistants.size === technicienIds.length && technicienIds.every((id) => technicienIdsExistants.has(id));
-    const memesHeures = Number(existant.heures_prevues) === ligne.heuresPrevues;
+    const memesHeures = Number(existant.heures_prevues) === heuresParPersonne;
 
     if (memesTechniciens && memesHeures) continue; // rien à changer
 
     const champs: { label: string; ancienne: string; nouvelle: string }[] = [];
-    if (!memesHeures) champs.push({ label: "Heures prévues", ancienne: String(existant.heures_prevues), nouvelle: String(ligne.heuresPrevues) });
+    if (!memesHeures) champs.push({ label: "Heures prévues", ancienne: String(existant.heures_prevues), nouvelle: String(heuresParPersonne) });
     if (!memesTechniciens) champs.push({ label: "Intervenants", ancienne: `${technicienIdsExistants.size} technicien(s)`, nouvelle: ligne.intervenants.join(", ") });
 
     modifications.push({ ...base, existantId: existant.id, champs });
@@ -242,7 +251,7 @@ export async function appliquerImportPlanning(
         client_nom: a.clientNom,
         site: a.site,
         date: a.ligne.date,
-        heures_prevues: a.ligne.heuresPrevues,
+        heures_prevues: a.heuresParPersonne,
         created_by: profile.id,
       })
       .select("id")
@@ -266,7 +275,7 @@ export async function appliquerImportPlanning(
     if (!selection.modifications[i]) continue;
     const { error } = await supabase
       .from("creneaux_planning")
-      .update({ heures_prevues: m.ligne.heuresPrevues })
+      .update({ heures_prevues: m.heuresParPersonne })
       .eq("id", m.existantId);
     if (error) {
       echecs.push(`Ligne ${m.ligne.numeroLigne} : ${error.message}`);

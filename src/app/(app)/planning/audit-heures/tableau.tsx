@@ -96,7 +96,7 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
                   Client — Site
                 </th>
                 <Entete titre="À programmer" teinte="bg-amber-50 text-amber-700" />
-                <th rowSpan={2} className="border-b border-slate-200 bg-indigo-50 px-3 py-2 text-right text-xs font-bold uppercase tracking-wide text-indigo-700">
+                <th className="border-b border-slate-200 bg-indigo-50 px-3 py-2 text-center text-xs font-bold uppercase tracking-wide text-indigo-700">
                   Programmées
                 </th>
                 <Entete titre="Déjà réalisées" teinte="bg-green-50 text-brand-green-dark" />
@@ -105,6 +105,7 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
               <tr>
                 <th className="border-b border-slate-200 bg-amber-50/60 px-2 py-1.5 text-right text-[11px] font-semibold text-amber-700">Tech</th>
                 <th className="border-b border-slate-200 bg-amber-50/60 px-2 py-1.5 text-right text-[11px] font-semibold text-amber-700">Assist.</th>
+                <th className="border-b border-slate-200 bg-indigo-50/60 px-2 py-1.5 text-right text-[11px] font-semibold text-indigo-700">Tech</th>
                 <th className="border-b border-slate-200 bg-green-50/60 px-2 py-1.5 text-right text-[11px] font-semibold text-brand-green-dark">Tech</th>
                 <th className="border-b border-slate-200 bg-green-50/60 px-2 py-1.5 text-right text-[11px] font-semibold text-brand-green-dark">Assist.</th>
                 <th className="border-b border-slate-200 bg-slate-50 px-2 py-1.5 text-right text-[11px] font-semibold text-slate-600">Tech</th>

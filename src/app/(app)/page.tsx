@@ -80,13 +80,13 @@ const modules: {
     actif: true,
   },
   {
-    href: "#",
+    href: "/planning",
     titre: "Planning Maintenance",
     sousTitre: "Calendrier des entretiens",
     icone: CalendarClock,
     fond: "bg-cyan-100",
     couleur: "text-cyan-600",
-    actif: false,
+    actif: true,
   },
   {
     href: "/devis",
@@ -138,7 +138,7 @@ export default async function AccueilPage() {
           m.actif ? (
             <Link
               key={m.titre}
-              href={m.href}
+              href={m.titre === "Planning Maintenance" ? (isAdmin ? "/planning" : "/planning/mon-planning") : m.href}
               className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
             >
               <span

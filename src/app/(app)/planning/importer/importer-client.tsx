@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Upload, FileSpreadsheet } from "lucide-react";
 import { previsualiserImportPlanning, appliquerImportPlanning, type ResultatDiffPlanning } from "../import-actions";
 
+type ResultatApplique = { ajoutes: number; modifies: number; echecs: string[] };
+
 export function ImporterPlanningClient() {
   const router = useRouter();
   const [analyse, startAnalyse] = useTransition();
@@ -14,7 +16,7 @@ export function ImporterPlanningClient() {
   const [erreur, setErreur] = useState<string | null>(null);
   const [cochesAjouts, setCochesAjouts] = useState<boolean[]>([]);
   const [cochesModifications, setCochesModifications] = useState<boolean[]>([]);
-  const [resultat, setResultat] = useState<{ ajoutes: number; modifies: number } | null>(null);
+  const [resultat, setResultat] = useState<ResultatApplique | null>(null);
 
   function analyser(formData: FormData) {
     setErreur(null);
@@ -37,11 +39,7 @@ export function ImporterPlanningClient() {
     setErreur(null);
     startApplication(async () => {
       const res = await appliquerImportPlanning(diff, { ajouts: cochesAjouts, modifications: cochesModifications });
-      if (!res.ok) {
-        setErreur(res.erreur);
-        return;
-      }
-      setResultat({ ajoutes: res.ajoutes ?? 0, modifies: res.modifies ?? 0 });
+      setResultat({ ajoutes: res.ajoutes, modifies: res.modifies, echecs: res.echecs });
       setDiff(null);
       router.refresh();
     });
@@ -70,9 +68,25 @@ export function ImporterPlanningClient() {
       </p>
 
       {resultat && (
-        <p className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-brand-green-dark">
-          Import appliqué : {resultat.ajoutes} créneau(x) ajouté(s), {resultat.modifies} modifié(s).
-        </p>
+        <div className="mb-4 space-y-2">
+          <p className="rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-brand-green-dark">
+            Import appliqué : {resultat.ajoutes} créneau(x) ajouté(s), {resultat.modifies} modifié(s).
+          </p>
+          {resultat.echecs.length > 0 && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-red-700">
+                {resultat.echecs.length} ligne(s) en échec
+              </p>
+              <div className="max-h-40 space-y-1 overflow-y-auto">
+                {resultat.echecs.map((e, i) => (
+                  <p key={i} className="text-xs text-red-800">
+                    {e}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>}
 

@@ -4,7 +4,6 @@ import ExcelJS from "exceljs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
-import type { ActionResult } from "@/lib/action-result";
 import { cleCreneau, type LignePlanningImport } from "@/lib/planning/export-import";
 
 export type DiffAjoutCreneau = {
@@ -170,15 +169,20 @@ export async function previsualiserImportPlanning(formData: FormData): Promise<R
       site = s.site;
     }
 
-    const technicienIds: string[] = [];
+    const technicienIdsVus = new Set<string>();
     for (const nom of ligne.intervenants) {
       const t = technicienParNom.get(normaliser(nom));
       if (!t) {
         avertissements.push({ message: `Ligne ${ligne.numeroLigne} : intervenant "${nom}" inconnu — ignoré.` });
         continue;
       }
-      technicienIds.push(t.id);
+      // Un même technicien peut apparaître deux fois dans les colonnes
+      // Intervenant 1-4 de l'historique (doublon de saisie) — sans
+      // dédoublonner, l'insertion dans creneau_techniciens (clé
+      // composite creneau_id+technicien_id) échoue à l'application.
+      technicienIdsVus.add(t.id);
     }
+    const technicienIds = [...technicienIdsVus];
     if (technicienIds.length === 0) {
       avertissements.push({ message: `Ligne ${ligne.numeroLigne} : aucun intervenant reconnu — ligne ignorée.` });
       continue;
@@ -211,15 +215,22 @@ export async function previsualiserImportPlanning(formData: FormData): Promise<R
   return { ok: true, diff: { ajouts, modifications, avertissements } };
 }
 
+export type ResultatApplicationPlanning = { ok: boolean; ajoutes: number; modifies: number; echecs: string[] };
+
 export async function appliquerImportPlanning(
   diff: ResultatDiffPlanning,
   selection: { ajouts: boolean[]; modifications: boolean[] },
-): Promise<ActionResult & { ajoutes?: number; modifies?: number }> {
+): Promise<ResultatApplicationPlanning> {
   const profile = await requireAdmin();
   const supabase = await createClient();
   let ajoutes = 0;
   let modifies = 0;
+  const echecs: string[] = [];
 
+  // Un gros import historique (centaines de lignes) ne doit pas
+  // s'arrêter net à la première ligne en erreur — on continue et on
+  // rapporte les échecs à la fin, plutôt que de laisser l'import
+  // à moitié fait sans que l'utilisateur sache où il s'est arrêté.
   for (const [i, a] of diff.ajouts.entries()) {
     if (!selection.ajouts[i]) continue;
     const { data: creneau, error } = await supabase
@@ -236,13 +247,17 @@ export async function appliquerImportPlanning(
       })
       .select("id")
       .single();
-    if (error || !creneau) return { ok: false, erreur: error?.message ?? `Échec à la ligne ${a.ligne.numeroLigne} (jour férié/week-end ?).` };
+    if (error || !creneau) {
+      echecs.push(`Ligne ${a.ligne.numeroLigne} : ${error?.message ?? "jour férié/week-end ?"}`);
+      continue;
+    }
     const { error: errTech } = await supabase
       .from("creneau_techniciens")
       .insert(a.technicienIds.map((technicien_id) => ({ creneau_id: creneau.id, technicien_id })));
     if (errTech) {
       await supabase.from("creneaux_planning").delete().eq("id", creneau.id);
-      return { ok: false, erreur: errTech.message };
+      echecs.push(`Ligne ${a.ligne.numeroLigne} : ${errTech.message}`);
+      continue;
     }
     ajoutes++;
   }
@@ -253,16 +268,22 @@ export async function appliquerImportPlanning(
       .from("creneaux_planning")
       .update({ heures_prevues: m.ligne.heuresPrevues })
       .eq("id", m.existantId);
-    if (error) return { ok: false, erreur: error.message };
+    if (error) {
+      echecs.push(`Ligne ${m.ligne.numeroLigne} : ${error.message}`);
+      continue;
+    }
     await supabase.from("creneau_techniciens").delete().eq("creneau_id", m.existantId);
     const { error: errTech } = await supabase
       .from("creneau_techniciens")
       .insert(m.technicienIds.map((technicien_id) => ({ creneau_id: m.existantId, technicien_id })));
-    if (errTech) return { ok: false, erreur: errTech.message };
+    if (errTech) {
+      echecs.push(`Ligne ${m.ligne.numeroLigne} : ${errTech.message}`);
+      continue;
+    }
     modifies++;
   }
 
   revalidatePath("/planning");
   revalidatePath("/planning/mon-planning");
-  return { ok: true, ajoutes, modifies };
+  return { ok: true, ajoutes, modifies, echecs };
 }

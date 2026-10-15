@@ -28,6 +28,11 @@ const LARGEUR_PLEINE_SECTIONS = ["/devis", "/commandes-fournisseur"];
 /// (pas une page).
 const LARGEUR_PLEINE_PATTERNS = [/^\/depannages\/[0-9a-f-]{20,}$/i, /^\/bi\/[0-9a-f-]{20,}$/i];
 
+/// Écrans qui se passent entièrement de la sidebar (grille dense où
+/// chaque pixel compte) — la page elle-même doit alors fournir son
+/// propre bouton retour, puisque la sidebar n'est plus là pour naviguer.
+const SANS_SIDEBAR = ["/planning"];
+
 export function AppShell({
   isAdmin,
   children,
@@ -40,6 +45,10 @@ export function AppShell({
     LARGEUR_PLEINE.includes(pathname) ||
     LARGEUR_PLEINE_SECTIONS.some((s) => pathname === s || pathname.startsWith(`${s}/`)) ||
     LARGEUR_PLEINE_PATTERNS.some((re) => re.test(pathname));
+
+  if (SANS_SIDEBAR.includes(pathname)) {
+    return <main className="min-h-dvh w-full p-4 sm:p-6">{children}</main>;
+  }
 
   return (
     <div className={`mx-auto flex ${pleine ? "" : "max-w-6xl"}`}>

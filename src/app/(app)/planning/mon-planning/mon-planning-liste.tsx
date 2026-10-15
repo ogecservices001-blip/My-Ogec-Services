@@ -61,7 +61,7 @@ function Jour({
       {ouvert && (
         <div className="space-y-2 px-4 pb-4">
           {creneaux.map((c) => (
-            <CreneauCarte key={c.id} creneau={c} isAdmin={false} />
+            <CreneauCarte key={c.id} creneau={c} />
           ))}
         </div>
       )}

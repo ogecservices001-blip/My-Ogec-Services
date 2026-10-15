@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download, Upload } from "lucide-react";
+import { ArrowLeft, Download, Upload } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { chargerCreneauxSemaine, chargerTechniciens, chargerPostesHorsClient } from "./actions";
@@ -27,6 +27,13 @@ export default async function PlanificationPage({
 
   return (
     <div>
+      <Link
+        href="/"
+        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+        Retour
+      </Link>
       <div className="mb-4 flex items-start justify-between gap-2">
         <div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Planification</h1>

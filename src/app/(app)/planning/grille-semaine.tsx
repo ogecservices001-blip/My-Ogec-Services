@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { CreneauCarte, type CreneauAffiche } from "./creneau-carte";
+import { CreneauDetail } from "./creneau-detail";
 import { NouveauCreneauForm } from "./nouveau-creneau-form";
-import { ajouterJours, formaterJourCourt } from "@/lib/planning/dates";
+import { ajouterJours, formaterJourCourt, lundiDeLaSemaine } from "@/lib/planning/dates";
 import type { PosteHorsClientOption } from "./actions";
 
 type SiteOption = { id: string; nom: string; site: string };
@@ -46,11 +48,27 @@ export function GrilleSemaine({
   joursFeries: string[];
   creneaux: CreneauComplet[];
 }) {
+  const router = useRouter();
   const [formulaire, setFormulaire] = useState<{ date: string; technicienId?: string; creneau?: CreneauComplet } | null>(null);
+  const [detail, setDetail] = useState<CreneauComplet | null>(null);
+  const inputDateRef = useRef<HTMLInputElement>(null);
 
   const joursSemaine = JOURS.map((nom, i) => ({ nom, date: ajouterJours(lundiSemaine, i) }));
   const semainePrecedente = ajouterJours(lundiSemaine, -7);
   const semaineSuivante = ajouterJours(lundiSemaine, 7);
+
+  function ouvrirCalendrier() {
+    const input = inputDateRef.current;
+    if (!input) return;
+    const avecShowPicker = input as HTMLInputElement & { showPicker?: () => void };
+    if (avecShowPicker.showPicker) avecShowPicker.showPicker();
+    else input.focus();
+  }
+
+  function allerALaSemaineDe(dateChoisie: string) {
+    if (!dateChoisie) return;
+    router.push(`/planning?semaine=${lundiDeLaSemaine(dateChoisie)}`);
+  }
 
   function creneauxDuJourEtTechnicien(date: string, technicienId: string): CreneauComplet[] {
     return creneaux.filter((c) => c.date === date && c.techniciens?.some((t) => t.id === technicienId));
@@ -66,9 +84,27 @@ export function GrilleSemaine({
           <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
           Semaine précédente
         </Link>
-        <p className="text-sm font-semibold text-slate-700">
-          {formaterJourCourt(joursSemaine[0].date)} — {formaterJourCourt(joursSemaine[4].date)}
-        </p>
+        <div className="relative flex items-center gap-2">
+          <p className="text-sm font-semibold text-slate-700">
+            {formaterJourCourt(joursSemaine[0].date)} — {formaterJourCourt(joursSemaine[4].date)}
+          </p>
+          <button
+            onClick={ouvrirCalendrier}
+            title="Choisir une date"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-500 shadow-sm hover:bg-slate-50"
+          >
+            <CalendarDays className="h-4 w-4" strokeWidth={2.25} />
+          </button>
+          <input
+            ref={inputDateRef}
+            type="date"
+            defaultValue={lundiSemaine}
+            onChange={(e) => allerALaSemaineDe(e.target.value)}
+            className="pointer-events-none absolute inset-0 h-8 w-8 opacity-0"
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+        </div>
         <Link
           href={`/planning?semaine=${semaineSuivante}`}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
@@ -111,7 +147,7 @@ export function GrilleSemaine({
                       className={`min-h-[70px] space-y-1.5 rounded-lg border border-t-2 border-dashed border-slate-200 bg-white/60 p-1.5 ${couleur.bordure}`}
                     >
                       {creneauxCellule.map((c) => (
-                        <CreneauCarte key={c.id} creneau={c} isAdmin onModifier={(cr) => setFormulaire({ date: jour.date, creneau: cr as CreneauComplet })} />
+                        <CreneauCarte key={c.id} creneau={c} cliquable onClick={() => setDetail(c)} />
                       ))}
                       <button
                         onClick={() => setFormulaire({ date: jour.date, technicienId: t.id })}
@@ -127,6 +163,17 @@ export function GrilleSemaine({
           })}
         </div>
       </div>
+
+      {detail && (
+        <CreneauDetail
+          creneau={detail}
+          onModifier={() => {
+            setFormulaire({ date: detail.date, creneau: detail });
+            setDetail(null);
+          }}
+          onFerme={() => setDetail(null)}
+        />
+      )}
 
       {formulaire && (
         <NouveauCreneauForm

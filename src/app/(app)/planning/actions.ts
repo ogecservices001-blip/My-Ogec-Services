@@ -219,8 +219,15 @@ export async function modifierCreneau(id: string, input: CreneauInput): Promise<
 export async function supprimerCreneau(id: string): Promise<ActionResult> {
   await requireAdmin();
   const supabase = await createClient();
-  const { error } = await supabase.from("creneaux_planning").delete().eq("id", id);
+  // .select() est indispensable ici : sans lui, une suppression bloquée
+  // par une policy RLS renvoie error=null et 0 ligne affectée — un échec
+  // totalement silencieux, impossible à distinguer d'un succès sans
+  // vérifier le contenu réellement supprimé.
+  const { data, error } = await supabase.from("creneaux_planning").delete().eq("id", id).select("id");
   if (error) return { ok: false, erreur: error.message };
+  if (!data || data.length === 0) {
+    return { ok: false, erreur: "Rien n'a été supprimé — droits insuffisants ou créneau déjà supprimé." };
+  }
   revalidatePath("/planning");
   revalidatePath("/planning/mon-planning");
   return { ok: true };

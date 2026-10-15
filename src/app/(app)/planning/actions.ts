@@ -58,10 +58,19 @@ export async function chargerCreneauxSemaine(debutISO: string, finISO: string): 
 
 export type TechnicienOption = { id: string; name: string };
 
+/// Techniciens à qui on peut assigner du travail — "technicien" (compte
+/// actif) ET "en_attente" (fiché mais sans compte de connexion encore,
+/// même convention que l'assistant BI) : le bureau doit pouvoir
+/// planifier tout le monde, pas seulement ceux qui ont déjà un accès à
+/// l'appli. Jamais les admins (bureau), ni les comptes "client".
 export async function chargerTechniciens(): Promise<TechnicienOption[]> {
   await requireAdmin();
   const supabase = await createClient();
-  const { data } = await supabase.from("profiles").select("id, name").eq("role", "technicien").order("name");
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, name")
+    .in("role", ["technicien", "en_attente"])
+    .order("name");
   return data ?? [];
 }
 

@@ -76,7 +76,7 @@ export function GrilleSemaine({
       </div>
 
       <div className="overflow-x-auto">
-        <div className="grid min-w-[780px] gap-1.5" style={{ gridTemplateColumns: `100px repeat(${techniciens.length}, minmax(70px, 1fr))` }}>
+        <div className="grid min-w-[1000px] gap-1.5" style={{ gridTemplateColumns: `100px repeat(${techniciens.length}, minmax(70px, 1fr))` }}>
           <div />
           {techniciens.map((t, i) => {
             const couleur = COULEURS[i % COULEURS.length];

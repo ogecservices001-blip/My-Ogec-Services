@@ -1,9 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, Clock, Pencil, Trash2, Users } from "lucide-react";
-import { lienGoogleCalendar } from "@/lib/planning/google-calendar";
+import { Clock, Pencil, Trash2, Users } from "lucide-react";
 import { supprimerCreneau } from "./actions";
 
 export type CreneauAffiche = {
@@ -29,14 +28,20 @@ export function CreneauCarte({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [confirmation, setConfirmation] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
 
   const estHorsClient = !!creneau.poste_hors_client_id;
   const titre = `${creneau.client_nom} — ${creneau.site}`;
 
   function supprimer() {
-    if (!confirm("Supprimer ce créneau ?")) return;
+    setErreur(null);
     startTransition(async () => {
-      await supprimerCreneau(creneau.id);
+      const res = await supprimerCreneau(creneau.id);
+      if (!res.ok) {
+        setErreur(res.erreur);
+        return;
+      }
       router.refresh();
     });
   }
@@ -61,46 +66,50 @@ export function CreneauCarte({
         </div>
       </div>
 
-      <div className="mt-2 flex items-center gap-2">
-        <a
-          href={lienGoogleCalendar({
-            date: creneau.date,
-            heureDebut: creneau.heure_debut,
-            heuresPrevues: creneau.heures_prevues,
-            titre,
-            lieu: estHorsClient ? "" : creneau.site,
-            observations: creneau.observations,
-          })}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
-        >
-          <CalendarPlus className="h-3 w-3" strokeWidth={2.25} />
-          Ajouter à mon calendrier
-        </a>
+      {erreur && <p className="mt-2 text-[11px] font-medium text-red-600">{erreur}</p>}
 
-        {isAdmin && (
-          <>
-            {onModifier && (
+      {isAdmin && (
+        <div className="mt-2">
+          {confirmation ? (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-red-700">Supprimer ce créneau ?</span>
               <button
-                onClick={() => onModifier(creneau)}
-                className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
+                onClick={supprimer}
+                disabled={pending}
+                className="rounded-lg bg-red-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
-                <Pencil className="h-3 w-3" strokeWidth={2.25} />
-                Modifier
+                {pending ? "..." : "Confirmer"}
               </button>
-            )}
-            <button
-              onClick={supprimer}
-              disabled={pending}
-              className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-[11px] font-semibold text-red-600 shadow-sm hover:bg-red-50 disabled:opacity-50"
-            >
-              <Trash2 className="h-3 w-3" strokeWidth={2.25} />
-              Supprimer
-            </button>
-          </>
-        )}
-      </div>
+              <button
+                onClick={() => setConfirmation(false)}
+                disabled={pending}
+                className="rounded-lg bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {onModifier && (
+                <button
+                  onClick={() => onModifier(creneau)}
+                  className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
+                >
+                  <Pencil className="h-3 w-3" strokeWidth={2.25} />
+                  Modifier
+                </button>
+              )}
+              <button
+                onClick={() => setConfirmation(true)}
+                className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-[11px] font-semibold text-red-600 shadow-sm hover:bg-red-50"
+              >
+                <Trash2 className="h-3 w-3" strokeWidth={2.25} />
+                Supprimer
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -185,5 +185,16 @@ export function construireModules(isAdmin: boolean): Module[] {
           },
         ]
       : []),
+    ...(isAdmin
+      ? [
+          {
+            nom: "Référentiel Planning",
+            actif: true,
+            icone: ClipboardList,
+            couleur: "bg-cyan-100 text-cyan-600",
+            sousMenus: [{ nom: "Postes hors client", href: "/planning/referentiel" }],
+          },
+        ]
+      : []),
   ];
 }

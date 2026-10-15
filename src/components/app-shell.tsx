@@ -12,9 +12,9 @@ import { Sidebar } from "@/components/sidebar";
 /// et la colonne de contenu, pour que les deux s'accordent.
 const LARGEUR_PLEINE = [
   "/planning",
+  "/planning/audit-heures",
   "/bi",
   "/bi/valides",
-  "/gmao/audit-heures",
   "/depannages/traitees",
   "/depannages/statistiques",
   "/prestations/realisees",
@@ -31,7 +31,7 @@ const LARGEUR_PLEINE_PATTERNS = [/^\/depannages\/[0-9a-f-]{20,}$/i, /^\/bi\/[0-9
 /// Écrans qui se passent entièrement de la sidebar (grille dense où
 /// chaque pixel compte) — la page elle-même doit alors fournir son
 /// propre bouton retour, puisque la sidebar n'est plus là pour naviguer.
-const SANS_SIDEBAR = ["/planning"];
+const SANS_SIDEBAR = ["/planning", "/planning/audit-heures"];
 
 export function AppShell({
   isAdmin,

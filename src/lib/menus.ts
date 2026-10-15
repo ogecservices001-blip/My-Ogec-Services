@@ -125,7 +125,10 @@ export function construireModules(isAdmin: boolean): Module[] {
       icone: ClipboardList,
       couleur: "bg-cyan-100 text-cyan-600",
       sousMenus: isAdmin
-        ? [{ nom: "Planification", href: "/planning" }]
+        ? [
+            { nom: "Planification", href: "/planning" },
+            { nom: "Audit Heures", href: "/planning/audit-heures" },
+          ]
         : [{ nom: "Mon planning", href: "/planning/mon-planning" }],
     },
     ...(isAdmin

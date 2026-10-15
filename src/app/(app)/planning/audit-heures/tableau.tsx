@@ -50,14 +50,14 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <Link
-          href="/gmao"
+          href="/planning"
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
           Retour
         </Link>
         <a
-          href="/gmao/audit-heures/export"
+          href="/planning/audit-heures/export"
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
           title="Exporter en Excel"
         >

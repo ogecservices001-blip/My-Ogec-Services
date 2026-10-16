@@ -16,6 +16,8 @@ const COLONNES = [
   "Déjà réalisées - Assistant",
   "Total dû au contrat - Tech",
   "Total dû au contrat - Assistant",
+  "Heure exécution - Tech",
+  "Heure exécution - Assistant",
 ];
 
 export async function GET() {
@@ -39,6 +41,8 @@ export async function GET() {
       l.realAssistant,
       l.contratTech,
       l.contratAssistant,
+      l.executionTech,
+      l.executionAssistant,
     ]);
   }
 

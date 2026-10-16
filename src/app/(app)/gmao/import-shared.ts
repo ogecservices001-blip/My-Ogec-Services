@@ -1,7 +1,6 @@
 "use server";
 
 import ExcelJS from "exceljs";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
@@ -11,7 +10,6 @@ import {
   CHAMPS_CONNUS_LABELS,
   type LigneImportEquipement,
   type ResultatDiff,
-  type DiffChamp,
 } from "@/lib/gmao/equipement-import";
 import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { heuresCumulAnnee } from "@/lib/gmao/calcul-heures-visite";
@@ -24,16 +22,6 @@ import { finaliserFeuille } from "@/lib/excel-export";
 /// (/gmao/clients/groupe/[nom]/importer) et global (/gmao/importer) —
 /// seul le nombre de sites fournis change, le rattachement par Numéro
 /// Client/Site (calculerDiff) gère les trois cas de façon uniforme.
-///
-/// L'analyse (liste complète des lignes à ajouter/modifier) reste
-/// TOUJOURS côté serveur, stockée dans `imports_equipements_temp` — le
-/// navigateur ne manipule qu'un identifiant + un résumé plafonné
-/// (`LIMITE_DETAIL` lignes). Sur un import "tous clients" (plusieurs
-/// milliers de lignes), faire transiter l'analyse complète par le
-/// client à chaque aller-retour (analyse → applique → rapport)
-/// faisait planter l'onglet.
-
-const LIMITE_DETAIL = 300;
 
 const COLONNE_VERS_CLE: Record<string, string> = {
   "type equipement 2": "typeEquipement2",
@@ -121,70 +109,18 @@ async function parserSommaire(fichier: File): Promise<LigneImportEquipement[] | 
   return lignes;
 }
 
-/// Recharge `types_equipement`/`sites`/les équipements existants pour
-/// les sites concernés, et recalcule le diff — appelé à l'analyse,
-/// puis de nouveau (frais) à l'application et à la génération du
-/// rapport, jamais transmis tel quel par le client entre ces étapes.
-async function recalculerDiff(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: SupabaseClient<any>,
-  lignes: LigneImportEquipement[],
-  siteIds: string[],
-): Promise<{ diff: ResultatDiff; typesById: Record<string, TypeEquipement> } | { erreur: string }> {
-  const { data: sites, error: errSites } = await supabase
-    .from("sites")
-    .select("id, n_affaire")
-    .in("id", siteIds);
-  if (errSites || !sites || sites.length === 0) return { erreur: "Site(s) introuvable(s)." };
-
-  const { data: types } = await supabase.from("types_equipement").select("*");
-  let existants: Equipement[];
-  try {
-    existants = await recupererToutesLesLignes<Equipement>((debut, fin) =>
-      supabase.from("equipements").select("*").in("site_id", siteIds).range(debut, fin),
-    );
-  } catch (e) {
-    return { erreur: e instanceof Error ? e.message : String(e) };
-  }
-
-  const typesById: Record<string, TypeEquipement> = {};
-  for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
-
-  const existantsParSite = new Map<string, Equipement[]>();
-  for (const e of existants) {
-    const liste = existantsParSite.get(e.site_id) ?? [];
-    liste.push(e);
-    existantsParSite.set(e.site_id, liste);
-  }
-
-  const diff = calculerDiff(lignes, sites, existantsParSite, typesById);
-  return { diff, typesById };
-}
-
-export type ResumeImportEquipements = {
-  id: string;
-  compteAjouts: number;
-  compteModifications: number;
-  compteSuppressions: number;
-  avertissements: string[];
-  apercuAjouts: { nom: string; numeroEquipement: string; localisation: string; typeDeReleveBrut: string }[];
-  apercuModifications: { nom: string; numeroEquipement: string; champs: DiffChamp[] }[];
-  apercuSuppressions: { nom: string; numeroEquipement: string }[];
-  limiteDetail: number;
-};
-
 export type ResultatPreviewEquipements =
-  | { ok: true; resume: ResumeImportEquipements }
+  | { ok: true; diff: ResultatDiff }
   | { ok: false; erreur: string };
 
 /// Analyse le classeur "Sommaire" pour les sites donnés (un, tous ceux
-/// d'un client, ou le parc entier) — stocke la liste complète des
-/// lignes côté serveur et ne renvoie au client qu'un résumé plafonné.
+/// d'un client, ou le parc entier) — port de `calculerDiff`
+/// (equipement_import_service.dart).
 export async function previsualiserImportEquipements(
   siteIds: string[],
   formData: FormData,
 ): Promise<ResultatPreviewEquipements> {
-  const profile = await requireAdmin();
+  await requireAdmin();
 
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) {
@@ -200,87 +136,53 @@ export async function previsualiserImportEquipements(
   if (!lignes) return { ok: false, erreur: "Classeur vide." };
 
   const supabase = await createClient();
+  const { data: sites, error: errSites } = await supabase
+    .from("sites")
+    .select("id, n_affaire")
+    .in("id", siteIds);
+  if (errSites || !sites || sites.length === 0) return { ok: false, erreur: "Site(s) introuvable(s)." };
 
-  // Nettoyage opportuniste des analyses abandonnées (> 1 jour) — pas
-  // critique, juste pour ne pas accumuler indéfiniment.
-  await supabase
-    .from("imports_equipements_temp")
-    .delete()
-    .lt("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+  let existants: Equipement[];
+  const { data: types } = await supabase.from("types_equipement").select("*");
+  try {
+    existants = await recupererToutesLesLignes<Equipement>((debut, fin) =>
+      supabase.from("equipements").select("*").in("site_id", siteIds).range(debut, fin),
+    );
+  } catch (e) {
+    return { ok: false, erreur: e instanceof Error ? e.message : String(e) };
+  }
 
-  const resultat = await recalculerDiff(supabase, lignes, siteIds);
-  if ("erreur" in resultat) return { ok: false, erreur: resultat.erreur };
-  const { diff } = resultat;
+  const typesById: Record<string, TypeEquipement> = {};
+  for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
 
-  const { data: inseree, error: errInsert } = await supabase
-    .from("imports_equipements_temp")
-    .insert({ created_by: profile.id, site_ids: siteIds, lignes: lignes as unknown as object })
-    .select("id")
-    .single();
-  if (errInsert || !inseree) return { ok: false, erreur: errInsert?.message ?? "Échec de l'enregistrement de l'analyse." };
+  const existantsParSite = new Map<string, Equipement[]>();
+  for (const e of existants) {
+    const liste = existantsParSite.get(e.site_id) ?? [];
+    liste.push(e);
+    existantsParSite.set(e.site_id, liste);
+  }
 
-  const resume: ResumeImportEquipements = {
-    id: inseree.id,
-    compteAjouts: diff.ajouts.length,
-    compteModifications: diff.modifications.length,
-    compteSuppressions: diff.suppressions.length,
-    avertissements: diff.avertissements.map((a) => a.message),
-    apercuAjouts: diff.ajouts.slice(0, LIMITE_DETAIL).map((a) => ({
-      nom: a.ligne.nom,
-      numeroEquipement: a.ligne.numeroEquipement,
-      localisation: a.ligne.localisation,
-      typeDeReleveBrut: a.ligne.typeDeReleveBrut,
-    })),
-    apercuModifications: diff.modifications.slice(0, LIMITE_DETAIL).map((m) => ({
-      nom: m.existant.nom,
-      numeroEquipement: m.existant.numero_equipement,
-      champs: m.champs,
-    })),
-    apercuSuppressions: diff.suppressions.slice(0, LIMITE_DETAIL).map((s) => ({
-      nom: s.existant.nom,
-      numeroEquipement: s.existant.numero_equipement,
-    })),
-    limiteDetail: LIMITE_DETAIL,
-  };
-  return { ok: true, resume };
+  const diff = calculerDiff(lignes, sites, existantsParSite, typesById);
+  return { ok: true, diff };
 }
 
-/// Applique l'import précédemment analysé (identifié par `id`) —
-/// recharge les lignes stockées côté serveur et recalcule le diff à
-/// neuf (jamais celui reçu du client). `selection.*[i]` ne couvre que
-/// les `limiteDetail` premières lignes de chaque catégorie (celles
-/// affichées en détail) ; au-delà, une ligne est toujours appliquée.
+/// Applique les lignes cochées (déjà rattachées à leur site via
+/// `DiffAjout.siteId` / `DiffModification.existant.site_id`) — jamais
+/// un nouveau parsing du fichier.
 export async function appliquerImportEquipements(
-  id: string,
+  diff: ResultatDiff,
   selection: { ajouts: boolean[]; modifications: boolean[]; suppressions: boolean[] },
   cheminsARevalider: string[],
 ): Promise<ActionResult & { ajoutes?: number; modifies?: number; supprimes?: number }> {
   await requireAdmin();
+
   const supabase = await createClient();
-
-  const { data: stocke, error: errStocke } = await supabase
-    .from("imports_equipements_temp")
-    .select("lignes, site_ids")
-    .eq("id", id)
-    .single();
-  if (errStocke || !stocke) return { ok: false, erreur: "Analyse introuvable ou expirée — relance l'import." };
-
-  const resultat = await recalculerDiff(supabase, stocke.lignes as unknown as LigneImportEquipement[], stocke.site_ids);
-  if ("erreur" in resultat) return { ok: false, erreur: resultat.erreur };
-  const { diff } = resultat;
-
-  // Au-delà des lignes affichées en détail (LIMITE_DETAIL), un ajout ou
-  // une modification reste inclus par défaut (comportement neutre) —
-  // mais une suppression (destructive) reste exclue par défaut, jamais
-  // appliquée sans sélection explicite visible.
-  const estCoche = (liste: boolean[], i: number, parDefaut: boolean) => (i < liste.length ? liste[i] : parDefaut);
-
   let ajoutes = 0;
   let modifies = 0;
   let supprimes = 0;
 
   const aInserer = diff.ajouts
-    .filter((_, i) => estCoche(selection.ajouts, i, true))
+    .filter((_, i) => selection.ajouts[i])
     .map((a) => ({
       site_id: a.siteId,
       type_equipement_id: a.ligne.typeEquipementId!,
@@ -291,8 +193,8 @@ export async function appliquerImportEquipements(
       champs_en_tete: a.ligne.champsEnTete,
     }));
   // Insert par lots : un envoi unique de plusieurs milliers de lignes
-  // peut dépasser la taille de requête acceptée et fait échouer tout
-  // le lot d'un coup.
+  // (import "tous clients") peut dépasser la taille de requête acceptée
+  // et fait échouer tout le lot d'un coup.
   const TAILLE_LOT = 500;
   for (let i = 0; i < aInserer.length; i += TAILLE_LOT) {
     const lot = aInserer.slice(i, i + TAILLE_LOT);
@@ -302,7 +204,7 @@ export async function appliquerImportEquipements(
   }
 
   for (let i = 0; i < diff.modifications.length; i++) {
-    if (!estCoche(selection.modifications, i, true)) continue;
+    if (!selection.modifications[i]) continue;
     const mod = diff.modifications[i];
     const champsEnTeteFusionnes = { ...mod.existant.champs_en_tete, ...mod.ligne.champsEnTete };
     const { error } = await supabase
@@ -319,7 +221,7 @@ export async function appliquerImportEquipements(
   }
 
   for (let i = 0; i < diff.suppressions.length; i++) {
-    if (!estCoche(selection.suppressions, i, false)) continue;
+    if (!selection.suppressions[i]) continue;
     const { error } = await supabase.from("equipements").delete().eq("id", diff.suppressions[i].existant.id);
     if (error) return { ok: false, erreur: error.message };
     supprimes++;
@@ -364,39 +266,32 @@ function calculerHeuresLigne(
   };
 }
 
-/// Rapport .xlsx de l'import analysé (identifié par `id`, jamais un
-/// diff reçu du client) — un seul tableau, scopé aux seuls équipements
-/// ajoutés ou modifiés par CET import :
+/// Rapport .xlsx de l'import analysé (diff déjà calculé côté client,
+/// jamais un nouveau parsing du fichier) — scopé aux seuls équipements
+/// ajoutés ou modifiés par CET import (jamais le reste du classeur
+/// pour d'autres clients, ni les lignes inchangées du site) :
 /// - équipement pas encore en GMAO → ligne entière en rouge ;
 /// - équipement existant dont une valeur a changé → cellule en rouge,
 ///   affichant "nouvelle valeur (était : ancienne valeur)" ;
 /// - heures Tech/Assistant par an affectées à chaque équipement,
 ///   recalculées depuis le catalogue Référentiel Heures.
-export async function genererRapportImportEquipements(id: string): Promise<ActionResult & { base64?: string }> {
+export async function genererRapportImportEquipements(diff: ResultatDiff): Promise<ActionResult & { base64?: string }> {
   await requireAdmin();
   const supabase = await createClient();
 
-  const { data: stocke, error: errStocke } = await supabase
-    .from("imports_equipements_temp")
-    .select("lignes, site_ids")
-    .eq("id", id)
-    .single();
-  if (errStocke || !stocke) return { ok: false, erreur: "Analyse introuvable ou expirée — relance l'import." };
-
-  const resultat = await recalculerDiff(supabase, stocke.lignes as unknown as LigneImportEquipement[], stocke.site_ids);
-  if ("erreur" in resultat) return { ok: false, erreur: resultat.erreur };
-  const { diff, typesById } = resultat;
-
+  const { data: types } = await supabase.from("types_equipement").select("*");
   const { data: references } = await supabase.from("references_horaires").select("*");
+  const typesById: Record<string, TypeEquipement> = {};
+  for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
 
   const siteIds = new Set<string>();
   for (const a of diff.ajouts) siteIds.add(a.siteId);
   for (const m of diff.modifications) siteIds.add(m.existant.site_id);
   const { data: sites } = await supabase.from("sites").select("id, nom, n_affaire").in("id", [...siteIds]);
   const siteParId = new Map((sites ?? []).map((s) => [s.id, s]));
-  const nomSite = (idSite: string) => {
-    const s = siteParId.get(idSite);
-    return s ? `${s.nom} (${s.n_affaire})` : idSite;
+  const nomSite = (id: string) => {
+    const s = siteParId.get(id);
+    return s ? `${s.nom} (${s.n_affaire})` : id;
   };
   const nomFamille = (ligne: LigneImportEquipement) => typesById[ligne.typeEquipementId ?? ""]?.nom ?? ligne.typeDeReleveBrut;
 

@@ -4,18 +4,20 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Upload, FileSpreadsheet, Download } from "lucide-react";
-import type { ResultatDiff } from "@/lib/gmao/equipement-import";
+import type { ResumeImportEquipements } from "./import-shared";
 import { previsualiserImportEquipements, appliquerImportEquipements, genererRapportImportEquipements } from "./import-shared";
-
-// Au-delà de ce nombre, afficher chaque ligne individuellement (carte +
-// case à cocher) sature le navigateur sur un import "tous clients"
-// (plusieurs milliers de lignes) — toutes les lignes restent sélectionnées
-// et appliquées normalement, seul l'affichage détaillé est tronqué.
-const LIMITE_AFFICHAGE = 300;
 
 /// Écran d'import "Sommaire" générique, réutilisé pour un import par
 /// site, par client (plusieurs sites) ou global (tous les sites) —
 /// seuls `siteIds`/`cheminsARevalider` changent selon l'ampleur.
+///
+/// L'analyse complète (toutes les lignes à ajouter/modifier) ne quitte
+/// jamais le serveur — ce composant ne manipule qu'un résumé plafonné
+/// (`resume.limiteDetail` lignes en détail par catégorie) identifié par
+/// `resume.id`. Sur un import "tous clients" (plusieurs milliers de
+/// lignes), faire transiter l'analyse complète par le navigateur à
+/// chaque aller-retour (analyse → applique → rapport) faisait planter
+/// l'onglet.
 export function ImporterEquipementsClient({
   titre,
   sousTitre,
@@ -33,8 +35,8 @@ export function ImporterEquipementsClient({
   const [analyse, startAnalyse] = useTransition();
   const [application, startApplication] = useTransition();
   const [rapport, startRapport] = useTransition();
-  const [diff, setDiff] = useState<ResultatDiff | null>(null);
-  const [diffApplique, setDiffApplique] = useState<ResultatDiff | null>(null);
+  const [resume, setResume] = useState<ResumeImportEquipements | null>(null);
+  const [resumeApplique, setResumeApplique] = useState<ResumeImportEquipements | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [cochesAjouts, setCochesAjouts] = useState<boolean[]>([]);
   const [cochesModifications, setCochesModifications] = useState<boolean[]>([]);
@@ -48,25 +50,25 @@ export function ImporterEquipementsClient({
       const res = await previsualiserImportEquipements(siteIds, formData);
       if (!res.ok) {
         setErreur(res.erreur);
-        setDiff(null);
+        setResume(null);
         return;
       }
-      setDiff(res.diff);
-      setCochesAjouts(res.diff.ajouts.map(() => true));
-      setCochesModifications(res.diff.modifications.map(() => true));
+      setResume(res.resume);
+      setCochesAjouts(res.resume.apercuAjouts.map(() => true));
+      setCochesModifications(res.resume.apercuModifications.map(() => true));
       // Les suppressions ne sont jamais cochées par défaut — action
       // destructive, opt-in explicite requis (garde-fou que Flutter
       // lui-même n'avait pas).
-      setCochesSuppressions(res.diff.suppressions.map(() => false));
+      setCochesSuppressions(res.resume.apercuSuppressions.map(() => false));
     });
   }
 
   function appliquer() {
-    if (!diff) return;
+    if (!resume) return;
     setErreur(null);
     startApplication(async () => {
       const res = await appliquerImportEquipements(
-        diff,
+        resume.id,
         { ajouts: cochesAjouts, modifications: cochesModifications, suppressions: cochesSuppressions },
         cheminsARevalider,
       );
@@ -75,17 +77,17 @@ export function ImporterEquipementsClient({
         return;
       }
       setResultat({ ajoutes: res.ajoutes ?? 0, modifies: res.modifies ?? 0, supprimes: res.supprimes ?? 0 });
-      setDiffApplique(diff);
-      setDiff(null);
+      setResumeApplique(resume);
+      setResume(null);
       router.refresh();
     });
   }
 
-  function telechargerRapport(diffATelecharger: ResultatDiff | null) {
-    if (!diffATelecharger) return;
+  function telechargerRapport(resumeATelecharger: ResumeImportEquipements | null) {
+    if (!resumeATelecharger) return;
     setErreur(null);
     startRapport(async () => {
-      const res = await genererRapportImportEquipements(diffATelecharger);
+      const res = await genererRapportImportEquipements(resumeATelecharger.id);
       if (!res.ok || !res.base64) {
         setErreur(!res.ok ? res.erreur : "Rapport indisponible.");
         return;
@@ -113,7 +115,12 @@ export function ImporterEquipementsClient({
   const totalCoches =
     cochesAjouts.filter(Boolean).length +
     cochesModifications.filter(Boolean).length +
-    cochesSuppressions.filter(Boolean).length;
+    cochesSuppressions.filter(Boolean).length +
+    // Au-delà du détail affiché, tout ajout/modification reste inclus
+    // par défaut (même convention que côté serveur) — compté ici pour
+    // que le bouton "Appliquer (N)" reflète le total réel.
+    Math.max(0, resume ? resume.compteAjouts - cochesAjouts.length : 0) +
+    Math.max(0, resume ? resume.compteModifications - cochesModifications.length : 0);
 
   return (
     <div>
@@ -134,7 +141,7 @@ export function ImporterEquipementsClient({
             supprimé(s).
           </p>
           <button
-            onClick={() => telechargerRapport(diffApplique)}
+            onClick={() => telechargerRapport(resumeApplique)}
             disabled={rapport}
             className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-brand-green-dark shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
           >
@@ -145,7 +152,7 @@ export function ImporterEquipementsClient({
       )}
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>}
 
-      {!diff && (
+      {!resume && (
         <form
           action={analyser}
           className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center"
@@ -169,16 +176,16 @@ export function ImporterEquipementsClient({
         </form>
       )}
 
-      {diff && (
+      {resume && (
         <>
           <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3">
             <p className="text-sm text-slate-600">
-              {diff.ajouts.length === 0 && diff.modifications.length === 0 && diff.suppressions.length === 0
+              {resume.compteAjouts === 0 && resume.compteModifications === 0 && resume.compteSuppressions === 0
                 ? "Aucun changement détecté — le parc est déjà à jour."
-                : `${diff.ajouts.length} ajout(s), ${diff.modifications.length} modification(s).`}
+                : `${resume.compteAjouts} ajout(s), ${resume.compteModifications} modification(s).`}
             </p>
             <button
-              onClick={() => telechargerRapport(diff)}
+              onClick={() => telechargerRapport(resume)}
               disabled={rapport}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:opacity-60"
             >
@@ -187,76 +194,77 @@ export function ImporterEquipementsClient({
             </button>
           </div>
 
-          {diff.avertissements.length > 0 && (
+          {resume.avertissements.length > 0 && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
               <p className="mb-2 text-xs font-bold uppercase tracking-wide text-amber-700">
-                Avertissements ({diff.avertissements.length})
+                Avertissements ({resume.avertissements.length})
               </p>
               <div className="max-h-40 space-y-1 overflow-y-auto">
-                {diff.avertissements.map((a, i) => (
+                {resume.avertissements.map((message, i) => (
                   <p key={i} className="text-xs text-amber-800">
-                    {a.message}
+                    {message}
                   </p>
                 ))}
               </div>
             </div>
           )}
 
-          {diff.ajouts.length > 0 && (
-            <Section titre={`Ajouts (${diff.ajouts.length})`} couleur="text-brand-green-dark">
-              {diff.ajouts.slice(0, LIMITE_AFFICHAGE).map((a, i) => (
+          {resume.compteAjouts > 0 && (
+            <Section titre={`Ajouts (${resume.compteAjouts})`} couleur="text-brand-green-dark">
+              {resume.apercuAjouts.map((a, i) => (
                 <Ligne
                   key={i}
                   cochee={cochesAjouts[i]}
                   onToggle={() => bascule(cochesAjouts, setCochesAjouts, i)}
-                  titre={a.ligne.nom}
-                  sousTitre={[a.ligne.typeDeReleveBrut, a.ligne.numeroEquipement, a.ligne.localisation]
-                    .filter(Boolean)
-                    .join(" — ")}
+                  titre={a.nom}
+                  sousTitre={[a.typeDeReleveBrut, a.numeroEquipement, a.localisation].filter(Boolean).join(" — ")}
                 />
               ))}
-              {diff.ajouts.length > LIMITE_AFFICHAGE && (
-                <NoteTropDeLignes total={diff.ajouts.length} affiches={LIMITE_AFFICHAGE} />
+              {resume.compteAjouts > resume.limiteDetail && (
+                <NoteTropDeLignes total={resume.compteAjouts} affiches={resume.limiteDetail} />
               )}
             </Section>
           )}
 
-          {diff.modifications.length > 0 && (
-            <Section titre={`Modifications (${diff.modifications.length})`} couleur="text-amber-600">
-              {diff.modifications.slice(0, LIMITE_AFFICHAGE).map((m, i) => (
+          {resume.compteModifications > 0 && (
+            <Section titre={`Modifications (${resume.compteModifications})`} couleur="text-amber-600">
+              {resume.apercuModifications.map((m, i) => (
                 <Ligne
                   key={i}
                   cochee={cochesModifications[i]}
                   onToggle={() => bascule(cochesModifications, setCochesModifications, i)}
-                  titre={m.existant.nom}
+                  titre={m.nom}
                   sousTitre={m.champs.map((c) => `${c.label} : "${c.ancienne}" → "${c.nouvelle}"`).join("\n")}
                   multiline
                 />
               ))}
-              {diff.modifications.length > LIMITE_AFFICHAGE && (
-                <NoteTropDeLignes total={diff.modifications.length} affiches={LIMITE_AFFICHAGE} />
+              {resume.compteModifications > resume.limiteDetail && (
+                <NoteTropDeLignes total={resume.compteModifications} affiches={resume.limiteDetail} />
               )}
             </Section>
           )}
 
-          {diff.suppressions.length > 0 && (
-            <Section titre={`Suppressions proposées (${diff.suppressions.length})`} couleur="text-red-600">
-              {diff.suppressions.slice(0, LIMITE_AFFICHAGE).map((s, i) => (
+          {resume.compteSuppressions > 0 && (
+            <Section titre={`Suppressions proposées (${resume.compteSuppressions})`} couleur="text-red-600">
+              {resume.apercuSuppressions.map((s, i) => (
                 <Ligne
                   key={i}
                   cochee={cochesSuppressions[i]}
                   onToggle={() => bascule(cochesSuppressions, setCochesSuppressions, i)}
-                  titre={s.existant.nom}
-                  sousTitre={`Absent du fichier importé — ${s.existant.numero_equipement}`}
+                  titre={s.nom}
+                  sousTitre={`Absent du fichier importé — ${s.numeroEquipement}`}
                 />
               ))}
-              {diff.suppressions.length > LIMITE_AFFICHAGE && (
-                <NoteTropDeLignes total={diff.suppressions.length} affiches={LIMITE_AFFICHAGE} />
+              {resume.compteSuppressions > resume.limiteDetail && (
+                <p className="rounded-xl border border-dashed border-red-300 bg-red-50 p-3 text-xs text-red-700">
+                  + {resume.compteSuppressions - resume.limiteDetail} autre(s) suppression(s) proposée(s) non
+                  affichée(s) — non cochées par défaut, à traiter via un import plus ciblé si besoin.
+                </p>
               )}
             </Section>
           )}
 
-          {(diff.ajouts.length > 0 || diff.modifications.length > 0 || diff.suppressions.length > 0) && (
+          {(resume.compteAjouts > 0 || resume.compteModifications > 0 || resume.compteSuppressions > 0) && (
             <div className="sticky bottom-4 mt-4 flex justify-end">
               <button
                 onClick={appliquer}

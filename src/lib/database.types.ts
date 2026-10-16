@@ -957,6 +957,38 @@ export type Database = {
         }
         Relationships: []
       }
+      imports_equipements_temp: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          lignes: Json
+          site_ids: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lignes: Json
+          site_ids: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lignes?: Json
+          site_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imports_equipements_temp_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jours_feries: {
         Row: {
           created_at: string

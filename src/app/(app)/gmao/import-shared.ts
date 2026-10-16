@@ -208,10 +208,15 @@ export async function appliquerImportEquipements(
       groupe: a.ligne.groupe,
       champs_en_tete: a.ligne.champsEnTete,
     }));
-  if (aInserer.length > 0) {
-    const { error } = await supabase.from("equipements").insert(aInserer);
-    if (error) return { ok: false, erreur: error.message };
-    ajoutes = aInserer.length;
+  // Insert par lots : un envoi unique de plusieurs milliers de lignes
+  // (import "tous clients") peut dépasser la taille de requête acceptée
+  // et fait échouer tout le lot d'un coup.
+  const TAILLE_LOT = 500;
+  for (let i = 0; i < aInserer.length; i += TAILLE_LOT) {
+    const lot = aInserer.slice(i, i + TAILLE_LOT);
+    const { error } = await supabase.from("equipements").insert(lot);
+    if (error) return { ok: false, erreur: `${error.message} (lignes ${ajoutes + 1} à ${ajoutes + lot.length})` };
+    ajoutes += lot.length;
   }
 
   for (let i = 0; i < diff.modifications.length; i++) {

@@ -7,6 +7,12 @@ import { ArrowLeft, Upload, FileSpreadsheet, Download } from "lucide-react";
 import type { ResultatDiff } from "@/lib/gmao/equipement-import";
 import { previsualiserImportEquipements, appliquerImportEquipements, genererRapportImportEquipements } from "./import-shared";
 
+// Au-delà de ce nombre, afficher chaque ligne individuellement (carte +
+// case à cocher) sature le navigateur sur un import "tous clients"
+// (plusieurs milliers de lignes) — toutes les lignes restent sélectionnées
+// et appliquées normalement, seul l'affichage détaillé est tronqué.
+const LIMITE_AFFICHAGE = 300;
+
 /// Écran d'import "Sommaire" générique, réutilisé pour un import par
 /// site, par client (plusieurs sites) ou global (tous les sites) —
 /// seuls `siteIds`/`cheminsARevalider` changent selon l'ampleur.
@@ -198,7 +204,7 @@ export function ImporterEquipementsClient({
 
           {diff.ajouts.length > 0 && (
             <Section titre={`Ajouts (${diff.ajouts.length})`} couleur="text-brand-green-dark">
-              {diff.ajouts.map((a, i) => (
+              {diff.ajouts.slice(0, LIMITE_AFFICHAGE).map((a, i) => (
                 <Ligne
                   key={i}
                   cochee={cochesAjouts[i]}
@@ -209,12 +215,15 @@ export function ImporterEquipementsClient({
                     .join(" — ")}
                 />
               ))}
+              {diff.ajouts.length > LIMITE_AFFICHAGE && (
+                <NoteTropDeLignes total={diff.ajouts.length} affiches={LIMITE_AFFICHAGE} />
+              )}
             </Section>
           )}
 
           {diff.modifications.length > 0 && (
             <Section titre={`Modifications (${diff.modifications.length})`} couleur="text-amber-600">
-              {diff.modifications.map((m, i) => (
+              {diff.modifications.slice(0, LIMITE_AFFICHAGE).map((m, i) => (
                 <Ligne
                   key={i}
                   cochee={cochesModifications[i]}
@@ -224,12 +233,15 @@ export function ImporterEquipementsClient({
                   multiline
                 />
               ))}
+              {diff.modifications.length > LIMITE_AFFICHAGE && (
+                <NoteTropDeLignes total={diff.modifications.length} affiches={LIMITE_AFFICHAGE} />
+              )}
             </Section>
           )}
 
           {diff.suppressions.length > 0 && (
             <Section titre={`Suppressions proposées (${diff.suppressions.length})`} couleur="text-red-600">
-              {diff.suppressions.map((s, i) => (
+              {diff.suppressions.slice(0, LIMITE_AFFICHAGE).map((s, i) => (
                 <Ligne
                   key={i}
                   cochee={cochesSuppressions[i]}
@@ -238,6 +250,9 @@ export function ImporterEquipementsClient({
                   sousTitre={`Absent du fichier importé — ${s.existant.numero_equipement}`}
                 />
               ))}
+              {diff.suppressions.length > LIMITE_AFFICHAGE && (
+                <NoteTropDeLignes total={diff.suppressions.length} affiches={LIMITE_AFFICHAGE} />
+              )}
             </Section>
           )}
 
@@ -255,6 +270,15 @@ export function ImporterEquipementsClient({
         </>
       )}
     </div>
+  );
+}
+
+function NoteTropDeLignes({ total, affiches }: { total: number; affiches: number }) {
+  return (
+    <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-500">
+      + {total - affiches} autre(s) ligne(s) non affichée(s) ici (trop nombreuses pour l&apos;écran) — toutes
+      restent sélectionnées et seront appliquées. Détail complet dans le rapport (.xlsx).
+    </p>
   );
 }
 

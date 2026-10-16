@@ -4,10 +4,12 @@ import ExcelJS from "exceljs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
-import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
+import type { Equipement, TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement } from "@/lib/gmao/types";
 import { calculerDiff, type LigneImportEquipement, type ResultatDiff } from "@/lib/gmao/equipement-import";
+import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 import type { ActionResult } from "@/lib/action-result";
+import { finaliserFeuille } from "@/lib/excel-export";
 
 /// Logique d'import "Sommaire" partagée entre l'import par site
 /// (/gmao/clients/[id]/equipements/importer), par client
@@ -216,4 +218,109 @@ export async function appliquerImportEquipements(
 
   for (const chemin of cheminsARevalider) revalidatePath(chemin);
   return { ok: true, ajoutes, modifies, supprimes };
+}
+
+/// Rapport .xlsx de l'import analysé (diff déjà calculé côté client,
+/// jamais un nouveau parsing du fichier) : Ajouts, Modifications,
+/// Avertissements, et une feuille Anomalies qui repère les équipements
+/// sans correspondance dans le catalogue d'heures (référentiel Heures)
+/// — le genre d'erreur silencieuse qu'aucune des autres feuilles ne
+/// signale, puisque ce n'est pas un champ manquant mais une famille mal
+/// configurée (Type Equipement 1 non figé, référentiel incomplet...).
+export async function genererRapportImportEquipements(diff: ResultatDiff): Promise<ActionResult & { base64?: string }> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: types } = await supabase.from("types_equipement").select("*");
+  const { data: references } = await supabase.from("references_horaires").select("*");
+  const typesById: Record<string, TypeEquipement> = {};
+  for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
+
+  const siteIds = new Set<string>();
+  for (const a of diff.ajouts) siteIds.add(a.siteId);
+  for (const m of diff.modifications) siteIds.add(m.existant.site_id);
+  const { data: sites } = await supabase.from("sites").select("id, nom, n_affaire").in("id", [...siteIds]);
+  const siteParId = new Map((sites ?? []).map((s) => [s.id, s]));
+  const nomSite = (id: string) => {
+    const s = siteParId.get(id);
+    return s ? `${s.nom} (${s.n_affaire})` : id;
+  };
+  const nomFamille = (ligne: LigneImportEquipement) => typesById[ligne.typeEquipementId ?? ""]?.nom ?? ligne.typeDeReleveBrut;
+
+  const workbook = new ExcelJS.Workbook();
+
+  const feuilleAjouts = workbook.addWorksheet("Ajouts");
+  feuilleAjouts.addRow(["Site", "Famille", "Nom", "Numéro équipement", "Localisation", "Groupe"]);
+  for (const a of diff.ajouts) {
+    feuilleAjouts.addRow([nomSite(a.siteId), nomFamille(a.ligne), a.ligne.nom, a.ligne.numeroEquipement, a.ligne.localisation, a.ligne.groupe]);
+  }
+
+  const feuilleModifs = workbook.addWorksheet("Modifications");
+  feuilleModifs.addRow(["Site", "Nom", "Numéro équipement", "Champ", "Ancienne valeur", "Nouvelle valeur"]);
+  for (const m of diff.modifications) {
+    for (const c of m.champs) {
+      feuilleModifs.addRow([nomSite(m.existant.site_id), m.ligne.nom, m.ligne.numeroEquipement, c.label, c.ancienne, c.nouvelle]);
+    }
+  }
+
+  const feuilleAvert = workbook.addWorksheet("Avertissements");
+  feuilleAvert.addRow(["Message"]);
+  for (const av of diff.avertissements) feuilleAvert.addRow([av.message]);
+
+  const feuilleAnomalies = workbook.addWorksheet("Anomalies catalogue heures");
+  feuilleAnomalies.addRow([
+    "Site",
+    "Famille",
+    "Nom",
+    "Numéro équipement",
+    "Type Equipement 1",
+    "Type Equipement 2",
+    "Type Equipement 3",
+    "Problème",
+  ]);
+  type LigneAVerifier = {
+    siteId: string;
+    nom: string;
+    numeroEquipement: string;
+    typeEquipementId: string | null;
+    typeDeReleveBrut: string;
+    champsEnTete: ChampsEnTeteEquipement;
+  };
+  const toutesLesLignes: LigneAVerifier[] = [
+    ...diff.ajouts.map((a): LigneAVerifier => ({
+      siteId: a.siteId,
+      nom: a.ligne.nom,
+      numeroEquipement: a.ligne.numeroEquipement,
+      typeEquipementId: a.ligne.typeEquipementId,
+      typeDeReleveBrut: a.ligne.typeDeReleveBrut,
+      champsEnTete: a.ligne.champsEnTete,
+    })),
+    ...diff.modifications.map((m): LigneAVerifier => ({
+      siteId: m.existant.site_id,
+      nom: m.ligne.nom,
+      numeroEquipement: m.ligne.numeroEquipement,
+      typeEquipementId: m.ligne.typeEquipementId,
+      typeDeReleveBrut: m.ligne.typeDeReleveBrut,
+      champsEnTete: { ...m.existant.champs_en_tete, ...m.ligne.champsEnTete },
+    })),
+  ];
+  for (const ligne of toutesLesLignes) {
+    const resultat = analyserReference(ligne.champsEnTete, (references ?? []) as ReferenceHoraire[]);
+    if (resultat.reference) continue;
+    feuilleAnomalies.addRow([
+      nomSite(ligne.siteId),
+      typesById[ligne.typeEquipementId ?? ""]?.nom ?? ligne.typeDeReleveBrut,
+      ligne.nom,
+      ligne.numeroEquipement,
+      ligne.champsEnTete.typeEquipement1 ?? "",
+      ligne.champsEnTete.typeEquipement2 ?? "",
+      ligne.champsEnTete.typeEquipement3 ?? "",
+      resultat.horsCatalogue ? "Famille/taille non répertoriée dans le catalogue" : "Famille absente du catalogue d'heures",
+    ]);
+  }
+
+  for (const feuille of [feuilleAjouts, feuilleModifs, feuilleAvert, feuilleAnomalies]) finaliserFeuille(feuille);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return { ok: true, base64: Buffer.from(buffer).toString("base64") };
 }

@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Upload, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Upload, FileSpreadsheet, Download } from "lucide-react";
 import type { ResultatDiff } from "@/lib/gmao/equipement-import";
-import { previsualiserImportEquipements, appliquerImportEquipements } from "./import-shared";
+import { previsualiserImportEquipements, appliquerImportEquipements, genererRapportImportEquipements } from "./import-shared";
 
 /// Écran d'import "Sommaire" générique, réutilisé pour un import par
 /// site, par client (plusieurs sites) ou global (tous les sites) —
@@ -26,7 +26,9 @@ export function ImporterEquipementsClient({
   const router = useRouter();
   const [analyse, startAnalyse] = useTransition();
   const [application, startApplication] = useTransition();
+  const [rapport, startRapport] = useTransition();
   const [diff, setDiff] = useState<ResultatDiff | null>(null);
+  const [diffApplique, setDiffApplique] = useState<ResultatDiff | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [cochesAjouts, setCochesAjouts] = useState<boolean[]>([]);
   const [cochesModifications, setCochesModifications] = useState<boolean[]>([]);
@@ -67,8 +69,32 @@ export function ImporterEquipementsClient({
         return;
       }
       setResultat({ ajoutes: res.ajoutes ?? 0, modifies: res.modifies ?? 0, supprimes: res.supprimes ?? 0 });
+      setDiffApplique(diff);
       setDiff(null);
       router.refresh();
+    });
+  }
+
+  function telechargerRapport() {
+    if (!diffApplique) return;
+    setErreur(null);
+    startRapport(async () => {
+      const res = await genererRapportImportEquipements(diffApplique);
+      if (!res.ok || !res.base64) {
+        setErreur(!res.ok ? res.erreur : "Rapport indisponible.");
+        return;
+      }
+      const octets = atob(res.base64);
+      const tampon = new Uint8Array(octets.length);
+      for (let i = 0; i < octets.length; i++) tampon[i] = octets.charCodeAt(i);
+      const url = URL.createObjectURL(
+        new Blob([tampon], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      );
+      const lien = document.createElement("a");
+      lien.href = url;
+      lien.download = "rapport_import_equipements.xlsx";
+      lien.click();
+      URL.revokeObjectURL(url);
     });
   }
 
@@ -96,10 +122,20 @@ export function ImporterEquipementsClient({
       <p className="mb-5 text-sm text-slate-500">{sousTitre}</p>
 
       {resultat && (
-        <p className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-brand-green-dark">
-          Import appliqué : {resultat.ajoutes} ajouté(s), {resultat.modifies} modifié(s), {resultat.supprimes}{" "}
-          supprimé(s).
-        </p>
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-green-50 px-4 py-3">
+          <p className="text-sm font-medium text-brand-green-dark">
+            Import appliqué : {resultat.ajoutes} ajouté(s), {resultat.modifies} modifié(s), {resultat.supprimes}{" "}
+            supprimé(s).
+          </p>
+          <button
+            onClick={telechargerRapport}
+            disabled={rapport}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-brand-green-dark shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
+          >
+            <Download className="h-3.5 w-3.5" strokeWidth={2.25} />
+            {rapport ? "Génération..." : "Télécharger le rapport (.xlsx)"}
+          </button>
+        </div>
       )}
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>}
 

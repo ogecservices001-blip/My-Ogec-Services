@@ -38,12 +38,21 @@ export type LigneAnalysee = {
   statut: StatutLigneAnalysee;
   raison: string;
   siteId: string | null;
+  typeEquipementId: string | null;
   colonnesBrutes: Record<string, string>;
   /// En-têtes normalisés (mêmes clés que `colonnesBrutes`) dont la
   /// valeur diffère de l'existant en base — y compris les champs non
   /// déclarés dans le référentiel de la famille (eux ne sont pas
   /// appliqués à l'enregistrement, seulement signalés).
   colonnesModifiees: string[];
+  /// Valeur en base AVANT l'import, pour les en-têtes listés dans
+  /// `colonnesModifiees` uniquement — permet au rapport d'afficher
+  /// "nouvelle valeur (était : ancienne valeur)".
+  valeursAvant: Record<string, string>;
+  /// Champs d'en-tête complets, tels qu'ils seront (ou sont déjà) en
+  /// base après l'import — pour calculer les heures Tech/Assistant par
+  /// an de la ligne dans le rapport.
+  champsEnTeteApres: Record<string, string>;
 };
 
 /// En-tête du fichier source, dans son ordre et sa casse d'origine —
@@ -150,14 +159,23 @@ export function calculerDiffPourSite(
   }
 
   for (const ligne of lignes) {
-    const noter = (statut: StatutLigneAnalysee, raison: string, colonnesModifiees: string[] = []) => {
+    const noter = (
+      statut: StatutLigneAnalysee,
+      raison: string,
+      colonnesModifiees: string[] = [],
+      valeursAvant: Record<string, string> = {},
+      champsEnTeteApres: Record<string, string> = ligne.champsEnTete,
+    ) => {
       toutesLesLignes.push({
         numeroLigne: ligne.numeroLigne,
         statut,
         raison,
         siteId,
+        typeEquipementId: ligne.typeEquipementId,
         colonnesBrutes: ligne.colonnesBrutes,
         colonnesModifiees,
+        valeursAvant,
+        champsEnTeteApres,
       });
     };
 
@@ -200,17 +218,26 @@ export function calculerDiffPourSite(
 
     const champsDiff: DiffChamp[] = [];
     const colonnesModifiees: string[] = [];
+    const valeursAvant: Record<string, string> = {};
+    const champsEnTeteExistantTexte: Record<string, string> = {};
+    for (const [cle, v] of Object.entries(existant.champs_en_tete)) {
+      if (typeof v === "string") champsEnTeteExistantTexte[cle] = v;
+    }
+
     if (ligne.nom && ligne.nom !== existant.nom) {
       champsDiff.push({ label: "Nom", ancienne: existant.nom, nouvelle: ligne.nom });
       colonnesModifiees.push(ENTETE_NORMALISE_PAR_CLE.nom);
+      valeursAvant[ENTETE_NORMALISE_PAR_CLE.nom] = existant.nom;
     }
     if (ligne.localisation && ligne.localisation !== existant.localisation) {
       champsDiff.push({ label: "Localisation", ancienne: existant.localisation, nouvelle: ligne.localisation });
       colonnesModifiees.push(ENTETE_NORMALISE_PAR_CLE.localisation);
+      valeursAvant[ENTETE_NORMALISE_PAR_CLE.localisation] = existant.localisation;
     }
     if (ligne.groupe && ligne.groupe !== existant.groupe) {
       champsDiff.push({ label: "Groupe", ancienne: existant.groupe, nouvelle: ligne.groupe });
       colonnesModifiees.push(ENTETE_NORMALISE_PAR_CLE.groupe);
+      valeursAvant[ENTETE_NORMALISE_PAR_CLE.groupe] = existant.groupe;
     }
 
     const champsConnus = new Set(type.champs_en_tete_supplementaires.map((c) => c.cle));
@@ -221,24 +248,30 @@ export function calculerDiffPourSite(
     // type d'anomalie silencieuse qui a touché la famille Roof-top.
     for (const [cle, valeur] of Object.entries(ligne.champsEnTete)) {
       if (cle === "typeEquipement1") continue; // jamais lu du fichier, toujours fixe par la famille
-      const ancienne = typeof existant.champs_en_tete[cle] === "string" ? (existant.champs_en_tete[cle] as string) : "";
+      const ancienne = champsEnTeteExistantTexte[cle] ?? "";
       if (valeur === ancienne) continue;
-      colonnesModifiees.push(ENTETE_NORMALISE_PAR_CLE[cle] ?? cle);
+      const entete = ENTETE_NORMALISE_PAR_CLE[cle] ?? cle;
+      colonnesModifiees.push(entete);
+      valeursAvant[entete] = ancienne;
       if (!champsConnus.has(cle)) continue;
       champsDiff.push({ label: CHAMPS_CONNUS_LABELS[cle] ?? cle, ancienne, nouvelle: valeur });
     }
 
+    const champsEnTeteApres = { ...champsEnTeteExistantTexte, ...ligne.champsEnTete };
+
     if (champsDiff.length > 0) {
       modifications.push({ existant, ligne, champs: champsDiff });
-      noter("modification", "", colonnesModifiees);
+      noter("modification", "", colonnesModifiees, valeursAvant, champsEnTeteApres);
     } else if (colonnesModifiees.length > 0) {
       noter(
         "modification",
         "Différences détectées mais non appliquées — champ(s) non configuré(s) sur la famille",
         colonnesModifiees,
+        valeursAvant,
+        champsEnTeteExistantTexte,
       );
     } else {
-      noter("inchange", "");
+      noter("inchange", "", [], {}, champsEnTeteExistantTexte);
     }
   }
 
@@ -271,7 +304,6 @@ export function calculerDiff(
 
   const lignesParSite = new Map<string, LigneImportEquipement[]>();
   const avertissementsGlobaux: Avertissement[] = [];
-  const toutesLesLignesGlobales: LigneAnalysee[] = [];
 
   if (sites.length === 1 && !auMoinsUneLigneAvecNumero) {
     lignesParSite.set(sites[0].id, lignes);
@@ -288,32 +320,14 @@ export function calculerDiff(
         avertissementsGlobaux.push({
           message: `Numéro Client/Site manquant ou illisible pour "${ligne.numeroEquipement || ligne.nom}" — ligne ignorée`,
         });
-        toutesLesLignesGlobales.push({
-          numeroLigne: ligne.numeroLigne,
-          statut: "ignoree",
-          raison: "Numéro Client/Site manquant ou illisible",
-          siteId: null,
-          colonnesBrutes: ligne.colonnesBrutes,
-          colonnesModifiees: [],
-        });
         continue;
       }
       const site = siteParNumero.get(`${numClient}-${numSite}`);
-      if (!site) {
-        // Hors périmètre de cet import (autre site du classeur
-        // partagé) — pas une anomalie de cet import-ci, mais toujours
-        // tracé dans le rapport pour que la ligne ne disparaisse jamais
-        // silencieusement.
-        toutesLesLignesGlobales.push({
-          numeroLigne: ligne.numeroLigne,
-          statut: "ignoree",
-          raison: "Hors périmètre de cet import (autre site du classeur)",
-          siteId: null,
-          colonnesBrutes: ligne.colonnesBrutes,
-          colonnesModifiees: [],
-        });
-        continue;
-      }
+      // Hors périmètre de cet import (autre site du classeur partagé,
+      // ex: "ToutSiteToutEquipement.xlsx" importé pour un seul site) —
+      // pas une anomalie, et volontairement absent du rapport : ce
+      // n'est pas une ligne de CET import.
+      if (!site) continue;
       const liste = lignesParSite.get(site.id) ?? [];
       liste.push(ligne);
       lignesParSite.set(site.id, liste);
@@ -324,7 +338,7 @@ export function calculerDiff(
   const modifications: DiffModification[] = [];
   const suppressions: DiffSuppression[] = [];
   const avertissements: Avertissement[] = [...avertissementsGlobaux];
-  const toutesLesLignes: LigneAnalysee[] = [...toutesLesLignesGlobales];
+  const toutesLesLignes: LigneAnalysee[] = [];
 
   for (const site of sites) {
     const resultat = calculerDiffPourSite(

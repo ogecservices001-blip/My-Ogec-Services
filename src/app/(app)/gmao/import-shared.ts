@@ -243,12 +243,15 @@ export async function appliquerImportEquipements(
 }
 
 /// Rapport .xlsx de l'import analysé (diff déjà calculé côté client,
-/// jamais un nouveau parsing du fichier) : Ajouts, Modifications,
-/// Avertissements, et une feuille Anomalies qui repère les équipements
-/// sans correspondance dans le catalogue d'heures (référentiel Heures)
-/// — le genre d'erreur silencieuse qu'aucune des autres feuilles ne
-/// signale, puisque ce n'est pas un champ manquant mais une famille mal
-/// configurée (Type Equipement 1 non figé, référentiel incomplet...).
+/// jamais un nouveau parsing du fichier) — un seul tableau, scopé aux
+/// seuls équipements de CET import (jamais le reste du classeur pour
+/// d'autres clients) :
+/// - mêmes colonnes que le fichier source ;
+/// - équipement pas encore en GMAO → ligne entière en rouge ;
+/// - équipement existant dont une valeur a changé → cellule en rouge,
+///   affichant "nouvelle valeur (était : ancienne valeur)" ;
+/// - heures Tech/Assistant par an affectées à chaque équipement,
+///   recalculées depuis le catalogue Référentiel Heures.
 export async function genererRapportImportEquipements(diff: ResultatDiff): Promise<ActionResult & { base64?: string }> {
   await requireAdmin();
   const supabase = await createClient();
@@ -259,165 +262,105 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
   for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
 
   const siteIds = new Set<string>();
-  for (const a of diff.ajouts) siteIds.add(a.siteId);
-  for (const m of diff.modifications) siteIds.add(m.existant.site_id);
+  for (const l of diff.toutesLesLignes) if (l.siteId) siteIds.add(l.siteId);
   const { data: sites } = await supabase.from("sites").select("id, nom, n_affaire").in("id", [...siteIds]);
   const siteParId = new Map((sites ?? []).map((s) => [s.id, s]));
-  const nomSite = (id: string) => {
-    const s = siteParId.get(id);
-    return s ? `${s.nom} (${s.n_affaire})` : id;
+  const nomSite = (id: string | null) => {
+    const s = id ? siteParId.get(id) : undefined;
+    return s ? `${s.nom} (${s.n_affaire})` : "";
   };
-  const nomFamille = (ligne: LigneImportEquipement) => typesById[ligne.typeEquipementId ?? ""]?.nom ?? ligne.typeDeReleveBrut;
 
   const workbook = new ExcelJS.Workbook();
+  const feuille = workbook.addWorksheet("Rapport d'import");
 
-  const feuilleAjouts = workbook.addWorksheet("Ajouts");
-  feuilleAjouts.addRow(["Site", "Famille", "Nom", "Numéro équipement", "Localisation", "Groupe"]);
-  for (const a of diff.ajouts) {
-    feuilleAjouts.addRow([nomSite(a.siteId), nomFamille(a.ligne), a.ligne.nom, a.ligne.numeroEquipement, a.ligne.localisation, a.ligne.groupe]);
-  }
-
-  const feuilleModifs = workbook.addWorksheet("Modifications");
-  feuilleModifs.addRow(["Site", "Nom", "Numéro équipement", "Champ", "Ancienne valeur", "Nouvelle valeur"]);
-  for (const m of diff.modifications) {
-    for (const c of m.champs) {
-      feuilleModifs.addRow([nomSite(m.existant.site_id), m.ligne.nom, m.ligne.numeroEquipement, c.label, c.ancienne, c.nouvelle]);
-    }
-  }
-
-  const feuilleAvert = workbook.addWorksheet("Avertissements");
-  feuilleAvert.addRow(["Message"]);
-  for (const av of diff.avertissements) feuilleAvert.addRow([av.message]);
-
-  // Heures calculées : pour chaque équipement touché par l'import
-  // (ajout ou modification), les heures Tech/Assistant par an telles
-  // que le catalogue Référentiel Heures + la Fréquence entretien
-  // annuelle les déterminent — pas seulement "trouvé/pas trouvé" comme
-  // avant, le résultat concret qui alimente l'Audit Heures. Une ligne
-  // sans correspondance au catalogue ressort avec des heures vides et
-  // le motif, visible immédiatement au lieu de rester silencieuse.
-  const feuilleHeures = workbook.addWorksheet("Heures calculées");
-  feuilleHeures.addRow([
+  const entetes = diff.enTetes;
+  const libellesEntetes = entetes.map((e) => e.original);
+  feuille.addRow([
     "Site",
-    "Famille",
-    "Nom",
-    "Numéro équipement",
-    "Type Equipement 1",
-    "Type Equipement 2",
-    "Type Equipement 3",
-    "Fréquence entretien annuelle",
+    ...libellesEntetes,
     "Heures Tech / an",
     "Heures Assistant / an",
-    "Statut",
+    "Statut heures",
+    "Résultat",
+    "Raison",
   ]);
-  type LigneAVerifier = {
-    siteId: string;
-    nom: string;
-    numeroEquipement: string;
-    typeEquipementId: string | null;
-    typeDeReleveBrut: string;
-    champsEnTete: ChampsEnTeteEquipement;
-  };
-  const lignesAVerifier: LigneAVerifier[] = [
-    ...diff.ajouts.map((a): LigneAVerifier => ({
-      siteId: a.siteId,
-      nom: a.ligne.nom,
-      numeroEquipement: a.ligne.numeroEquipement,
-      typeEquipementId: a.ligne.typeEquipementId,
-      typeDeReleveBrut: a.ligne.typeDeReleveBrut,
-      champsEnTete: a.ligne.champsEnTete,
-    })),
-    ...diff.modifications.map((m): LigneAVerifier => ({
-      siteId: m.existant.site_id,
-      nom: m.ligne.nom,
-      numeroEquipement: m.ligne.numeroEquipement,
-      typeEquipementId: m.ligne.typeEquipementId,
-      typeDeReleveBrut: m.ligne.typeDeReleveBrut,
-      champsEnTete: { ...m.existant.champs_en_tete, ...m.ligne.champsEnTete },
-    })),
-  ];
-  for (const ligne of lignesAVerifier) {
-    const resultat = analyserReference(ligne.champsEnTete, (references ?? []) as ReferenceHoraire[]);
-    const freqBrut = ligne.champsEnTete.freqEntretienAnnuelle;
-    const freq = typeof freqBrut === "string" ? parseInt(freqBrut, 10) : NaN;
+  const colonneSite = 1;
+  const colonneStatutHeures = entetes.length + 4;
 
-    let heuresTech = "";
-    let heuresAssistant = "";
-    let statut = "OK";
-    if (!resultat.reference) {
-      statut = resultat.horsCatalogue
-        ? "Anomalie — famille/taille non répertoriée dans le catalogue"
-        : "Anomalie — famille absente du catalogue d'heures";
-    } else if (!Number.isFinite(freq) || freq <= 0) {
-      statut = "Anomalie — Fréquence entretien annuelle manquante ou invalide";
-    } else {
-      const cumul = heuresCumulAnnee(freq, resultat.reference);
-      if (!cumul) {
-        statut = `Anomalie — fréquence ${freq}x/an non gérée par le calcul`;
-      } else {
-        heuresTech = String(cumul.heuresTech);
-        heuresAssistant = String(cumul.heuresAssistant);
-        if (resultat.approchee) statut = "OK (taille approchée au catalogue)";
-      }
-    }
-
-    const ligneAjoutee = feuilleHeures.addRow([
-      nomSite(ligne.siteId),
-      typesById[ligne.typeEquipementId ?? ""]?.nom ?? ligne.typeDeReleveBrut,
-      ligne.nom,
-      ligne.numeroEquipement,
-      ligne.champsEnTete.typeEquipement1 ?? "",
-      ligne.champsEnTete.typeEquipement2 ?? "",
-      ligne.champsEnTete.typeEquipement3 ?? "",
-      freqBrut ?? "",
-      heuresTech,
-      heuresAssistant,
-      statut,
-    ]);
-    if (statut.startsWith("Anomalie")) {
-      ligneAjoutee.getCell(11).font = { color: { argb: "FFCC0000" }, bold: true };
-    }
-  }
-
-  // Fichier annoté : reproduit le classeur source colonne pour colonne
-  // (même ordre, mêmes en-têtes), une ligne du fichier = une ligne ici
-  // — y compris les lignes inchangées et ignorées, qui ne disparaissent
-  // plus jamais silencieusement. Texte rouge sur les cellules dont la
-  // valeur diffère de la base ; ligne grisée pour une ligne ignorée,
-  // verte pour un ajout.
-  const feuilleFichier = workbook.addWorksheet("Fichier annoté");
-  const entetes = diff.enTetes.length > 0 ? diff.enTetes : [];
-  const libellesEntetes = entetes.map((e) => e.original);
-  feuilleFichier.addRow([...libellesEntetes, "Résultat", "Raison"]);
   const STATUT_LABEL: Record<string, string> = {
-    ajout: "Ajouté",
+    ajout: "Nouvel équipement",
     modification: "Modifié",
     inchange: "Inchangé",
     ignoree: "Ignoré",
   };
+  const ROUGE = { color: { argb: "FFCC0000" }, bold: true };
+
   for (const l of diff.toutesLesLignes) {
-    const valeurs = entetes.map((e) => l.colonnesBrutes[e.normalise] ?? "");
-    const ligneAjoutee = feuilleFichier.addRow([...valeurs, STATUT_LABEL[l.statut], l.raison]);
+    const resultat = analyserReference(l.champsEnTeteApres as ChampsEnTeteEquipement, (references ?? []) as ReferenceHoraire[]);
+    const freqBrut = l.champsEnTeteApres.freqEntretienAnnuelle;
+    const freq = typeof freqBrut === "string" ? parseInt(freqBrut, 10) : NaN;
+
+    let heuresTech = "";
+    let heuresAssistant = "";
+    let statutHeures = "";
+    if (l.statut !== "ignoree") {
+      if (!resultat.reference) {
+        statutHeures = resultat.horsCatalogue
+          ? "Anomalie — taille non répertoriée dans le catalogue"
+          : "Anomalie — famille absente du catalogue d'heures";
+      } else if (!Number.isFinite(freq) || freq <= 0) {
+        statutHeures = "Anomalie — Fréquence entretien annuelle manquante";
+      } else {
+        const cumul = heuresCumulAnnee(freq, resultat.reference);
+        if (!cumul) {
+          statutHeures = `Anomalie — fréquence ${freq}x/an non gérée`;
+        } else {
+          heuresTech = String(cumul.heuresTech);
+          heuresAssistant = String(cumul.heuresAssistant);
+          statutHeures = resultat.approchee ? "OK (taille approchée)" : "OK";
+        }
+      }
+    }
+
+    const valeurs = entetes.map((e) => {
+      const apres = l.colonnesBrutes[e.normalise] ?? "";
+      if (l.colonnesModifiees.includes(e.normalise)) {
+        const avant = l.valeursAvant[e.normalise];
+        return `${apres} (était : ${avant || "vide"})`;
+      }
+      return apres;
+    });
+
+    const ligneAjoutee = feuille.addRow([
+      nomSite(l.siteId),
+      ...valeurs,
+      heuresTech,
+      heuresAssistant,
+      statutHeures,
+      STATUT_LABEL[l.statut],
+      l.raison,
+    ]);
+
     if (l.statut === "ajout") {
-      ligneAjoutee.eachCell((cellule) => {
-        cellule.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE4F7E9" } };
-      });
+      ligneAjoutee.eachCell((cellule) => (cellule.font = ROUGE));
     } else if (l.statut === "ignoree") {
       ligneAjoutee.eachCell((cellule) => {
         cellule.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDEDED" } };
         cellule.font = { color: { argb: "FF888888" } };
       });
     } else if (l.statut === "modification") {
-      const colonnesModifiees = new Set(l.colonnesModifiees);
       entetes.forEach((e, i) => {
-        if (colonnesModifiees.has(e.normalise)) {
-          ligneAjoutee.getCell(i + 1).font = { color: { argb: "FFCC0000" }, bold: true };
+        if (l.colonnesModifiees.includes(e.normalise)) {
+          ligneAjoutee.getCell(colonneSite + 1 + i).font = ROUGE;
         }
       });
     }
+    if (statutHeures.startsWith("Anomalie")) {
+      ligneAjoutee.getCell(colonneStatutHeures).font = ROUGE;
+    }
   }
 
-  for (const feuille of [feuilleAjouts, feuilleModifs, feuilleAvert, feuilleHeures, feuilleFichier]) finaliserFeuille(feuille);
+  finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
   return { ok: true, base64: Buffer.from(buffer).toString("base64") };

@@ -24,77 +24,65 @@ export type ResultatReference = {
   horsCatalogue: boolean;
 };
 
-/// Cherche, parmi `candidats`, la taille (lue via `champ`) immédiatement
-/// supérieure ou égale à celle de l'équipement — jamais une taille
-/// inférieure.
-function approcherParTaille(
-  texteBrut: string,
-  candidats: ReferenceHoraire[],
-  champ: (r: ReferenceHoraire) => string,
-): ReferenceHoraire | null {
-  const puissanceEquipement = valeurNumerique(texteBrut);
-  if (puissanceEquipement === null || candidats.length === 0) return null;
-
-  let meilleure: ReferenceHoraire | null = null;
-  let meilleurePuissance: number | null = null;
-  for (const r of candidats) {
-    const p = valeurNumerique(champ(r));
-    if (p === null || p < puissanceEquipement) continue;
-    if (meilleurePuissance === null || p < meilleurePuissance) {
-      meilleurePuissance = p;
-      meilleure = r;
-    }
-  }
-  return meilleure;
+/// Segments non vides d'une ligne du catalogue (Type Equipement 1/2/3,
+/// normalisés) — même logique que `segments()` dans
+/// reference-horaire-tree.ts, pour que la correspondance soit
+/// insensible à la colonne où une famille range sa taille (certaines
+/// familles la rangent en Type Equipement 2, d'autres en 3, sans que
+/// ce soit toujours cohérent dans le référentiel).
+function segmentsReference(r: ReferenceHoraire): string[] {
+  return [r.type_equipement1, r.type_equipement2, r.type_equipement3]
+    .map((s) => normaliser(s ?? ""))
+    .filter((s) => s.length > 0);
 }
 
-/// Cherche la ligne du catalogue dont Type Equipement 1/2/3 correspond à
-/// ceux de l'équipement (insensible à la casse/espaces). Correspondance
-/// exacte en priorité ; à défaut, la taille immédiatement supérieure
+/// Cherche la ligne du catalogue dont les segments (Type Equipement
+/// 1/2/3, vides ignorés) correspondent à ceux de l'équipement.
+/// Correspondance exacte en priorité ; à défaut, même famille et même
+/// chemin de sous-catégorie (tous les segments sauf le dernier, qui
+/// est la taille), avec la taille immédiatement supérieure ou égale
 /// disponible — jamais une taille inférieure, jamais entre familles
-/// différentes. La taille se lit en Type Equipement 3 pour les familles
-/// à sous-catégorie réelle (ex: Unité intérieure VRV : famille +
-/// Cassette/Murale + kw, Type Equipement 2 alors fixe) ; sinon
-/// directement en Type Equipement 2 (ex: Groupe VRV : famille + kw,
-/// pas de sous-catégorie). Port fidèle de `analyserReference`
-/// (suggestion_reference_horaire.dart), étendu pour ce second cas.
+/// différentes. Port de `analyserReference` (suggestion_reference_
+/// horaire.dart), généralisé par segments plutôt que par colonne fixe.
 export function analyserReference(
   champsEnTete: ChampsEnTeteEquipement,
   references: ReferenceHoraire[],
 ): ResultatReference {
   const t1 = normaliser(champTexte(champsEnTete, "typeEquipement1"));
   if (!t1) return { reference: null, approchee: false, horsCatalogue: false };
-  const t2Brut = champTexte(champsEnTete, "typeEquipement2");
-  const t2 = normaliser(t2Brut);
-  const t3Brut = champTexte(champsEnTete, "typeEquipement3");
-  const t3 = normaliser(t3Brut);
+  const t2 = normaliser(champTexte(champsEnTete, "typeEquipement2"));
+  const t3 = normaliser(champTexte(champsEnTete, "typeEquipement3"));
+  const segsEquipement = [t1, t2, t3].filter((s) => s.length > 0);
 
   for (const r of references) {
-    if (
-      normaliser(r.type_equipement1) === t1 &&
-      normaliser(r.type_equipement2) === t2 &&
-      normaliser(r.type_equipement3) === t3
-    ) {
+    const segsRef = segmentsReference(r);
+    if (segsRef.length === segsEquipement.length && segsRef.every((s, i) => s === segsEquipement[i])) {
       return { reference: r, approchee: false, horsCatalogue: false };
     }
   }
 
-  const memeFamilleT1T2 = references.filter(
-    (r) => normaliser(r.type_equipement1) === t1 && normaliser(r.type_equipement2) === t2,
-  );
-  const approcheeT3 = approcherParTaille(t3Brut, memeFamilleT1T2, (r) => r.type_equipement3);
-  if (approcheeT3) return { reference: approcheeT3, approchee: true, horsCatalogue: false };
-
-  let memeFamilleT1SansT3: ReferenceHoraire[] = [];
-  if (!t3Brut) {
-    memeFamilleT1SansT3 = references.filter(
-      (r) => normaliser(r.type_equipement1) === t1 && !r.type_equipement3,
-    );
-    const approcheeT2 = approcherParTaille(t2Brut, memeFamilleT1SansT3, (r) => r.type_equipement2);
-    if (approcheeT2) return { reference: approcheeT2, approchee: true, horsCatalogue: false };
+  let approchee: ReferenceHoraire | null = null;
+  if (segsEquipement.length >= 2) {
+    const prefixe = segsEquipement.slice(0, -1);
+    const tailleEquipement = valeurNumerique(segsEquipement[segsEquipement.length - 1]);
+    if (tailleEquipement !== null) {
+      let meilleureTaille: number | null = null;
+      for (const r of references) {
+        const segsRef = segmentsReference(r);
+        if (segsRef.length !== segsEquipement.length) continue;
+        if (!prefixe.every((s, i) => segsRef[i] === s)) continue;
+        const taille = valeurNumerique(segsRef[segsRef.length - 1]);
+        if (taille === null || taille < tailleEquipement) continue;
+        if (meilleureTaille === null || taille < meilleureTaille) {
+          meilleureTaille = taille;
+          approchee = r;
+        }
+      }
+    }
   }
+  if (approchee) return { reference: approchee, approchee: true, horsCatalogue: false };
 
-  const horsCatalogue = memeFamilleT1T2.length > 0 || memeFamilleT1SansT3.length > 0;
+  const horsCatalogue = references.some((r) => segmentsReference(r)[0] === t1);
   return { reference: null, approchee: false, horsCatalogue };
 }
 

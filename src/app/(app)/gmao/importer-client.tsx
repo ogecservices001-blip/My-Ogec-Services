@@ -175,7 +175,7 @@ export function ImporterEquipementsClient({
             <p className="text-sm text-slate-600">
               {diff.ajouts.length === 0 && diff.modifications.length === 0 && diff.suppressions.length === 0
                 ? "Aucun changement détecté — le parc est déjà à jour."
-                : `${diff.toutesLesLignes.length} équipement(s) analysé(s).`}
+                : `${diff.ajouts.length} ajout(s), ${diff.modifications.length} modification(s).`}
             </p>
             <button
               onClick={() => telechargerRapport(diff)}

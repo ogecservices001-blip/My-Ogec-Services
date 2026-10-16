@@ -7,9 +7,9 @@ import { requireAdmin } from "@/lib/auth";
 import type { Equipement, TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement } from "@/lib/gmao/types";
 import {
   calculerDiff,
+  CHAMPS_CONNUS_LABELS,
   type LigneImportEquipement,
   type ResultatDiff,
-  type EnTeteSource,
 } from "@/lib/gmao/equipement-import";
 import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { heuresCumulAnnee } from "@/lib/gmao/calcul-heures-visite";
@@ -52,9 +52,7 @@ function deuxChiffres(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-async function parserSommaire(
-  fichier: File,
-): Promise<{ lignes: LigneImportEquipement[]; enTetes: EnTeteSource[] } | null> {
+async function parserSommaire(fichier: File): Promise<LigneImportEquipement[] | null> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(await fichier.arrayBuffer());
 
@@ -62,14 +60,9 @@ async function parserSommaire(
   if (!feuille) return null;
 
   const indexParCle = new Map<string, number>();
-  const enTetes: EnTeteSource[] = [];
   feuille.getRow(1).eachCell({ includeEmpty: false }, (cell, colNumber) => {
-    const original = String(cell.value ?? "").trim();
-    const texte = normaliser(original);
-    if (texte) {
-      indexParCle.set(texte, colNumber);
-      enTetes.push({ normalise: texte, original: original || texte });
-    }
+    const texte = normaliser(String(cell.value ?? ""));
+    if (texte) indexParCle.set(texte, colNumber);
   });
 
   const valeur = (row: ExcelJS.Row, enteteNormalise: string): string => {
@@ -100,14 +93,7 @@ async function parserSommaire(
       if (v) champsEnTete[cle] = v;
     }
 
-    // Toutes les colonnes du fichier, y compris celles qu'on n'importe
-    // pas (ex: "Informations complémentaires") — pour que le rapport
-    // puisse réafficher la ligne telle quelle.
-    const colonnesBrutes: Record<string, string> = {};
-    for (const { normalise } of enTetes) colonnesBrutes[normalise] = valeur(row, normalise);
-
     lignes.push({
-      numeroLigne,
       nom,
       numeroEquipement: valeur(row, "numéro équipement"),
       localisation: valeur(row, "localisation"),
@@ -117,11 +103,10 @@ async function parserSommaire(
       champsEnTete,
       numeroClientBrut: valeur(row, "numéro client"),
       numeroSiteBrut: valeur(row, "numéro site"),
-      colonnesBrutes,
     });
   });
 
-  return { lignes, enTetes };
+  return lignes;
 }
 
 export type ResultatPreviewEquipements =
@@ -142,14 +127,13 @@ export async function previsualiserImportEquipements(
     return { ok: false, erreur: "Aucun fichier sélectionné." };
   }
 
-  let parse: { lignes: LigneImportEquipement[]; enTetes: EnTeteSource[] } | null;
+  let lignes: LigneImportEquipement[] | null;
   try {
-    parse = await parserSommaire(fichier);
+    lignes = await parserSommaire(fichier);
   } catch {
     return { ok: false, erreur: "Fichier illisible — un .xlsx/.xlsm est attendu." };
   }
-  if (!parse) return { ok: false, erreur: "Classeur vide." };
-  const { lignes, enTetes } = parse;
+  if (!lignes) return { ok: false, erreur: "Classeur vide." };
 
   const supabase = await createClient();
   const { data: sites, error: errSites } = await supabase
@@ -178,7 +162,7 @@ export async function previsualiserImportEquipements(
     existantsParSite.set(e.site_id, liste);
   }
 
-  const diff = calculerDiff(lignes, sites, existantsParSite, typesById, enTetes);
+  const diff = calculerDiff(lignes, sites, existantsParSite, typesById);
   return { ok: true, diff };
 }
 
@@ -247,11 +231,45 @@ export async function appliquerImportEquipements(
   return { ok: true, ajoutes, modifies, supprimes };
 }
 
+/// Calcule les heures Tech/Assistant par an d'une ligne (ajout ou
+/// modification) depuis le catalogue Référentiel Heures + sa Fréquence
+/// entretien annuelle. `champsEnTete` doit déjà être la version "après
+/// import" (fusionnée avec l'existant pour une modification).
+function calculerHeuresLigne(
+  champsEnTete: Record<string, string>,
+  references: ReferenceHoraire[],
+): { heuresTech: string; heuresAssistant: string; statut: string } {
+  const resultat = analyserReference(champsEnTete as ChampsEnTeteEquipement, references);
+  const freqBrut = champsEnTete.freqEntretienAnnuelle;
+  const freq = typeof freqBrut === "string" ? parseInt(freqBrut, 10) : NaN;
+
+  if (!resultat.reference) {
+    return {
+      heuresTech: "",
+      heuresAssistant: "",
+      statut: resultat.horsCatalogue
+        ? "Anomalie — taille non répertoriée dans le catalogue"
+        : "Anomalie — famille absente du catalogue d'heures",
+    };
+  }
+  if (!Number.isFinite(freq) || freq <= 0) {
+    return { heuresTech: "", heuresAssistant: "", statut: "Anomalie — Fréquence entretien annuelle manquante" };
+  }
+  const cumul = heuresCumulAnnee(freq, resultat.reference);
+  if (!cumul) {
+    return { heuresTech: "", heuresAssistant: "", statut: `Anomalie — fréquence ${freq}x/an non gérée` };
+  }
+  return {
+    heuresTech: String(cumul.heuresTech),
+    heuresAssistant: String(cumul.heuresAssistant),
+    statut: resultat.approchee ? "OK (taille approchée)" : "OK",
+  };
+}
+
 /// Rapport .xlsx de l'import analysé (diff déjà calculé côté client,
-/// jamais un nouveau parsing du fichier) — un seul tableau, scopé aux
-/// seuls équipements de CET import (jamais le reste du classeur pour
-/// d'autres clients) :
-/// - mêmes colonnes que le fichier source ;
+/// jamais un nouveau parsing du fichier) — scopé aux seuls équipements
+/// ajoutés ou modifiés par CET import (jamais le reste du classeur
+/// pour d'autres clients, ni les lignes inchangées du site) :
 /// - équipement pas encore en GMAO → ligne entière en rouge ;
 /// - équipement existant dont une valeur a changé → cellule en rouge,
 ///   affichant "nouvelle valeur (était : ancienne valeur)" ;
@@ -267,102 +285,99 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
   for (const t of (types ?? []) as TypeEquipement[]) typesById[t.id] = t;
 
   const siteIds = new Set<string>();
-  for (const l of diff.toutesLesLignes) if (l.siteId) siteIds.add(l.siteId);
+  for (const a of diff.ajouts) siteIds.add(a.siteId);
+  for (const m of diff.modifications) siteIds.add(m.existant.site_id);
   const { data: sites } = await supabase.from("sites").select("id, nom, n_affaire").in("id", [...siteIds]);
   const siteParId = new Map((sites ?? []).map((s) => [s.id, s]));
-  const nomSite = (id: string | null) => {
-    const s = id ? siteParId.get(id) : undefined;
-    return s ? `${s.nom} (${s.n_affaire})` : "";
+  const nomSite = (id: string) => {
+    const s = siteParId.get(id);
+    return s ? `${s.nom} (${s.n_affaire})` : id;
   };
+  const nomFamille = (ligne: LigneImportEquipement) => typesById[ligne.typeEquipementId ?? ""]?.nom ?? ligne.typeDeReleveBrut;
 
   const workbook = new ExcelJS.Workbook();
   const feuille = workbook.addWorksheet("Rapport d'import");
 
-  const entetes = diff.enTetes;
-  const libellesEntetes = entetes.map((e) => e.original);
+  const champsOrdre = Object.keys(CHAMPS_CONNUS_LABELS);
   feuille.addRow([
+    "Résultat",
     "Site",
-    ...libellesEntetes,
+    "Famille",
+    "Nom",
+    "Numéro équipement",
+    "Localisation",
+    "Groupe",
+    ...champsOrdre.map((cle) => CHAMPS_CONNUS_LABELS[cle]),
     "Heures Tech / an",
     "Heures Assistant / an",
     "Statut heures",
-    "Résultat",
-    "Raison",
   ]);
-  const colonneSite = 1;
-  const colonneStatutHeures = entetes.length + 4;
-
-  const STATUT_LABEL: Record<string, string> = {
-    ajout: "Nouvel équipement",
-    modification: "Modifié",
-    inchange: "Inchangé",
-    ignoree: "Ignoré",
-  };
+  const premiereColonneChamps = 8;
+  const colonneStatutHeures = premiereColonneChamps + champsOrdre.length + 2;
   const ROUGE = { color: { argb: "FFCC0000" }, bold: true };
 
-  for (const l of diff.toutesLesLignes) {
-    const resultat = analyserReference(l.champsEnTeteApres as ChampsEnTeteEquipement, (references ?? []) as ReferenceHoraire[]);
-    const freqBrut = l.champsEnTeteApres.freqEntretienAnnuelle;
-    const freq = typeof freqBrut === "string" ? parseInt(freqBrut, 10) : NaN;
+  for (const a of diff.ajouts) {
+    const heures = calculerHeuresLigne(a.ligne.champsEnTete, (references ?? []) as ReferenceHoraire[]);
+    const ligneAjoutee = feuille.addRow([
+      "Nouvel équipement",
+      nomSite(a.siteId),
+      nomFamille(a.ligne),
+      a.ligne.nom,
+      a.ligne.numeroEquipement,
+      a.ligne.localisation,
+      a.ligne.groupe,
+      ...champsOrdre.map((cle) => a.ligne.champsEnTete[cle] ?? ""),
+      heures.heuresTech,
+      heures.heuresAssistant,
+      heures.statut,
+    ]);
+    ligneAjoutee.eachCell((cellule) => (cellule.font = ROUGE));
+  }
 
-    let heuresTech = "";
-    let heuresAssistant = "";
-    let statutHeures = "";
-    if (l.statut !== "ignoree") {
-      if (!resultat.reference) {
-        statutHeures = resultat.horsCatalogue
-          ? "Anomalie — taille non répertoriée dans le catalogue"
-          : "Anomalie — famille absente du catalogue d'heures";
-      } else if (!Number.isFinite(freq) || freq <= 0) {
-        statutHeures = "Anomalie — Fréquence entretien annuelle manquante";
-      } else {
-        const cumul = heuresCumulAnnee(freq, resultat.reference);
-        if (!cumul) {
-          statutHeures = `Anomalie — fréquence ${freq}x/an non gérée`;
-        } else {
-          heuresTech = String(cumul.heuresTech);
-          heuresAssistant = String(cumul.heuresAssistant);
-          statutHeures = resultat.approchee ? "OK (taille approchée)" : "OK";
-        }
-      }
-    }
+  for (const m of diff.modifications) {
+    const champsApres = { ...m.existant.champs_en_tete, ...m.ligne.champsEnTete } as Record<string, string>;
+    const champsModifies = new Set(m.champs.map((c) => c.label));
+    const valeurAvantParLabel = new Map(m.champs.map((c) => [c.label, c.ancienne] as const));
+    const heures = calculerHeuresLigne(champsApres, (references ?? []) as ReferenceHoraire[]);
 
-    const valeurs = entetes.map((e) => {
-      const apres = l.colonnesBrutes[e.normalise] ?? "";
-      if (l.colonnesModifiees.includes(e.normalise)) {
-        const avant = l.valeursAvant[e.normalise];
+    const valeursChamps = champsOrdre.map((cle) => {
+      const label = CHAMPS_CONNUS_LABELS[cle];
+      const apres = champsApres[cle] ?? "";
+      if (champsModifies.has(label)) {
+        const avant = valeurAvantParLabel.get(label) ?? "";
         return `${apres} (était : ${avant || "vide"})`;
       }
       return apres;
     });
 
     const ligneAjoutee = feuille.addRow([
-      nomSite(l.siteId),
-      ...valeurs,
-      heuresTech,
-      heuresAssistant,
-      statutHeures,
-      STATUT_LABEL[l.statut],
-      l.raison,
+      "Modifié",
+      nomSite(m.existant.site_id),
+      nomFamille(m.ligne),
+      m.ligne.nom || m.existant.nom,
+      m.existant.numero_equipement,
+      m.ligne.localisation || m.existant.localisation,
+      m.ligne.groupe || m.existant.groupe,
+      ...valeursChamps,
+      heures.heuresTech,
+      heures.heuresAssistant,
+      heures.statut,
     ]);
-
-    if (l.statut === "ajout") {
-      ligneAjoutee.eachCell((cellule) => (cellule.font = ROUGE));
-    } else if (l.statut === "ignoree") {
-      ligneAjoutee.eachCell((cellule) => {
-        cellule.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDEDED" } };
-        cellule.font = { color: { argb: "FF888888" } };
-      });
-    } else if (l.statut === "modification") {
-      entetes.forEach((e, i) => {
-        if (l.colonnesModifiees.includes(e.normalise)) {
-          ligneAjoutee.getCell(colonneSite + 1 + i).font = ROUGE;
-        }
-      });
-    }
-    if (statutHeures.startsWith("Anomalie")) {
+    champsOrdre.forEach((cle, i) => {
+      if (champsModifies.has(CHAMPS_CONNUS_LABELS[cle])) {
+        ligneAjoutee.getCell(premiereColonneChamps + i).font = ROUGE;
+      }
+    });
+    if (heures.statut.startsWith("Anomalie")) {
       ligneAjoutee.getCell(colonneStatutHeures).font = ROUGE;
     }
+  }
+
+  if (diff.avertissements.length > 0) {
+    const feuilleAvert = workbook.addWorksheet("Avertissements");
+    feuilleAvert.addRow(["Message"]);
+    for (const av of diff.avertissements) feuilleAvert.addRow([av.message]);
+    finaliserFeuille(feuilleAvert);
   }
 
   finaliserFeuille(feuille);

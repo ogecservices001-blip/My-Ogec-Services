@@ -75,11 +75,11 @@ export function ImporterEquipementsClient({
     });
   }
 
-  function telechargerRapport() {
-    if (!diffApplique) return;
+  function telechargerRapport(diffATelecharger: ResultatDiff | null) {
+    if (!diffATelecharger) return;
     setErreur(null);
     startRapport(async () => {
-      const res = await genererRapportImportEquipements(diffApplique);
+      const res = await genererRapportImportEquipements(diffATelecharger);
       if (!res.ok || !res.base64) {
         setErreur(!res.ok ? res.erreur : "Rapport indisponible.");
         return;
@@ -128,7 +128,7 @@ export function ImporterEquipementsClient({
             supprimé(s).
           </p>
           <button
-            onClick={telechargerRapport}
+            onClick={() => telechargerRapport(diffApplique)}
             disabled={rapport}
             className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-brand-green-dark shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
           >
@@ -165,11 +165,21 @@ export function ImporterEquipementsClient({
 
       {diff && (
         <>
-          {diff.ajouts.length === 0 && diff.modifications.length === 0 && diff.suppressions.length === 0 && (
-            <p className="mb-4 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Aucun changement détecté — le parc est déjà à jour.
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3">
+            <p className="text-sm text-slate-600">
+              {diff.ajouts.length === 0 && diff.modifications.length === 0 && diff.suppressions.length === 0
+                ? "Aucun changement détecté — le parc est déjà à jour."
+                : `${diff.toutesLesLignes.length} équipement(s) analysé(s).`}
             </p>
-          )}
+            <button
+              onClick={() => telechargerRapport(diff)}
+              disabled={rapport}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:opacity-60"
+            >
+              <Download className="h-3.5 w-3.5" strokeWidth={2.25} />
+              {rapport ? "Génération..." : "Télécharger le rapport (.xlsx)"}
+            </button>
+          </div>
 
           {diff.avertissements.length > 0 && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">

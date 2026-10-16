@@ -5,8 +5,14 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import type { Equipement, TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement } from "@/lib/gmao/types";
-import { calculerDiff, type LigneImportEquipement, type ResultatDiff } from "@/lib/gmao/equipement-import";
+import {
+  calculerDiff,
+  type LigneImportEquipement,
+  type ResultatDiff,
+  type EnTeteSource,
+} from "@/lib/gmao/equipement-import";
 import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
+import { heuresCumulAnnee } from "@/lib/gmao/calcul-heures-visite";
 import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 import type { ActionResult } from "@/lib/action-result";
 import { finaliserFeuille } from "@/lib/excel-export";
@@ -46,7 +52,9 @@ function deuxChiffres(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-async function parserSommaire(fichier: File): Promise<LigneImportEquipement[] | null> {
+async function parserSommaire(
+  fichier: File,
+): Promise<{ lignes: LigneImportEquipement[]; enTetes: EnTeteSource[] } | null> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(await fichier.arrayBuffer());
 
@@ -54,9 +62,14 @@ async function parserSommaire(fichier: File): Promise<LigneImportEquipement[] | 
   if (!feuille) return null;
 
   const indexParCle = new Map<string, number>();
+  const enTetes: EnTeteSource[] = [];
   feuille.getRow(1).eachCell({ includeEmpty: false }, (cell, colNumber) => {
-    const texte = normaliser(String(cell.value ?? ""));
-    if (texte) indexParCle.set(texte, colNumber);
+    const original = String(cell.value ?? "").trim();
+    const texte = normaliser(original);
+    if (texte) {
+      indexParCle.set(texte, colNumber);
+      enTetes.push({ normalise: texte, original: original || texte });
+    }
   });
 
   const valeur = (row: ExcelJS.Row, enteteNormalise: string): string => {
@@ -87,7 +100,14 @@ async function parserSommaire(fichier: File): Promise<LigneImportEquipement[] | 
       if (v) champsEnTete[cle] = v;
     }
 
+    // Toutes les colonnes du fichier, y compris celles qu'on n'importe
+    // pas (ex: "Informations complémentaires") — pour que le rapport
+    // puisse réafficher la ligne telle quelle.
+    const colonnesBrutes: Record<string, string> = {};
+    for (const { normalise } of enTetes) colonnesBrutes[normalise] = valeur(row, normalise);
+
     lignes.push({
+      numeroLigne,
       nom,
       numeroEquipement: valeur(row, "numéro équipement"),
       localisation: valeur(row, "localisation"),
@@ -97,10 +117,11 @@ async function parserSommaire(fichier: File): Promise<LigneImportEquipement[] | 
       champsEnTete,
       numeroClientBrut: valeur(row, "numéro client"),
       numeroSiteBrut: valeur(row, "numéro site"),
+      colonnesBrutes,
     });
   });
 
-  return lignes;
+  return { lignes, enTetes };
 }
 
 export type ResultatPreviewEquipements =
@@ -121,13 +142,14 @@ export async function previsualiserImportEquipements(
     return { ok: false, erreur: "Aucun fichier sélectionné." };
   }
 
-  let lignes: LigneImportEquipement[] | null;
+  let parse: { lignes: LigneImportEquipement[]; enTetes: EnTeteSource[] } | null;
   try {
-    lignes = await parserSommaire(fichier);
+    parse = await parserSommaire(fichier);
   } catch {
     return { ok: false, erreur: "Fichier illisible — un .xlsx/.xlsm est attendu." };
   }
-  if (!lignes) return { ok: false, erreur: "Classeur vide." };
+  if (!parse) return { ok: false, erreur: "Classeur vide." };
+  const { lignes, enTetes } = parse;
 
   const supabase = await createClient();
   const { data: sites, error: errSites } = await supabase
@@ -156,7 +178,7 @@ export async function previsualiserImportEquipements(
     existantsParSite.set(e.site_id, liste);
   }
 
-  const diff = calculerDiff(lignes, sites, existantsParSite, typesById);
+  const diff = calculerDiff(lignes, sites, existantsParSite, typesById, enTetes);
   return { ok: true, diff };
 }
 
@@ -267,8 +289,15 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
   feuilleAvert.addRow(["Message"]);
   for (const av of diff.avertissements) feuilleAvert.addRow([av.message]);
 
-  const feuilleAnomalies = workbook.addWorksheet("Anomalies catalogue heures");
-  feuilleAnomalies.addRow([
+  // Heures calculées : pour chaque équipement touché par l'import
+  // (ajout ou modification), les heures Tech/Assistant par an telles
+  // que le catalogue Référentiel Heures + la Fréquence entretien
+  // annuelle les déterminent — pas seulement "trouvé/pas trouvé" comme
+  // avant, le résultat concret qui alimente l'Audit Heures. Une ligne
+  // sans correspondance au catalogue ressort avec des heures vides et
+  // le motif, visible immédiatement au lieu de rester silencieuse.
+  const feuilleHeures = workbook.addWorksheet("Heures calculées");
+  feuilleHeures.addRow([
     "Site",
     "Famille",
     "Nom",
@@ -276,7 +305,10 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
     "Type Equipement 1",
     "Type Equipement 2",
     "Type Equipement 3",
-    "Problème",
+    "Fréquence entretien annuelle",
+    "Heures Tech / an",
+    "Heures Assistant / an",
+    "Statut",
   ]);
   type LigneAVerifier = {
     siteId: string;
@@ -286,7 +318,7 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
     typeDeReleveBrut: string;
     champsEnTete: ChampsEnTeteEquipement;
   };
-  const toutesLesLignes: LigneAVerifier[] = [
+  const lignesAVerifier: LigneAVerifier[] = [
     ...diff.ajouts.map((a): LigneAVerifier => ({
       siteId: a.siteId,
       nom: a.ligne.nom,
@@ -304,10 +336,32 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
       champsEnTete: { ...m.existant.champs_en_tete, ...m.ligne.champsEnTete },
     })),
   ];
-  for (const ligne of toutesLesLignes) {
+  for (const ligne of lignesAVerifier) {
     const resultat = analyserReference(ligne.champsEnTete, (references ?? []) as ReferenceHoraire[]);
-    if (resultat.reference) continue;
-    feuilleAnomalies.addRow([
+    const freqBrut = ligne.champsEnTete.freqEntretienAnnuelle;
+    const freq = typeof freqBrut === "string" ? parseInt(freqBrut, 10) : NaN;
+
+    let heuresTech = "";
+    let heuresAssistant = "";
+    let statut = "OK";
+    if (!resultat.reference) {
+      statut = resultat.horsCatalogue
+        ? "Anomalie — famille/taille non répertoriée dans le catalogue"
+        : "Anomalie — famille absente du catalogue d'heures";
+    } else if (!Number.isFinite(freq) || freq <= 0) {
+      statut = "Anomalie — Fréquence entretien annuelle manquante ou invalide";
+    } else {
+      const cumul = heuresCumulAnnee(freq, resultat.reference);
+      if (!cumul) {
+        statut = `Anomalie — fréquence ${freq}x/an non gérée par le calcul`;
+      } else {
+        heuresTech = String(cumul.heuresTech);
+        heuresAssistant = String(cumul.heuresAssistant);
+        if (resultat.approchee) statut = "OK (taille approchée au catalogue)";
+      }
+    }
+
+    const ligneAjoutee = feuilleHeures.addRow([
       nomSite(ligne.siteId),
       typesById[ligne.typeEquipementId ?? ""]?.nom ?? ligne.typeDeReleveBrut,
       ligne.nom,
@@ -315,11 +369,55 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
       ligne.champsEnTete.typeEquipement1 ?? "",
       ligne.champsEnTete.typeEquipement2 ?? "",
       ligne.champsEnTete.typeEquipement3 ?? "",
-      resultat.horsCatalogue ? "Famille/taille non répertoriée dans le catalogue" : "Famille absente du catalogue d'heures",
+      freqBrut ?? "",
+      heuresTech,
+      heuresAssistant,
+      statut,
     ]);
+    if (statut.startsWith("Anomalie")) {
+      ligneAjoutee.getCell(11).font = { color: { argb: "FFCC0000" }, bold: true };
+    }
   }
 
-  for (const feuille of [feuilleAjouts, feuilleModifs, feuilleAvert, feuilleAnomalies]) finaliserFeuille(feuille);
+  // Fichier annoté : reproduit le classeur source colonne pour colonne
+  // (même ordre, mêmes en-têtes), une ligne du fichier = une ligne ici
+  // — y compris les lignes inchangées et ignorées, qui ne disparaissent
+  // plus jamais silencieusement. Texte rouge sur les cellules dont la
+  // valeur diffère de la base ; ligne grisée pour une ligne ignorée,
+  // verte pour un ajout.
+  const feuilleFichier = workbook.addWorksheet("Fichier annoté");
+  const entetes = diff.enTetes.length > 0 ? diff.enTetes : [];
+  const libellesEntetes = entetes.map((e) => e.original);
+  feuilleFichier.addRow([...libellesEntetes, "Résultat", "Raison"]);
+  const STATUT_LABEL: Record<string, string> = {
+    ajout: "Ajouté",
+    modification: "Modifié",
+    inchange: "Inchangé",
+    ignoree: "Ignoré",
+  };
+  for (const l of diff.toutesLesLignes) {
+    const valeurs = entetes.map((e) => l.colonnesBrutes[e.normalise] ?? "");
+    const ligneAjoutee = feuilleFichier.addRow([...valeurs, STATUT_LABEL[l.statut], l.raison]);
+    if (l.statut === "ajout") {
+      ligneAjoutee.eachCell((cellule) => {
+        cellule.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE4F7E9" } };
+      });
+    } else if (l.statut === "ignoree") {
+      ligneAjoutee.eachCell((cellule) => {
+        cellule.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDEDED" } };
+        cellule.font = { color: { argb: "FF888888" } };
+      });
+    } else if (l.statut === "modification") {
+      const colonnesModifiees = new Set(l.colonnesModifiees);
+      entetes.forEach((e, i) => {
+        if (colonnesModifiees.has(e.normalise)) {
+          ligneAjoutee.getCell(i + 1).font = { color: { argb: "FFCC0000" }, bold: true };
+        }
+      });
+    }
+  }
+
+  for (const feuille of [feuilleAjouts, feuilleModifs, feuilleAvert, feuilleHeures, feuilleFichier]) finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
   return { ok: true, base64: Buffer.from(buffer).toString("base64") };

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Upload, FileSpreadsheet, Download } from "lucide-react";
 import type { ResultatDiff } from "@/lib/gmao/equipement-import";
 import { previsualiserImportEquipements, appliquerImportEquipements, genererRapportImportEquipements } from "./import-shared";
+import { nomFichierAvecDate } from "@/lib/excel-export";
 
 // Au-delà de ce nombre, afficher chaque ligne individuellement (carte +
 // case à cocher) sature le navigateur sur un import "tous clients"
@@ -98,7 +99,7 @@ export function ImporterEquipementsClient({
       );
       const lien = document.createElement("a");
       lien.href = url;
-      lien.download = "rapport_import_equipements.xlsx";
+      lien.download = nomFichierAvecDate("rapport_import_equipements.xlsx");
       lien.click();
       URL.revokeObjectURL(url);
     });

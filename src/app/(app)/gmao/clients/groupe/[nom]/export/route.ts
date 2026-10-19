@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
 import { COLONNES_SOMMAIRE, ligneSommaire } from "@/lib/gmao/equipement-export";
-import { finaliserFeuille } from "@/lib/excel-export";
+import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 
 /// Exporte tous les équipements de tous les sites d'un client — port de
@@ -46,7 +46,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ nom
   finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const nomFichier = `${nomDecode}_tous_sites_equipements.xlsx`.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const nomFichier = nomFichierAvecDate(
+    `${nomDecode}_tous_sites_equipements.xlsx`.replace(/[^a-zA-Z0-9._-]/g, "_"),
+  );
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

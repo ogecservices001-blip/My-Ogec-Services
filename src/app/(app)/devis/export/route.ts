@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { labelNatureDevis } from "@/lib/devis/constants";
-import { finaliserFeuille } from "@/lib/excel-export";
+import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 import { STATUTS_BI_REALISE, calculerStatutDevis, LABEL_STATUT_DEVIS } from "../statut";
 
 const COLONNES = [
@@ -107,7 +107,9 @@ export async function GET(request: Request) {
   finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const nomFichier = nom ? `${nom.replace(/[^a-zA-Z0-9._-]/g, "_")}_devis.xlsx` : "tous_les_devis.xlsx";
+  const nomFichier = nomFichierAvecDate(
+    nom ? `${nom.replace(/[^a-zA-Z0-9._-]/g, "_")}_devis.xlsx` : "tous_les_devis.xlsx",
+  );
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

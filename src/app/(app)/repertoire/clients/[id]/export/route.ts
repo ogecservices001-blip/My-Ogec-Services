@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { COLONNES_SITES, ENTETES_SITES, NB_COLONNES_SITES } from "@/lib/repertoire/sites-excel";
-import { finaliserFeuille } from "@/lib/excel-export";
+import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 
 /// Exporte un seul site — même format que /repertoire/clients/export,
 /// réimportable tel quel.
@@ -33,7 +33,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const nomFichier = `${site.nom}_${site.site}.xlsx`.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const nomFichier = nomFichierAvecDate(`${site.nom}_${site.site}.xlsx`.replace(/[^a-zA-Z0-9._-]/g, "_"));
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

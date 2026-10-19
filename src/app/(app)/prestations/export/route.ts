@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { Statuts } from "@/lib/bi/constants";
 import { labelNatureDevis } from "@/lib/devis/constants";
-import { finaliserFeuille } from "@/lib/excel-export";
+import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 
 const STATUTS_REALISE = new Set<string>(Object.values(Statuts).filter((s) => s !== Statuts.brouillon));
 
@@ -71,7 +71,7 @@ export async function GET() {
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": 'attachment; filename="prestations_sur_commande.xlsx"',
+      "Content-Disposition": `attachment; filename="${nomFichierAvecDate("prestations_sur_commande.xlsx")}"`,
     },
   });
 }

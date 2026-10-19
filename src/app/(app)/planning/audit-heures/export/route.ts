@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
-import { finaliserFeuille } from "@/lib/excel-export";
+import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 import { calculerLignesAuditHeures } from "../calcul";
 
 const COLONNES = [
@@ -52,7 +52,7 @@ export async function GET() {
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": 'attachment; filename="Audit_heures_clients_sous_contrat.xlsx"',
+      "Content-Disposition": `attachment; filename="${nomFichierAvecDate("Audit_heures_clients_sous_contrat.xlsx")}"`,
     },
   });
 }

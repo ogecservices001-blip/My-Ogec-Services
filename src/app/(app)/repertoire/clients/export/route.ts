@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { COLONNES_SITES, ENTETES_SITES, NB_COLONNES_SITES } from "@/lib/repertoire/sites-excel";
-import { finaliserFeuille } from "@/lib/excel-export";
+import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 
 /// Exporte les sites au format de la feuille "SITES" du classeur
 /// maître — réimportable tel quel via /repertoire/clients/importer.
@@ -42,8 +42,9 @@ export async function GET(request: Request) {
   finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const nomFichier =
-    horsContratParam === "1" ? "sites_hors_contrat.xlsx" : horsContratParam === "0" ? "sites_contrat.xlsx" : "sites.xlsx";
+  const nomFichier = nomFichierAvecDate(
+    horsContratParam === "1" ? "sites_hors_contrat.xlsx" : horsContratParam === "0" ? "sites_contrat.xlsx" : "sites.xlsx",
+  );
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

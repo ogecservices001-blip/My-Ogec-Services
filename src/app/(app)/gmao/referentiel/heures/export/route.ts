@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
-import { finaliserFeuille } from "@/lib/excel-export";
+import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 
 /// Exporte le référentiel actuel en classeur Excel, même format que
 /// l'import — modifiable puis réimportable tel quel.
@@ -59,7 +59,7 @@ export async function GET() {
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": 'attachment; filename="Base_horaire_equipement.xlsx"',
+      "Content-Disposition": `attachment; filename="${nomFichierAvecDate("Base_horaire_equipement.xlsx")}"`,
     },
   });
 }

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { COLONNES_PROFILS, ENTETES_PROFILS, NB_COLONNES_PROFILS } from "@/lib/repertoire/profils-excel";
-import { finaliserFeuille } from "@/lib/excel-export";
+import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 
 /// Exporte tous les collaborateurs — réimportable tel quel via
 /// /repertoire/collaborateurs/importer. Le rôle n'est jamais exporté :
@@ -38,7 +38,7 @@ export async function GET() {
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": 'attachment; filename="collaborateurs.xlsx"',
+      "Content-Disposition": `attachment; filename="${nomFichierAvecDate("collaborateurs.xlsx")}"`,
     },
   });
 }

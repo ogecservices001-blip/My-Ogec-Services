@@ -426,7 +426,7 @@ export function BiWizard({
   const sigClientRef = useRef<SignaturePadHandle>(null);
   const [sigTechVide, setSigTechVide] = useState(true);
   const [sigClientVide, setSigClientVide] = useState(true);
-  const [nombreDeplacements, setNombreDeplacements] = useState(1);
+  const [nombreDeplacements, setNombreDeplacements] = useState<number | "">("");
   const [alerteHeures, setAlerteHeures] = useState(false);
   const [alerteTechnicien, setAlerteTechnicien] = useState(false);
   const [alerteSignature, setAlerteSignature] = useState(false);
@@ -571,7 +571,7 @@ export function BiWizard({
       signataire_tel_portable: signataireTelPortable.trim(),
       signataire_tel_fixe: signataireTelFixe.trim(),
       depannage_id: depannageId,
-      nombre_deplacements: nombreDeplacements,
+      nombre_deplacements: nombreDeplacements === "" ? 1 : nombreDeplacements,
     };
   }
 
@@ -1304,7 +1304,10 @@ export function BiWizard({
                         type="number"
                         min={1}
                         value={nombreDeplacements}
-                        onChange={(e) => setNombreDeplacements(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setNombreDeplacements(v === "" ? "" : Math.max(1, parseInt(v, 10) || 1));
+                        }}
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
                       />
                     </div>

@@ -16,10 +16,24 @@ export default async function DepannagesPage() {
   const techniciensParId: Record<string, { name: string; portable: string }> = {};
   for (const t of techniciens ?? []) techniciensParId[t.id] = { name: t.name, portable: t.portable };
 
+  const siteIds = [...new Set((data ?? []).map((d) => d.site_id).filter((id): id is string => Boolean(id)))];
+  const { data: sites } = await supabase
+    .from("sites")
+    .select("id, interlocuteur_site, tel_fixe_interlocuteur_site, portable_interlocuteur_site")
+    .in("id", siteIds);
+  const contactsParSite: Record<string, { nom: string; tel: string }> = {};
+  for (const s of sites ?? []) {
+    contactsParSite[s.id] = {
+      nom: s.interlocuteur_site,
+      tel: s.portable_interlocuteur_site || s.tel_fixe_interlocuteur_site,
+    };
+  }
+
   return (
     <DepannagesListe
       demandes={(data ?? []) as Tables<"demandes_depannage">[]}
       techniciensParId={techniciensParId}
+      contactsParSite={contactsParSite}
       isAdmin={profile?.role === "admin"}
       vue="en_cours"
       devisEnCours={devisEnCours}

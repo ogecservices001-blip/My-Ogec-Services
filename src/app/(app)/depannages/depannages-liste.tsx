@@ -41,16 +41,19 @@ function lienWhatsapp(portable: string, texte: string): string | null {
 }
 
 type TechniciensParId = Record<string, { name: string; portable: string }>;
+type ContactsParSite = Record<string, { nom: string; tel: string }>;
 
 export function DepannagesListe({
   demandes,
   techniciensParId,
+  contactsParSite = {},
   isAdmin,
   vue,
   devisEnCours,
 }: {
   demandes: Tables<"demandes_depannage">[];
   techniciensParId: TechniciensParId;
+  contactsParSite?: ContactsParSite;
   isAdmin: boolean;
   vue: "en_cours" | "traitees";
   devisEnCours: Record<string, DevisEnCours[]>;
@@ -129,6 +132,7 @@ export function DepannagesListe({
               key={d.id}
               demande={d}
               intervenant={d.intervenant_id ? techniciensParId[d.intervenant_id] : undefined}
+              contact={d.site_id ? contactsParSite[d.site_id] : undefined}
               isAdmin={isAdmin}
               devisEnCours={d.equipement_id ? (devisEnCours[d.equipement_id] ?? []) : []}
             />
@@ -142,18 +146,20 @@ export function DepannagesListe({
 function CarteDemande({
   demande,
   intervenant,
+  contact,
   isAdmin,
   devisEnCours,
 }: {
   demande: Tables<"demandes_depannage">;
   intervenant: { name: string; portable: string } | undefined;
+  contact: { nom: string; tel: string } | undefined;
   isAdmin: boolean;
   devisEnCours: DevisEnCours[];
 }) {
   const [modaleOuverte, setModaleOuverte] = useState(false);
   const nouvelle = demande.statut !== "traitee";
 
-  const messageWhatsapp = `Dépannage N°${demande.numero} — ${[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}\n${demande.equipement_nom ? `Équipement : ${demande.equipement_nom}\n` : ""}${demande.lieu_panne ? `Lieu : ${demande.lieu_panne}\n` : ""}Motif : ${demande.message}`;
+  const messageWhatsapp = `Dépannage N°${demande.numero} — ${[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}\n${demande.equipement_nom ? `Équipement : ${demande.equipement_nom}\n` : ""}${demande.lieu_panne ? `Lieu : ${demande.lieu_panne}\n` : ""}${contact?.nom ? `Contact : ${contact.nom}\n` : ""}${contact?.tel ? `Tél : ${contact.tel}\n` : ""}Motif : ${demande.message}`;
   const whatsapp = isAdmin && intervenant?.portable ? lienWhatsapp(intervenant.portable, messageWhatsapp) : null;
 
   return (
@@ -200,12 +206,6 @@ function CarteDemande({
         </span>
         {demande.numero_demande_client && <span>Réf. client : {demande.numero_demande_client}</span>}
       </div>
-      {demande.email_prise_en_compte_envoye_le && (
-        <p className="mt-0.5 flex items-center gap-1 text-xs text-blue-600">
-          <Mail className="h-3.5 w-3.5" strokeWidth={2} />
-          Mail prise en compte envoyé le {formaterDateHeure(demande.email_prise_en_compte_envoye_le)}
-        </p>
-      )}
 
       {(intervenant || demande.date_intervention_prevue) && (
         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-semibold text-teal-700">
@@ -222,6 +222,12 @@ function CarteDemande({
             </span>
           )}
         </div>
+      )}
+      {demande.email_prise_en_compte_envoye_le && (
+        <p className="mt-2 flex items-center gap-1 text-xs text-blue-600">
+          <Mail className="h-3.5 w-3.5" strokeWidth={2} />
+          Mail prise en compte envoyé le {formaterDateHeure(demande.email_prise_en_compte_envoye_le)}
+        </p>
       )}
 
       <div className="mt-3 flex flex-wrap items-center justify-end gap-2">

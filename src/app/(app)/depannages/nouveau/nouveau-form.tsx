@@ -11,6 +11,7 @@ type Site = {
   nom: string;
   site: string;
   n_affaire: string;
+  courriel_interlocuteur_site: string;
   courriel_responsable: string;
   hors_contrat: boolean;
 };
@@ -70,7 +71,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
     });
 
     const site = sites.find((s) => s.id === siteId);
-    const courriel = site?.courriel_responsable ?? "";
+    const courriel = site?.courriel_interlocuteur_site || site?.courriel_responsable || "";
     setEmail((valeurActuelle) => (valeurActuelle === "" || valeurActuelle === dernierAutoRempli.current ? courriel : valeurActuelle));
     dernierAutoRempli.current = courriel;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `sites` est une prop stable (jamais reconstruite en cours de vie du formulaire)

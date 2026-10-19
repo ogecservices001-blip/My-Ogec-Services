@@ -428,10 +428,12 @@ export function BiWizard({
   const [sigClientVide, setSigClientVide] = useState(true);
   const [nombreDeplacements, setNombreDeplacements] = useState<number | "">("");
   const [alerteHeures, setAlerteHeures] = useState(false);
+  const [alerteDeplacements, setAlerteDeplacements] = useState(false);
   const [alerteTechnicien, setAlerteTechnicien] = useState(false);
   const [alerteSignature, setAlerteSignature] = useState(false);
   const [champEnEvidence, setChampEnEvidence] = useState<string | null>(null);
   const tempsPasseRef = useRef<HTMLInputElement>(null);
+  const nombreDeplacementsRef = useRef<HTMLInputElement>(null);
   const techniciensRef = useRef<HTMLDivElement>(null);
   const signataireRef = useRef<HTMLInputElement>(null);
   const sigTechZoneRef = useRef<HTMLDivElement>(null);
@@ -578,6 +580,10 @@ export function BiWizard({
   function soumettre(statut: "brouillon" | "averif") {
     if (statut === "averif" && !sansTempsPasse(pole) && tempsPasse.trim() === "") {
       setAlerteHeures(true);
+      return;
+    }
+    if (statut === "averif" && !sansTempsPasse(pole) && nombreDeplacements === "") {
+      setAlerteDeplacements(true);
       return;
     }
     if (statut === "averif" && techniciens.length === 0) {
@@ -1301,6 +1307,7 @@ export function BiWizard({
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-600">Nombre de déplacements</label>
                       <input
+                        ref={nombreDeplacementsRef}
                         type="number"
                         min={1}
                         value={nombreDeplacements}
@@ -1308,7 +1315,9 @@ export function BiWizard({
                           const v = e.target.value;
                           setNombreDeplacements(v === "" ? "" : Math.max(1, parseInt(v, 10) || 1));
                         }}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+                        className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-violet-600 ${
+                          champEnEvidence === "deplacements" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200"
+                        }`}
                       />
                     </div>
                   </div>
@@ -1434,6 +1443,16 @@ export function BiWizard({
           onFermer={() => {
             setAlerteHeures(false);
             pointerVers(tempsPasseRef, "heures");
+          }}
+        />
+      )}
+
+      {alerteDeplacements && (
+        <PopupAlerte
+          titre="Remplir le nombre de déplacements"
+          onFermer={() => {
+            setAlerteDeplacements(false);
+            pointerVers(nombreDeplacementsRef, "deplacements");
           }}
         />
       )}

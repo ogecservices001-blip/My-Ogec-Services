@@ -33,7 +33,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
   function changerPerimetre(valeur: boolean) {
     setHorsContrat(valeur);
     setClientNom("");
-    setSiteId("");
+    definirSiteId("");
   }
 
   const [equipementsChargees, setEquipementsChargees] = useState<EquipementDuSite[]>([]);
@@ -46,6 +46,21 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
   // est resté tel qu'auto-rempli la fois précédente, ou vide).
   const [email, setEmail] = useState("");
   const dernierAutoRempli = useRef("");
+
+  // Lieu de la panne pré-rempli avec la Localisation de l'équipement
+  // choisi (même logique de non-écrasement que l'email ci-dessus).
+  const [equipementId, setEquipementId] = useState("");
+  const [lieuPanne, setLieuPanne] = useState("");
+  const dernierLieuAutoRempli = useRef("");
+
+  function changerEquipement(id: string) {
+    setEquipementId(id);
+    const localisation = equipements.find((eq) => eq.id === id)?.localisation ?? "";
+    setLieuPanne((valeurActuelle) =>
+      valeurActuelle === "" || valeurActuelle === dernierLieuAutoRempli.current ? localisation : valeurActuelle,
+    );
+    dernierLieuAutoRempli.current = localisation;
+  }
 
   useEffect(() => {
     if (!siteId) return;
@@ -68,10 +83,15 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
     }
   }, [state, router]);
 
+  function definirSiteId(id: string) {
+    setSiteId(id);
+    setEquipementId("");
+  }
+
   function changerClient(nom: string) {
     setClientNom(nom);
     const sitesCorrespondants = sites.filter((s) => s.nom === nom);
-    setSiteId(sitesCorrespondants.length === 1 ? sitesCorrespondants[0].id : "");
+    definirSiteId(sitesCorrespondants.length === 1 ? sitesCorrespondants[0].id : "");
   }
 
   return (
@@ -138,7 +158,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
               <label className="mb-1 block text-xs font-medium text-slate-600">Site</label>
               <select
                 value={siteId}
-                onChange={(e) => setSiteId(e.target.value)}
+                onChange={(e) => definirSiteId(e.target.value)}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
               >
                 <option value="">— Choisir un site —</option>
@@ -158,6 +178,8 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
               </label>
               <select
                 name="equipement_id"
+                value={equipementId}
+                onChange={(e) => changerEquipement(e.target.value)}
                 disabled={chargementEquipements}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
               >
@@ -189,6 +211,9 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
             <label className="mb-1 block text-xs font-medium text-slate-600">Lieu de la panne</label>
             <input
               name="lieu_panne"
+              value={lieuPanne}
+              onChange={(e) => setLieuPanne(e.target.value)}
+              placeholder="Pré-rempli avec la localisation de l'équipement si choisi"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
           </div>

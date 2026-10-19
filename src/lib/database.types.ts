@@ -594,6 +594,7 @@ export type Database = {
           date_intervention_prevue: string | null
           date_traitement: string | null
           email: string
+          email_prise_en_compte_envoye_le: string | null
           equipement_id: string | null
           equipement_nom: string
           id: string
@@ -614,6 +615,7 @@ export type Database = {
           date_intervention_prevue?: string | null
           date_traitement?: string | null
           email?: string
+          email_prise_en_compte_envoye_le?: string | null
           equipement_id?: string | null
           equipement_nom?: string
           id?: string
@@ -634,6 +636,7 @@ export type Database = {
           date_intervention_prevue?: string | null
           date_traitement?: string | null
           email?: string
+          email_prise_en_compte_envoye_le?: string | null
           equipement_id?: string | null
           equipement_nom?: string
           id?: string
@@ -956,6 +959,38 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      imports_equipements_temp: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          lignes: Json
+          site_ids: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lignes: Json
+          site_ids: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lignes?: Json
+          site_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imports_equipements_temp_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jours_feries: {
         Row: {

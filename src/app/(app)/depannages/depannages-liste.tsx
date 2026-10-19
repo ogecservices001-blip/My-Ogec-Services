@@ -200,6 +200,12 @@ function CarteDemande({
         </span>
         {demande.numero_demande_client && <span>Réf. client : {demande.numero_demande_client}</span>}
       </div>
+      {demande.email_prise_en_compte_envoye_le && (
+        <p className="mt-0.5 flex items-center gap-1 text-xs text-blue-600">
+          <Mail className="h-3.5 w-3.5" strokeWidth={2} />
+          Mail prise en compte envoyé le {formaterDateHeure(demande.email_prise_en_compte_envoye_le)}
+        </p>
+      )}
 
       {(intervenant || demande.date_intervention_prevue) && (
         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-semibold text-teal-700">

@@ -77,22 +77,26 @@ export async function creerDepannage(
 
   const numero = await prochainChrono(supabase, "depannage");
 
-  const { error } = await supabase.from("demandes_depannage").insert({
-    numero,
-    site_id: siteId,
-    equipement_id: equipementId || null,
-    client_nom: site.nom,
-    client_site: site.site,
-    equipement_nom: equipementNom,
-    email,
-    message,
-    statut: "nouvelle",
-    intervenant_id: intervenantId || null,
-    date_intervention_prevue: dateInterventionPrevue || null,
-    lieu_panne: lieuPanne,
-    numero_demande_client: numeroDemandeClient,
-  });
-  if (error) return { ok: false, erreur: error.message };
+  const { data: creee, error } = await supabase
+    .from("demandes_depannage")
+    .insert({
+      numero,
+      site_id: siteId,
+      equipement_id: equipementId || null,
+      client_nom: site.nom,
+      client_site: site.site,
+      equipement_nom: equipementNom,
+      email,
+      message,
+      statut: "nouvelle",
+      intervenant_id: intervenantId || null,
+      date_intervention_prevue: dateInterventionPrevue || null,
+      lieu_panne: lieuPanne,
+      numero_demande_client: numeroDemandeClient,
+    })
+    .select("id")
+    .single();
+  if (error || !creee) return { ok: false, erreur: error?.message ?? "Échec de la création." };
 
   revalidatePath("/depannages");
 
@@ -118,6 +122,10 @@ export async function creerDepannage(
         tel2: site.portable_interlocuteur_site,
         informationComplementaire: "",
       });
+      await supabase
+        .from("demandes_depannage")
+        .update({ email_prise_en_compte_envoye_le: new Date().toISOString() })
+        .eq("id", creee.id);
     } catch (e) {
       // Le ticket est déjà créé — un échec d'envoi ne doit pas bloquer
       // le flux ni risquer une double création si le bureau réessaie.

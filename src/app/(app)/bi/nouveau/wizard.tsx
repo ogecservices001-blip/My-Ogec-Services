@@ -313,10 +313,20 @@ export function BiWizard({
   // libre, par visite) par un état par équipement. Coché seul ou avec
   // "Devis à établir", "Équipement opérationnel" vide le tableau au
   // moment d'enregistrer plutôt que d'y ajouter une valeur.
-  const [etatEquipement, setEtatEquipement] = useState<string[]>([]);
-  function toggleEtatEquipement(valeur: string) {
-    setEtatEquipement((prev) => (prev.includes(valeur) ? prev.filter((v) => v !== valeur) : [...prev, valeur]));
-  }
+  // État de l'équipement : répondu via 2 popups au clic sur "Suivant"
+  // (jamais coché à la main) — un technicien livré à lui-même ne
+  // remplit pas des cases libres. `null` = pas encore répondu.
+  const [devisAEtablir, setDevisAEtablir] = useState<boolean | null>(null);
+  const [etatHorsService, setEtatHorsService] = useState<boolean | null>(null);
+  const [popupDevis, setPopupDevis] = useState(false);
+  const [popupEtat, setPopupEtat] = useState(false);
+  const etatEquipement = useMemo(() => {
+    const etats: string[] = [];
+    if (devisAEtablir) etats.push("devis_a_etablir");
+    if (etatHorsService === true) etats.push("hors_service");
+    if (etatHorsService === false) etats.push("operationnel");
+    return etats;
+  }, [devisAEtablir, etatHorsService]);
   function etatEquipementAEnregistrer(etats: string[]): string[] {
     return etats.includes("operationnel") ? [] : etats;
   }
@@ -347,7 +357,8 @@ export function BiWizard({
     setEquipementLibre("");
     setCompteRendu("");
     setFourniture([{ designation: "", quantite: "" }]);
-    setEtatEquipement([]);
+    setDevisAEtablir(null);
+    setEtatHorsService(null);
     setEtape(1);
   }
 
@@ -575,6 +586,36 @@ export function BiWizard({
       depannage_id: depannageId,
       nombre_deplacements: nombreDeplacements === "" ? 1 : nombreDeplacements,
     };
+  }
+
+  // Avant de passer de "Compte rendu" (étape 2) à l'étape suivante pour
+  // un dépannage : forcer la réponse aux 2 popups état équipement
+  // plutôt que de laisser avancer avec des cases jamais remplies.
+  function avancerEtape() {
+    if (etape === 2 && pole === Poles.depannage) {
+      if (devisAEtablir === null) {
+        setPopupDevis(true);
+        return;
+      }
+      if (etatHorsService === null) {
+        setPopupEtat(true);
+        return;
+      }
+    }
+    setEtape(etape + 1);
+  }
+
+  function repondreDevis(reponse: boolean) {
+    setDevisAEtablir(reponse);
+    setPopupDevis(false);
+    if (etatHorsService === null) setPopupEtat(true);
+    else setEtape(etape + 1);
+  }
+
+  function repondreEtat(horsService: boolean) {
+    setEtatHorsService(horsService);
+    setPopupEtat(false);
+    setEtape(etape + 1);
   }
 
   function soumettre(statut: "brouillon" | "averif") {
@@ -1060,31 +1101,34 @@ export function BiWizard({
           </div>
           {pole === Poles.depannage ? (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-              <p className="mb-2 text-xs font-medium text-slate-600">État de l&apos;équipement</p>
+              <p className="mb-2 text-xs font-medium text-slate-600">
+                État de l&apos;équipement
+                <span className="ml-1.5 font-normal text-slate-400">(rempli via les questions à &quot;Suivant&quot;)</span>
+              </p>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm text-slate-700">
+                <label className="flex items-center gap-2 text-sm text-slate-500">
                   <input
                     type="checkbox"
                     checked={etatEquipement.includes("devis_a_etablir")}
-                    onChange={() => toggleEtatEquipement("devis_a_etablir")}
+                    disabled
                     className="h-4 w-4 accent-violet-600"
                   />
                   {ETATS_EQUIPEMENT.devis_a_etablir}
                 </label>
-                <label className="flex items-center gap-2 text-sm text-slate-700">
+                <label className="flex items-center gap-2 text-sm text-slate-500">
                   <input
                     type="checkbox"
                     checked={etatEquipement.includes("operationnel")}
-                    onChange={() => toggleEtatEquipement("operationnel")}
+                    disabled
                     className="h-4 w-4 accent-violet-600"
                   />
                   Équipement opérationnel
                 </label>
-                <label className="flex items-center gap-2 text-sm text-slate-700">
+                <label className="flex items-center gap-2 text-sm text-slate-500">
                   <input
                     type="checkbox"
                     checked={etatEquipement.includes("hors_service")}
-                    onChange={() => toggleEtatEquipement("hors_service")}
+                    disabled
                     className="h-4 w-4 accent-violet-600"
                   />
                   {ETATS_EQUIPEMENT.hors_service}
@@ -1410,7 +1454,7 @@ export function BiWizard({
         )}
         {etape > 0 && etape < TOTAL_ETAPES - 1 && (
           <button
-            onClick={() => setEtape(etape + 1)}
+            onClick={avancerEtape}
             disabled={etape === 1 && !peutAvancerEtapeClient}
             className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-40 ${ACCENT}`}
           >
@@ -1436,6 +1480,26 @@ export function BiWizard({
           </>
         )}
       </div>
+
+      {popupDevis && (
+        <PopupChoix
+          titre="Devis à établir ?"
+          choix={[
+            { label: "Oui", onClick: () => repondreDevis(true) },
+            { label: "Non", onClick: () => repondreDevis(false) },
+          ]}
+        />
+      )}
+
+      {popupEtat && (
+        <PopupChoix
+          titre="État de l'équipement"
+          choix={[
+            { label: "Hors service", onClick: () => repondreEtat(true) },
+            { label: "En service", onClick: () => repondreEtat(false) },
+          ]}
+        />
+      )}
 
       {alerteHeures && (
         <PopupAlerte
@@ -1490,6 +1554,29 @@ export function BiWizard({
             <button onClick={onFermer} className={`rounded-xl px-5 py-2 text-sm font-semibold text-white shadow-sm ${ACCENT}`}>
               OK
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Jamais de fermeture au clic en dehors ni de case à cocher libre —
+  // le technicien doit choisir une des 2 réponses pour continuer.
+  function PopupChoix({ titre, choix }: { titre: string; choix: { label: string; onClick: () => void }[] }) {
+    return (
+      <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4">
+        <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+          <h2 className="mb-4 text-base font-bold text-slate-900">{titre}</h2>
+          <div className="grid grid-cols-2 gap-2">
+            {choix.map((c) => (
+              <button
+                key={c.label}
+                onClick={c.onClick}
+                className={`rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm ${ACCENT}`}
+              >
+                {c.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>

@@ -6,17 +6,35 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { creerDepannage, chargerEquipementsDuSite, type EquipementDuSite } from "./actions";
 
-type Site = { id: string; nom: string; site: string; n_affaire: string; courriel_responsable: string };
+type Site = {
+  id: string;
+  nom: string;
+  site: string;
+  n_affaire: string;
+  courriel_responsable: string;
+  hors_contrat: boolean;
+};
 type Technicien = { id: string; name: string; portable: string };
 
 export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; techniciens: Technicien[] }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(creerDepannage, null);
 
-  const nomsClients = useMemo(() => [...new Set(sites.map((s) => s.nom))].sort((a, b) => a.localeCompare(b)), [sites]);
+  const [horsContrat, setHorsContrat] = useState(false);
+  const sitesDuPerimetre = useMemo(() => sites.filter((s) => s.hors_contrat === horsContrat), [sites, horsContrat]);
+  const nomsClients = useMemo(
+    () => [...new Set(sitesDuPerimetre.map((s) => s.nom))].sort((a, b) => a.localeCompare(b)),
+    [sitesDuPerimetre],
+  );
   const [clientNom, setClientNom] = useState("");
-  const sitesDuClient = sites.filter((s) => s.nom === clientNom);
+  const sitesDuClient = sitesDuPerimetre.filter((s) => s.nom === clientNom);
   const [siteId, setSiteId] = useState("");
+
+  function changerPerimetre(valeur: boolean) {
+    setHorsContrat(valeur);
+    setClientNom("");
+    setSiteId("");
+  }
 
   const [equipementsChargees, setEquipementsChargees] = useState<EquipementDuSite[]>([]);
   const [chargementEquipements, startChargementEquipements] = useTransition();
@@ -79,6 +97,26 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
         )}
 
         <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div className="flex gap-1.5 rounded-lg bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => changerPerimetre(false)}
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold ${
+                !horsContrat ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Client sous contrat
+            </button>
+            <button
+              type="button"
+              onClick={() => changerPerimetre(true)}
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold ${
+                horsContrat ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Client hors contrat
+            </button>
+          </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Client</label>
             <select

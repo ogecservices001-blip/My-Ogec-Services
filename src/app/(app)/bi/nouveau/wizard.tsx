@@ -427,8 +427,21 @@ export function BiWizard({
   const [sigTechVide, setSigTechVide] = useState(true);
   const [sigClientVide, setSigClientVide] = useState(true);
   const [nombreDeplacements, setNombreDeplacements] = useState(1);
-  const [confirmationDeplacement, setConfirmationDeplacement] = useState(false);
   const [alerteHeures, setAlerteHeures] = useState(false);
+  const [alerteTechnicien, setAlerteTechnicien] = useState(false);
+  const [alerteSignature, setAlerteSignature] = useState(false);
+  const [champEnEvidence, setChampEnEvidence] = useState<string | null>(null);
+  const tempsPasseRef = useRef<HTMLInputElement>(null);
+  const techniciensRef = useRef<HTMLDivElement>(null);
+  const signataireRef = useRef<HTMLInputElement>(null);
+  const sigTechZoneRef = useRef<HTMLDivElement>(null);
+  const sigClientZoneRef = useRef<HTMLDivElement>(null);
+
+  function pointerVers(ref: { current: HTMLElement | null }, cle: string) {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setChampEnEvidence(cle);
+    setTimeout(() => setChampEnEvidence((v) => (v === cle ? null : v)), 2500);
+  }
 
   useEffect(() => {
     if (tempsManuel) return;
@@ -486,16 +499,6 @@ export function BiWizard({
           },
         ]
       : [];
-
-  const peutTransmettre =
-    pole !== "" &&
-    siteId !== "" &&
-    techniciens.length > 0 &&
-    !sigTechVide &&
-    !sigClientVide &&
-    signataire.trim() !== "" &&
-    !photosEnCours &&
-    (sansTempsPasse(pole) || tempsPasse.trim() !== "");
 
   // ==================== Construction + envoi ====================
 
@@ -577,13 +580,12 @@ export function BiWizard({
       setAlerteHeures(true);
       return;
     }
-    if (statut === "averif" && !peutTransmettre) {
-      setErreur("Pôle, client, technicien(s), temps passé, signataire et les 2 signatures sont obligatoires.");
+    if (statut === "averif" && techniciens.length === 0) {
+      setAlerteTechnicien(true);
       return;
     }
-    if (statut === "averif" && !confirmationDeplacement) {
-      setErreur(null);
-      setConfirmationDeplacement(true);
+    if (statut === "averif" && (signataire.trim() === "" || sigTechVide || sigClientVide)) {
+      setAlerteSignature(true);
       return;
     }
     setErreur(null);
@@ -1232,7 +1234,12 @@ export function BiWizard({
             </div>
           )}
 
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div
+            ref={techniciensRef}
+            className={`rounded-2xl border bg-white p-4 shadow-sm ${
+              champEnEvidence === "techniciens" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200/80"
+            }`}
+          >
             <p className="mb-2 text-xs font-medium text-slate-600">Techniciens intervenus</p>
             <div className="mb-2 flex flex-wrap gap-1.5">
               {techniciens.map((t) => (
@@ -1271,21 +1278,36 @@ export function BiWizard({
               <>
                 <ChampDate label="Date d'intervention" valeur={dateIntervention} onChange={setDateIntervention} />
                 {!sansTempsPasse(pole) && (
-                  <div className="mt-2">
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Temps passé</label>
-                    <input
-                      value={tempsPasse}
-                      onChange={(e) => {
-                        setTempsManuel(true);
-                        setTempsPasse(e.target.value);
-                      }}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
-                    />
-                    {avecTempsLibre(pole) && techniciens.length > 1 && tempsPasse.trim() && (
-                      <p className="mt-1 text-xs font-semibold text-violet-700">
-                        → {multiplierDuree(tempsPasse.trim(), techniciens.length)} au total pour {techniciens.length} techniciens
-                      </p>
-                    )}
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">Temps passé</label>
+                      <input
+                        ref={tempsPasseRef}
+                        value={tempsPasse}
+                        onChange={(e) => {
+                          setTempsManuel(true);
+                          setTempsPasse(e.target.value);
+                        }}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-violet-600 ${
+                          champEnEvidence === "heures" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200"
+                        }`}
+                      />
+                      {avecTempsLibre(pole) && techniciens.length > 1 && tempsPasse.trim() && (
+                        <p className="mt-1 text-xs font-semibold text-violet-700">
+                          → {multiplierDuree(tempsPasse.trim(), techniciens.length)} au total pour {techniciens.length} techniciens
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">Nombre de déplacements</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={nombreDeplacements}
+                        onChange={(e) => setNombreDeplacements(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+                      />
+                    </div>
                   </div>
                 )}
               </>
@@ -1295,10 +1317,13 @@ export function BiWizard({
           <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <p className="text-xs font-medium text-slate-600">Signataire client</p>
             <input
+              ref={signataireRef}
               value={signataire}
               onChange={(e) => setSignataire(e.target.value)}
               placeholder="Nom du signataire"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+              className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-violet-600 ${
+                champEnEvidence === "signataire" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200"
+              }`}
             />
             <input
               value={signataireTelPortable}
@@ -1321,7 +1346,12 @@ export function BiWizard({
             />
           </div>
 
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div
+            ref={sigTechZoneRef}
+            className={`rounded-2xl border bg-white p-4 shadow-sm ${
+              champEnEvidence === "sigTech" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200/80"
+            }`}
+          >
             <SignaturePad ref={sigTechRef} titre="Signature technicien" onChange={setSigTechVide} />
           </div>
 
@@ -1335,7 +1365,12 @@ export function BiWizard({
             />
           </div>
 
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div
+            ref={sigClientZoneRef}
+            className={`rounded-2xl border bg-white p-4 shadow-sm ${
+              champEnEvidence === "sigClient" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200/80"
+            }`}
+          >
             <SignaturePad ref={sigClientRef} titre="Signature client" onChange={setSigClientVide} />
           </div>
         </div>
@@ -1381,7 +1416,7 @@ export function BiWizard({
             </button>
             <button
               onClick={() => soumettre("averif")}
-              disabled={enregistrement}
+              disabled={enregistrement || photosEnCours}
               className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-60 ${ACCENT}`}
             >
               {enregistrement ? "..." : "Transmettre au bureau"}
@@ -1390,64 +1425,54 @@ export function BiWizard({
         )}
       </div>
 
-      {confirmationDeplacement && (
-        <div
-          className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4"
-          onClick={() => setConfirmationDeplacement(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="mb-1 text-base font-bold text-slate-900">Nombre de déplacements</h2>
-            <p className="mb-3 text-xs text-slate-500">Combien de déplacements pour cette intervention ?</p>
-            <input
-              type="number"
-              min={1}
-              value={nombreDeplacements}
-              onChange={(e) => setNombreDeplacements(Math.max(1, parseInt(e.target.value, 10) || 1))}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
-            />
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={() => setConfirmationDeplacement(false)}
-                disabled={enregistrement}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={() => soumettre("averif")}
-                disabled={enregistrement}
-                className={`rounded-xl px-5 py-2 text-sm font-semibold text-white shadow-sm disabled:opacity-60 ${ACCENT}`}
-              >
-                {enregistrement ? "..." : "Confirmer et transmettre"}
-              </button>
-            </div>
-          </div>
-        </div>
+      {alerteHeures && (
+        <PopupAlerte
+          titre="Remplir le nombre d'heure"
+          onFermer={() => {
+            setAlerteHeures(false);
+            pointerVers(tempsPasseRef, "heures");
+          }}
+        />
       )}
 
-      {alerteHeures && (
-        <div
-          className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4"
-          onClick={() => setAlerteHeures(false)}
-        >
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-3 text-base font-bold text-slate-900">Remplir le nombre d&apos;heure</h2>
-            <div className="flex justify-end">
-              <button
-                onClick={() => setAlerteHeures(false)}
-                className={`rounded-xl px-5 py-2 text-sm font-semibold text-white shadow-sm ${ACCENT}`}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
+      {alerteTechnicien && (
+        <PopupAlerte
+          titre="Assigner au moins un technicien"
+          onFermer={() => {
+            setAlerteTechnicien(false);
+            pointerVers(techniciensRef, "techniciens");
+          }}
+        />
+      )}
+
+      {alerteSignature && (
+        <PopupAlerte
+          titre="Remplir la signature"
+          onFermer={() => {
+            setAlerteSignature(false);
+            if (signataire.trim() === "") pointerVers(signataireRef, "signataire");
+            else if (sigTechVide) pointerVers(sigTechZoneRef, "sigTech");
+            else if (sigClientVide) pointerVers(sigClientZoneRef, "sigClient");
+          }}
+        />
       )}
     </div>
   );
+
+  function PopupAlerte({ titre, onFermer }: { titre: string; onFermer: () => void }) {
+    return (
+      <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4" onClick={onFermer}>
+        <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <h2 className="mb-3 text-base font-bold text-slate-900">{titre}</h2>
+          <div className="flex justify-end">
+            <button onClick={onFermer} className={`rounded-xl px-5 py-2 text-sm font-semibold text-white shadow-sm ${ACCENT}`}>
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   function ChampDate({ label, valeur, onChange }: { label: string; valeur: string; onChange: (v: string) => void }) {
     return (

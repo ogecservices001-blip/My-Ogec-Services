@@ -428,6 +428,7 @@ export function BiWizard({
   const [sigClientVide, setSigClientVide] = useState(true);
   const [nombreDeplacements, setNombreDeplacements] = useState(1);
   const [confirmationDeplacement, setConfirmationDeplacement] = useState(false);
+  const [alerteHeures, setAlerteHeures] = useState(false);
 
   useEffect(() => {
     if (tempsManuel) return;
@@ -572,6 +573,10 @@ export function BiWizard({
   }
 
   function soumettre(statut: "brouillon" | "averif") {
+    if (statut === "averif" && !sansTempsPasse(pole) && tempsPasse.trim() === "") {
+      setAlerteHeures(true);
+      return;
+    }
     if (statut === "averif" && !peutTransmettre) {
       setErreur("Pôle, client, technicien(s), temps passé, signataire et les 2 signatures sont obligatoires.");
       return;
@@ -1417,6 +1422,25 @@ export function BiWizard({
                 className={`rounded-xl px-5 py-2 text-sm font-semibold text-white shadow-sm disabled:opacity-60 ${ACCENT}`}
               >
                 {enregistrement ? "..." : "Confirmer et transmettre"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {alerteHeures && (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4"
+          onClick={() => setAlerteHeures(false)}
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-3 text-base font-bold text-slate-900">Remplir le nombre d&apos;heure</h2>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setAlerteHeures(false)}
+                className={`rounded-xl px-5 py-2 text-sm font-semibold text-white shadow-sm ${ACCENT}`}
+              >
+                OK
               </button>
             </div>
           </div>

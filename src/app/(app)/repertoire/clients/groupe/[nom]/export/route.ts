@@ -15,7 +15,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ nom:
 
   const supabase = await createClient();
   const { data: sites, error } = await supabase
-    .from("sites")
+    .from("sites_view")
     .select("*")
     .eq("nom", nomDecode)
     .eq("hors_contrat", horsContrat)

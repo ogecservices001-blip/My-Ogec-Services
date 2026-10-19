@@ -15,7 +15,9 @@ export async function GET(request: Request) {
   const horsContratParam = new URL(request.url).searchParams.get("horsContrat");
 
   const supabase = await createClient();
-  let requete = supabase.from("sites").select("*").order("nom");
+  // sites_view (pas sites) : hors_contrat est une colonne calculée, pas
+  // une colonne de la table de base.
+  let requete = supabase.from("sites_view").select("*").order("nom");
   if (horsContratParam !== null) requete = requete.eq("hors_contrat", horsContratParam === "1");
   const { data: sites, error } = await requete;
   if (error) {

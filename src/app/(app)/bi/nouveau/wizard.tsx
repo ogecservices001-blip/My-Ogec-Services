@@ -100,10 +100,6 @@ export function BiWizard({
   // remontage (et donc un nouveau calcul ici) quand on passe d'un
   // contexte à l'autre, plutôt que de réutiliser une instance déjà
   // montée dont les useState ne se réinitialiseraient pas tout seuls.
-  function compteRenduDepuisDepannage(d: DepannageEnCours): string {
-    return [d.lieu_panne ? `Lieu : ${d.lieu_panne}` : "", `Motif : ${d.message}`].filter(Boolean).join("\n");
-  }
-
   function calculerEtatInitial() {
     const poleParam = searchParams.get("pole") ?? "";
     const devisIdParam = searchParams.get("devisId");
@@ -127,7 +123,7 @@ export function BiWizard({
           clientNom: s?.nom ?? "",
           siteId: s?.id ?? "",
           equipementId: d.equipement_id ?? "",
-          compteRendu: compteRenduDepuisDepannage(d),
+          compteRendu: "",
         };
       }
     }
@@ -1025,6 +1021,22 @@ export function BiWizard({
 
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <label className="mb-1 block text-xs font-medium text-slate-600">Compte rendu</label>
+            {pole === Poles.depannage &&
+              (() => {
+                const d = depannagesEnCours.find((x) => x.id === depannageId);
+                if (!d) return null;
+                return (
+                  <p className="mb-2 text-sm text-slate-700">
+                    {d.lieu_panne && (
+                      <>
+                        Lieu : {d.lieu_panne}
+                        <br />
+                      </>
+                    )}
+                    Motif : {d.message}
+                  </p>
+                );
+              })()}
             <textarea
               value={compteRendu}
               onChange={(e) => setCompteRendu(e.target.value)}

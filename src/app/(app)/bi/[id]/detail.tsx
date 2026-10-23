@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Lock, X, FileText, ExternalLink, Mail } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { StatutBadge } from "@/components/bi/statut-badge";
-import { Poles, Statuts, avecPeriode, sansTempsPasse, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI } from "@/lib/bi/constants";
+import { Poles, Statuts, avecPeriode, sansTempsPasse, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI, CLASSEMENT_LABELS } from "@/lib/bi/constants";
 import {
   equipementLabel,
   eur,
@@ -14,8 +14,8 @@ import {
   totalHT,
   interventionsDuBon,
   ETATS_EQUIPEMENT,
-  dureeEnHeures,
-  parsePu,
+  montantMainDoeuvre,
+  montantDeplacements,
   type InterventionEquipement,
   type Presta,
 } from "@/lib/bi/format";
@@ -27,7 +27,7 @@ const STATUTS_AVEC_PDF = new Set<string>([Statuts.valide, Statuts.pdfGenere, Sta
 type Bon = Tables<"bons_intervention">;
 type TypeEquipementResume = { id: string; nom: string; champs_en_tete_supplementaires: unknown };
 type ModeleResume = { champs: ChampEnTete[]; checklist: ChecklistItem[] } | null;
-type TauxSite = {
+type TauxSiteComplet = {
   taux_horaire_regie: string;
   taux_horaire_revise: string;
   taux_horaire_vendu: string;
@@ -48,7 +48,7 @@ export function BiDetail({
   typesEquipement: TypeEquipementResume[];
   modele: ModeleResume;
   isAdmin: boolean;
-  tauxSite: TauxSite;
+  tauxSite: TauxSiteComplet;
 }) {
   const router = useRouter();
   const enCorrection = isAdmin && bon.statut === Statuts.aVerifier;
@@ -108,56 +108,73 @@ export function BiDetail({
         </div>
       )}
 
-      <div className="grid items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
-      <Section titre="Le client">
-        <div className="mb-2 flex items-center gap-1.5 text-xs text-slate-500">
-          <Lock className="h-3.5 w-3.5" strokeWidth={2} />
-          Données client et signature verrouillées après signature.
-        </div>
-        <Ligne label="Client" valeur={[bon.client_nom, bon.site].filter(Boolean).join(" — ")} />
-        <Ligne label="Adresse" valeur={bon.adresse || "—"} />
-        {bon.hors_contrat && <Ligne label="⚑" valeur="Client hors contrat" />}
-        <Ligne label="Signataire" valeur={`${bon.signataire}  ·  ${bon.date_signature}`} />
-      </Section>
-
       {enCorrection ? (
-        <VueCorrection bon={bon} techniciensDisponibles={techniciensDisponibles} onValide={() => router.refresh()} />
+        <div className="space-y-4">
+          <BlocClient bon={bon} />
+          <VueCorrection
+            bon={bon}
+            techniciensDisponibles={techniciensDisponibles}
+            tauxSite={tauxSite}
+            onValide={() => router.refresh()}
+          />
+          <BlocHistorique bon={bon} />
+        </div>
       ) : (
-        <VueLectureSeule bon={bon} typesEquipement={typesEquipement} modele={modele} />
-      )}
-
-      {isAdmin && !enCorrection && (
-        <>
-          <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />
-          <BlocClassement bon={bon} />
-        </>
-      )}
-
-      {Array.isArray(bon.history) && bon.history.length > 0 && (
-        <Section titre="Historique des corrections">
-          {(bon.history as { user?: string; date?: string; event?: string; changes?: { champ: string; avant: string; apres: string }[] }[]).map(
-            (h, i) => (
-              <div key={i} className="mb-2">
-                <p className="text-xs font-bold text-slate-700">
-                  {h.date} · {h.user}
-                </p>
-                {h.event && <p className="text-sm text-slate-600">{h.event}</p>}
-                {h.changes?.map((c, j) => (
-                  <p key={j} className="text-xs text-slate-500">
-                    • {c.champ} : « {c.avant} » → « {c.apres} »
-                  </p>
-                ))}
-              </div>
-            ),
+        <div className="grid items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          <BlocClient bon={bon} />
+          <VueLectureSeule bon={bon} typesEquipement={typesEquipement} modele={modele} />
+          {isAdmin && (
+            <>
+              <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />
+              <BlocClassement bon={bon} />
+            </>
           )}
-        </Section>
+          <BlocHistorique bon={bon} />
+        </div>
       )}
-      </div>
 
       {modaleEmailOuverte && (
         <ModaleEmail biId={bon.id} destinataire={bon.email} onClose={() => setModaleEmailOuverte(false)} />
       )}
     </div>
+  );
+}
+
+function BlocClient({ bon }: { bon: Bon }) {
+  return (
+    <Section titre="Le client">
+      <div className="mb-2 flex items-center gap-1.5 text-xs text-slate-500">
+        <Lock className="h-3.5 w-3.5" strokeWidth={2} />
+        Données client et signature verrouillées après signature.
+      </div>
+      <Ligne label="Client" valeur={[bon.client_nom, bon.site].filter(Boolean).join(" — ")} />
+      <Ligne label="Adresse" valeur={bon.adresse || "—"} />
+      {bon.hors_contrat && <Ligne label="⚑" valeur="Client hors contrat" />}
+      <Ligne label="Signataire" valeur={`${bon.signataire}  ·  ${bon.date_signature}`} />
+    </Section>
+  );
+}
+
+function BlocHistorique({ bon }: { bon: Bon }) {
+  if (!Array.isArray(bon.history) || bon.history.length === 0) return null;
+  return (
+    <Section titre="Historique des corrections">
+      {(bon.history as { user?: string; date?: string; event?: string; changes?: { champ: string; avant: string; apres: string }[] }[]).map(
+        (h, i) => (
+          <div key={i} className="mb-2">
+            <p className="text-xs font-bold text-slate-700">
+              {h.date} · {h.user}
+            </p>
+            {h.event && <p className="text-sm text-slate-600">{h.event}</p>}
+            {h.changes?.map((c, j) => (
+              <p key={j} className="text-xs text-slate-500">
+                • {c.champ} : « {c.avant} » → « {c.apres} »
+              </p>
+            ))}
+          </div>
+        ),
+      )}
+    </Section>
   );
 }
 
@@ -401,15 +418,12 @@ function VueLectureSeule({
 /// taux vendu, affiché juste pour référence), + forfait déplacement et
 /// matériel, pour que le bureau voie le total avant de cocher "À
 /// facturer".
-function BlocMontantFacturation({ bon, tauxSite }: { bon: Bon; tauxSite: TauxSite }) {
-  const heures = dureeEnHeures(bon.temps_passe);
-  const tauxRegie = parsePu(tauxSite?.taux_horaire_regie ?? "");
-  const montantHeures = heures !== null && tauxRegie !== null ? heures * tauxRegie : null;
-  const forfaitDeplacement = parsePu(tauxSite?.forfait_deplacement ?? "");
-  const montantDeplacements = forfaitDeplacement !== null ? forfaitDeplacement * bon.nombre_deplacements : null;
+function BlocMontantFacturation({ bon, tauxSite }: { bon: Bon; tauxSite: TauxSiteComplet }) {
+  const montantHeures = montantMainDoeuvre(bon.temps_passe, tauxSite);
+  const montantDepl = montantDeplacements(bon.nombre_deplacements, tauxSite);
   const prestas = interventionsDuBon(bon).flatMap((i) => i.prestas.filter((p: Presta) => p.designation.trim()));
   const montantMateriel = totalHT(prestas);
-  const total = (montantHeures ?? 0) + (montantDeplacements ?? 0) + montantMateriel;
+  const total = (montantHeures ?? 0) + (montantDepl ?? 0) + montantMateriel;
 
   return (
     <Section titre="Montant à facturer">
@@ -425,7 +439,7 @@ function BlocMontantFacturation({ bon, tauxSite }: { bon: Bon; tauxSite: TauxSit
               label="Forfait déplacement"
               valeur={tauxSite.forfait_deplacement ? `${tauxSite.forfait_deplacement} € × ${bon.nombre_deplacements}` : "—"}
             />
-            {montantDeplacements !== null && <Ligne label="→ Montant déplacements" valeur={eur(montantDeplacements)} />}
+            {montantDepl !== null && <Ligne label="→ Montant déplacements" valeur={eur(montantDepl)} />}
             <Ligne label="Forfait déplacement révisé" valeur={tauxSite.forfait_deplacement_revise || "—"} />
           </>
         ) : (
@@ -441,7 +455,7 @@ function BlocMontantFacturation({ bon, tauxSite }: { bon: Bon; tauxSite: TauxSit
   );
 }
 
-function BlocClassement({ bon }: { bon: Bon }) {
+function BlocClassement({ bon, onChange }: { bon: Bon; onChange?: (classement: string) => void }) {
   const router = useRouter();
   const [classement, setClassement] = useState(bon.classement);
   const [moisFacturation, setMoisFacturation] = useState(bon.mois_facturation);
@@ -458,6 +472,7 @@ function BlocClassement({ bon }: { bon: Bon }) {
         return;
       }
       setClassement(nouveau);
+      onChange?.(nouveau);
       router.refresh();
     });
   }
@@ -477,26 +492,18 @@ function BlocClassement({ bon }: { bon: Bon }) {
   return (
     <Section titre="Classement">
       <div className="flex flex-wrap gap-4">
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-          <input
-            type="checkbox"
-            checked={classement === "archiver"}
-            onChange={() => choisir("archiver")}
-            disabled={pending}
-            className="h-4 w-4 accent-brand-green"
-          />
-          À archiver
-        </label>
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-          <input
-            type="checkbox"
-            checked={classement === "facturer"}
-            onChange={() => choisir("facturer")}
-            disabled={pending}
-            className="h-4 w-4 accent-brand-green"
-          />
-          À facturer
-        </label>
+        {Object.entries(CLASSEMENT_LABELS).map(([valeur, label]) => (
+          <label key={valeur} className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <input
+              type="checkbox"
+              checked={classement === valeur}
+              onChange={() => choisir(valeur)}
+              disabled={pending}
+              className="h-4 w-4 accent-brand-green"
+            />
+            {label}
+          </label>
+        ))}
       </div>
 
       {classement === "facturer" && (
@@ -527,6 +534,46 @@ function BlocClassement({ bon }: { bon: Bon }) {
   );
 }
 
+/// Main d'œuvre + déplacement estimés, affichés uniquement au bureau
+/// quand le classement "À Facturer" est choisi — jamais sur le PDF
+/// client (voir genererPdfBI, TablePrestas n'imprime ni PU ni montant).
+function BlocMainDoeuvreDeplacement({
+  tempsPasse,
+  nombreDeplacements,
+  tauxSite,
+}: {
+  tempsPasse: string;
+  nombreDeplacements: number;
+  tauxSite: TauxSiteComplet;
+}) {
+  if (!tauxSite) {
+    return (
+      <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+        Aucun taux connu pour ce client (fiche site) — main d&apos;œuvre et déplacement non estimables.
+      </p>
+    );
+  }
+  const mo = montantMainDoeuvre(tempsPasse, tauxSite);
+  const depl = montantDeplacements(nombreDeplacements, tauxSite);
+  return (
+    <div className="rounded-xl border border-slate-200 p-3">
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+        Facturation (interne, jamais imprimée)
+      </p>
+      <div className="grid grid-cols-2 gap-y-1 text-sm">
+        <span className="text-slate-500">Main d&apos;œuvre</span>
+        <span className="text-right font-medium text-slate-900">
+          {mo !== null ? `${eur(mo)}  (${tauxSite.taux_horaire_regie} €/h)` : "—"}
+        </span>
+        <span className="text-slate-500">Déplacement × {nombreDeplacements}</span>
+        <span className="text-right font-medium text-slate-900">
+          {depl !== null ? `${eur(depl)}  (${tauxSite.forfait_deplacement} €)` : "—"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function labelChampMateriel(type: TypeEquipementResume | undefined, cle: string): string {
   const champs = (type?.champs_en_tete_supplementaires as { cle: string; label: string }[] | undefined) ?? [];
   return champs.find((c) => c.cle === cle)?.label ?? cle;
@@ -554,10 +601,12 @@ function PhotoVignette({ photo }: { photo: { type: string; storage_path: string;
 function VueCorrection({
   bon,
   techniciensDisponibles,
+  tauxSite,
   onValide,
 }: {
   bon: Bon;
   techniciensDisponibles: string[];
+  tauxSite: TauxSiteComplet;
   onValide: () => void;
 }) {
   const [pole, setPole] = useState(bon.pole);
@@ -568,6 +617,7 @@ function VueCorrection({
   const [tempsPasse, setTempsPasse] = useState(bon.temps_passe);
   const [nombreDeplacements, setNombreDeplacements] = useState(bon.nombre_deplacements);
   const [obsTech, setObsTech] = useState(bon.obs_tech);
+  const [classementActuel, setClassementActuel] = useState(bon.classement);
   const [interventions, setInterventions] = useState<InterventionEquipement[]>(() =>
     interventionsDuBon(bon).map((inter) => ({ ...inter, prestas: inter.prestas.filter((p) => p.designation.trim()) })),
   );
@@ -578,7 +628,9 @@ function VueCorrection({
 
   const emailValide = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   const peutValider =
-    emailValide && (pole !== Poles.installationNeuve || (bon.equipement_nom.trim() !== "" && bon.materiel_type_equipement_id !== null));
+    emailValide &&
+    classementActuel !== "" &&
+    (pole !== Poles.installationNeuve || (bon.equipement_nom.trim() !== "" && bon.materiel_type_equipement_id !== null));
 
   function valider() {
     setErreur(null);
@@ -698,40 +750,57 @@ function VueCorrection({
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
               />
               {inter.prestas.length > 0 && (
-                <div className="mt-2">
-                  <p className="mb-1 text-xs font-medium text-slate-600">
-                    Fourniture de matériel — prix à saisir par le bureau
-                  </p>
-                  <div className="space-y-2">
+                <div className="mt-3 overflow-hidden rounded-xl border border-slate-200">
+                  <div className="bg-slate-50 px-3 py-2">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Fourniture de matériel</p>
+                    <p className="text-[11px] text-slate-400">Prix à saisir par le bureau</p>
+                  </div>
+                  <div className="divide-y divide-slate-100">
                     {inter.prestas.map((p, j) => (
-                      <div key={j} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2">
-                        <div className="min-w-0 flex-1 text-sm text-slate-700">
-                          {p.designation} <span className="text-slate-400">× {p.quantite}</span>
+                      <div key={j} className="flex items-center gap-3 px-3 py-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-slate-800">{p.designation}</p>
+                          <p className="text-xs text-slate-400">× {p.quantite}</p>
                         </div>
-                        <input
-                          value={p.pu ?? ""}
-                          onChange={(e) =>
-                            majIntervention({
-                              prestas: inter.prestas.map((ligne, k) => (k === j ? { ...ligne, pu: e.target.value } : ligne)),
-                            })
-                          }
-                          placeholder="PU €"
-                          className="w-20 shrink-0 rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:border-violet-600"
-                        />
-                        <span className="w-20 shrink-0 text-right text-xs text-slate-500">
+                        <div className="flex shrink-0 items-center gap-1">
+                          <input
+                            value={p.pu ?? ""}
+                            onChange={(e) =>
+                              majIntervention({
+                                prestas: inter.prestas.map((ligne, k) => (k === j ? { ...ligne, pu: e.target.value } : ligne)),
+                              })
+                            }
+                            placeholder="0,00"
+                            className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-right text-sm outline-none focus:border-violet-600"
+                          />
+                          <span className="text-xs text-slate-400">€</span>
+                        </div>
+                        <span className="w-20 shrink-0 text-right text-sm font-semibold text-slate-700">
                           {montantLigne(p) !== null ? eur(montantLigne(p)!) : "—"}
                         </span>
                       </div>
                     ))}
-                    {totalHT(inter.prestas) > 0 && (
-                      <p className="text-right text-sm font-bold text-slate-900">Total HT : {eur(totalHT(inter.prestas))}</p>
-                    )}
                   </div>
+                  {totalHT(inter.prestas) > 0 && (
+                    <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-3 py-2">
+                      <span className="text-sm font-bold text-slate-900">Total HT</span>
+                      <span className="text-sm font-bold text-slate-900">{eur(totalHT(inter.prestas))}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           );
         })}
+
+        <BlocClassement bon={bon} onChange={setClassementActuel} />
+        {classementActuel === "facturer" && (
+          <BlocMainDoeuvreDeplacement tempsPasse={tempsPasse} nombreDeplacements={nombreDeplacements} tauxSite={tauxSite} />
+        )}
+        {classementActuel === "" && (
+          <p className="text-xs font-medium text-amber-600">Choisis un classement ci-dessus avant de valider.</p>
+        )}
+
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Observations technicien</label>
           <textarea

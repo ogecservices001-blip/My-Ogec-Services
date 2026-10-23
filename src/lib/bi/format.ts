@@ -154,6 +154,27 @@ export function eur(v: number): string {
   return `${v.toFixed(2)} €`;
 }
 
+export type TauxSite = {
+  taux_horaire_regie: string;
+  forfait_deplacement: string;
+} | null;
+
+/// Montant estimé de la main d'œuvre au taux horaire régie du site
+/// (jamais le taux vendu) — null si le temps passé ou le taux du site
+/// sont inconnus.
+export function montantMainDoeuvre(tempsPasse: string, tauxSite: TauxSite): number | null {
+  const heures = dureeEnHeures(tempsPasse);
+  const taux = parsePu(tauxSite?.taux_horaire_regie ?? "");
+  return heures !== null && taux !== null ? heures * taux : null;
+}
+
+/// Montant estimé des déplacements au forfait du site (les clients
+/// n'ont pas tous le même taux) — null si le forfait est inconnu.
+export function montantDeplacements(nombreDeplacements: number, tauxSite: TauxSite): number | null {
+  const forfait = parsePu(tauxSite?.forfait_deplacement ?? "");
+  return forfait !== null ? forfait * nombreDeplacements : null;
+}
+
 export function totalHT(prestas: Presta[]): number {
   return prestas.reduce((total, p) => total + (montantLigne(p) ?? 0), 0);
 }

@@ -3,7 +3,7 @@ import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { Tables } from "@/lib/types";
 import { Poles, avecPeriode, labelPole, PHOTO_TYPES } from "./constants";
-import { equipementLabel, eur, montantLigne, parsePu, totalHT, interventionsDuBon, ETATS_EQUIPEMENT, type Presta } from "./format";
+import { equipementLabel, interventionsDuBon, ETATS_EQUIPEMENT, type Presta } from "./format";
 
 type Bon = Tables<"bons_intervention">;
 
@@ -47,10 +47,8 @@ const styles = StyleSheet.create({
   table: { borderTopWidth: 0.6, borderTopColor: LIGNE },
   tableHeaderRow: { flexDirection: "row", backgroundColor: FOND_SECTION },
   tableRow: { flexDirection: "row", borderTopWidth: 0.6, borderTopColor: LIGNE },
-  tdDesignation: { flex: 3, fontSize: 9, padding: 4 },
-  tdNb: { flex: 0.8, fontSize: 9, padding: 4 },
-  tdPu: { flex: 1.1, fontSize: 9, padding: 4 },
-  tdMontant: { flex: 1.2, fontSize: 9, padding: 4 },
+  tdDesignation: { flex: 4, fontSize: 9, padding: 4 },
+  tdNb: { flex: 1, fontSize: 9, padding: 4 },
   thText: { fontSize: 9, fontFamily: "Helvetica-Bold" },
   photoPage: { padding: 28 },
   photoPageTitle: { fontSize: 12, fontFamily: "Helvetica-Bold", color: BLEU, marginBottom: 12 },
@@ -110,10 +108,11 @@ function lignesDates(b: Bon): { label: string; valeur: string }[] {
   return lignes;
 }
 
+/// Désignation + quantité uniquement — jamais de prix : le bureau fixe
+/// le PU/montant après coup (voir BiDetail > "Fourniture de matériel"),
+/// une fois que le client a déjà signé ce document.
 function TablePrestas({ prestas }: { prestas: Presta[] }) {
   const lignes = prestas.filter((p) => p.designation.trim()).slice(0, 10);
-  const total = totalHT(lignes);
-  const hasPrix = lignes.some((p) => montantLigne(p) !== null);
   const affichees = lignes.length === 0 ? [{ designation: "—", quantite: "" }] : lignes;
 
   return (
@@ -121,25 +120,13 @@ function TablePrestas({ prestas }: { prestas: Presta[] }) {
       <View style={styles.tableHeaderRow}>
         <Text style={[styles.tdDesignation, styles.thText]}>Désignation</Text>
         <Text style={[styles.tdNb, styles.thText]}>Nb</Text>
-        <Text style={[styles.tdPu, styles.thText]}>PU HT</Text>
-        <Text style={[styles.tdMontant, styles.thText]}>Montant HT</Text>
       </View>
       {affichees.map((p, i) => (
         <View key={i} style={styles.tableRow}>
           <Text style={styles.tdDesignation}>{p.designation}</Text>
           <Text style={styles.tdNb}>{p.quantite}</Text>
-          <Text style={styles.tdPu}>{parsePu(p.pu ?? "") !== null ? eur(parsePu(p.pu ?? "")!) : "—"}</Text>
-          <Text style={styles.tdMontant}>{montantLigne(p) !== null ? eur(montantLigne(p)!) : "—"}</Text>
         </View>
       ))}
-      {hasPrix && (
-        <View style={styles.tableRow}>
-          <Text style={styles.tdDesignation} />
-          <Text style={styles.tdNb} />
-          <Text style={[styles.tdPu, styles.thText]}>Total HT</Text>
-          <Text style={[styles.tdMontant, styles.thText]}>{eur(total)}</Text>
-        </View>
-      )}
     </View>
   );
 }

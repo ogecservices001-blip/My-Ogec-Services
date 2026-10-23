@@ -116,6 +116,16 @@ export function labelStatut(s: string): string {
   return STATUT_LABELS[s] ?? s;
 }
 
+/// Classement bureau d'un BI — obligatoire avant validation (voir
+/// BlocClassement dans bi/[id]/detail.tsx). La valeur stockée
+/// "archiver" est historique ; son libellé affiché est "À Classer".
+export const CLASSEMENT_LABELS: Record<string, string> = {
+  archiver: "À Classer",
+  facturer: "À Facturer",
+  reception_travaux: "Réception Travaux",
+  maintenance: "Maintenance",
+};
+
 /// Clés de `champs_en_tete` jamais proposées au technicien ni affichées
 /// côté bureau sur le Bon d'intervention (Installation neuve/
 /// Remplacement à l'identique) : le nom du technicien est déjà connu

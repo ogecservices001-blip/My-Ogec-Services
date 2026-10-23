@@ -219,12 +219,14 @@ export async function envoyerBiParEmail(id: string, informationComplementaire: s
   return { ok: true };
 }
 
-const CLASSEMENTS_VALIDES = new Set(["", "archiver", "facturer"]);
+const CLASSEMENTS_VALIDES = new Set(["", "archiver", "facturer", "reception_travaux", "maintenance"]);
 const FORMAT_MOIS_ANNEE = /^\d{2}-\d{4}$/;
 
-/// Classement du BI une fois vérifié : "archiver" (rien à facturer) ou
-/// "facturer" (mois de facturation saisi ensuite) — voir
-/// modifierMoisFacturation côté devis, même principe.
+/// Classement du BI, obligatoire avant validation bureau (voir
+/// BlocClassement) : "archiver" (affiché "À Classer", rien à facturer),
+/// "facturer" (mois de facturation saisi ensuite), "reception_travaux"
+/// (prestation sur devis) ou "maintenance" — voir modifierMoisFacturation
+/// côté devis, même principe pour le mois.
 export async function classerBI(id: string, classement: string, moisFacturation: string): Promise<ActionResult> {
   await requireAdmin();
   if (!CLASSEMENTS_VALIDES.has(classement)) return { ok: false, erreur: "Classement invalide." };

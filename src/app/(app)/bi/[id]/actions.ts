@@ -93,10 +93,11 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
         groupe: bi.equipement_groupe,
         // Toujours hors contrat à la création, même chez un client sous
         // contrat : un équipement ajouté n'est jamais automatiquement
-        // couvert par le contrat existant, il faut un avenant.
+        // couvert par le contrat existant, il faut un avenant. Chez un
+        // client déjà hors contrat, c'est trivial — rien à signaler.
         hors_contrat: true,
         champs_en_tete: champsEnTete,
-        remarque_technicien: `Installé le ${date} via ${bi.numero} : ${bi.compte_rendu} — Hors contrat, avenant à faire.`,
+        remarque_technicien: `Installé le ${date} via ${bi.numero} : ${bi.compte_rendu}${bi.hors_contrat ? "" : " — Hors contrat, avenant à faire."}`,
       });
       break;
     }

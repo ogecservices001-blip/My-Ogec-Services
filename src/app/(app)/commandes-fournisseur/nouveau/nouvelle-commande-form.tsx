@@ -109,9 +109,13 @@ export function NouvelleCommandeForm({
       if (r.taux_tva.trim() && !Number.isNaN(tauxLu)) {
         tauxDevis = tauxLu;
       } else if (r.montant_ttc.trim() && htLignes > 0) {
+        // Pas de condition "> htLignes" : un devis où le TTC affiché
+        // est égal au HT signifie une TVA à 0%, un cas réel (pas une
+        // anomalie à ignorer) — seul un résultat négatif (mauvaise
+        // lecture) est écarté, ramené à 0 plutôt que rejeté en bloc.
         const ttcLu = parseFloat(r.montant_ttc.trim().replace(",", "."));
-        if (!Number.isNaN(ttcLu) && ttcLu > htLignes) {
-          tauxDevis = Math.round((ttcLu / htLignes - 1) * 1000) / 10;
+        if (!Number.isNaN(ttcLu)) {
+          tauxDevis = Math.max(0, Math.round((ttcLu / htLignes - 1) * 1000) / 10);
         }
       }
 

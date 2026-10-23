@@ -3,6 +3,7 @@ import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { Tables } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
+import { formaterDate } from "@/lib/format";
 import { OGEC, ATTESTATION_CAPACITE } from "./constants";
 import { type LigneCommande, montantLigne, calculerTotaux, eur } from "./format";
 
@@ -143,7 +144,7 @@ function CommandeDocument({
 
         <Section titre="LIVRAISON" />
         <Kv k="Adresse de livraison" v={commande.adresse_livraison} />
-        <Kv k="Date de livraison prévue" v={commande.date_livraison_prevue} />
+        <Kv k="Date de livraison prévue" v={formaterDate(commande.date_livraison_prevue)} />
         {metropole && <Kv k="Port" v={commande.port} />}
         {metropole && <Kv k="Incoterm" v={commande.incoterm} />}
 

@@ -25,6 +25,20 @@ const DevisExtrait = z.object({
   validite_offre: z.string().default("").describe("Durée ou date de validité de l'offre indiquée sur le document, telle qu'écrite (ex: \"30 jours\", \"valable jusqu'au 15/11/2026\")"),
   conditions_paiement: z.string().default("").describe("Conditions de paiement indiquées sur le document, telles qu'écrites (ex: \"30% à la commande, solde à la livraison\", \"comptant\", \"30 jours net\")"),
   incoterm: z.string().default("").describe("Code Incoterm à 3 lettres si indiqué (EXW, FCA, FOB, CFR, CIF, DAP, DDP...), sinon vide"),
+  taux_tva: z
+    .string()
+    .default("")
+    .describe(
+      "Taux de TVA en %, chiffre seul, UNIQUEMENT s'il est clairement indiqué comme un pourcentage sur le " +
+        "document (ex: \"TVA 8,5%\") — jamais un simple code interne (ex: \"9\") sans le symbole %.",
+    ),
+  montant_ttc: z
+    .string()
+    .default("")
+    .describe(
+      "Montant TTC total du devis (toutes lignes confondues), chiffres uniquement, si indiqué sur le document — " +
+        "sert à vérifier/déduire le taux de TVA réel quand il n'est pas donné explicitement en %.",
+    ),
   produits_cles: z
     .string()
     .default("")
@@ -39,7 +53,8 @@ const PROMPT =
   "le numéro de devis, sa date, la raison sociale complète de la société émettrice (le fournisseur), le nom de la " +
   "personne (interlocuteur/commercial) indiquée sur le document si présent, la durée ou date de validité de " +
   "l'offre si elle est indiquée, les conditions de paiement si elles sont indiquées, l'Incoterm si indiqué, " +
-  "l'activité/spécialité du fournisseur si elle est mentionnée, " +
+  "le taux de TVA en % s'il est clairement écrit comme un pourcentage (pas un simple code numérique interne), " +
+  "le montant TTC total du devis s'il est indiqué, l'activité/spécialité du fournisseur si elle est mentionnée, " +
   "et CHAQUE ligne facturable du tableau d'articles : code article (s'il y en a un, sinon laisse vide), " +
   "désignation, quantité, prix unitaire HT (nombre seul, virgule ou point comme séparateur décimal, sans " +
   "symbole monétaire), et la remise en % si une colonne Remise existe et qu'elle est renseignée sur cette ligne. " +

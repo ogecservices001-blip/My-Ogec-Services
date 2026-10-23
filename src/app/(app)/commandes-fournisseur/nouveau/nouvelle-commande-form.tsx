@@ -7,7 +7,7 @@ import { ArrowLeft, Plus, Trash2, ScanLine } from "lucide-react";
 import type { Fournisseur } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
 import { INCOTERMS, ADRESSES_LIVRAISON_PRESETS, tauxTvaDefaut } from "@/lib/commandes-fournisseur/constants";
-import { ligneVide, montantLigne, calculerTotaux, eur, type LigneCommande } from "@/lib/commandes-fournisseur/format";
+import { ligneVide, montantLigne, calculerTotaux, totalHT, eur, type LigneCommande } from "@/lib/commandes-fournisseur/format";
 import { creerCommandeFournisseur, analyserDevisFournisseur } from "../actions";
 import { completerFicheFournisseurDepuisDevis } from "@/app/(app)/repertoire/fournisseurs/actions";
 
@@ -99,10 +99,27 @@ export function NouvelleCommandeForm({
       setValiditeOffre(r.validite_offre);
       if (r.incoterm) setIncoterm(r.incoterm.toUpperCase());
 
+      // Taux de TVA : celui du devis prime toujours sur le défaut du
+      // fournisseur (c'est une donnée par commande, pas une
+      // caractéristique fixe du fournisseur) — soit indiqué en clair,
+      // soit déduit du TTC affiché face au HT recalculé des lignes.
+      const htLignes = totalHT(r.lignes);
+      let tauxDevis: number | null = null;
+      const tauxLu = parseFloat(r.taux_tva.trim().replace(",", "."));
+      if (r.taux_tva.trim() && !Number.isNaN(tauxLu)) {
+        tauxDevis = tauxLu;
+      } else if (r.montant_ttc.trim() && htLignes > 0) {
+        const ttcLu = parseFloat(r.montant_ttc.trim().replace(",", "."));
+        if (!Number.isNaN(ttcLu) && ttcLu > htLignes) {
+          tauxDevis = Math.round((ttcLu / htLignes - 1) * 1000) / 10;
+        }
+      }
+
       const f = trouverFournisseurPar(r.nom_societe);
+      if (tauxDevis !== null) setTauxTva(tauxDevis);
+      else if (f) setTauxTva(tauxTvaDefaut(f.localisation));
       if (f) {
         setFournisseurId(f.id);
-        setTauxTva(tauxTvaDefaut(f.localisation));
         const contacts = interlocuteursDe(f);
         const cibleContact = r.nom_contact.trim().toLowerCase();
         const idxContact = cibleContact
@@ -154,6 +171,10 @@ export function NouvelleCommandeForm({
     }
     if (!lignes.some((l) => l.designation.trim())) {
       setErreur("Ajoute au moins une ligne d'article.");
+      return;
+    }
+    if (!dateLivraisonPrevue.trim()) {
+      setErreur("Renseigne la date de livraison prévue.");
       return;
     }
     setErreur(null);
@@ -305,11 +326,11 @@ export function NouvelleCommandeForm({
             )}
           </div>
           <div>
-            <label className={ETIQUETTE}>Date de livraison prévue</label>
+            <label className={ETIQUETTE}>Date de livraison prévue *</label>
             <input
+              type="date"
               value={dateLivraisonPrevue}
               onChange={(e) => setDateLivraisonPrevue(e.target.value)}
-              placeholder="jj/mm/aaaa"
               className={CHAMP}
             />
           </div>

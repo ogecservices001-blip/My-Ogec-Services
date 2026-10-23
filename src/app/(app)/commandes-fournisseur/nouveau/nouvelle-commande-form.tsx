@@ -9,7 +9,7 @@ import type { Interlocuteur } from "@/lib/validation/fournisseur";
 import { INCOTERMS, ADRESSES_LIVRAISON_PRESETS, tauxTvaDefaut } from "@/lib/commandes-fournisseur/constants";
 import { ligneVide, montantLigne, calculerTotaux, eur, type LigneCommande } from "@/lib/commandes-fournisseur/format";
 import { creerCommandeFournisseur, analyserDevisFournisseur } from "../actions";
-import { enregistrerConditionsPaiementFournisseur } from "@/app/(app)/repertoire/fournisseurs/actions";
+import { completerFicheFournisseurDepuisDevis } from "@/app/(app)/repertoire/fournisseurs/actions";
 
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
 const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
@@ -68,10 +68,16 @@ export function NouvelleCommandeForm({
   function trouverFournisseurPar(nom: string): Fournisseur | undefined {
     const cible = nom.trim().toLowerCase();
     if (!cible) return undefined;
-    return fournisseurs.find((f) => {
-      const n = f.nom.trim().toLowerCase();
-      return n === cible || n.includes(cible) || cible.includes(n);
-    });
+    const correspond = (valeur: string) => {
+      const n = valeur.trim().toLowerCase();
+      return n.length > 0 && (n === cible || n.includes(cible) || cible.includes(n));
+    };
+    // Nom affiché, dénomination courte (sigle) ou raison sociale exacte
+    // — un devis fournisseur imprime rarement le même libellé que celui
+    // choisi en créant la fiche.
+    return fournisseurs.find(
+      (f) => correspond(f.nom) || correspond(f.denomination_courte) || correspond(f.raison_sociale_exacte),
+    );
   }
 
   function analyserFichier() {
@@ -108,10 +114,13 @@ export function NouvelleCommandeForm({
       // priorité — ne lire celles du devis que si rien n'est déjà su.
       const connues = conditionsConnuesDe(f);
       setConditionsPaiement(connues || r.conditions_paiement);
-      // Et si on vient de les découvrir, on les mémorise dans la fiche
-      // fournisseur pour ne plus avoir à les relire la prochaine fois.
-      if (f && !connues && r.conditions_paiement) {
-        await enregistrerConditionsPaiementFournisseur(f.id, r.conditions_paiement);
+      // Et on complète la fiche fournisseur avec ce qu'on vient
+      // d'apprendre (champs encore vides uniquement, voir la fonction).
+      if (f) {
+        await completerFicheFournisseurDepuisDevis(f.id, {
+          delaiPaiement: r.conditions_paiement,
+          produitsCles: r.produits_cles,
+        });
       }
 
       setLignesExtraites(true);
@@ -370,7 +379,7 @@ export function NouvelleCommandeForm({
 
         <div className="space-y-2">
           {lignes.map((l, i) => (
-            <div key={i} className="grid grid-cols-[1fr_2fr_0.6fr_0.8fr_0.8fr_auto] items-center gap-1.5">
+            <div key={i} className="grid grid-cols-[1fr_2fr_0.6fr_0.8fr_0.6fr_0.8fr_auto] items-center gap-1.5">
               <input value={l.code} onChange={(e) => majLigne(i, "code", e.target.value)} placeholder="Code" className={CHAMP} />
               <input
                 value={l.designation}
@@ -383,6 +392,12 @@ export function NouvelleCommandeForm({
                 value={l.prix_unitaire}
                 onChange={(e) => majLigne(i, "prix_unitaire", e.target.value)}
                 placeholder="PU HT"
+                className={CHAMP}
+              />
+              <input
+                value={l.remise}
+                onChange={(e) => majLigne(i, "remise", e.target.value)}
+                placeholder="Remise %"
                 className={CHAMP}
               />
               <p className="truncate text-right text-sm text-slate-600">

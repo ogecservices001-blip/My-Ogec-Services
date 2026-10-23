@@ -46,9 +46,10 @@ const styles = StyleSheet.create({
   tableHeaderRow: { flexDirection: "row", backgroundColor: FOND_SECTION },
   tableRow: { flexDirection: "row", borderTopWidth: 0.6, borderTopColor: LIGNE },
   tdCode: { flex: 1, fontSize: 9, padding: 4 },
-  tdDesignation: { flex: 3, fontSize: 9, padding: 4 },
-  tdNb: { flex: 0.8, fontSize: 9, padding: 4 },
-  tdPu: { flex: 1.1, fontSize: 9, padding: 4 },
+  tdDesignation: { flex: 2.6, fontSize: 9, padding: 4 },
+  tdNb: { flex: 0.7, fontSize: 9, padding: 4 },
+  tdPu: { flex: 1, fontSize: 9, padding: 4 },
+  tdRemise: { flex: 0.7, fontSize: 9, padding: 4 },
   tdMontant: { flex: 1.2, fontSize: 9, padding: 4 },
   thText: { fontSize: 9, fontFamily: "Helvetica-Bold" },
   totauxBox: { alignSelf: "flex-end", width: 220, marginTop: 6 },
@@ -153,6 +154,7 @@ function CommandeDocument({
             <Text style={[styles.tdDesignation, styles.thText]}>Désignation</Text>
             <Text style={[styles.tdNb, styles.thText]}>Qté</Text>
             <Text style={[styles.tdPu, styles.thText]}>PU HT</Text>
+            <Text style={[styles.tdRemise, styles.thText]}>Remise</Text>
             <Text style={[styles.tdMontant, styles.thText]}>Montant HT</Text>
           </View>
           {lignes.map((l, i) => (
@@ -161,6 +163,7 @@ function CommandeDocument({
               <Text style={styles.tdDesignation}>{l.designation}</Text>
               <Text style={styles.tdNb}>{l.quantite}</Text>
               <Text style={styles.tdPu}>{l.prix_unitaire ? eur(parseFloat(l.prix_unitaire.replace(",", "."))) : "—"}</Text>
+              <Text style={styles.tdRemise}>{l.remise ? `${l.remise} %` : "—"}</Text>
               <Text style={styles.tdMontant}>{montantLigne(l) !== null ? eur(montantLigne(l)!) : "—"}</Text>
             </View>
           ))}

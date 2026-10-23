@@ -35,19 +35,40 @@ export async function modifierFournisseur(id: string, input: FournisseurInput): 
   return { ok: true };
 }
 
-/// Mémorise dans la fiche fournisseur des conditions de paiement
-/// découvertes sur un devis scanné (commande fournisseur) — seulement
-/// si la fiche n'en a pas déjà, pour ne plus avoir à les relire ensuite.
-/// N'écrase jamais une valeur déjà saisie.
-export async function enregistrerConditionsPaiementFournisseur(id: string, delaiPaiement: string): Promise<ActionResult> {
+/// Complète la fiche fournisseur avec ce qu'on apprend en lisant un
+/// devis scanné (commande fournisseur) — uniquement les champs encore
+/// vides, jamais une valeur déjà saisie à la main. "Par virement" est
+/// le mode de règlement par défaut de tous les fournisseurs (jamais lu
+/// sur le devis) ; "CGV reçues" passe à "Oui" dès qu'un devis arrive,
+/// les CGV étant toujours transmises avec (règle métier, pas une
+/// lecture du document).
+export async function completerFicheFournisseurDepuisDevis(
+  id: string,
+  decouvertes: { delaiPaiement?: string; produitsCles?: string },
+): Promise<ActionResult> {
   await requireAdmin();
-  if (!delaiPaiement.trim()) return { ok: true };
 
   const supabase = await createClient();
-  const { data: fournisseur } = await supabase.from("fournisseurs").select("delai_paiement").eq("id", id).single();
-  if (!fournisseur || fournisseur.delai_paiement) return { ok: true };
+  const { data: fournisseur } = await supabase
+    .from("fournisseurs")
+    .select("delai_paiement, mode_reglement, cgv_recues, produits_cles")
+    .eq("id", id)
+    .single();
+  if (!fournisseur) return { ok: true };
 
-  const { error } = await supabase.from("fournisseurs").update({ delai_paiement: delaiPaiement.trim() }).eq("id", id);
+  const maj: Record<string, string> = {};
+  if (!fournisseur.delai_paiement && decouvertes.delaiPaiement?.trim()) {
+    maj.delai_paiement = decouvertes.delaiPaiement.trim();
+  }
+  if (!fournisseur.produits_cles && decouvertes.produitsCles?.trim()) {
+    maj.produits_cles = decouvertes.produitsCles.trim();
+  }
+  if (!fournisseur.mode_reglement) maj.mode_reglement = "Par virement";
+  if (!fournisseur.cgv_recues) maj.cgv_recues = "Oui";
+
+  if (Object.keys(maj).length === 0) return { ok: true };
+
+  const { error } = await supabase.from("fournisseurs").update(maj).eq("id", id);
   if (error) return { ok: false, erreur: error.message };
 
   revalidatePath("/repertoire/fournisseurs");

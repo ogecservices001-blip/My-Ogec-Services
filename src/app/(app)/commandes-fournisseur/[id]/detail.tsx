@@ -7,7 +7,7 @@ import { ArrowLeft, FileText, Send } from "lucide-react";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import type { Tables } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
-import { calculerTotaux, eur, type LigneCommande } from "@/lib/commandes-fournisseur/format";
+import { calculerTotaux, montantLigne, eur, type LigneCommande } from "@/lib/commandes-fournisseur/format";
 import { modifierSuiviCommande, supprimerCommandeFournisseur, envoyerCommandeParEmail } from "../actions";
 
 type Commande = Tables<"commandes_fournisseur">;
@@ -148,7 +148,11 @@ export function CommandeDetail({
             <div key={i} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
               <span className="min-w-0 flex-1 truncate">{l.designation}</span>
               <span className="shrink-0 text-slate-400">×{l.quantite}</span>
-              <span className="shrink-0 font-medium text-slate-700">{l.prix_unitaire ? `${l.prix_unitaire} €` : ""}</span>
+              <span className="shrink-0 text-slate-500">{l.prix_unitaire ? `${l.prix_unitaire} €` : ""}</span>
+              {l.remise && <span className="shrink-0 text-slate-400">-{l.remise}%</span>}
+              <span className="shrink-0 font-medium text-slate-700">
+                {montantLigne(l) !== null ? eur(montantLigne(l)!) : ""}
+              </span>
             </div>
           ))}
         </div>

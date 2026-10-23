@@ -71,7 +71,6 @@ export function construireModules(isAdmin: boolean): Module[] {
         ? [
             { nom: "Bon à vérifier", href: "/bi" },
             { nom: "Bons validés", href: "/bi/valides" },
-            { nom: "Bons à facturer", href: "/bi/valides?onglet=facturer" },
           ]
         : [
             { nom: "Dépannage — Clients sous contrat", href: "/bi/nouveau?pole=60&horsContrat=0" },

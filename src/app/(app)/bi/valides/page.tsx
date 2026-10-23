@@ -2,17 +2,12 @@ import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Statuts } from "@/lib/bi/constants";
 import { montantMainDoeuvre, montantDeplacements, totalHT, type Presta } from "@/lib/bi/format";
-import { BiValidesOnglets } from "./onglets";
+import { BonsValidesTableau } from "./bons-valides";
 
 const STATUTS_VALIDES = [Statuts.valide, Statuts.pdfGenere, Statuts.pretEnvoi, Statuts.envoye];
 
-export default async function BiValidesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ onglet?: string }>;
-}) {
+export default async function BiValidesPage() {
   await requireAdminOuAccueil();
-  const { onglet } = await searchParams;
   const supabase = await createClient();
 
   const { data: bons } = await supabase
@@ -42,5 +37,5 @@ export default async function BiValidesPage({
     return { ...b, montantHt };
   });
 
-  return <BiValidesOnglets bons={lignes} ongletInitial={onglet} />;
+  return <BonsValidesTableau bons={lignes} />;
 }

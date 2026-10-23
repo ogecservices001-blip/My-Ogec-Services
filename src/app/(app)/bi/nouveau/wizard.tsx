@@ -28,6 +28,7 @@ import {
   chargerEquipementsDuSite,
   chargerDevisDuSite,
   chargerModeleBI,
+  chargerInfosNouvelEquipement,
   enregistrerBI,
   type EquipementDuSite,
   type DevisDuSite,
@@ -211,6 +212,15 @@ export function BiWizard({
     setEmail(site.courriel_interlocuteur_site);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pré-remplissage ponctuel au choix du site, pas une synchro continue
   }, [siteId]);
+
+  useEffect(() => {
+    if (!avecNouvelEquipement(pole) || !devisId) return;
+    chargerInfosNouvelEquipement(devisId).then((infos) => {
+      if (!infos || !infos.nom) return;
+      if (!installationNom.trim()) setInstallationNom(infos.nom);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pré-remplissage ponctuel au choix du devis, pas une synchro continue
+  }, [devisId, pole]);
 
   function choisirPole(code: string) {
     if (pole === code) return;

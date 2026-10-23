@@ -68,6 +68,52 @@ export async function chargerDevisDuSite(siteId: string, natureFiltre?: string):
   return data ?? [];
 }
 
+export type InfosNouvelEquipement = {
+  nom: string;
+  localisation: string;
+  groupe: string;
+  type_equipement_id: string;
+};
+
+/// Pré-remplissage "Nouvel équipement à installer" (pôle Installation
+/// neuve) : le nom vient des désignations de la commande fournisseur
+/// liée au devis (ex: "U I WES PLAF INV CSZ-IFC3623.HM0"), nettement
+/// plus précises que le libellé générique du devis ; famille et
+/// localisation viennent de l'équipement existant lié au devis (le
+/// nouveau le remplace ou le rejoint au même endroit).
+export async function chargerInfosNouvelEquipement(devisId: string): Promise<InfosNouvelEquipement | null> {
+  await requireProfile();
+  const supabase = await createClient();
+
+  const { data: devis } = await supabase.from("devis").select("equipement_id").eq("id", devisId).single();
+
+  const { data: commandes } = await supabase
+    .from("commandes_fournisseur")
+    .select("lignes")
+    .eq("devis_id", devisId);
+  const designations = (commandes ?? [])
+    .flatMap((c) => (c.lignes as unknown as { code: string; designation: string }[]) ?? [])
+    .filter((l) => l.code?.trim() && l.designation?.trim())
+    .map((l) => l.designation.trim());
+  const nom = [...new Set(designations)].join(" / ");
+
+  if (!devis?.equipement_id) return nom ? { nom, localisation: "", groupe: "", type_equipement_id: "" } : null;
+
+  const { data: equipement } = await supabase
+    .from("equipements")
+    .select("localisation, groupe, type_equipement_id")
+    .eq("id", devis.equipement_id)
+    .single();
+  if (!equipement) return nom ? { nom, localisation: "", groupe: "", type_equipement_id: "" } : null;
+
+  return {
+    nom,
+    localisation: equipement.localisation,
+    groupe: equipement.groupe,
+    type_equipement_id: equipement.type_equipement_id,
+  };
+}
+
 export type DevisARealiser = {
   id: string;
   numero: string;

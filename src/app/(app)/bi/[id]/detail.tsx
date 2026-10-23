@@ -120,7 +120,7 @@ export function BiDetail({
           <BlocHistorique bon={bon} />
         </div>
       ) : (
-        <div className="grid items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="space-y-4">
           <BlocClient bon={bon} />
           <VueLectureSeule bon={bon} typesEquipement={typesEquipement} modele={modele} />
           {isAdmin && (

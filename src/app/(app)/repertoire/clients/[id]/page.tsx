@@ -161,22 +161,22 @@ export default async function SiteDetailPage({
           Équipements Clients
         </Link>
         {isAdmin && (
-          <>
-            <Link
-              href={`/repertoire/clients/${id}/modifier`}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              <Pencil className="h-4 w-4" strokeWidth={2} />
-              Modifier
-            </Link>
-            <BoutonSupprimer
-              action={supprimerSite.bind(null, id)}
-              confirmation={`Supprimer définitivement le site "${site.site}" de ${site.nom} ? Cette action est irréversible.`}
-              redirectTo="/repertoire/clients"
-            />
-          </>
+          <Link
+            href={`/repertoire/clients/${id}/modifier`}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <Pencil className="h-4 w-4" strokeWidth={2} />
+            Modifier
+          </Link>
         )}
         <BoutonsRecapDevisEtBI devis={recapDevis} bi={recapBi} isAdmin={isAdmin} />
+        {isAdmin && (
+          <BoutonSupprimer
+            action={supprimerSite.bind(null, id)}
+            confirmation={`Supprimer définitivement le site "${site.site}" de ${site.nom} ? Cette action est irréversible.`}
+            redirectTo="/repertoire/clients"
+          />
+        )}
       </div>
 
       <Section

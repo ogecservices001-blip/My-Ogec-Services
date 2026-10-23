@@ -77,6 +77,14 @@ export default async function SitesDuClientPage({
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <BoutonsRecapDevisEtBI devis={recapDevis} bi={recapBi} isAdmin={isAdmin} />
+        {isAdmin && sites.length > 0 && (
+          <BoutonSupprimer
+            action={supprimerSitesDuClient.bind(null, nomDecode)}
+            confirmation={`Supprimer définitivement les ${sites.length} site(s) de ${nomDecode} ? Cette action est irréversible.`}
+            redirectTo={`/repertoire/clients${horsContrat ? "?horsContrat=1" : ""}`}
+            label="Supprimer tous les sites de ce client"
+          />
+        )}
       </div>
 
       <ul className="space-y-3">
@@ -107,17 +115,6 @@ export default async function SitesDuClientPage({
           </li>
         ))}
       </ul>
-
-      {isAdmin && sites.length > 0 && (
-        <div className="mt-6">
-          <BoutonSupprimer
-            action={supprimerSitesDuClient.bind(null, nomDecode)}
-            confirmation={`Supprimer définitivement les ${sites.length} site(s) de ${nomDecode} ? Cette action est irréversible.`}
-            redirectTo={`/repertoire/clients${horsContrat ? "?horsContrat=1" : ""}`}
-            label="Supprimer tous les sites de ce client"
-          />
-        </div>
-      )}
     </div>
   );
 }

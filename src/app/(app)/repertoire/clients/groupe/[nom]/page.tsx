@@ -3,7 +3,7 @@ import { ArrowLeft, ChevronRight, MapPin, Plus, Upload, Download } from "lucide-
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
-import { RecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
+import { BoutonsRecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
 import { chargerRecapDevis, chargerRecapBI } from "@/lib/repertoire/recap";
 import type { Site } from "@/lib/types";
 import { supprimerSitesDuClient } from "../../actions";
@@ -73,9 +73,11 @@ export default async function SitesDuClientPage({
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
         {nomDecode}
       </h1>
-      <p className="mb-5 text-sm text-slate-500">{sites.length} site(s)</p>
+      <p className="mb-3 text-sm text-slate-500">{sites.length} site(s)</p>
 
-      <RecapDevisEtBI devis={recapDevis} bi={recapBi} isAdmin={isAdmin} />
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <BoutonsRecapDevisEtBI devis={recapDevis} bi={recapBi} isAdmin={isAdmin} />
+      </div>
 
       <ul className="space-y-3">
         {sites.map((s) => (

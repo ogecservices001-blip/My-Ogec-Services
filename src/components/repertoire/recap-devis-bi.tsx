@@ -1,7 +1,13 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { FileSignature, ClipboardList, type LucideIcon } from "lucide-react";
 import { eur } from "@/lib/bi/format";
 import type { RecapDevis, RecapBi, LigneRecap } from "@/lib/repertoire/recap";
+
+const STYLE_BOUTON =
+  "inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50";
 
 function CarteRecap({
   titre,
@@ -14,13 +20,11 @@ function CarteRecap({
   groupes: { label: string; lignes: LigneRecap[] }[];
   isAdmin: boolean;
 }) {
-  const total = groupes.reduce((n, g) => n + g.lignes.length, 0);
   return (
-    <div className="mb-4 overflow-hidden rounded-2xl border border-l-4 border-slate-200/80 border-l-brand-green/40 bg-white shadow-sm">
+    <div className="mb-4 w-full overflow-hidden rounded-2xl border border-l-4 border-slate-200/80 border-l-brand-green/40 bg-white shadow-sm">
       <div className="flex items-center gap-2 border-b border-slate-100 bg-green-50/50 px-4 py-2.5">
         <Icone className="h-3.5 w-3.5 text-brand-green-dark" strokeWidth={2.25} />
         <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">{titre}</h2>
-        <span className="ml-auto text-xs font-semibold text-slate-400">{total}</span>
       </div>
       <div className="divide-y divide-slate-50">
         {groupes.map((g) => (
@@ -49,34 +53,51 @@ function CarteRecap({
   );
 }
 
-/// Récap Devis + Bon d'intervention pour une fiche Répertoire (client
-/// ou site) — visible à tous (techniciens inclus), montants masqués
-/// hors admin. Voir chargerRecapDevis/chargerRecapBI (@/lib/repertoire/recap).
-export function RecapDevisEtBI({ devis, bi, isAdmin }: { devis: RecapDevis; bi: RecapBi; isAdmin: boolean }) {
+/// Deux boutons (Devis / Bon d'intervention) à placer dans une ligne de
+/// boutons d'action existante (flex-wrap) — à faire déplier, sinon trop
+/// d'info d'un coup sur la fiche Répertoire. Les panneaux, en `w-full`,
+/// retombent sur leur propre ligne même dans un conteneur flex-wrap.
+/// Voir chargerRecapDevis/chargerRecapBI (@/lib/repertoire/recap).
+export function BoutonsRecapDevisEtBI({ devis, bi, isAdmin }: { devis: RecapDevis; bi: RecapBi; isAdmin: boolean }) {
+  const [ouvert, setOuvert] = useState<"devis" | "bi" | null>(null);
+
   return (
     <>
-      <CarteRecap
-        titre="Devis"
-        icone={FileSignature}
-        isAdmin={isAdmin}
-        groupes={[
-          { label: "À établir", lignes: devis.aEtablir },
-          { label: "Envoyé", lignes: devis.envoye },
-          { label: "À réaliser", lignes: devis.aRealiser },
-          { label: "Réalisés", lignes: devis.realises },
-        ]}
-      />
-      <CarteRecap
-        titre="Bon d'intervention"
-        icone={ClipboardList}
-        isAdmin={isAdmin}
-        groupes={[
-          { label: "À Classer", lignes: bi.classer },
-          { label: "À Facturer", lignes: bi.facturer },
-          { label: "Réception Travaux", lignes: bi.receptionTravaux },
-          { label: "Maintenance", lignes: bi.maintenance },
-        ]}
-      />
+      <button type="button" onClick={() => setOuvert(ouvert === "devis" ? null : "devis")} className={STYLE_BOUTON}>
+        <FileSignature className="h-4 w-4" strokeWidth={2} />
+        Devis
+      </button>
+      <button type="button" onClick={() => setOuvert(ouvert === "bi" ? null : "bi")} className={STYLE_BOUTON}>
+        <ClipboardList className="h-4 w-4" strokeWidth={2} />
+        Bon d&apos;intervention
+      </button>
+
+      {ouvert === "devis" && (
+        <CarteRecap
+          titre="Devis"
+          icone={FileSignature}
+          isAdmin={isAdmin}
+          groupes={[
+            { label: "À établir", lignes: devis.aEtablir },
+            { label: "Envoyé", lignes: devis.envoye },
+            { label: "À réaliser", lignes: devis.aRealiser },
+            { label: "Réalisés", lignes: devis.realises },
+          ]}
+        />
+      )}
+      {ouvert === "bi" && (
+        <CarteRecap
+          titre="Bon d'intervention"
+          icone={ClipboardList}
+          isAdmin={isAdmin}
+          groupes={[
+            { label: "À Classer", lignes: bi.classer },
+            { label: "À Facturer", lignes: bi.facturer },
+            { label: "Réception Travaux", lignes: bi.receptionTravaux },
+            { label: "Maintenance", lignes: bi.maintenance },
+          ]}
+        />
+      )}
     </>
   );
 }

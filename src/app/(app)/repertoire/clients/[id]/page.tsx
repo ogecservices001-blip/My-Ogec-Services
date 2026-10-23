@@ -19,7 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { formaterDate } from "@/lib/format";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
-import { RecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
+import { BoutonsRecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
 import { chargerRecapDevis, chargerRecapBI } from "@/lib/repertoire/recap";
 import type { Site } from "@/lib/types";
 import { supprimerSite } from "../actions";
@@ -176,6 +176,7 @@ export default async function SiteDetailPage({
             />
           </>
         )}
+        <BoutonsRecapDevisEtBI devis={recapDevis} bi={recapBi} isAdmin={isAdmin} />
       </div>
 
       <Section
@@ -220,8 +221,6 @@ export default async function SiteDetailPage({
           ["Remarques libres", site.remarques_libres],
         ]}
       />
-
-      <RecapDevisEtBI devis={recapDevis} bi={recapBi} isAdmin={isAdmin} />
 
       {isAdmin && (
         <>

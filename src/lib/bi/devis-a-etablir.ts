@@ -7,6 +7,7 @@ export type DevisAEtablir = {
   equipementNom: string;
   clientNom: string;
   site: string;
+  siteId: string | null;
   biNumero: string;
   compteRendu: string;
 };
@@ -38,14 +39,18 @@ function entreesDuBon(b: {
 /// Équipements signalés "Devis à établir" par un BI Dépannage, tant
 /// qu'aucun vrai devis (non annulé) n'est déjà lié à cet équipement —
 /// pas de lien à saisir à la main, la liste se vide toute seule dès
-/// qu'un devis est créé pour l'équipement concerné.
-export async function chargerDevisAEtablir(): Promise<DevisAEtablir[]> {
+/// qu'un devis est créé pour l'équipement concerné. `siteIds` limite le
+/// résultat à ces sites (récap Répertoire) ; omis = tous les sites.
+export async function chargerDevisAEtablir(siteIds?: string[]): Promise<DevisAEtablir[]> {
   const supabase = await createClient();
+  let requete = supabase
+    .from("bons_intervention")
+    .select("numero, client_nom, site, site_id, equipement_id, equipement_nom, compte_rendu, etat_equipement, interventions_supplementaires")
+    .eq("pole", Poles.depannage);
+  if (siteIds) requete = requete.in("site_id", siteIds);
+
   const [{ data: bons }, { data: devisExistants }] = await Promise.all([
-    supabase
-      .from("bons_intervention")
-      .select("numero, client_nom, site, equipement_id, equipement_nom, compte_rendu, etat_equipement, interventions_supplementaires")
-      .eq("pole", Poles.depannage),
+    requete,
     supabase.from("devis").select("equipement_id").eq("annule", false).not("equipement_id", "is", null),
   ]);
 
@@ -65,6 +70,7 @@ export async function chargerDevisAEtablir(): Promise<DevisAEtablir[]> {
         equipementNom: entree.equipement_nom,
         clientNom: b.client_nom,
         site: b.site,
+        siteId: b.site_id,
         biNumero: b.numero,
         compteRendu: entree.compte_rendu,
       });

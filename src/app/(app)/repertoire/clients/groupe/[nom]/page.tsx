@@ -3,6 +3,8 @@ import { ArrowLeft, ChevronRight, MapPin, Plus, Upload, Download } from "lucide-
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { RecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
+import { chargerRecapDevis, chargerRecapBI } from "@/lib/repertoire/recap";
 import type { Site } from "@/lib/types";
 import { supprimerSitesDuClient } from "../../actions";
 
@@ -29,6 +31,8 @@ export default async function SitesDuClientPage({
     .eq("hors_contrat", horsContrat)
     .order("site");
   const sites = (data as Site[]) ?? [];
+  const siteIds = sites.map((s) => s.id);
+  const [recapDevis, recapBi] = await Promise.all([chargerRecapDevis(siteIds), chargerRecapBI(siteIds)]);
 
   return (
     <div>
@@ -70,6 +74,8 @@ export default async function SitesDuClientPage({
         {nomDecode}
       </h1>
       <p className="mb-5 text-sm text-slate-500">{sites.length} site(s)</p>
+
+      <RecapDevisEtBI devis={recapDevis} bi={recapBi} isAdmin={isAdmin} />
 
       <ul className="space-y-3">
         {sites.map((s) => (

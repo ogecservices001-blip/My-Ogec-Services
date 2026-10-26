@@ -14,6 +14,7 @@ import {
 } from "../../actions";
 import { calculerStatutDevis, LABEL_STATUT_DEVIS } from "../../statut";
 import { eur } from "../../registre-liste";
+import { formaterDate, dateFrVersIso } from "@/lib/format";
 
 type Devis = Tables<"devis">;
 type Mode = "choix" | "commander";
@@ -199,9 +200,9 @@ export function StatutDevisForm({
           <div className="mb-3">
             <label className="mb-1 block text-xs font-medium text-slate-600">Date de commande client</label>
             <input
-              value={dateCommande}
-              onChange={(e) => setDateCommande(e.target.value)}
-              placeholder="jj/mm/aaaa"
+              type="date"
+              value={dateFrVersIso(dateCommande)}
+              onChange={(e) => setDateCommande(formaterDate(e.target.value))}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
           </div>

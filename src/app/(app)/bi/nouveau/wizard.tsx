@@ -505,7 +505,7 @@ export function BiWizard({
     if (avecEquipementObligatoire(pole) && !equipementId) return false;
     if (pole === Poles.remplacementIdentique && !materielComplet) return false;
     if (avecNouvelEquipement(pole)) {
-      if (!installationNom.trim() || !installationLocalisation.trim()) return false;
+      if (!installationLocalisation.trim()) return false;
       if (!materielComplet) return false;
     }
     if (avecGroupesEntretien(pole)) {
@@ -515,7 +515,7 @@ export function BiWizard({
       }
     }
     return true;
-  }, [siteId, pole, devisId, equipementId, materielComplet, installationNom, installationLocalisation, groupesSelectionnes, nonDesservisIds, motifsNonDesservi]);
+  }, [siteId, pole, devisId, equipementId, materielComplet, installationLocalisation, groupesSelectionnes, nonDesservisIds, motifsNonDesservi]);
 
   const photosEnCours = photos.some((p) => p.enCours);
 
@@ -961,14 +961,6 @@ export function BiWizard({
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Nom de l&apos;équipement</label>
-                <input
-                  value={installationNom}
-                  onChange={(e) => setInstallationNom(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
-                />
-              </div>
-              <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Localisation</label>
                 <input
                   value={installationLocalisation}
@@ -978,17 +970,26 @@ export function BiWizard({
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Groupe (optionnel)</label>
-                <input
-                  value={installationGroupe}
-                  onChange={(e) => setInstallationGroupe(e.target.value)}
-                  list="groupes-existants"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
-                />
-                <datalist id="groupes-existants">
-                  {groupesDisponibles.map((g) => (
-                    <option key={g} value={g} />
-                  ))}
-                </datalist>
+                {groupesDisponibles.length > 0 ? (
+                  <select
+                    value={installationGroupe}
+                    onChange={(e) => setInstallationGroupe(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+                  >
+                    <option value="">—</option>
+                    {groupesDisponibles.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    value={installationGroupe}
+                    onChange={(e) => setInstallationGroupe(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+                  />
+                )}
               </div>
               {typeActif && (
                 <div className="space-y-3 border-t border-slate-100 pt-3">

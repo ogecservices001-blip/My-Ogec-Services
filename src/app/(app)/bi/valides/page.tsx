@@ -13,7 +13,7 @@ export default async function BiValidesPage() {
   const { data: bons } = await supabase
     .from("bons_intervention")
     .select(
-      "id, numero, statut, pole, client_nom, site, equipement_nom, equipement_localisation, updated_at, classement, mois_facturation, site_id, temps_passe, nombre_deplacements, prestas, interventions_supplementaires",
+      "id, numero, statut, pole, client_nom, site, equipement_nom, equipement_localisation, updated_at, classement, mois_facturation, site_id, devis_id, temps_passe, nombre_deplacements, prestas, interventions_supplementaires",
     )
     .in("statut", STATUTS_VALIDES)
     .order("updated_at", { ascending: false });
@@ -25,17 +25,23 @@ export default async function BiValidesPage() {
       : { data: [] };
   const tauxParSite = new Map((sites ?? []).map((s) => [s.id, s]));
 
+  // Pôles sur forfait (prestations sur devis) : le montant est celui du
+  // devis lié, pas un calcul à l'heure qui n'a pas de sens pour eux.
+  const devisIds = [...new Set((bons ?? []).filter((b) => sansTempsPasse(b.pole) && b.devis_id).map((b) => b.devis_id as string))];
+  const { data: devisLies } = devisIds.length > 0 ? await supabase.from("devis").select("id, montant").in("id", devisIds) : { data: [] };
+  const montantDevisParId = new Map((devisLies ?? []).map((d) => [d.id, d.montant ?? 0]));
+
   const lignes = (bons ?? []).map((b) => {
     const taux = b.site_id ? (tauxParSite.get(b.site_id) ?? null) : null;
-    // Prestations sur forfait (devis) : la main d'œuvre/déplacement à
-    // l'heure n'a pas de sens à y calculer, déjà facturées via le devis.
-    const montantHeures = sansTempsPasse(b.pole) ? 0 : (montantMainDoeuvre(b.temps_passe, taux) ?? 0);
-    const montantDepl = sansTempsPasse(b.pole) ? 0 : (montantDeplacements(b.nombre_deplacements, taux) ?? 0);
+    const forfait = sansTempsPasse(b.pole);
+    const montantHeures = forfait ? 0 : (montantMainDoeuvre(b.temps_passe, taux) ?? 0);
+    const montantDepl = forfait ? 0 : (montantDeplacements(b.nombre_deplacements, taux) ?? 0);
     const prestas = [
       ...(b.prestas as unknown as Presta[]),
       ...(b.interventions_supplementaires as unknown as { prestas: Presta[] }[]).flatMap((i) => i.prestas ?? []),
     ];
-    const montantHt = montantHeures + montantDepl + totalHT(prestas);
+    const montantDevis = forfait && b.devis_id ? (montantDevisParId.get(b.devis_id) ?? 0) : 0;
+    const montantHt = montantDevis + montantHeures + montantDepl + totalHT(prestas);
     return { ...b, montantHt };
   });
 

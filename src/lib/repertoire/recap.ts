@@ -97,26 +97,36 @@ export async function chargerRecapBI(siteIds: string[]): Promise<RecapBi> {
   const [{ data: bons }, { data: sites }] = await Promise.all([
     supabase
       .from("bons_intervention")
-      .select("id, numero, pole, classement, site_id, temps_passe, nombre_deplacements, prestas, interventions_supplementaires")
+      .select(
+        "id, numero, pole, classement, site_id, devis_id, temps_passe, nombre_deplacements, prestas, interventions_supplementaires",
+      )
       .in("site_id", siteIds)
       .in("statut", STATUTS_VALIDES_BI),
     supabase.from("sites").select("id, taux_horaire_regie, forfait_deplacement").in("id", siteIds),
   ]);
   const tauxParSite = new Map((sites ?? []).map((s) => [s.id, s]));
 
+  // Pôles sur forfait (prestations sur devis) : le montant est celui du
+  // devis lié, pas un calcul à l'heure qui n'a pas de sens pour eux.
+  const devisIds = [...new Set((bons ?? []).filter((b) => sansTempsPasse(b.pole) && b.devis_id).map((b) => b.devis_id as string))];
+  const { data: devisLies } = devisIds.length > 0 ? await supabase.from("devis").select("id, montant").in("id", devisIds) : { data: [] };
+  const montantDevisParId = new Map((devisLies ?? []).map((d) => [d.id, d.montant ?? 0]));
+
   for (const b of bons ?? []) {
     const taux: TauxSite = (b.site_id ? tauxParSite.get(b.site_id) : undefined) ?? null;
-    const montantHeures = sansTempsPasse(b.pole) ? 0 : (montantMainDoeuvre(b.temps_passe, taux) ?? 0);
-    const montantDepl = sansTempsPasse(b.pole) ? 0 : (montantDeplacements(b.nombre_deplacements, taux) ?? 0);
+    const forfait = sansTempsPasse(b.pole);
+    const montantHeures = forfait ? 0 : (montantMainDoeuvre(b.temps_passe, taux) ?? 0);
+    const montantDepl = forfait ? 0 : (montantDeplacements(b.nombre_deplacements, taux) ?? 0);
     const prestas = [
       ...(b.prestas as unknown as Presta[]),
       ...(b.interventions_supplementaires as unknown as { prestas: Presta[] }[]).flatMap((i) => i.prestas ?? []),
     ];
+    const montantDevis = forfait && b.devis_id ? (montantDevisParId.get(b.devis_id) ?? 0) : 0;
     const ligne: LigneRecap = {
       id: b.id,
       numero: b.numero || "BI (brouillon)",
       libelle: labelPole(b.pole),
-      montant: montantHeures + montantDepl + totalHT(prestas),
+      montant: montantDevis + montantHeures + montantDepl + totalHT(prestas),
       href: `/bi/${b.id}`,
     };
     if (b.classement === "facturer") groupes.facturer.push(ligne);

@@ -2,11 +2,20 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import type { ChampEnTete, ChampListeLigne, ChampsEnTeteEquipement, ReferenceHoraire } from "@/lib/gmao/types";
+import { formaterDate, dateFrVersIso } from "@/lib/format";
 import { OcrScanButton } from "./ocr-scan-button";
+
+/// Champs sans bouton OCR — rien à scanner sur une plaque signalétique
+/// pour une date de contrôle, un n° de bordereau ou une valeur déjà
+/// couverte par un autre champ (charge réfrigérant, puissance).
+const SANS_OCR = new Set(["chargeRefrigerant", "puissance", "dateDernierControle", "dateProchainControle", "numDernierBordereau"]);
 
 /// Un champ d'en-tête spécifique à une famille (texte ou liste de choix
 /// — la valeur existante est toujours proposée même si absente de la
-/// liste officielle, cf. `optionsAvec` côté Flutter).
+/// liste officielle, cf. `optionsAvec` côté Flutter). Un champ dont la
+/// clé commence par "date" (convention déjà utilisée partout dans
+/// l'app : dateMES, dateDernierControle...) s'affiche avec un
+/// calendrier plutôt qu'un champ texte libre.
 export function ChampEnTeteField({
   champ,
   valeur,
@@ -19,6 +28,7 @@ export function ChampEnTeteField({
   const v = typeof valeur === "string" ? valeur : "";
 
   if (champ.options.length === 0) {
+    const estDate = champ.cle.toLowerCase().startsWith("date");
     return (
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-600">
@@ -27,12 +37,13 @@ export function ChampEnTeteField({
         </label>
         <div className="flex items-center gap-1.5">
           <input
-            value={v}
-            onChange={(e) => onChange(e.target.value)}
+            type={estDate ? "date" : undefined}
+            value={estDate ? dateFrVersIso(v) : v}
+            onChange={(e) => onChange(estDate ? formaterDate(e.target.value) : e.target.value)}
             inputMode={champ.numerique ? "decimal" : undefined}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
           />
-          <OcrScanButton onRecognized={onChange} />
+          {!SANS_OCR.has(champ.cle) && <OcrScanButton onRecognized={onChange} />}
         </div>
       </div>
     );

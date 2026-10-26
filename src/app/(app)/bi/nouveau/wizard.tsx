@@ -22,6 +22,7 @@ import {
   sansTempsPasse,
   avecFournitureMateriel,
   CHAMPS_MATERIEL_EXCLUS_BI,
+  CHAMPS_MATERIEL_FACULTATIFS_BI,
 } from "@/lib/bi/constants";
 import { today, tempsStandard, multiplierDuree, ETATS_EQUIPEMENT } from "@/lib/bi/format";
 import {
@@ -493,7 +494,9 @@ export function BiWizard({
 
   const materielComplet = useMemo(() => {
     if (!typeActif) return false;
-    return champsPertinents(typeActif).every((c) => (materielChamps[c.cle] ?? "").trim() !== "");
+    return champsPertinents(typeActif)
+      .filter((c) => !CHAMPS_MATERIEL_FACULTATIFS_BI.has(c.cle))
+      .every((c) => (materielChamps[c.cle] ?? "").trim() !== "");
   }, [typeActif, materielChamps]);
 
   const peutAvancerEtapeClient = useMemo(() => {
@@ -920,7 +923,7 @@ export function BiWizard({
                     forceTypeId={equipement.type_equipement_id}
                     onChange={(id) => {
                       setTypeActifId(id);
-                      setMaterielChamps({});
+                      setMaterielChamps({ dateMES: today() });
                     }}
                   />
                   {champsPertinents(typeActif).map((champ) => (

@@ -691,6 +691,7 @@ export type Database = {
         Row: {
           annule: boolean
           bi_reference_historique: string
+          cout_revient: Json
           created_at: string
           date_commande_client: string
           date_devis: string
@@ -703,6 +704,7 @@ export type Database = {
           item: string
           legacy_id: string | null
           libelle: string
+          lignes: Json
           mois_facturation: string
           montant: number | null
           nature: string
@@ -717,6 +719,7 @@ export type Database = {
         Insert: {
           annule?: boolean
           bi_reference_historique?: string
+          cout_revient?: Json
           created_at?: string
           date_commande_client?: string
           date_devis?: string
@@ -729,6 +732,7 @@ export type Database = {
           item?: string
           legacy_id?: string | null
           libelle?: string
+          lignes?: Json
           mois_facturation?: string
           montant?: number | null
           nature?: string
@@ -743,6 +747,7 @@ export type Database = {
         Update: {
           annule?: boolean
           bi_reference_historique?: string
+          cout_revient?: Json
           created_at?: string
           date_commande_client?: string
           date_devis?: string
@@ -755,6 +760,7 @@ export type Database = {
           item?: string
           legacy_id?: string | null
           libelle?: string
+          lignes?: Json
           mois_facturation?: string
           montant?: number | null
           nature?: string

@@ -11,14 +11,15 @@ import {
   numeroAffaireDuSite,
   prochainChrono,
 } from "@/lib/devis/numerotation";
+import { calculerPrixRevient, totalHTLignes, type LigneDevis, type CoutRevient } from "@/lib/devis/pricing";
 
 export type NouveauDevisInput = {
   siteId: string;
   libelle: string;
   nature: string;
-  montant: number;
-  heuresPrevues: number | null;
   equipementId: string | null;
+  lignes: LigneDevis[];
+  coutRevient: CoutRevient;
 };
 
 const ERREUR_DOUBLON = "23505";
@@ -49,7 +50,13 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
   if (!input.siteId) return { ok: false, erreur: "Choisis un site." };
   if (!input.libelle.trim()) return { ok: false, erreur: "Le libellé est obligatoire." };
   if (!NATURE_DEVIS[input.nature]) return { ok: false, erreur: "Choisis une nature." };
-  if (!Number.isFinite(input.montant) || input.montant < 0) return { ok: false, erreur: "Montant invalide." };
+  const lignesValides = input.lignes.filter((l) => l.designation.trim());
+  if (lignesValides.length === 0) return { ok: false, erreur: "Ajoute au moins une ligne d'article." };
+
+  // Toujours recalculé côté serveur depuis lignes + cout_revient — jamais
+  // de montant envoyé tel quel par le client.
+  const prixRevient = calculerPrixRevient(lignesValides, input.coutRevient);
+  const montant = totalHTLignes(lignesValides, prixRevient.coefficientVente, prixRevient.tauxHoraire);
 
   const supabase = await createClient();
   const { data: site } = await supabase.from("sites").select("n_affaire").eq("id", input.siteId).single();
@@ -82,8 +89,11 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
       site_id: input.siteId,
       libelle: input.libelle.trim(),
       nature: input.nature,
-      montant: input.montant,
-      heures_prevues: input.heuresPrevues,
+      montant,
+      heures_prevues: prixRevient.heuresMO,
+      debours_materiel_prevu: prixRevient.materiel,
+      lignes: lignesValides,
+      cout_revient: input.coutRevient,
       equipement_id: input.equipementId,
       date_devis: dateDevis,
       redacteur: profil.name,

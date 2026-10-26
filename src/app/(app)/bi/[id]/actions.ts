@@ -25,6 +25,7 @@ export type CorrectionInput = {
   prestas: Presta[];
   etat_equipement: string[];
   interventions_supplementaires: InterventionEquipement[];
+  equipement_nom: string;
 };
 
 type Bon = Tables<"bons_intervention">;
@@ -126,6 +127,7 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
   diff(changes, "Compte rendu", original.compte_rendu, input.compte_rendu);
   diff(changes, "Email client", original.email, input.email);
   diff(changes, "Remarque interne", original.note_interne, input.note_interne);
+  diff(changes, "Nom de l'équipement", original.equipement_nom, input.equipement_nom);
 
   const history = Array.isArray(original.history) ? original.history : [];
   const nouvelHistory =
@@ -148,6 +150,7 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
       email: input.email,
       prestas: input.prestas,
       etat_equipement: input.etat_equipement,
+      equipement_nom: input.equipement_nom,
       interventions_supplementaires: input.interventions_supplementaires,
       history: nouvelHistory,
     })

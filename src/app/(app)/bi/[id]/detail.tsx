@@ -618,6 +618,7 @@ function VueCorrection({
   const [nombreDeplacements, setNombreDeplacements] = useState(bon.nombre_deplacements);
   const [obsTech, setObsTech] = useState(bon.obs_tech);
   const [classementActuel, setClassementActuel] = useState(bon.classement);
+  const [equipementNom, setEquipementNom] = useState(bon.equipement_nom);
   const [interventions, setInterventions] = useState<InterventionEquipement[]>(() =>
     interventionsDuBon(bon).map((inter) => ({ ...inter, prestas: inter.prestas.filter((p) => p.designation.trim()) })),
   );
@@ -630,7 +631,7 @@ function VueCorrection({
   const peutValider =
     emailValide &&
     classementActuel !== "" &&
-    (pole !== Poles.installationNeuve || (bon.equipement_nom.trim() !== "" && bon.materiel_type_equipement_id !== null));
+    (pole !== Poles.installationNeuve || (equipementNom.trim() !== "" && bon.materiel_type_equipement_id !== null));
 
   function valider() {
     setErreur(null);
@@ -649,6 +650,7 @@ function VueCorrection({
       prestas: interventions[0]?.prestas ?? [],
       etat_equipement: interventions[0]?.etat_equipement ?? [],
       interventions_supplementaires: interventions.slice(1),
+      equipement_nom: pole === Poles.installationNeuve ? equipementNom.trim() : bon.equipement_nom,
     };
     startTransition(async () => {
       const res = await validerBI(bon.id, bon, input);
@@ -726,6 +728,10 @@ function VueCorrection({
             valeur={String(nombreDeplacements)}
             onChange={(v) => setNombreDeplacements(Math.max(1, parseInt(v, 10) || 1))}
           />
+        )}
+
+        {pole === Poles.installationNeuve && (
+          <Champ label="Nom de l'équipement" valeur={equipementNom} onChange={setEquipementNom} />
         )}
 
         {interventions.map((inter, i) => {

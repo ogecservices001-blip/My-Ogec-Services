@@ -48,6 +48,7 @@ export type DevisDuSite = {
   reference_client: string;
   date_commande_client: string;
   nature: string;
+  equipement_id: string | null;
 };
 
 /// Devis commandés (= Affaires) d'un site — un devis pas encore
@@ -58,7 +59,7 @@ export async function chargerDevisDuSite(siteId: string, natureFiltre?: string):
   const supabase = await createClient();
   let requete = supabase
     .from("devis")
-    .select("id, numero, libelle, reference_client, date_commande_client, nature")
+    .select("id, numero, libelle, reference_client, date_commande_client, nature, equipement_id")
     .eq("site_id", siteId)
     .neq("date_commande_client", "")
     .eq("annule", false)
@@ -103,6 +104,7 @@ export type DevisARealiser = {
   client_site: string;
   nature: string;
   libelle: string;
+  equipement_id: string | null;
 };
 
 const STATUTS_REALISE = new Set(["valide", "pdf", "prete", "envoye"]);
@@ -117,7 +119,7 @@ export async function chargerDevisARealiser(): Promise<DevisARealiser[]> {
   const [{ data: devis }, { data: bons }, { data: sites }] = await Promise.all([
     supabase
       .from("devis")
-      .select("id, numero, site_id, nature, libelle, bi_reference_historique")
+      .select("id, numero, site_id, nature, libelle, bi_reference_historique, equipement_id")
       .neq("date_commande_client", "")
       .neq("nature", "")
       .eq("annule", false)
@@ -141,6 +143,7 @@ export async function chargerDevisARealiser(): Promise<DevisARealiser[]> {
       client_site: siteParId.get(d.site_id)?.site ?? "",
       nature: d.nature,
       libelle: d.libelle,
+      equipement_id: d.equipement_id,
     }));
 }
 

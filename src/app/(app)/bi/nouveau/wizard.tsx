@@ -109,7 +109,16 @@ export function BiWizard({
     if (devisIdParam) {
       const d = devisARealiser.find((x) => x.id === devisIdParam);
       if (d) {
-        return { etape: 1, pole: d.nature, devisId: d.id, depannageId: null as string | null, clientNom: d.client_nom, siteId: d.site_id, equipementId: "", compteRendu: "" };
+        return {
+          etape: 1,
+          pole: d.nature,
+          devisId: d.id,
+          depannageId: null as string | null,
+          clientNom: d.client_nom,
+          siteId: d.site_id,
+          equipementId: d.equipement_id ?? "",
+          compteRendu: "",
+        };
       }
     }
     if (depannageIdParam) {
@@ -818,7 +827,14 @@ export function BiWizard({
               <select
                 value={devisId}
                 disabled={chargementSite}
-                onChange={(e) => setDevisId(e.target.value)}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setDevisId(id);
+                  if (!avecNouvelEquipement(pole) && !avecEquipementLibre(pole) && !equipementId) {
+                    const d = devisDuSite.find((x) => x.id === id);
+                    if (d?.equipement_id) setEquipementId(d.equipement_id);
+                  }
+                }}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/20 disabled:bg-slate-50"
               >
                 <option value="">{chargementSite ? "Chargement..." : "— Choisir l'affaire —"}</option>

@@ -15,6 +15,7 @@ import {
 import { calculerStatutDevis, LABEL_STATUT_DEVIS } from "../../statut";
 import { eur } from "../../registre-liste";
 import { formaterDate, dateFrVersIso } from "@/lib/format";
+import { StatutBadge } from "@/components/bi/statut-badge";
 
 type Devis = Tables<"devis">;
 type Mode = "choix" | "commander";
@@ -25,6 +26,7 @@ export function StatutDevisForm({
   realise,
   equipements,
   commandesFournisseur,
+  bonsIntervention,
   dateExecution,
   heuresExecutees,
 }: {
@@ -33,6 +35,7 @@ export function StatutDevisForm({
   realise: boolean;
   equipements: { id: string; nom: string; numero_equipement: string }[];
   commandesFournisseur: { id: string; numero: string; fournisseurNom: string; montantTtc: number }[];
+  bonsIntervention: { id: string; numero: string; statut: string }[];
   dateExecution: string;
   heuresExecutees: string;
 }) {
@@ -325,6 +328,27 @@ export function StatutDevisForm({
           </button>
         </div>
         {erreurFacturation && <p className="mt-2 text-xs text-red-600">{erreurFacturation}</p>}
+      </div>
+
+      <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <h2 className="mb-2 text-sm font-bold text-slate-900">Bon d&apos;intervention</h2>
+        {bonsIntervention.length > 0 ? (
+          <ul className="space-y-1.5">
+            {bonsIntervention.map((b) => (
+              <li key={b.id}>
+                <Link
+                  href={`/bi/${b.id}`}
+                  className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm hover:bg-slate-100"
+                >
+                  <span className="font-semibold text-slate-900">{b.numero || "BI (brouillon)"}</span>
+                  <StatutBadge statut={b.statut} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-slate-400">Aucun bon d&apos;intervention lié à ce devis.</p>
+        )}
       </div>
       </div>
     </div>

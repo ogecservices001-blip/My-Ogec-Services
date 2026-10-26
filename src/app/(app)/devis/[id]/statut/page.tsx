@@ -19,7 +19,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
     supabase.from("sites").select("nom, site").eq("id", devis.site_id).single(),
     supabase
       .from("bons_intervention")
-      .select("statut, date_intervention, date_debut, date_fin, temps_passe")
+      .select("id, numero, statut, date_intervention, date_debut, date_fin, temps_passe")
       .eq("devis_id", id),
     supabase.from("equipements").select("id, nom, numero_equipement").eq("site_id", devis.site_id).order("nom"),
     supabase
@@ -61,6 +61,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
       realise={realise}
       equipements={equipements ?? []}
       commandesFournisseur={commandesFournisseur}
+      bonsIntervention={(bons ?? []).map((b) => ({ id: b.id, numero: b.numero, statut: b.statut }))}
       dateExecution={dateExecution}
       heuresExecutees={heuresExecutees}
     />

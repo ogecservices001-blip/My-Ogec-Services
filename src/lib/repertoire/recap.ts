@@ -38,11 +38,12 @@ const STATUTS_VALIDES_BI = [Statuts.valide, Statuts.pdfGenere, Statuts.pretEnvoi
 /// et "À réaliser" plutôt que "attente"/"commande" : vocabulaire du
 /// Répertoire, pas celui, plus technique, du module Devis.
 export async function chargerRecapDevis(siteIds: string[]): Promise<RecapDevis> {
+  const plusieursSites = siteIds.length > 1;
   const aEtablirBruts = siteIds.length > 0 ? await chargerDevisAEtablir(siteIds) : [];
   const aEtablir: LigneRecap[] = aEtablirBruts.map((d) => ({
     id: d.equipementId,
     numero: d.biNumero,
-    libelle: d.equipementNom,
+    libelle: plusieursSites ? `${d.site} — ${d.equipementNom}` : d.equipementNom,
     montant: null,
     href: `/devis/nouveau?equipementId=${d.equipementId}&compteRendu=${encodeURIComponent(d.compteRendu)}`,
   }));
@@ -55,10 +56,13 @@ export async function chargerRecapDevis(siteIds: string[]): Promise<RecapDevis> 
   const [{ data: devis }, { data: bons }] = await Promise.all([
     supabase
       .from("devis")
-      .select("id, numero, libelle, montant, date_commande_client, bi_reference_historique, annule")
+      .select("id, numero, libelle, montant, date_commande_client, bi_reference_historique, annule, site_id")
       .in("site_id", siteIds),
     supabase.from("bons_intervention").select("devis_id, statut").in("site_id", siteIds).not("devis_id", "is", null),
   ]);
+  const { data: sitesNoms } =
+    plusieursSites && siteIds.length > 0 ? await supabase.from("sites").select("id, site").in("id", siteIds) : { data: [] };
+  const siteNomParId = new Map((sitesNoms ?? []).map((s) => [s.id, s.site]));
 
   const devisRealises = new Set(
     (bons ?? []).filter((b) => b.devis_id && STATUTS_REALISE_BI.has(b.statut)).map((b) => b.devis_id as string),
@@ -69,10 +73,11 @@ export async function chargerRecapDevis(siteIds: string[]): Promise<RecapDevis> 
   const realises: LigneRecap[] = [];
   for (const d of devis ?? []) {
     if (d.annule) continue;
+    const nomSite = plusieursSites ? siteNomParId.get(d.site_id) : null;
     const ligne: LigneRecap = {
       id: d.id,
       numero: d.numero || "(sans référence)",
-      libelle: d.libelle,
+      libelle: nomSite ? `${nomSite} — ${d.libelle}` : d.libelle,
       montant: d.montant,
       href: `/devis/${d.id}/statut`,
     };
@@ -92,13 +97,14 @@ export async function chargerRecapDevis(siteIds: string[]): Promise<RecapDevis> 
 export async function chargerRecapBI(siteIds: string[]): Promise<RecapBi> {
   const groupes: RecapBi = { classer: [], facturer: [], receptionTravaux: [], maintenance: [] };
   if (siteIds.length === 0) return groupes;
+  const plusieursSites = siteIds.length > 1;
 
   const supabase = await createClient();
   const [{ data: bons }, { data: sites }] = await Promise.all([
     supabase
       .from("bons_intervention")
       .select(
-        "id, numero, pole, classement, site_id, devis_id, temps_passe, nombre_deplacements, prestas, interventions_supplementaires",
+        "id, numero, pole, classement, site, site_id, devis_id, temps_passe, nombre_deplacements, prestas, interventions_supplementaires",
       )
       .in("site_id", siteIds)
       .in("statut", STATUTS_VALIDES_BI),
@@ -125,7 +131,7 @@ export async function chargerRecapBI(siteIds: string[]): Promise<RecapBi> {
     const ligne: LigneRecap = {
       id: b.id,
       numero: b.numero || "BI (brouillon)",
-      libelle: labelPole(b.pole),
+      libelle: plusieursSites && b.site ? `${b.site} — ${labelPole(b.pole)}` : labelPole(b.pole),
       montant: montantDevis + montantHeures + montantDepl + totalHT(prestas),
       href: `/bi/${b.id}`,
     };
@@ -142,21 +148,23 @@ export async function chargerRecapBI(siteIds: string[]): Promise<RecapBi> {
 /// liste elle-même (voir DepannagesListe) : "traitee" vs le reste.
 export async function chargerRecapDepannages(siteIds: string[]): Promise<RecapDepannages> {
   if (siteIds.length === 0) return { enCours: [], traitees: [] };
+  const plusieursSites = siteIds.length > 1;
 
   const supabase = await createClient();
   const { data } = await supabase
     .from("demandes_depannage")
-    .select("id, numero, equipement_nom, message, statut, date_creation")
+    .select("id, numero, client_site, equipement_nom, message, statut, date_creation")
     .in("site_id", siteIds)
     .order("date_creation", { ascending: false });
 
   const enCours: LigneRecap[] = [];
   const traitees: LigneRecap[] = [];
   for (const d of data ?? []) {
+    const libelleBase = [d.equipement_nom, d.message].filter(Boolean).join(" — ");
     const ligne: LigneRecap = {
       id: d.id,
       numero: d.numero || "(sans numéro)",
-      libelle: [d.equipement_nom, d.message].filter(Boolean).join(" — "),
+      libelle: plusieursSites && d.client_site ? `${d.client_site} — ${libelleBase}` : libelleBase,
       montant: null,
       href: `/depannages/${d.id}`,
     };

@@ -45,9 +45,9 @@ export const CHAMPS_CONNUS_LABELS: Record<string, string> = {
   tensionAlim: "Tension Alim.",
   puissance: "Puissance",
   freqEntretienAnnuelle: "Fréquence entretien annuelle",
-  dateDernierControle: "Date dernier contrôle",
-  dateProchainControle: "Date Prochain contrôle",
-  numDernierBordereau: "N° dernier bordereau",
+  dateDernierControle: "Date dernier contrôle étanchéité",
+  dateProchainControle: "Date Prochain contrôle étanchéité",
+  numDernierBordereau: "N° dernier bordereau étanchéité",
 };
 
 /// Extrait la partie numérique d'un texte (ex: "OS-044" → 44) — `null`

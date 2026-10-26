@@ -39,9 +39,9 @@ const COLONNE_VERS_CLE: Record<string, string> = {
   "tension alim.": "tensionAlim",
   puissance: "puissance",
   "fréquence entretien annuelle": "freqEntretienAnnuelle",
-  "date dernier contrôle": "dateDernierControle",
-  "date prochain contrôle": "dateProchainControle",
-  "n° dernier bordereau": "numDernierBordereau",
+  "date dernier contrôle étanchéité": "dateDernierControle",
+  "date prochain contrôle étanchéité": "dateProchainControle",
+  "n° dernier bordereau étanchéité": "numDernierBordereau",
 };
 
 function normaliser(s: string): string {

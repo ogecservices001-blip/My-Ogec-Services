@@ -31,9 +31,9 @@ export const COLONNES_SOMMAIRE = [
   "Charge Réfrigérant Kg",
   "Tension Alim.",
   "Puissance",
-  "Date dernier contrôle",
-  "Date Prochain contrôle",
-  "N° dernier bordereau",
+  "Date dernier contrôle étanchéité",
+  "Date Prochain contrôle étanchéité",
+  "N° dernier bordereau étanchéité",
 ];
 
 function cellNumerique(valeur: unknown): number | string {

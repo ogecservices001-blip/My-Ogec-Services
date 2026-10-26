@@ -278,7 +278,7 @@ function VueLectureSeule({
             {!sansTempsPasse(bon.pole) && <Ligne label="Temps passé" valeur={bon.temps_passe || "—"} />}
           </>
         )}
-        <Ligne label="Nombre de déplacements" valeur={String(bon.nombre_deplacements)} />
+        {bon.pole === Poles.depannage && <Ligne label="Nombre de déplacements" valeur={String(bon.nombre_deplacements)} />}
       </Section>
 
       {(bon.materiel_champs_en_tete as Record<string, unknown>) &&
@@ -718,11 +718,13 @@ function VueCorrection({
           </div>
         )}
 
-        <Champ
-          label="Nombre de déplacements"
-          valeur={String(nombreDeplacements)}
-          onChange={(v) => setNombreDeplacements(Math.max(1, parseInt(v, 10) || 1))}
-        />
+        {pole === Poles.depannage && (
+          <Champ
+            label="Nombre de déplacements"
+            valeur={String(nombreDeplacements)}
+            onChange={(v) => setNombreDeplacements(Math.max(1, parseInt(v, 10) || 1))}
+          />
+        )}
 
         {interventions.map((inter, i) => {
           const label = equipementLabel({ pole, ...inter });

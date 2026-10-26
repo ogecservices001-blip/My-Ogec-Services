@@ -948,7 +948,7 @@ export function BiWizard({
                   value={typeActifId}
                   onChange={(e) => {
                     setTypeActifId(e.target.value);
-                    setMaterielChamps({});
+                    setMaterielChamps({ dateMES: today() });
                   }}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
                 >

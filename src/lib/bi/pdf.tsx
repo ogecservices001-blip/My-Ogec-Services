@@ -3,7 +3,7 @@ import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { Tables } from "@/lib/types";
 import { Poles, avecPeriode, labelPole, PHOTO_TYPES } from "./constants";
-import { equipementLabel, interventionsDuBon, ETATS_EQUIPEMENT, type Presta } from "./format";
+import { equipementLabel, interventionsDuBon, type Presta } from "./format";
 
 type Bon = Tables<"bons_intervention">;
 
@@ -55,6 +55,20 @@ const styles = StyleSheet.create({
   photoImage: { height: 320, objectFit: "contain", marginBottom: 4 },
   photoLegende: { fontSize: 9, marginBottom: 16 },
 });
+
+/// État après intervention (Dépannage uniquement) — toujours affiché
+/// explicitement au client ("En service" / "Hors service", "Oui" /
+/// "Non"), pas seulement quand il y a du négatif à signaler : l'absence
+/// de mention sur le PDF ne doit jamais pouvoir se lire comme
+/// "personne n'a vérifié".
+function EtatDepannage({ etats }: { etats: string[] }) {
+  return (
+    <>
+      <Kv k="État après intervention" v={etats.includes("hors_service") ? "Hors service" : "En service"} />
+      <Kv k="Devis à établir" v={etats.includes("devis_a_etablir") ? "Oui" : "Non"} />
+    </>
+  );
+}
 
 function Kv({ k, v }: { k: string; v: string }) {
   return (
@@ -197,9 +211,7 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
           <>
             {descriptionEquipement(bon.pole) && <Text style={{ fontSize: 9.5, marginBottom: 1 }}>{descriptionEquipement(bon.pole)}</Text>}
             <Kv k="Équipement" v={equipementLabel(bon)} />
-            {(bon.etat_equipement as string[] | null) && (bon.etat_equipement as string[]).length > 0 && (
-              <Kv k="État" v={(bon.etat_equipement as string[]).map((e) => ETATS_EQUIPEMENT[e] ?? e).join(", ")} />
-            )}
+            {bon.pole === Poles.depannage && <EtatDepannage etats={(bon.etat_equipement as string[] | null) ?? []} />}
           </>
         )}
         {bon.entretien_groupes.length > 0 && <Kv k="Groupes entretenus" v={bon.entretien_groupes.join(", ")} />}
@@ -232,9 +244,7 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
             return (
               <View key={i} style={styles.bloc}>
                 <Section titre={label ? `ÉQUIPEMENT : ${label.toUpperCase()}` : `INTERVENTION ${i + 1}`} />
-                {inter.etat_equipement.length > 0 && (
-                  <Kv k="État" v={inter.etat_equipement.map((e) => ETATS_EQUIPEMENT[e] ?? e).join(", ")} />
-                )}
+                {bon.pole === Poles.depannage && <EtatDepannage etats={inter.etat_equipement} />}
                 <Text style={{ fontSize: 9.5, marginBottom: prestasInter.length > 0 ? 4 : 0 }}>
                   {inter.compte_rendu || "—"}
                 </Text>

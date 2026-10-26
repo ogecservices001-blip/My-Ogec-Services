@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import {
@@ -269,7 +269,7 @@ export function StatutDevisForm({
           )}
         </div>
         {commandesFournisseur.length > 0 ? (
-          <ul className="space-y-1.5">
+          <ul className="mb-2 space-y-1.5">
             {commandesFournisseur.map((c) => (
               <li key={c.id}>
                 <Link
@@ -284,8 +284,15 @@ export function StatutDevisForm({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-slate-400">Aucune commande fournisseur liée à ce devis.</p>
+          <p className="mb-2 text-sm text-slate-400">Aucune commande fournisseur liée à ce devis.</p>
         )}
+        <Link
+          href={`/commandes-fournisseur/nouveau?devisId=${devis.id}`}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
+        >
+          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+          Commande fournisseur
+        </Link>
       </div>
 
       {realise && (

@@ -575,6 +575,7 @@ export function BiWizard({
       devis_numero: devis?.numero ?? "",
       devis_reference_client: devis?.reference_client ?? "",
       devis_date_commande_client: devis?.date_commande_client ?? "",
+      devis_date_devis: devis?.date_devis ?? "",
       materiel_type_equipement_id: typeActif?.id ?? null,
       materiel_champs_en_tete: materielChamps,
       entretien_groupes: [...groupesSelectionnes],

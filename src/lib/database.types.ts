@@ -141,6 +141,7 @@ export type Database = {
           date_intervention: string
           date_signature: string
           devis_date_commande_client: string
+          devis_date_devis: string
           devis_id: string | null
           devis_numero: string
           devis_reference_client: string
@@ -202,6 +203,7 @@ export type Database = {
           date_intervention?: string
           date_signature?: string
           devis_date_commande_client?: string
+          devis_date_devis?: string
           devis_id?: string | null
           devis_numero?: string
           devis_reference_client?: string
@@ -263,6 +265,7 @@ export type Database = {
           date_intervention?: string
           date_signature?: string
           devis_date_commande_client?: string
+          devis_date_devis?: string
           devis_id?: string | null
           devis_numero?: string
           devis_reference_client?: string

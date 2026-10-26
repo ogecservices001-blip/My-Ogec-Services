@@ -2,7 +2,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { Tables } from "@/lib/types";
-import { Poles, avecPeriode, labelPole, PHOTO_TYPES } from "./constants";
+import { Poles, avecPeriode, avecAffaire, labelPole, PHOTO_TYPES } from "./constants";
 import { equipementLabel, interventionsDuBon, type Presta } from "./format";
 
 type Bon = Tables<"bons_intervention">;
@@ -204,9 +204,6 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
 
         <Section titre="OGEC" />
         <Kv k="Technicien(s)" v={bon.techniciens.join(", ") || "—"} />
-        {bon.devis_numero && <Kv k="Affaire" v={bon.devis_numero} />}
-        {bon.devis_reference_client && <Kv k="Réf commande client" v={bon.devis_reference_client} />}
-        {bon.devis_date_commande_client && <Kv k="Date commande client" v={bon.devis_date_commande_client} />}
         {!multiEquipement && bon.equipement_nom && (
           <>
             {descriptionEquipement(bon.pole) && <Text style={{ fontSize: 9.5, marginBottom: 1 }}>{descriptionEquipement(bon.pole)}</Text>}
@@ -220,6 +217,16 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
         ))}
         {bon.numero_devis && <Kv k="N° devis lié" v={bon.numero_devis} />}
         <View style={{ height: 10 }} />
+
+        {avecAffaire(bon.pole) && bon.devis_numero && (
+          <View style={styles.bloc}>
+            <Section titre="DEVIS" />
+            <Kv k="N° devis" v={bon.devis_numero} />
+            <Kv k="Date du devis" v={bon.devis_date_devis || "—"} />
+            <Kv k="Réf. commande client" v={bon.devis_reference_client || "—"} />
+            <Kv k="Date commande client" v={bon.devis_date_commande_client || "—"} />
+          </View>
+        )}
 
         {!multiEquipement && (
           <View style={styles.bloc}>

@@ -47,6 +47,7 @@ export type DevisDuSite = {
   libelle: string;
   reference_client: string;
   date_commande_client: string;
+  date_devis: string;
   nature: string;
   equipement_id: string | null;
 };
@@ -59,7 +60,7 @@ export async function chargerDevisDuSite(siteId: string, natureFiltre?: string):
   const supabase = await createClient();
   let requete = supabase
     .from("devis")
-    .select("id, numero, libelle, reference_client, date_commande_client, nature, equipement_id")
+    .select("id, numero, libelle, reference_client, date_commande_client, date_devis, nature, equipement_id")
     .eq("site_id", siteId)
     .neq("date_commande_client", "")
     .eq("annule", false)
@@ -209,6 +210,7 @@ export type BiInput = {
   devis_numero: string;
   devis_reference_client: string;
   devis_date_commande_client: string;
+  devis_date_devis: string;
 
   materiel_type_equipement_id: string | null;
   materiel_champs_en_tete: Record<string, string>;
@@ -288,6 +290,7 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
     devis_numero: input.devis_numero,
     devis_reference_client: input.devis_reference_client,
     devis_date_commande_client: input.devis_date_commande_client,
+    devis_date_devis: input.devis_date_devis,
     materiel_type_equipement_id: input.materiel_type_equipement_id,
     materiel_champs_en_tete: input.materiel_champs_en_tete,
     entretien_groupes: input.entretien_groupes,

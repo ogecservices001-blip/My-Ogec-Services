@@ -22,13 +22,20 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
     .eq("pole", bon.pole)
     .maybeSingle();
 
-  const { data: site } = bon.site_id
-    ? await supabase
-        .from("sites")
-        .select("taux_horaire_regie, taux_horaire_revise, taux_horaire_vendu, forfait_deplacement, forfait_deplacement_revise")
-        .eq("id", bon.site_id)
-        .single()
-    : { data: null };
+  const [{ data: site }, { data: equipementsSite }] = await Promise.all([
+    bon.site_id
+      ? supabase
+          .from("sites")
+          .select(
+            "n_affaire, taux_horaire_regie, taux_horaire_revise, taux_horaire_vendu, forfait_deplacement, forfait_deplacement_revise",
+          )
+          .eq("id", bon.site_id)
+          .single()
+      : Promise.resolve({ data: null }),
+    bon.site_id
+      ? supabase.from("equipements").select("numero_equipement").eq("site_id", bon.site_id)
+      : Promise.resolve({ data: [] }),
+  ]);
 
   return (
     <BiDetail
@@ -38,6 +45,8 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
       modele={modele ?? null}
       isAdmin={profile?.role === "admin"}
       tauxSite={site}
+      numeroAffaireSite={site?.n_affaire ?? ""}
+      numerosEquipementSite={(equipementsSite ?? []).map((e) => e.numero_equipement).filter(Boolean)}
     />
   );
 }

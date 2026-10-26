@@ -27,6 +27,7 @@ export type CorrectionInput = {
   etat_equipement: string[];
   interventions_supplementaires: InterventionEquipement[];
   equipement_nom: string;
+  equipement_numero: string;
 };
 
 type Bon = Tables<"bons_intervention">;
@@ -122,6 +123,7 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
         site_id: bi.site_id,
         type_equipement_id: bi.materiel_type_equipement_id,
         nom: bi.equipement_nom,
+        numero_equipement: bi.equipement_numero,
         localisation: bi.equipement_localisation,
         groupe: bi.equipement_groupe,
         // Toujours hors contrat à la création, même chez un client sous
@@ -161,6 +163,7 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
   diff(changes, "Email client", original.email, input.email);
   diff(changes, "Remarque interne", original.note_interne, input.note_interne);
   diff(changes, "Nom de l'équipement", original.equipement_nom, input.equipement_nom);
+  diff(changes, "Numéro d'équipement", original.equipement_numero, input.equipement_numero);
 
   const history = Array.isArray(original.history) ? original.history : [];
   const nouvelHistory =
@@ -184,6 +187,7 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
       prestas: input.prestas,
       etat_equipement: input.etat_equipement,
       equipement_nom: input.equipement_nom,
+      equipement_numero: input.equipement_numero,
       interventions_supplementaires: input.interventions_supplementaires,
       history: nouvelHistory,
     })

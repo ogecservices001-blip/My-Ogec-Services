@@ -42,6 +42,8 @@ export function BiDetail({
   modele,
   isAdmin,
   tauxSite,
+  numeroAffaireSite,
+  numerosEquipementSite,
 }: {
   bon: Bon;
   techniciensDisponibles: string[];
@@ -49,6 +51,8 @@ export function BiDetail({
   modele: ModeleResume;
   isAdmin: boolean;
   tauxSite: TauxSiteComplet;
+  numeroAffaireSite: string;
+  numerosEquipementSite: string[];
 }) {
   const router = useRouter();
   const enCorrection = isAdmin && bon.statut === Statuts.aVerifier;
@@ -115,6 +119,8 @@ export function BiDetail({
             bon={bon}
             techniciensDisponibles={techniciensDisponibles}
             tauxSite={tauxSite}
+            numeroAffaireSite={numeroAffaireSite}
+            numerosEquipementSite={numerosEquipementSite}
             onValide={() => router.refresh()}
           />
           <BlocHistorique bon={bon} />
@@ -598,15 +604,33 @@ function PhotoVignette({ photo }: { photo: { type: string; storage_path: string;
   );
 }
 
+/// Suggère le prochain numéro libre (3ème partie, ex: "405-02-13")
+/// pour un équipement installé via BI — Numéro Client-Numéro Site
+/// toujours dérivé du site, jamais saisi.
+function suggererNumeroEquipement(prefixe: string, numerosExistants: string[]): string {
+  if (!prefixe) return "";
+  let max = 0;
+  for (const n of numerosExistants) {
+    if (!n.startsWith(`${prefixe}-`)) continue;
+    const suffixe = parseInt(n.slice(prefixe.length + 1), 10);
+    if (Number.isFinite(suffixe) && suffixe > max) max = suffixe;
+  }
+  return `${prefixe}-${String(max + 1).padStart(2, "0")}`;
+}
+
 function VueCorrection({
   bon,
   techniciensDisponibles,
   tauxSite,
+  numeroAffaireSite,
+  numerosEquipementSite,
   onValide,
 }: {
   bon: Bon;
   techniciensDisponibles: string[];
   tauxSite: TauxSiteComplet;
+  numeroAffaireSite: string;
+  numerosEquipementSite: string[];
   onValide: () => void;
 }) {
   const [pole, setPole] = useState(bon.pole);
@@ -619,6 +643,9 @@ function VueCorrection({
   const [obsTech, setObsTech] = useState(bon.obs_tech);
   const [classementActuel, setClassementActuel] = useState(bon.classement);
   const [equipementNom, setEquipementNom] = useState(bon.equipement_nom);
+  const [equipementNumero, setEquipementNumero] = useState(
+    () => bon.equipement_numero || suggererNumeroEquipement(numeroAffaireSite, numerosEquipementSite),
+  );
   const [interventions, setInterventions] = useState<InterventionEquipement[]>(() =>
     interventionsDuBon(bon).map((inter) => ({ ...inter, prestas: inter.prestas.filter((p) => p.designation.trim()) })),
   );
@@ -628,10 +655,15 @@ function VueCorrection({
   const [pending, startTransition] = useTransition();
 
   const emailValide = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
+  const numeroEnDouble = numerosEquipementSite.includes(equipementNumero.trim());
   const peutValider =
     emailValide &&
     classementActuel !== "" &&
-    (pole !== Poles.installationNeuve || (equipementNom.trim() !== "" && bon.materiel_type_equipement_id !== null));
+    (pole !== Poles.installationNeuve ||
+      (equipementNom.trim() !== "" &&
+        equipementNumero.trim() !== "" &&
+        !numeroEnDouble &&
+        bon.materiel_type_equipement_id !== null));
 
   function valider() {
     setErreur(null);
@@ -651,6 +683,7 @@ function VueCorrection({
       etat_equipement: interventions[0]?.etat_equipement ?? [],
       interventions_supplementaires: interventions.slice(1),
       equipement_nom: pole === Poles.installationNeuve ? equipementNom.trim() : bon.equipement_nom,
+      equipement_numero: pole === Poles.installationNeuve ? equipementNumero.trim() : bon.equipement_numero,
     };
     startTransition(async () => {
       const res = await validerBI(bon.id, bon, input);
@@ -731,7 +764,22 @@ function VueCorrection({
         )}
 
         {pole === Poles.installationNeuve && (
-          <Champ label="Nom de l'équipement" valeur={equipementNom} onChange={setEquipementNom} />
+          <>
+            <Champ label="Nom de l'équipement" valeur={equipementNom} onChange={setEquipementNom} />
+            <div>
+              <Champ label="Numéro d'équipement" valeur={equipementNumero} onChange={setEquipementNumero} />
+              {numeroEnDouble && (
+                <p className="mt-1 text-xs font-semibold text-red-600">
+                  Ce numéro existe déjà sur ce site — choisis-en un autre.
+                </p>
+              )}
+              {numerosEquipementSite.length > 0 && (
+                <p className="mt-1 text-xs text-slate-400">
+                  Déjà utilisés sur ce site : {numerosEquipementSite.slice().sort().join(", ")}
+                </p>
+              )}
+            </div>
+          </>
         )}
 
         {interventions.map((inter, i) => {

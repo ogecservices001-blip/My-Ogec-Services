@@ -152,6 +152,7 @@ export type Database = {
           equipement_id: string | null
           equipement_localisation: string
           equipement_nom: string
+          equipement_numero: string
           etat_equipement: Json
           heure_debut: string
           heure_fin: string
@@ -214,6 +215,7 @@ export type Database = {
           equipement_id?: string | null
           equipement_localisation?: string
           equipement_nom?: string
+          equipement_numero?: string
           etat_equipement?: Json
           heure_debut?: string
           heure_fin?: string
@@ -276,6 +278,7 @@ export type Database = {
           equipement_id?: string | null
           equipement_localisation?: string
           equipement_nom?: string
+          equipement_numero?: string
           etat_equipement?: Json
           heure_debut?: string
           heure_fin?: string

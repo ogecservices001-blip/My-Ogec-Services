@@ -125,7 +125,7 @@ export function BiDetail({
           <VueLectureSeule bon={bon} typesEquipement={typesEquipement} modele={modele} />
           {isAdmin && (
             <>
-              <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />
+              {!sansTempsPasse(bon.pole) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
               <BlocClassement bon={bon} />
             </>
           )}
@@ -804,7 +804,7 @@ function VueCorrection({
         })}
 
         <BlocClassement bon={bon} onChange={setClassementActuel} />
-        {classementActuel === "facturer" && (
+        {classementActuel === "facturer" && !sansTempsPasse(pole) && (
           <BlocMainDoeuvreDeplacement tempsPasse={tempsPasse} nombreDeplacements={nombreDeplacements} tauxSite={tauxSite} />
         )}
         {classementActuel === "" && (

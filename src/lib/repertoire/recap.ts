@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Statuts, labelPole } from "@/lib/bi/constants";
+import { Statuts, labelPole, sansTempsPasse } from "@/lib/bi/constants";
 import { montantMainDoeuvre, montantDeplacements, totalHT, type Presta, type TauxSite } from "@/lib/bi/format";
 import { chargerDevisAEtablir } from "@/lib/bi/devis-a-etablir";
 
@@ -106,8 +106,8 @@ export async function chargerRecapBI(siteIds: string[]): Promise<RecapBi> {
 
   for (const b of bons ?? []) {
     const taux: TauxSite = (b.site_id ? tauxParSite.get(b.site_id) : undefined) ?? null;
-    const montantHeures = montantMainDoeuvre(b.temps_passe, taux) ?? 0;
-    const montantDepl = montantDeplacements(b.nombre_deplacements, taux) ?? 0;
+    const montantHeures = sansTempsPasse(b.pole) ? 0 : (montantMainDoeuvre(b.temps_passe, taux) ?? 0);
+    const montantDepl = sansTempsPasse(b.pole) ? 0 : (montantDeplacements(b.nombre_deplacements, taux) ?? 0);
     const prestas = [
       ...(b.prestas as unknown as Presta[]),
       ...(b.interventions_supplementaires as unknown as { prestas: Presta[] }[]).flatMap((i) => i.prestas ?? []),

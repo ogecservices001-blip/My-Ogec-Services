@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { TypeEquipement } from "@/lib/gmao/types";
+import type { TypeEquipement, ReferenceHoraire } from "@/lib/gmao/types";
 import { chargerDepannagesEnCours, chargerDevisARealiser } from "./actions";
 import { BiWizard } from "./wizard";
 
@@ -17,18 +17,20 @@ export default async function NouveauBiPage({
   const { pole, devisId, depannageId, horsContrat } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: sites }, { data: techniciens }, { data: typesEquipement }, depannagesEnCours, devisARealiser] = await Promise.all([
-    supabase
-      .from("sites_view")
-      .select(
-        "id, nom, site, hors_contrat, adresse, code_postal, commune, interlocuteur_site, tel_fixe_interlocuteur_site, portable_interlocuteur_site, courriel_interlocuteur_site",
-      )
-      .order("nom"),
-    supabase.from("profiles").select("id, name").in("role", ["technicien", "en_attente"]).order("name"),
-    supabase.from("types_equipement").select("*").order("nom"),
-    chargerDepannagesEnCours(),
-    chargerDevisARealiser(),
-  ]);
+  const [{ data: sites }, { data: techniciens }, { data: typesEquipement }, { data: references }, depannagesEnCours, devisARealiser] =
+    await Promise.all([
+      supabase
+        .from("sites_view")
+        .select(
+          "id, nom, site, hors_contrat, adresse, code_postal, commune, interlocuteur_site, tel_fixe_interlocuteur_site, portable_interlocuteur_site, courriel_interlocuteur_site",
+        )
+        .order("nom"),
+      supabase.from("profiles").select("id, name").in("role", ["technicien", "en_attente"]).order("name"),
+      supabase.from("types_equipement").select("*").order("nom"),
+      supabase.from("references_horaires").select("*"),
+      chargerDepannagesEnCours(),
+      chargerDevisARealiser(),
+    ]);
 
   return (
     <BiWizard
@@ -36,6 +38,7 @@ export default async function NouveauBiPage({
       sites={sites ?? []}
       techniciensDisponibles={(techniciens ?? []).map((t) => t.name)}
       typesEquipement={(typesEquipement ?? []) as TypeEquipement[]}
+      references={(references ?? []) as ReferenceHoraire[]}
       nomUtilisateur={profile.name}
       depannagesEnCours={depannagesEnCours}
       devisARealiser={devisARealiser}

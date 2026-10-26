@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type Dispatch, type SetStateAction } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Camera, X, Plus, Minus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { ChampEnTeteField } from "@/components/gmao/champs-famille";
+import { ChampEnTeteField, TypeEquipementSelects } from "@/components/gmao/champs-famille";
 import { SignaturePad, type SignaturePadHandle } from "@/components/bi/signature-pad";
-import type { TypeEquipement } from "@/lib/gmao/types";
+import type { TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement } from "@/lib/gmao/types";
 import {
   Poles,
   ORDRE_AFFICHAGE_POLES,
@@ -80,6 +80,7 @@ export function BiWizard({
   sites,
   techniciensDisponibles,
   typesEquipement,
+  references,
   nomUtilisateur,
   depannagesEnCours,
   devisARealiser,
@@ -87,6 +88,7 @@ export function BiWizard({
   sites: SiteOption[];
   techniciensDisponibles: string[];
   typesEquipement: TypeEquipement[];
+  references: ReferenceHoraire[];
   nomUtilisateur: string;
   depannagesEnCours: DepannageEnCours[];
   devisARealiser: DevisARealiser[];
@@ -169,6 +171,10 @@ export function BiWizard({
 
   const [typeActifId, setTypeActifId] = useState("");
   const [materielChamps, setMaterielChamps] = useState<Record<string, string>>({});
+  // Type Equipement 2/3 ne sont jamais des listes (ChampListeLigne[]) côté
+  // BI — seul le formulaire GMAO complet gère les champs_listes — d'où ce
+  // recast pour réutiliser TypeEquipementSelects sans dupliquer son état.
+  const setMaterielChampsTypeEquipement = setMaterielChamps as unknown as Dispatch<SetStateAction<ChampsEnTeteEquipement>>;
   const [installationNom, setInstallationNom] = useState("");
   const [installationLocalisation, setInstallationLocalisation] = useState("");
   const [installationGroupe, setInstallationGroupe] = useState("");
@@ -927,6 +933,14 @@ export function BiWizard({
                       setMaterielChamps({ dateMES: today() });
                     }}
                   />
+                  {typeActif?.type_equipement1_fixe && (
+                    <TypeEquipementSelects
+                      typeEquipement1Fixe={typeActif.type_equipement1_fixe}
+                      references={references}
+                      champsEnTete={materielChamps}
+                      setChampsEnTete={setMaterielChampsTypeEquipement}
+                    />
+                  )}
                   {champsPertinents(typeActif).map((champ) => (
                     <ChampEnTeteField
                       key={champ.cle}
@@ -995,6 +1009,14 @@ export function BiWizard({
               {typeActif && (
                 <div className="space-y-3 border-t border-slate-100 pt-3">
                   <p className="text-xs font-medium text-slate-600">Caractéristiques du matériel</p>
+                  {typeActif.type_equipement1_fixe && (
+                    <TypeEquipementSelects
+                      typeEquipement1Fixe={typeActif.type_equipement1_fixe}
+                      references={references}
+                      champsEnTete={materielChamps}
+                      setChampsEnTete={setMaterielChampsTypeEquipement}
+                    />
+                  )}
                   {champsPertinents(typeActif).map((champ) => (
                     <ChampEnTeteField
                       key={champ.cle}

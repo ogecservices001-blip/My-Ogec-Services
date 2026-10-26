@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FileSignature, ClipboardList, type LucideIcon } from "lucide-react";
+import { FileSignature, ClipboardList, Zap, type LucideIcon } from "lucide-react";
 import { eur } from "@/lib/bi/format";
-import type { RecapDevis, RecapBi, LigneRecap } from "@/lib/repertoire/recap";
+import type { RecapDevis, RecapBi, RecapDepannages, LigneRecap } from "@/lib/repertoire/recap";
 
 const STYLE_BOUTON =
   "inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50";
@@ -53,13 +53,24 @@ function CarteRecap({
   );
 }
 
-/// Deux boutons (Devis / Bon d'intervention) à placer dans une ligne de
-/// boutons d'action existante (flex-wrap) — à faire déplier, sinon trop
-/// d'info d'un coup sur la fiche Répertoire. Les panneaux, en `w-full`,
-/// retombent sur leur propre ligne même dans un conteneur flex-wrap.
-/// Voir chargerRecapDevis/chargerRecapBI (@/lib/repertoire/recap).
-export function BoutonsRecapDevisEtBI({ devis, bi, isAdmin }: { devis: RecapDevis; bi: RecapBi; isAdmin: boolean }) {
-  const [ouvert, setOuvert] = useState<"devis" | "bi" | null>(null);
+/// Boutons (Devis / Bon d'intervention / Dépannages) à placer dans une
+/// ligne de boutons d'action existante (flex-wrap) — à faire déplier,
+/// sinon trop d'info d'un coup sur la fiche Répertoire. Les panneaux,
+/// en `w-full`, retombent sur leur propre ligne même dans un conteneur
+/// flex-wrap. Voir chargerRecapDevis/chargerRecapBI/chargerRecapDepannages
+/// (@/lib/repertoire/recap).
+export function BoutonsRecapDevisEtBI({
+  devis,
+  bi,
+  depannages,
+  isAdmin,
+}: {
+  devis: RecapDevis;
+  bi: RecapBi;
+  depannages: RecapDepannages;
+  isAdmin: boolean;
+}) {
+  const [ouvert, setOuvert] = useState<"devis" | "bi" | "depannages" | null>(null);
 
   return (
     <>
@@ -70,6 +81,10 @@ export function BoutonsRecapDevisEtBI({ devis, bi, isAdmin }: { devis: RecapDevi
       <button type="button" onClick={() => setOuvert(ouvert === "bi" ? null : "bi")} className={STYLE_BOUTON}>
         <ClipboardList className="h-4 w-4" strokeWidth={2} />
         Bon d&apos;intervention
+      </button>
+      <button type="button" onClick={() => setOuvert(ouvert === "depannages" ? null : "depannages")} className={STYLE_BOUTON}>
+        <Zap className="h-4 w-4" strokeWidth={2} />
+        Dépannages
       </button>
 
       {ouvert === "devis" && (
@@ -95,6 +110,17 @@ export function BoutonsRecapDevisEtBI({ devis, bi, isAdmin }: { devis: RecapDevi
             { label: "À Facturer", lignes: bi.facturer },
             { label: "Réception Travaux", lignes: bi.receptionTravaux },
             { label: "Maintenance", lignes: bi.maintenance },
+          ]}
+        />
+      )}
+      {ouvert === "depannages" && (
+        <CarteRecap
+          titre="Dépannages"
+          icone={Zap}
+          isAdmin={isAdmin}
+          groupes={[
+            { label: "En cours", lignes: depannages.enCours },
+            { label: "Traités", lignes: depannages.traitees },
           ]}
         />
       )}

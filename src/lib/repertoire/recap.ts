@@ -25,6 +25,11 @@ export type RecapBi = {
   maintenance: LigneRecap[];
 };
 
+export type RecapDepannages = {
+  enCours: LigneRecap[];
+  traitees: LigneRecap[];
+};
+
 const STATUTS_REALISE_BI = new Set<string>(Object.values(Statuts).filter((s) => s !== Statuts.brouillon));
 const STATUTS_VALIDES_BI = [Statuts.valide, Statuts.pdfGenere, Statuts.pretEnvoi, Statuts.envoye];
 
@@ -121,4 +126,33 @@ export async function chargerRecapBI(siteIds: string[]): Promise<RecapBi> {
   }
 
   return groupes;
+}
+
+/// Récap Suivi Dépannages pour le Répertoire — même découpage que la
+/// liste elle-même (voir DepannagesListe) : "traitee" vs le reste.
+export async function chargerRecapDepannages(siteIds: string[]): Promise<RecapDepannages> {
+  if (siteIds.length === 0) return { enCours: [], traitees: [] };
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("demandes_depannage")
+    .select("id, numero, equipement_nom, message, statut, date_creation")
+    .in("site_id", siteIds)
+    .order("date_creation", { ascending: false });
+
+  const enCours: LigneRecap[] = [];
+  const traitees: LigneRecap[] = [];
+  for (const d of data ?? []) {
+    const ligne: LigneRecap = {
+      id: d.id,
+      numero: d.numero || "(sans numéro)",
+      libelle: [d.equipement_nom, d.message].filter(Boolean).join(" — "),
+      montant: null,
+      href: `/depannages/${d.id}`,
+    };
+    if (d.statut === "traitee") traitees.push(ligne);
+    else enCours.push(ligne);
+  }
+
+  return { enCours, traitees };
 }

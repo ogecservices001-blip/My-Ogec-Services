@@ -20,7 +20,7 @@ import { getCurrentProfile } from "@/lib/profile";
 import { formaterDate } from "@/lib/format";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonsRecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
-import { chargerRecapDevis, chargerRecapBI } from "@/lib/repertoire/recap";
+import { chargerRecapDevis, chargerRecapBI, chargerRecapDepannages } from "@/lib/repertoire/recap";
 import type { Site } from "@/lib/types";
 import { supprimerSite } from "../actions";
 
@@ -106,7 +106,11 @@ export default async function SiteDetailPage({
   if (!s) notFound();
   const site = s as Site;
 
-  const [recapDevis, recapBi] = await Promise.all([chargerRecapDevis([id]), chargerRecapBI([id])]);
+  const [recapDevis, recapBi, recapDepannages] = await Promise.all([
+    chargerRecapDevis([id]),
+    chargerRecapBI([id]),
+    chargerRecapDepannages([id]),
+  ]);
 
   return (
     <div>
@@ -169,7 +173,7 @@ export default async function SiteDetailPage({
             Modifier
           </Link>
         )}
-        <BoutonsRecapDevisEtBI devis={recapDevis} bi={recapBi} isAdmin={isAdmin} />
+        <BoutonsRecapDevisEtBI devis={recapDevis} bi={recapBi} depannages={recapDepannages} isAdmin={isAdmin} />
         {isAdmin && (
           <BoutonSupprimer
             action={supprimerSite.bind(null, id)}

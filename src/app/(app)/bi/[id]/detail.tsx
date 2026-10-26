@@ -690,20 +690,22 @@ function VueCorrection({
               </span>
             ))}
           </div>
-          <select
-            value=""
-            onChange={(e) => e.target.value && setTechniciens((prev) => [...prev, e.target.value])}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
-          >
-            <option value="">+ Ajouter un intervenant</option>
-            {techniciensDisponibles
-              .filter((t) => !techniciens.includes(t))
-              .map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-          </select>
+          {!sansTempsPasse(pole) && (
+            <select
+              value=""
+              onChange={(e) => e.target.value && setTechniciens((prev) => [...prev, e.target.value])}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+            >
+              <option value="">+ Ajouter un intervenant</option>
+              {techniciensDisponibles
+                .filter((t) => !techniciens.includes(t))
+                .map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+            </select>
+          )}
         </div>
 
         {avecPeriode(pole) ? (

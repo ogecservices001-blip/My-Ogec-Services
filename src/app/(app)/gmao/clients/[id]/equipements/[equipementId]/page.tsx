@@ -63,6 +63,9 @@ export default async function VisualiserEquipementPage({
       : null;
 
   const champsRenseignes = type.champs_en_tete_supplementaires
+    // freqEntretienAnnuelle est déjà affichée juste au-dessus (à côté de
+    // Cumul annuel/Prochaine visite) — éviter de la montrer deux fois.
+    .filter((champ) => champ.cle !== "freqEntretienAnnuelle")
     .filter((champ) => typeof c[champ.cle] === "string" && (c[champ.cle] as string).trim().length > 0)
     .map((champ) => [champ.unite ? `${champ.label} (${champ.unite})` : champ.label, c[champ.cle] as string] as const);
 

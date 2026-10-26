@@ -21,7 +21,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
       .from("bons_intervention")
       .select("id, numero, statut, date_intervention, date_debut, date_fin, temps_passe")
       .eq("devis_id", id),
-    supabase.from("equipements").select("id, nom, numero_equipement").eq("site_id", devis.site_id).order("nom"),
+    supabase.from("equipements").select("id, nom, numero_equipement, localisation").eq("site_id", devis.site_id).order("nom"),
     supabase
       .from("commandes_fournisseur")
       .select("id, numero, fournisseur_id, lignes, taux_tva")

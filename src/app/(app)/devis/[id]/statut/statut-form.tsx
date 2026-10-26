@@ -33,7 +33,7 @@ export function StatutDevisForm({
   devis: Devis;
   site: { nom: string; site: string } | null;
   realise: boolean;
-  equipements: { id: string; nom: string; numero_equipement: string }[];
+  equipements: { id: string; nom: string; numero_equipement: string; localisation: string }[];
   commandesFournisseur: { id: string; numero: string; fournisseurNom: string; montantTtc: number }[];
   bonsIntervention: { id: string; numero: string; statut: string }[];
   dateExecution: string;
@@ -99,7 +99,19 @@ export function StatutDevisForm({
     ["Date mise à disposition fourniture", devis.date_mise_a_disposition_fourniture],
     ["Mois de facturation", devis.mois_facturation],
     ["Email responsable contrat", devis.email_responsable_contrat],
-    ["Équipement lié", equipementLie ? `${equipementLie.nom}${equipementLie.numero_equipement ? ` (${equipementLie.numero_equipement})` : ""}` : ""],
+    [
+      "Équipement lié",
+      equipementLie
+        ? [
+            [equipementLie.nom, equipementLie.numero_equipement ? `(${equipementLie.numero_equipement})` : ""]
+              .filter(Boolean)
+              .join(" "),
+            equipementLie.localisation,
+          ]
+            .filter(Boolean)
+            .join(" — ")
+        : "",
+    ],
     ["N° BI historique", devis.bi_reference_historique],
     ["Remarques", devis.remarques],
     ["Créé le", new Date(devis.created_at).toLocaleDateString("fr-FR")],

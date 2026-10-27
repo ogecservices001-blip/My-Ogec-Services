@@ -63,7 +63,7 @@ export async function calculerLignesAuditHeures(supabase: SupabaseClient<any>): 
   const [{ data: creneaux }, { data: bons }, { data: equipements }, { data: references }] = await Promise.all([
     supabase
       .from("creneaux_planning")
-      .select("site_id, date, heures_prevues")
+      .select("site_id, date, heures_prevues, creneau_techniciens(technicien_id)")
       .in("site_id", siteIds)
       .eq("annule", false)
       .not("site_id", "is", null),
@@ -75,8 +75,13 @@ export async function calculerLignesAuditHeures(supabase: SupabaseClient<any>): 
   const programmeesParSite = new Map<string, number>();
   const realiseesParSite = new Map<string, number>();
   for (const c of creneaux ?? []) {
+    // heures_prevues est la durée du créneau PAR technicien (sert au
+    // quota journalier 7.5h/5h côté Planning) — un créneau à 2
+    // techniciens livre deux fois ces heures au client, pas une seule.
+    const nbTechniciens = Math.max(1, (c.creneau_techniciens as unknown[] | null)?.length ?? 1);
+    const heures = Number(c.heures_prevues) * nbTechniciens;
     const cible = c.date < aujourdhui ? realiseesParSite : programmeesParSite;
-    cible.set(c.site_id, (cible.get(c.site_id) ?? 0) + Number(c.heures_prevues));
+    cible.set(c.site_id, (cible.get(c.site_id) ?? 0) + heures);
   }
   for (const b of bons ?? []) {
     if (!b.site_id || !STATUTS_VALIDES.has(b.statut)) continue;

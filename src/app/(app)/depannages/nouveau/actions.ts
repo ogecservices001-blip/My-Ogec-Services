@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { prochainChrono } from "@/lib/gmao/chrono";
 import { envoyerConfirmationDepannage } from "@/lib/gmao/depannage-confirmation-email";
+import { telInternational } from "@/lib/format";
 import type { ActionResult } from "@/lib/action-result";
 
 function deuxChiffres(n: number): string {
@@ -72,7 +73,7 @@ export async function creerDepannage(
   let intervenantTexte = "";
   if (intervenantId) {
     const { data: intervenant } = await supabase.from("profiles").select("name, portable").eq("id", intervenantId).single();
-    if (intervenant) intervenantTexte = [intervenant.name, intervenant.portable].filter(Boolean).join(" — ");
+    if (intervenant) intervenantTexte = [intervenant.name, telInternational(intervenant.portable)].filter(Boolean).join(" — ");
   }
 
   const numero = await prochainChrono(supabase, "depannage");
@@ -118,8 +119,8 @@ export async function creerDepannage(
         commune: site.commune,
         adresse: site.adresse,
         interlocuteurSite: site.interlocuteur_site,
-        tel1: site.tel_fixe_interlocuteur_site,
-        tel2: site.portable_interlocuteur_site,
+        tel1: telInternational(site.tel_fixe_interlocuteur_site),
+        tel2: telInternational(site.portable_interlocuteur_site),
         informationComplementaire: "",
       });
       await supabase

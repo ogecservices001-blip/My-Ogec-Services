@@ -1,4 +1,5 @@
 import type { ProfilInput } from "@/lib/validation/profil";
+import { telInternational, telLocal } from "@/lib/format";
 
 /// Position (colonne, 0-based) de chaque champ dans la feuille
 /// "COLLABORATEURS" — même ordre à l'export et à l'import.
@@ -25,3 +26,20 @@ export const ENTETES_PROFILS: Record<number, string> = {
 };
 
 export const NB_COLONNES_PROFILS = 9;
+
+/// Construit une ligne complète de la feuille "COLLABORATEURS" — numéro
+/// de portable au format international (+262).
+export function ligneProfil(profil: Record<string, unknown>): string[] {
+  const ligne: string[] = new Array(NB_COLONNES_PROFILS).fill("");
+  for (const { index, champ } of COLONNES_PROFILS) {
+    const valeur = String(profil[champ] ?? "");
+    ligne[index] = champ === "portable" ? telInternational(valeur) : valeur;
+  }
+  return ligne;
+}
+
+/// Inverse de ligneProfil, pour que le fichier exporté reste
+/// réimportable tel quel.
+export function normaliserValeurImportProfil(champ: keyof ProfilInput, valeur: string): string {
+  return champ === "portable" ? telLocal(valeur) : valeur;
+}

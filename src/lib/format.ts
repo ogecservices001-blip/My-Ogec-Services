@@ -28,3 +28,26 @@ export function initiales(nom: string): string {
   if (parts.length === 0) return "?";
   return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
 }
+
+/// "0692 91 02 26" → "+262 692 91 02 26" — ne touche pas aux valeurs qui
+/// ne ressemblent pas à un numéro local réunionnais à 10 chiffres (vide,
+/// "Inconnu", déjà international...). Utilisé partout où un numéro est
+/// affiché (fiches, exports, PDF) — jamais sur un champ de saisie, pour
+/// rester facile à taper au format local habituel.
+export function telInternational(numero: string): string {
+  const chiffres = numero.replace(/\D/g, "");
+  if (chiffres.length !== 10 || !chiffres.startsWith("0")) return numero;
+  const groupes = chiffres.slice(1).match(/.{2}/g) ?? [];
+  return `+262 ${groupes.join(" ")}`;
+}
+
+/// Inverse de telInternational — pour que les fichiers exportés restent
+/// réimportables tel quels. Laisse la valeur telle quelle si elle ne
+/// ressemble pas à un numéro international réunionnais.
+export function telLocal(numero: string): string {
+  const chiffres = numero.replace(/\D/g, "");
+  if (chiffres.length !== 12 || !chiffres.startsWith("262")) return numero;
+  const local = `0${chiffres.slice(3)}`;
+  const groupes = /^(\d{4})(\d{2})(\d{2})(\d{2})$/.exec(local);
+  return groupes ? `${groupes[1]} ${groupes[2]} ${groupes[3]} ${groupes[4]}` : local;
+}

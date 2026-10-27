@@ -3,7 +3,7 @@ import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { Tables } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
-import { formaterDate } from "@/lib/format";
+import { formaterDate, telInternational } from "@/lib/format";
 import { OGEC, ATTESTATION_CAPACITE } from "./constants";
 import { type LigneCommande, montantLigne, calculerTotaux, eur } from "./format";
 
@@ -126,7 +126,7 @@ function CommandeDocument({
             <Kv k="RCS / RM" v={fournisseur.rcs_rm} />
             <Kv k="TVA intracom." v={fournisseur.tva_intracom} />
             <Kv k="Interlocuteur" v={interlocuteur?.nom} />
-            <Kv k="Tél" v={interlocuteur?.portable || interlocuteur?.tel} />
+            <Kv k="Tél" v={telInternational(interlocuteur?.portable || interlocuteur?.tel || "")} />
             <Kv k="Email" v={interlocuteur?.email} />
           </View>
           <View style={styles.col}>

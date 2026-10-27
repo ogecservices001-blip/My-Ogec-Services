@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
-import { COLONNES_PROFILS, ENTETES_PROFILS, NB_COLONNES_PROFILS } from "@/lib/repertoire/profils-excel";
+import { ENTETES_PROFILS, NB_COLONNES_PROFILS, ligneProfil } from "@/lib/repertoire/profils-excel";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 
 /// Exporte tous les collaborateurs — réimportable tel quel via
@@ -25,11 +25,7 @@ export async function GET() {
   feuille.addRow(entetes);
 
   for (const profil of profils ?? []) {
-    const ligne: string[] = new Array(NB_COLONNES_PROFILS).fill("");
-    for (const { index, champ } of COLONNES_PROFILS) {
-      ligne[index] = String(profil[champ as keyof typeof profil] ?? "");
-    }
-    feuille.addRow(ligne);
+    feuille.addRow(ligneProfil(profil));
   }
 
   finaliserFeuille(feuille);

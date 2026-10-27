@@ -6,6 +6,7 @@ import { requireAdminOuAccueil } from "@/lib/auth";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { chargerDevisEnCoursParEquipement } from "@/lib/devis/en-cours";
 import { LABEL_STATUT_DEVIS, TEINTE_STATUT_DEVIS } from "@/app/(app)/devis/statut";
+import { telInternational } from "@/lib/format";
 
 function deuxChiffres(n: number): string {
   return String(n).padStart(2, "0");
@@ -153,11 +154,11 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
             <h2 className="mb-2 text-sm font-bold text-slate-900">Intervenant</h2>
             <p className="text-sm font-semibold text-slate-800">{intervenant.name}</p>
             <a
-              href={`tel:${intervenant.portable}`}
+              href={`tel:${telInternational(intervenant.portable)}`}
               className="mt-1 inline-flex items-center gap-1.5 text-sm text-brand-green-dark hover:underline"
             >
               <Phone className="h-3.5 w-3.5" strokeWidth={2} />
-              {intervenant.portable}
+              {telInternational(intervenant.portable)}
             </a>
           </div>
         )}

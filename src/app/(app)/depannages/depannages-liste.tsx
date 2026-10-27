@@ -10,6 +10,7 @@ import { FiltreSelect } from "@/components/filtre-select";
 import { envoyerConfirmation } from "./actions";
 import type { DevisEnCours } from "@/lib/devis/en-cours";
 import { LABEL_STATUT_DEVIS, TEINTE_STATUT_DEVIS } from "@/app/(app)/devis/statut";
+import { telInternational } from "@/lib/format";
 
 function deuxChiffres(n: number): string {
   return String(n).padStart(2, "0");
@@ -35,7 +36,7 @@ function formaterDate(iso: string): string {
 
 /// Lien wa.me : numéro international sans "+" ni espaces.
 function lienWhatsapp(portable: string, texte: string): string | null {
-  const numero = portable.replace(/[^\d]/g, "");
+  const numero = telInternational(portable).replace(/[^\d]/g, "");
   if (!numero) return null;
   return `https://wa.me/${numero}?text=${encodeURIComponent(texte)}`;
 }
@@ -159,7 +160,7 @@ function CarteDemande({
   const [modaleOuverte, setModaleOuverte] = useState(false);
   const nouvelle = demande.statut !== "traitee";
 
-  const messageWhatsapp = `Dépannage N°${demande.numero} — ${[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}\n${demande.equipement_nom ? `Équipement : ${demande.equipement_nom}\n` : ""}${demande.lieu_panne ? `Lieu : ${demande.lieu_panne}\n` : ""}${contact?.nom ? `Contact : ${contact.nom}\n` : ""}${contact?.tel ? `Tél : ${contact.tel}\n` : ""}Motif : ${demande.message}`;
+  const messageWhatsapp = `Dépannage N°${demande.numero} — ${[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}\n${demande.equipement_nom ? `Équipement : ${demande.equipement_nom}\n` : ""}${demande.lieu_panne ? `Lieu : ${demande.lieu_panne}\n` : ""}${contact?.nom ? `Contact : ${contact.nom}\n` : ""}${contact?.tel ? `Tél : ${telInternational(contact.tel)}\n` : ""}Motif : ${demande.message}`;
   const whatsapp = isAdmin && intervenant?.portable ? lienWhatsapp(intervenant.portable, messageWhatsapp) : null;
 
   return (

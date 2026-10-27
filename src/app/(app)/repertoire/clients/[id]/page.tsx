@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
-import { formaterDate } from "@/lib/format";
+import { formaterDate, telInternational } from "@/lib/format";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonsRecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
 import { chargerRecapDevis, chargerRecapBI, chargerRecapDepannages } from "@/lib/repertoire/recap";
@@ -214,13 +214,13 @@ export default async function SiteDetailPage({
         niveau="technicien"
         champs={[
           ["Interlocuteur site", site.interlocuteur_site],
-          ["Tel Fixe interlocuteur site", site.tel_fixe_interlocuteur_site],
-          ["Portable interlocuteur site", site.portable_interlocuteur_site],
+          ["Tel Fixe interlocuteur site", telInternational(site.tel_fixe_interlocuteur_site)],
+          ["Portable interlocuteur site", telInternational(site.portable_interlocuteur_site)],
           ["Courriel interlocuteur site", site.courriel_interlocuteur_site],
           ["Fréq. entretien / an", site.freq_entretien_an],
           ["Interlocuteur Tiers", site.interlocuteur_tiers],
-          ["Tel Fixe Tiers", site.tel_fixe_tiers],
-          ["Portable Tiers", site.portable_tiers],
+          ["Tel Fixe Tiers", telInternational(site.tel_fixe_tiers)],
+          ["Portable Tiers", telInternational(site.portable_tiers)],
           ["Courriel Tiers", site.courriel_tiers],
           ["Remarques libres", site.remarques_libres],
         ]}
@@ -254,8 +254,8 @@ export default async function SiteDetailPage({
               ["Montant Contrat + AV", site.montant_contrat_av],
               ["Référence offre OGS", site.reference_offre_ogs],
               ["Responsable contrat", site.responsable_contrat],
-              ["Tel Fixe responsable", site.tel_fixe_responsable],
-              ["Portable responsable", site.portable_responsable],
+              ["Tel Fixe responsable", telInternational(site.tel_fixe_responsable)],
+              ["Portable responsable", telInternational(site.portable_responsable)],
               ["Courriel responsable", site.courriel_responsable],
             ]}
           />
@@ -269,8 +269,8 @@ export default async function SiteDetailPage({
               ["Commune facturation", site.commune_facturation],
               ["Complément d'adresse facturation", site.complement_adresse_facturation],
               ["Interlocuteur facturation", site.interlocuteur_facturation],
-              ["Tel Fixe interlocuteur facturation", site.tel_fixe_interlocuteur_facturation],
-              ["Portable interlocuteur facturation", site.portable_interlocuteur_facturation],
+              ["Tel Fixe interlocuteur facturation", telInternational(site.tel_fixe_interlocuteur_facturation)],
+              ["Portable interlocuteur facturation", telInternational(site.portable_interlocuteur_facturation)],
               ["Courriel interlocuteur facturation", site.courriel_interlocuteur_facturation],
               ["Fréq. facturation annuelle", site.freq_factu_annuelle],
             ]}

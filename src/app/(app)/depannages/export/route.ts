@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
+import { telInternational } from "@/lib/format";
 
 /// Colonnes de la feuille "Chrono Dépannage" du classeur
 /// "Suivi dépannage.xlsm" — même ordre, même architecture (21
@@ -96,7 +97,7 @@ export async function GET() {
     const site = d.site_id ? sitesParId[d.site_id] : undefined;
     const intervenant = d.intervenant_id ? profilsParId[d.intervenant_id] : undefined;
     const intervenantTexte = intervenant
-      ? [intervenant.name, intervenant.portable].filter(Boolean).join(" - ")
+      ? [intervenant.name, telInternational(intervenant.portable)].filter(Boolean).join(" - ")
       : "";
     const dateCreation = new Date(d.date_creation);
     const bon = d.bon_intervention_id ? bonsParId[d.bon_intervention_id] : undefined;
@@ -119,8 +120,8 @@ export async function GET() {
       site?.commune ?? "",
       site?.adresse ?? "",
       site?.interlocuteur_site ?? "",
-      site?.tel_fixe_interlocuteur_site ?? "",
-      site?.portable_interlocuteur_site ?? "",
+      telInternational(site?.tel_fixe_interlocuteur_site ?? ""),
+      telInternational(site?.portable_interlocuteur_site ?? ""),
       d.email,
       numeroSemaineIso(dateCreation),
     ]);

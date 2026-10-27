@@ -1,5 +1,5 @@
 import type { SiteInput } from "@/lib/validation/site";
-import { formaterDate, dateFrVersIso } from "@/lib/format";
+import { formaterDate, dateFrVersIso, telInternational, telLocal } from "@/lib/format";
 import { eur } from "@/lib/commandes-fournisseur/format";
 
 /// Position (colonne, 0-based) de chaque champ dans la feuille "SITES"
@@ -155,27 +155,6 @@ function numeroClientEtSite(nAffaire: string): [string, string] {
   return [numClient ?? "", numSite ?? ""];
 }
 
-/// "0692 91 02 26" → "+262 692 91 02 26" — ne touche pas aux valeurs qui
-/// ne ressemblent pas à un numéro local à 10 chiffres (vide, "Inconnu",
-/// déjà international...).
-function formaterTelInternational(numero: string): string {
-  const chiffres = numero.replace(/\D/g, "");
-  if (chiffres.length !== 10 || !chiffres.startsWith("0")) return numero;
-  const groupes = chiffres.slice(1).match(/.{2}/g) ?? [];
-  return `+262 ${groupes.join(" ")}`;
-}
-
-/// "+262 692 91 02 26" → "0692 91 02 26" — inverse de
-/// formaterTelInternational, pour que le fichier exporté reste
-/// réimportable. Laisse la valeur telle quelle si elle ne ressemble pas
-/// à un numéro international réunionnais (déjà local, vide, "Inconnu"...).
-function telInternationalVersLocal(numero: string): string {
-  const chiffres = numero.replace(/\D/g, "");
-  if (chiffres.length !== 12 || !chiffres.startsWith("262")) return numero;
-  const local = `0${chiffres.slice(3)}`;
-  const groupes = /^(\d{4})(\d{2})(\d{2})(\d{2})$/.exec(local);
-  return groupes ? `${groupes[1]} ${groupes[2]} ${groupes[3]} ${groupes[4]}` : local;
-}
 
 export const CHAMPS_TELEPHONE = new Set<keyof SiteInput>([
   "tel_fixe_interlocuteur_site",
@@ -232,7 +211,7 @@ export const CHAMPS_MONTANT = new Set<keyof SiteInput>([
 /// stocké en base ; sinon la laisse telle quelle (fichier non modifié,
 /// valeur déjà au format brut, ou saisie libre).
 export function normaliserValeurImportSite(champ: keyof SiteInput, valeur: string): string {
-  if (CHAMPS_TELEPHONE.has(champ)) return telInternationalVersLocal(valeur);
+  if (CHAMPS_TELEPHONE.has(champ)) return telLocal(valeur);
   if (CHAMPS_DATE.has(champ)) return dateFrVersIso(valeur) || valeur;
   if (CHAMPS_MONTANT.has(champ)) return montantExportVersBrut(valeur);
   return valeur;
@@ -246,7 +225,7 @@ export function ligneSite(site: Record<string, unknown>): string[] {
   const ligne: string[] = new Array(NB_COLONNES_SITES).fill("");
   for (const { index, champ } of COLONNES_SITES) {
     const valeur = String(site[champ] ?? "");
-    if (CHAMPS_TELEPHONE.has(champ)) ligne[index] = formaterTelInternational(valeur);
+    if (CHAMPS_TELEPHONE.has(champ)) ligne[index] = telInternational(valeur);
     else if (CHAMPS_DATE.has(champ)) ligne[index] = formaterDate(valeur);
     else if (CHAMPS_MONTANT.has(champ)) ligne[index] = formaterMontantExport(valeur);
     else ligne[index] = valeur;

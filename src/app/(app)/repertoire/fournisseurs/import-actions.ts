@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { fournisseurSchema, type FournisseurInput, type Interlocuteur } from "@/lib/validation/fournisseur";
+import { telLocal } from "@/lib/format";
 import type { ActionResult } from "@/lib/action-result";
 
 export type LigneDiffFournisseur = {
@@ -157,7 +158,10 @@ export async function previsualiserImportFournisseurs(
     const societe: Partial<Record<keyof FournisseurInput, string>> = {};
     for (const [col, champ] of colSociete) societe[champ] = valeurCellule(row.getCell(col).value);
     const contact: Partial<Interlocuteur> = {};
-    for (const [col, champ] of colContact) contact[champ] = valeurCellule(row.getCell(col).value);
+    for (const [col, champ] of colContact) {
+      const v = valeurCellule(row.getCell(col).value);
+      contact[champ] = champ === "tel" || champ === "portable" ? telLocal(v) : v;
+    }
     if (!societe.nom) return;
     brutes.push({ societe, contact });
   });

@@ -15,6 +15,7 @@ import {
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import type { Fournisseur } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
+import { telInternational } from "@/lib/format";
 
 function interlocuteursDe(f: Fournisseur): Interlocuteur[] {
   return (f.interlocuteurs as unknown as Interlocuteur[] | null) ?? [];
@@ -183,22 +184,22 @@ function VueTechnicien({ fournisseurs }: { fournisseurs: Fournisseur[] }) {
                       <div className="mt-0.5 flex flex-wrap gap-x-4 gap-y-1">
                         {it.portable && (
                           <a
-                            href={`tel:${it.portable}`}
+                            href={`tel:${telInternational(it.portable)}`}
                             onClick={(e) => e.stopPropagation()}
                             className="inline-flex items-center gap-1.5 text-brand-green-dark hover:underline"
                           >
                             <Phone className="h-3.5 w-3.5" strokeWidth={2} />
-                            {it.portable}
+                            {telInternational(it.portable)}
                           </a>
                         )}
                         {it.tel && (
                           <a
-                            href={`tel:${it.tel}`}
+                            href={`tel:${telInternational(it.tel)}`}
                             onClick={(e) => e.stopPropagation()}
                             className="inline-flex items-center gap-1.5 text-brand-green-dark hover:underline"
                           >
                             <Phone className="h-3.5 w-3.5" strokeWidth={2} />
-                            {it.tel}
+                            {telInternational(it.tel)}
                           </a>
                         )}
                         {it.email && (

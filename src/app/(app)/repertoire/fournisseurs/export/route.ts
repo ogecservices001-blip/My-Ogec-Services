@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 import { tvaSurFacture, type Interlocuteur } from "@/lib/validation/fournisseur";
+import { telInternational } from "@/lib/format";
 import type { Fournisseur } from "@/lib/types";
 
 const ENTETES = [
@@ -57,8 +58,8 @@ export async function GET() {
         f.nom,
         f.nature_fourniture,
         it.nom,
-        it.tel,
-        it.portable,
+        telInternational(it.tel),
+        telInternational(it.portable),
         it.email,
         f.adresse,
         f.complement_adresse,

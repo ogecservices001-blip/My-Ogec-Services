@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { profilSchema, type ProfilInput } from "@/lib/validation/profil";
+import { normaliserValeurImportProfil } from "@/lib/repertoire/profils-excel";
 import type { ActionResult } from "@/lib/action-result";
 
 export type LigneDiffProfil = {
@@ -124,7 +125,7 @@ export async function previsualiserImportProfils(
     vus.add(cleNom);
 
     const brut: Record<string, string> = {};
-    for (const [champ, index0] of indexParChamp) brut[champ] = valeur(index0);
+    for (const [champ, index0] of indexParChamp) brut[champ] = normaliserValeurImportProfil(champ, valeur(index0));
     const parsed = profilSchema.safeParse(brut);
     if (!parsed.success) {
       avertissements.push(`Ligne ${numeroLigne} ("${nom}") ignorée : ${parsed.error.issues[0]?.message}`);

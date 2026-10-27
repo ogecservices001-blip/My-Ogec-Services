@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowLeft, Search, Phone, ChevronDown, Upload, Download, Pencil, KeyRound } from "lucide-react";
 import type { Profil } from "@/lib/types";
-import { initiales } from "@/lib/format";
+import { initiales, telInternational } from "@/lib/format";
 import { recupererMotDePasse } from "./mdp-actions";
 
 export function CollaborateursListe({
@@ -102,12 +102,12 @@ export function CollaborateursListe({
                 </span>
                 {p.portable && (
                   <a
-                    href={`tel:${p.portable}`}
+                    href={`tel:${telInternational(p.portable)}`}
                     onClick={(e) => e.stopPropagation()}
                     className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-brand-green-dark transition hover:bg-brand-green/10"
                   >
                     <Phone className="h-3.5 w-3.5" strokeWidth={2} />
-                    {p.portable}
+                    {telInternational(p.portable)}
                   </a>
                 )}
                 <ChevronDown

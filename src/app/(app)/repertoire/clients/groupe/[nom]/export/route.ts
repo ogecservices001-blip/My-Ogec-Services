@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
-import { COLONNES_SITES, ENTETES_SITES, NB_COLONNES_SITES } from "@/lib/repertoire/sites-excel";
+import { ENTETES_SITES, NB_COLONNES_SITES, ligneSite } from "@/lib/repertoire/sites-excel";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 
 /// Exporte les sites d'un seul client — même format que
@@ -32,11 +32,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ nom:
   feuille.addRow(entetes);
 
   for (const site of sites ?? []) {
-    const ligne: string[] = new Array(NB_COLONNES_SITES).fill("");
-    for (const { index, champ } of COLONNES_SITES) {
-      ligne[index] = String(site[champ as keyof typeof site] ?? "");
-    }
-    feuille.addRow(ligne);
+    feuille.addRow(ligneSite(site));
   }
 
   finaliserFeuille(feuille);

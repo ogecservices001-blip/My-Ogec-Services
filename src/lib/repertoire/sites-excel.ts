@@ -1,4 +1,6 @@
 import type { SiteInput } from "@/lib/validation/site";
+import { formaterDate } from "@/lib/format";
+import { eur } from "@/lib/commandes-fournisseur/format";
 
 /// Position (colonne, 0-based) de chaque champ dans la feuille "SITES"
 /// du classeur maître — même mapping que
@@ -144,3 +146,81 @@ export const ENTETES_SITES: Record<number, string> = {
 };
 
 export const NB_COLONNES_SITES = 67;
+
+/// Numéro Client / Numéro Site tels qu'affichés dans le fichier maître
+/// (ex: "265-01" → "265" / "01") — dérivés de n_affaire, jamais stockés
+/// séparément en base.
+function numeroClientEtSite(nAffaire: string): [string, string] {
+  const [numClient, numSite] = (nAffaire ?? "").split("-");
+  return [numClient ?? "", numSite ?? ""];
+}
+
+/// "0692 91 02 26" → "+262 692 91 02 26" — ne touche pas aux valeurs qui
+/// ne ressemblent pas à un numéro local à 10 chiffres (vide, "Inconnu",
+/// déjà international...).
+function formaterTelInternational(numero: string): string {
+  const chiffres = numero.replace(/\D/g, "");
+  if (chiffres.length !== 10 || !chiffres.startsWith("0")) return numero;
+  const groupes = chiffres.slice(1).match(/.{2}/g) ?? [];
+  return `+262 ${groupes.join(" ")}`;
+}
+
+const CHAMPS_TELEPHONE = new Set<keyof SiteInput>([
+  "tel_fixe_interlocuteur_site",
+  "portable_interlocuteur_site",
+  "tel_fixe_responsable",
+  "portable_responsable",
+  "tel_fixe_interlocuteur_facturation",
+  "portable_interlocuteur_facturation",
+  "tel_fixe_tiers",
+  "portable_tiers",
+]);
+
+const CHAMPS_DATE = new Set<keyof SiteInput>([
+  "date_offre",
+  "date_prise_effet_contrat",
+  "date_fin_contrat",
+  "date_indice_s_prime",
+  "date_indice_ch_prime",
+  "date_revision",
+  "date_indice_s",
+  "date_indice_ch",
+]);
+
+/// "4760" → "4 760,00 €" — ne touche pas aux valeurs vides ou non
+/// numériques (jamais le cas en pratique, mais pas de raison de planter
+/// sur une cellule mal saisie).
+function formaterMontantExport(valeur: string): string {
+  if (!valeur.trim()) return "";
+  const n = Number(valeur.replace(",", "."));
+  return Number.isFinite(n) ? eur(n) : valeur;
+}
+
+const CHAMPS_MONTANT = new Set<keyof SiteInput>([
+  "montant_contrat_av",
+  "taux_horaire_vendu",
+  "taux_horaire_regie",
+  "forfait_deplacement",
+  "montant_contrat_av_revise",
+  "taux_horaire_revise",
+  "forfait_deplacement_revise",
+]);
+
+/// Construit une ligne complète de la feuille "SITES" pour un site
+/// donné (colonnes dans le même ordre que COLONNES_SITES/ENTETES_SITES) :
+/// N° Client/N° Site dérivés de n_affaire (pas de champ dédié en base),
+/// téléphones au format international, dates au format JJ/MM/AAAA.
+export function ligneSite(site: Record<string, unknown>): string[] {
+  const ligne: string[] = new Array(NB_COLONNES_SITES).fill("");
+  for (const { index, champ } of COLONNES_SITES) {
+    const valeur = String(site[champ] ?? "");
+    if (CHAMPS_TELEPHONE.has(champ)) ligne[index] = formaterTelInternational(valeur);
+    else if (CHAMPS_DATE.has(champ)) ligne[index] = formaterDate(valeur);
+    else if (CHAMPS_MONTANT.has(champ)) ligne[index] = formaterMontantExport(valeur);
+    else ligne[index] = valeur;
+  }
+  const [numClient, numSite] = numeroClientEtSite(String(site.n_affaire ?? ""));
+  ligne[3] = numClient;
+  ligne[4] = numSite;
+  return ligne;
+}

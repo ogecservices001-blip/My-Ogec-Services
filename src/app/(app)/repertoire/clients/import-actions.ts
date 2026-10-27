@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { siteSchema, type SiteInput } from "@/lib/validation/site";
-import { COLONNES_SITES } from "@/lib/repertoire/sites-excel";
+import { COLONNES_SITES, normaliserValeurImportSite } from "@/lib/repertoire/sites-excel";
 import type { ActionResult } from "@/lib/action-result";
 
 export type LigneDiffSite = {
@@ -146,7 +146,7 @@ export async function previsualiserImportSites(
     vus.add(nAffaire);
 
     const brut: Record<string, string> = {};
-    for (const { index, champ } of COLONNES_SITES) brut[champ] = valeur(index);
+    for (const { index, champ } of COLONNES_SITES) brut[champ] = normaliserValeurImportSite(champ, valeur(index));
     const parsed = siteSchema.safeParse(brut);
     if (!parsed.success) {
       avertissements.push(`Ligne ${numeroLigne} ("${nom}") ignorée : ${parsed.error.issues[0]?.message}`);

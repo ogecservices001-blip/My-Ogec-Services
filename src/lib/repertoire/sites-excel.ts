@@ -1,5 +1,5 @@
 import type { SiteInput } from "@/lib/validation/site";
-import { formaterDate } from "@/lib/format";
+import { formaterDate, dateFrVersIso } from "@/lib/format";
 import { eur } from "@/lib/commandes-fournisseur/format";
 
 /// Position (colonne, 0-based) de chaque champ dans la feuille "SITES"
@@ -165,7 +165,19 @@ function formaterTelInternational(numero: string): string {
   return `+262 ${groupes.join(" ")}`;
 }
 
-const CHAMPS_TELEPHONE = new Set<keyof SiteInput>([
+/// "+262 692 91 02 26" → "0692 91 02 26" — inverse de
+/// formaterTelInternational, pour que le fichier exporté reste
+/// réimportable. Laisse la valeur telle quelle si elle ne ressemble pas
+/// à un numéro international réunionnais (déjà local, vide, "Inconnu"...).
+function telInternationalVersLocal(numero: string): string {
+  const chiffres = numero.replace(/\D/g, "");
+  if (chiffres.length !== 12 || !chiffres.startsWith("262")) return numero;
+  const local = `0${chiffres.slice(3)}`;
+  const groupes = /^(\d{4})(\d{2})(\d{2})(\d{2})$/.exec(local);
+  return groupes ? `${groupes[1]} ${groupes[2]} ${groupes[3]} ${groupes[4]}` : local;
+}
+
+export const CHAMPS_TELEPHONE = new Set<keyof SiteInput>([
   "tel_fixe_interlocuteur_site",
   "portable_interlocuteur_site",
   "tel_fixe_responsable",
@@ -176,7 +188,7 @@ const CHAMPS_TELEPHONE = new Set<keyof SiteInput>([
   "portable_tiers",
 ]);
 
-const CHAMPS_DATE = new Set<keyof SiteInput>([
+export const CHAMPS_DATE = new Set<keyof SiteInput>([
   "date_offre",
   "date_prise_effet_contrat",
   "date_fin_contrat",
@@ -196,7 +208,15 @@ function formaterMontantExport(valeur: string): string {
   return Number.isFinite(n) ? eur(n) : valeur;
 }
 
-const CHAMPS_MONTANT = new Set<keyof SiteInput>([
+/// "4 760,00 €" → "4760" — inverse de formaterMontantExport.
+function montantExportVersBrut(valeur: string): string {
+  const nettoye = valeur.replace(/[€\s]/g, "").replace(",", ".");
+  if (!nettoye) return "";
+  const n = Number(nettoye);
+  return Number.isFinite(n) ? String(n) : valeur;
+}
+
+export const CHAMPS_MONTANT = new Set<keyof SiteInput>([
   "montant_contrat_av",
   "taux_horaire_vendu",
   "taux_horaire_regie",
@@ -205,6 +225,18 @@ const CHAMPS_MONTANT = new Set<keyof SiteInput>([
   "taux_horaire_revise",
   "forfait_deplacement_revise",
 ]);
+
+/// Normalise une valeur brute lue du fichier Excel (import) : reconnaît
+/// les formats produits par ligneSite (export) — date FR, téléphone
+/// international, montant en € — et les reconvertit vers le format
+/// stocké en base ; sinon la laisse telle quelle (fichier non modifié,
+/// valeur déjà au format brut, ou saisie libre).
+export function normaliserValeurImportSite(champ: keyof SiteInput, valeur: string): string {
+  if (CHAMPS_TELEPHONE.has(champ)) return telInternationalVersLocal(valeur);
+  if (CHAMPS_DATE.has(champ)) return dateFrVersIso(valeur) || valeur;
+  if (CHAMPS_MONTANT.has(champ)) return montantExportVersBrut(valeur);
+  return valeur;
+}
 
 /// Construit une ligne complète de la feuille "SITES" pour un site
 /// donné (colonnes dans le même ordre que COLONNES_SITES/ENTETES_SITES) :

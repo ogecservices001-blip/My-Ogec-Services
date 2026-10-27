@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Site } from "@/lib/types";
 import { extraireNumero } from "@/lib/gmao/equipement-import";
 import { dureeEnHeures } from "@/lib/bi/format";
-import { Statuts } from "@/lib/bi/constants";
+import { Statuts, Poles } from "@/lib/bi/constants";
 import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { heuresCumulAnnee } from "@/lib/gmao/calcul-heures-visite";
 import type { Equipement, ReferenceHoraire } from "@/lib/gmao/types";
@@ -36,6 +36,11 @@ function parseHeures(v: string): number {
 /// par la page et l'export, pour ne jamais faire diverger les deux.
 ///
 /// "À programmer" = Total dû au contrat − Déjà réalisées − Programmées.
+/// Les heures de contrat ne couvrent QUE l'entretien sous contrat — un
+/// dépannage ou une prestation sur devis se facturent à part, même
+/// réalisés sur ce site, et ne doivent jamais grignoter ce quota :
+/// créneaux avec devis_id (prestation ponctuelle) exclus, BI filtrés
+/// au seul pôle Entretien sous contrat.
 /// "Déjà réalisées" cumule : les créneaux de planning dont la date est
 /// passée (réputés faits), + les heures des BI déjà validés — ces deux
 /// sources peuvent en théorie se recouper (un créneau passé ET son BI
@@ -66,8 +71,9 @@ export async function calculerLignesAuditHeures(supabase: SupabaseClient<any>): 
       .select("site_id, date, heures_prevues, creneau_techniciens(technicien_id)")
       .in("site_id", siteIds)
       .eq("annule", false)
-      .not("site_id", "is", null),
-    supabase.from("bons_intervention").select("site_id, temps_passe, statut").in("site_id", siteIds),
+      .not("site_id", "is", null)
+      .is("devis_id", null),
+    supabase.from("bons_intervention").select("site_id, temps_passe, statut, pole").in("site_id", siteIds),
     supabase.from("equipements").select("site_id, champs_en_tete").in("site_id", siteIds),
     supabase.from("references_horaires").select("*"),
   ]);
@@ -84,7 +90,7 @@ export async function calculerLignesAuditHeures(supabase: SupabaseClient<any>): 
     cible.set(c.site_id, (cible.get(c.site_id) ?? 0) + heures);
   }
   for (const b of bons ?? []) {
-    if (!b.site_id || !STATUTS_VALIDES.has(b.statut)) continue;
+    if (!b.site_id || !STATUTS_VALIDES.has(b.statut) || b.pole !== Poles.entretienSousContrat) continue;
     const heures = dureeEnHeures(b.temps_passe) ?? 0;
     realiseesParSite.set(b.site_id, (realiseesParSite.get(b.site_id) ?? 0) + heures);
   }

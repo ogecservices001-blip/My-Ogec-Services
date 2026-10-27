@@ -24,6 +24,14 @@ const DevisExtrait = z.object({
   nom_contact: z.string().default("").describe("Nom de la personne (interlocuteur/commercial) indiquée sur le document, si présent"),
   validite_offre: z.string().default("").describe("Durée ou date de validité de l'offre indiquée sur le document, telle qu'écrite (ex: \"30 jours\", \"valable jusqu'au 15/11/2026\")"),
   conditions_paiement: z.string().default("").describe("Conditions de paiement indiquées sur le document, telles qu'écrites (ex: \"30% à la commande, solde à la livraison\", \"comptant\", \"30 jours net\")"),
+  delai_paiement: z
+    .string()
+    .default("")
+    .describe(
+      "UNIQUEMENT le délai de paiement en tant que tel (ex: \"60 jours\", \"30 jours fin de mois\", \"comptant\") " +
+        "— jamais le moyen de paiement (chèque, virement...) ni une clause CGV complète (pénalités de retard, " +
+        "escompte, distinction clients en compte/hors compte...). Vide si aucun délai chiffré/nommé n'est indiqué.",
+    ),
   incoterm: z.string().default("").describe("Code Incoterm à 3 lettres si indiqué (EXW, FCA, FOB, CFR, CIF, DAP, DDP...), sinon vide"),
   taux_tva: z
     .string()
@@ -52,7 +60,9 @@ const PROMPT =
   "Voici un devis ou bon de commande fournisseur (PDF ou photo). Extrais : " +
   "le numéro de devis, sa date, la raison sociale complète de la société émettrice (le fournisseur), le nom de la " +
   "personne (interlocuteur/commercial) indiquée sur le document si présent, la durée ou date de validité de " +
-  "l'offre si elle est indiquée, les conditions de paiement si elles sont indiquées, l'Incoterm si indiqué, " +
+  "l'offre si elle est indiquée, les conditions de paiement si elles sont indiquées, et séparément le seul délai " +
+  "de paiement proprement dit (ex: \"60 jours\", \"30 jours fin de mois\", \"comptant\" — jamais le moyen de " +
+  "paiement comme chèque/virement, ni une clause CGV complète), l'Incoterm si indiqué, " +
   "le taux de TVA en % s'il est clairement écrit comme un pourcentage (pas un simple code numérique interne), " +
   "le montant TTC total du devis s'il est indiqué, l'activité/spécialité du fournisseur si elle est mentionnée, " +
   "et CHAQUE ligne facturable du tableau d'articles : code article (s'il y en a un, sinon laisse vide), " +

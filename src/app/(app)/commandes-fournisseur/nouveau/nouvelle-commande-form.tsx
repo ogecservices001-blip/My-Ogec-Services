@@ -137,7 +137,7 @@ export function NouvelleCommandeForm({
       // d'apprendre (champs encore vides uniquement, voir la fonction).
       if (f) {
         await completerFicheFournisseurDepuisDevis(f.id, {
-          delaiPaiement: r.conditions_paiement,
+          delaiPaiement: r.delai_paiement,
           produitsCles: r.produits_cles,
         });
       }

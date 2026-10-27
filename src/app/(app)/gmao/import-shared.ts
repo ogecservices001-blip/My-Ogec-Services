@@ -42,6 +42,8 @@ const COLONNE_VERS_CLE: Record<string, string> = {
   "date dernier contrôle étanchéité": "dateDernierControle",
   "date prochain contrôle étanchéité": "dateProchainControle",
   "n° dernier bordereau étanchéité": "numDernierBordereau",
+  "date dernier contrôle désenfumage": "dateDernierControleDesenfumage",
+  "date prochain contrôle désenfumage": "dateProchainControleDesenfumage",
 };
 
 function normaliser(s: string): string {
@@ -98,6 +100,7 @@ async function parserSommaire(fichier: File): Promise<LigneImportEquipement[] | 
       numeroEquipement: valeur(row, "numéro équipement"),
       localisation: valeur(row, "localisation"),
       groupe: valeur(row, "groupe"),
+      informationsInternes: valeur(row, "informations internes"),
       typeDeReleveBrut,
       typeEquipementId,
       champsEnTete,
@@ -190,6 +193,7 @@ export async function appliquerImportEquipements(
       numero_equipement: a.ligne.numeroEquipement,
       localisation: a.ligne.localisation,
       groupe: a.ligne.groupe,
+      informations_internes: a.ligne.informationsInternes,
       champs_en_tete: a.ligne.champsEnTete,
     }));
   // Insert par lots : un envoi unique de plusieurs milliers de lignes
@@ -213,6 +217,7 @@ export async function appliquerImportEquipements(
         nom: mod.ligne.nom || mod.existant.nom,
         localisation: mod.ligne.localisation || mod.existant.localisation,
         groupe: mod.ligne.groupe || mod.existant.groupe,
+        informations_internes: mod.ligne.informationsInternes || mod.existant.informations_internes,
         champs_en_tete: champsEnTeteFusionnes,
       })
       .eq("id", mod.existant.id);
@@ -307,12 +312,13 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
     "Numéro équipement",
     "Localisation",
     "Groupe",
+    "Informations internes",
     ...champsOrdre.map((cle) => CHAMPS_CONNUS_LABELS[cle]),
     "Heures Tech / an",
     "Heures Assistant / an",
     "Statut heures",
   ]);
-  const premiereColonneChamps = 8;
+  const premiereColonneChamps = 9;
   const colonneStatutHeures = premiereColonneChamps + champsOrdre.length + 2;
   const ROUGE = { color: { argb: "FFCC0000" }, bold: true };
 
@@ -326,6 +332,7 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
       a.ligne.numeroEquipement,
       a.ligne.localisation,
       a.ligne.groupe,
+      a.ligne.informationsInternes,
       ...champsOrdre.map((cle) => a.ligne.champsEnTete[cle] ?? ""),
       heures.heuresTech,
       heures.heuresAssistant,
@@ -358,6 +365,7 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
       m.existant.numero_equipement,
       m.ligne.localisation || m.existant.localisation,
       m.ligne.groupe || m.existant.groupe,
+      m.ligne.informationsInternes || m.existant.informations_internes,
       ...valeursChamps,
       heures.heuresTech,
       heures.heuresAssistant,

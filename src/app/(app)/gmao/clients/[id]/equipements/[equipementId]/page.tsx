@@ -208,6 +208,23 @@ export default async function VisualiserEquipementPage({
         )}
       </div>
 
+      {(eq.remarque_technicien || eq.informations_internes) && (
+        <div className="mt-3 space-y-2">
+          {eq.remarque_technicien && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-amber-600">Remarque technicien</p>
+              {eq.remarque_technicien}
+            </div>
+          )}
+          {eq.informations_internes && (
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 text-sm text-slate-700 shadow-sm">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">Informations internes</p>
+              {eq.informations_internes}
+            </div>
+          )}
+        </div>
+      )}
+
       {type.champs_listes.map((def) => {
         const lignes = Array.isArray(c[def.cle]) ? (c[def.cle] as ChampListeLigne[]) : [];
         if (lignes.length === 0) return null;

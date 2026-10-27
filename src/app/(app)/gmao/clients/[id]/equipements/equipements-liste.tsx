@@ -270,6 +270,13 @@ function CarteEquipement({
         </div>
       )}
 
+      {eq.informations_internes && (
+        <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-600">
+          <span className="font-semibold">Infos internes : </span>
+          {eq.informations_internes}
+        </div>
+      )}
+
       <div className="mt-2 flex gap-2">
         <Link
           href={`/gmao/clients/${siteId}/equipements/${eq.id}`}

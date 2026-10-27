@@ -133,10 +133,16 @@ export const CLASSEMENT_LABELS: Record<string, string> = {
 /// automatiquement (voir @/lib/gmao/releve-service).
 export const CHAMPS_MATERIEL_EXCLUS_BI = new Set(["nomTech", "freqEntretienAnnuelle", "dateIntervPrevue"]);
 
-/// Affichés et saisissables, mais jamais exigés pour avancer : le
-/// contrôle d'étanchéité (dernier/prochain/bordereau) n'est pas
-/// toujours connu du technicien au moment du BI.
-export const CHAMPS_MATERIEL_FACULTATIFS_BI = new Set(["dateDernierControle", "dateProchainControle", "numDernierBordereau"]);
+/// Affichés et saisissables, mais jamais exigés pour avancer : les
+/// contrôles d'étanchéité et de désenfumage (dernier/prochain/
+/// bordereau) ne sont pas toujours connus du technicien au moment du BI.
+export const CHAMPS_MATERIEL_FACULTATIFS_BI = new Set([
+  "dateDernierControle",
+  "dateProchainControle",
+  "numDernierBordereau",
+  "dateDernierControleDesenfumage",
+  "dateProchainControleDesenfumage",
+]);
 
 export const PHOTO_TYPES: Record<string, string> = {
   avant: "Avant intervention",

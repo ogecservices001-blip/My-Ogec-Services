@@ -65,6 +65,7 @@ export function EquipementForm({
         <ChampTexte label="Numéro équipement (ex: 462-01-31)" name="numero_equipement" />
         <ChampTexte label="Localisation" name="localisation" />
         <ChampTexte label="Groupe (ex: Split Système)" name="groupe" />
+        <ChampTexteLong label="Informations internes (jamais visible du client)" name="informations_internes" />
 
         {type && type.type_equipement1_fixe && (
           <TypeEquipementSelects
@@ -127,6 +128,22 @@ function ChampTexte({ label, name, required }: { label: string; name: string; re
         id={name}
         name={name}
         required={required}
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+      />
+    </div>
+  );
+}
+
+function ChampTexteLong({ label, name }: { label: string; name: string }) {
+  return (
+    <div>
+      <label htmlFor={name} className="mb-1 block text-xs font-medium text-slate-600">
+        {label}
+      </label>
+      <textarea
+        id={name}
+        name={name}
+        rows={2}
         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
       />
     </div>

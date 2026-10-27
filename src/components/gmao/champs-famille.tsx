@@ -8,7 +8,15 @@ import { OcrScanButton } from "./ocr-scan-button";
 /// Champs sans bouton OCR — rien à scanner sur une plaque signalétique
 /// pour une date de contrôle, un n° de bordereau ou une valeur déjà
 /// couverte par un autre champ (charge réfrigérant, puissance).
-const SANS_OCR = new Set(["chargeRefrigerant", "puissance", "dateDernierControle", "dateProchainControle", "numDernierBordereau"]);
+const SANS_OCR = new Set([
+  "chargeRefrigerant",
+  "puissance",
+  "dateDernierControle",
+  "dateProchainControle",
+  "numDernierBordereau",
+  "dateDernierControleDesenfumage",
+  "dateProchainControleDesenfumage",
+]);
 
 /// Un champ d'en-tête spécifique à une famille (texte ou liste de choix
 /// — la valeur existante est toujours proposée même si absente de la

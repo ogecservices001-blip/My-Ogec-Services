@@ -810,6 +810,7 @@ export type Database = {
           groupe: string
           hors_contrat: boolean
           id: string
+          informations_internes: string
           legacy_id: string | null
           localisation: string
           nom: string
@@ -827,6 +828,7 @@ export type Database = {
           groupe?: string
           hors_contrat?: boolean
           id?: string
+          informations_internes?: string
           legacy_id?: string | null
           localisation?: string
           nom?: string
@@ -844,6 +846,7 @@ export type Database = {
           groupe?: string
           hors_contrat?: boolean
           id?: string
+          informations_internes?: string
           legacy_id?: string | null
           localisation?: string
           nom?: string

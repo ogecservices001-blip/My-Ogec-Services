@@ -7,6 +7,7 @@ export type LigneImportEquipement = {
   numeroEquipement: string;
   localisation: string;
   groupe: string;
+  informationsInternes: string;
   typeDeReleveBrut: string;
   typeEquipementId: string | null;
   champsEnTete: Record<string, string>;
@@ -48,6 +49,8 @@ export const CHAMPS_CONNUS_LABELS: Record<string, string> = {
   dateDernierControle: "Date dernier contrôle étanchéité",
   dateProchainControle: "Date Prochain contrôle étanchéité",
   numDernierBordereau: "N° dernier bordereau étanchéité",
+  dateDernierControleDesenfumage: "Date dernier contrôle désenfumage",
+  dateProchainControleDesenfumage: "Date Prochain contrôle désenfumage",
 };
 
 /// Extrait la partie numérique d'un texte (ex: "OS-044" → 44) — `null`
@@ -132,6 +135,13 @@ export function calculerDiffPourSite(
     }
     if (ligne.groupe && ligne.groupe !== existant.groupe) {
       champsDiff.push({ label: "Groupe", ancienne: existant.groupe, nouvelle: ligne.groupe });
+    }
+    if (ligne.informationsInternes && ligne.informationsInternes !== existant.informations_internes) {
+      champsDiff.push({
+        label: "Informations internes",
+        ancienne: existant.informations_internes,
+        nouvelle: ligne.informationsInternes,
+      });
     }
 
     const champsConnus = new Set(type.champs_en_tete_supplementaires.map((c) => c.cle));

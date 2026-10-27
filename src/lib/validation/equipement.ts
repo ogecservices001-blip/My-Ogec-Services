@@ -7,5 +7,6 @@ export const equipementSchema = z.object({
   numero_equipement: z.string().trim().default(""),
   localisation: z.string().trim().default(""),
   groupe: z.string().trim().default(""),
+  informations_internes: z.string().trim().default(""),
 });
 export type EquipementInput = z.infer<typeof equipementSchema>;

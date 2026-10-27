@@ -34,6 +34,9 @@ export const COLONNES_SOMMAIRE = [
   "Date dernier contrôle étanchéité",
   "Date Prochain contrôle étanchéité",
   "N° dernier bordereau étanchéité",
+  "Date dernier contrôle désenfumage",
+  "Date Prochain contrôle désenfumage",
+  "Informations internes",
 ];
 
 /// Tri standard d'un export "Sommaire" : par site (ordre de n_affaire —
@@ -111,5 +114,8 @@ export function ligneSommaire(
     champ(c, "dateDernierControle"),
     champ(c, "dateProchainControle"),
     champ(c, "numDernierBordereau"),
+    champ(c, "dateDernierControleDesenfumage"),
+    champ(c, "dateProchainControleDesenfumage"),
+    eq.informations_internes,
   ];
 }

@@ -129,6 +129,7 @@ export function construireModules(isAdmin: boolean): Module[] {
         ? [
             { nom: "Planification", href: "/planning" },
             { nom: "Audit Heures", href: "/planning/audit-heures" },
+            { nom: "Heures par pôle", href: "/planning/heures-par-pole" },
           ]
         : [{ nom: "Mon planning", href: "/planning/mon-planning" }],
     },

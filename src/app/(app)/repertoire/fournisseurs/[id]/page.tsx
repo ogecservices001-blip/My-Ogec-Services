@@ -7,7 +7,7 @@ import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import type { Fournisseur } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
 import { tvaSurFacture } from "@/lib/validation/fournisseur";
-import { telInternational } from "@/lib/format";
+import { telInternational, indicatifTel } from "@/lib/format";
 import { supprimerFournisseur } from "../actions";
 
 export default async function FournisseurDetailPage({
@@ -28,6 +28,7 @@ export default async function FournisseurDetailPage({
   if (!data) notFound();
   const f = data as Fournisseur;
   const interlocuteurs = (f.interlocuteurs as unknown as Interlocuteur[] | null) ?? [];
+  const indicatif = indicatifTel(f.localisation);
 
   const champsTechnicien: [string, string][] = [
     ["Nature fourniture", f.nature_fourniture],
@@ -95,15 +96,15 @@ export default async function FournisseurDetailPage({
                 <p className="text-sm font-semibold text-slate-900">{it.nom || "—"}</p>
                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
                   {it.portable && (
-                    <a href={`tel:${telInternational(it.portable)}`} className="inline-flex items-center gap-1.5 text-brand-green-dark hover:underline">
+                    <a href={`tel:${telInternational(it.portable, indicatif)}`} className="inline-flex items-center gap-1.5 text-brand-green-dark hover:underline">
                       <Phone className="h-3.5 w-3.5" strokeWidth={2} />
-                      {telInternational(it.portable)}
+                      {telInternational(it.portable, indicatif)}
                     </a>
                   )}
                   {it.tel && (
-                    <a href={`tel:${telInternational(it.tel)}`} className="inline-flex items-center gap-1.5 text-brand-green-dark hover:underline">
+                    <a href={`tel:${telInternational(it.tel, indicatif)}`} className="inline-flex items-center gap-1.5 text-brand-green-dark hover:underline">
                       <Phone className="h-3.5 w-3.5" strokeWidth={2} />
-                      {telInternational(it.tel)}
+                      {telInternational(it.tel, indicatif)}
                     </a>
                   )}
                   {it.email && (

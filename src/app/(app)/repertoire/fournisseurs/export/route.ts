@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 import { tvaSurFacture, type Interlocuteur } from "@/lib/validation/fournisseur";
-import { telInternational } from "@/lib/format";
+import { telInternational, indicatifTel } from "@/lib/format";
 import type { Fournisseur } from "@/lib/types";
 
 const ENTETES = [
@@ -53,13 +53,14 @@ export async function GET() {
   for (const f of fournisseurs) {
     const interlocuteurs = (f.interlocuteurs as unknown as Interlocuteur[] | null) ?? [];
     const lignes = interlocuteurs.length > 0 ? interlocuteurs : [{ nom: "", tel: "", portable: "", email: "" }];
+    const indicatif = indicatifTel(f.localisation);
     for (const it of lignes) {
       feuille.addRow([
         f.nom,
         f.nature_fourniture,
         it.nom,
-        telInternational(it.tel),
-        telInternational(it.portable),
+        telInternational(it.tel, indicatif),
+        telInternational(it.portable, indicatif),
         it.email,
         f.adresse,
         f.complement_adresse,

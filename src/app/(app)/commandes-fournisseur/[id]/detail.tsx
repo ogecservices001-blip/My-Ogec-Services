@@ -8,7 +8,7 @@ import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import type { Tables } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
 import { calculerTotaux, montantLigne, eur, type LigneCommande } from "@/lib/commandes-fournisseur/format";
-import { telInternational } from "@/lib/format";
+import { telInternational, indicatifTel } from "@/lib/format";
 import { modifierSuiviCommande, supprimerCommandeFournisseur, envoyerCommandeParEmail } from "../actions";
 
 type Commande = Tables<"commandes_fournisseur">;
@@ -127,7 +127,9 @@ export function CommandeDetail({
         </p>
         <div className="space-y-0.5 px-4 py-3 text-sm">
           <p className="font-semibold text-slate-900">{interlocuteur?.nom || "—"}</p>
-          <p className="text-slate-600">{telInternational(interlocuteur?.portable || interlocuteur?.tel || "")}</p>
+          <p className="text-slate-600">
+            {telInternational(interlocuteur?.portable || interlocuteur?.tel || "", indicatifTel(fournisseur?.localisation ?? ""))}
+          </p>
           <p className="text-slate-600">{interlocuteur?.email}</p>
           {commande.devis_fournisseur_numero && (
             <p className="pt-1 text-slate-500">

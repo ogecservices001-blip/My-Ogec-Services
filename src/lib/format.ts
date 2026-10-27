@@ -29,25 +29,42 @@ export function initiales(nom: string): string {
   return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
 }
 
-/// "0692 91 02 26" → "+262 692 91 02 26" — ne touche pas aux valeurs qui
-/// ne ressemblent pas à un numéro local réunionnais à 10 chiffres (vide,
-/// "Inconnu", déjà international...). Utilisé partout où un numéro est
-/// affiché (fiches, exports, PDF) — jamais sur un champ de saisie, pour
-/// rester facile à taper au format local habituel.
-export function telInternational(numero: string): string {
+/// Indicatif à appliquer selon la localisation d'un fournisseur (seul
+/// cas où un numéro peut être hors Réunion, voir tvaSurFacture) — `null`
+/// si la localisation n'est ni "Réunion" ni "Métropole" : on préfère ne
+/// pas formater plutôt que de deviner un mauvais indicatif.
+export function indicatifTel(localisation: string): string | null {
+  if (localisation === "Réunion") return "262";
+  if (localisation === "Métropole") return "33";
+  return null;
+}
+
+/// "0692 91 02 26" → "+262 692 91 02 26" (indicatif par défaut : La
+/// Réunion, où se trouvent l'entreprise, ses sites clients et ses
+/// collaborateurs — passer `indicatifTel(fournisseur.localisation)`
+/// pour un fournisseur, qui peut être en métropole). Ne touche pas aux
+/// valeurs qui ne ressemblent pas à un numéro local à 10 chiffres
+/// (vide, "Inconnu", déjà international...), ni si `indicatif` est
+/// `null`. Utilisé partout où un numéro est affiché (fiches, exports,
+/// PDF) — jamais sur un champ de saisie, pour rester facile à taper au
+/// format local habituel.
+export function telInternational(numero: string, indicatif: string | null = "262"): string {
+  if (!indicatif) return numero;
   const chiffres = numero.replace(/\D/g, "");
   if (chiffres.length !== 10 || !chiffres.startsWith("0")) return numero;
   const groupes = chiffres.slice(1).match(/.{2}/g) ?? [];
-  return `+262 ${groupes.join(" ")}`;
+  return `+${indicatif} ${groupes.join(" ")}`;
 }
 
-/// Inverse de telInternational — pour que les fichiers exportés restent
+/// Inverse de telInternational (+262 ou +33, tous deux à 9 chiffres
+/// après l'indicatif) — pour que les fichiers exportés restent
 /// réimportables tel quels. Laisse la valeur telle quelle si elle ne
-/// ressemble pas à un numéro international réunionnais.
+/// ressemble pas à un numéro international connu.
 export function telLocal(numero: string): string {
   const chiffres = numero.replace(/\D/g, "");
-  if (chiffres.length !== 12 || !chiffres.startsWith("262")) return numero;
-  const local = `0${chiffres.slice(3)}`;
+  const match = /^(262|33)(\d{9})$/.exec(chiffres);
+  if (!match) return numero;
+  const local = `0${match[2]}`;
   const groupes = /^(\d{4})(\d{2})(\d{2})(\d{2})$/.exec(local);
   return groupes ? `${groupes[1]} ${groupes[2]} ${groupes[3]} ${groupes[4]}` : local;
 }

@@ -72,12 +72,10 @@ export function NouvelleCommandeForm({
       const n = valeur.trim().toLowerCase();
       return n.length > 0 && (n === cible || n.includes(cible) || cible.includes(n));
     };
-    // Nom affiché, dénomination courte (sigle) ou raison sociale exacte
-    // — un devis fournisseur imprime rarement le même libellé que celui
-    // choisi en créant la fiche.
-    return fournisseurs.find(
-      (f) => correspond(f.nom) || correspond(f.denomination_courte) || correspond(f.raison_sociale_exacte),
-    );
+    // Nom affiché ou raison sociale exacte — un devis fournisseur
+    // imprime rarement le même libellé que celui choisi en créant la
+    // fiche.
+    return fournisseurs.find((f) => correspond(f.nom) || correspond(f.raison_sociale_exacte));
   }
 
   function analyserFichier() {

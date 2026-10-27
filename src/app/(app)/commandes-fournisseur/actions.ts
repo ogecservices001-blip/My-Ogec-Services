@@ -45,13 +45,9 @@ export async function creerCommandeFournisseur(input: NouvelleCommandeInput): Pr
   const pieces = piecesDepuisNumeroDevis(devis.numero);
   if (!pieces) return { ok: false, erreur: "Ce devis n'a pas de numéro exploitable pour numéroter la commande." };
 
-  const { data: fournisseur } = await supabase
-    .from("fournisseurs")
-    .select("nom, denomination_courte")
-    .eq("id", input.fournisseurId)
-    .single();
+  const { data: fournisseur } = await supabase.from("fournisseurs").select("nom").eq("id", input.fournisseurId).single();
   if (!fournisseur) return { ok: false, erreur: "Fournisseur introuvable." };
-  const initialesFournisseur = fournisseur.denomination_courte || fournisseur.nom.slice(0, 4).toUpperCase();
+  const initialesFournisseur = fournisseur.nom.slice(0, 4).toUpperCase();
   const initiales = initialesDe(profil.name);
   const dateCommande = new Date().toLocaleDateString("fr-FR");
 

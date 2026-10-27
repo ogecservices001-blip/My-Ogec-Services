@@ -897,7 +897,6 @@ export type Database = {
           complement_adresse: string
           created_at: string
           delai_paiement: string
-          denomination_courte: string
           fiche_maj_le: string
           forme_juridique: string
           id: string
@@ -925,7 +924,6 @@ export type Database = {
           complement_adresse?: string
           created_at?: string
           delai_paiement?: string
-          denomination_courte?: string
           fiche_maj_le?: string
           forme_juridique?: string
           id?: string
@@ -953,7 +951,6 @@ export type Database = {
           complement_adresse?: string
           created_at?: string
           delai_paiement?: string
-          denomination_courte?: string
           fiche_maj_le?: string
           forme_juridique?: string
           id?: string

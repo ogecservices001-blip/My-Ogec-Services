@@ -35,7 +35,6 @@ export default async function FournisseurDetailPage({
   ];
 
   const champsAdmin: [string, string][] = [
-    ["Dénomination courte", f.denomination_courte],
     ["Localisation", f.localisation],
     ["Site web", f.site_web],
     ["Produits clés", f.produits_cles],

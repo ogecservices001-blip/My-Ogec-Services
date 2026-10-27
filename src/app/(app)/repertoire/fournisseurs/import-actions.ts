@@ -24,8 +24,6 @@ export type ResultatPreviewFournisseurs =
 const EN_TETES_SOCIETE: Record<string, keyof FournisseurInput> = {
   "noms fournisseurs": "nom",
   nom: "nom",
-  "dénomination courte fournisseurs": "denomination_courte",
-  "dénomination courte": "denomination_courte",
   "nature fourniture": "nature_fourniture",
   adresse: "adresse",
   "complément d'adresse": "complement_adresse",
@@ -66,7 +64,6 @@ const EN_TETES_CONTACT: Record<string, keyof Interlocuteur> = {
 
 const LABELS: Record<keyof FournisseurInput, string> = {
   nom: "Nom",
-  denomination_courte: "Dénomination courte",
   nature_fourniture: "Nature fourniture",
   interlocuteurs: "Interlocuteurs",
   site_web: "Site web",

@@ -8,7 +8,6 @@ import type { Fournisseur } from "@/lib/types";
 
 const ENTETES = [
   "Noms Fournisseurs",
-  "Dénomination courte Fournisseurs",
   "Nature Fourniture",
   "Interlocuteurs",
   "Tel",
@@ -56,7 +55,6 @@ export async function GET() {
     for (const it of lignes) {
       feuille.addRow([
         f.nom,
-        f.denomination_courte,
         f.nature_fourniture,
         it.nom,
         it.tel,

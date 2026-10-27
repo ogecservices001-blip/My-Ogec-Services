@@ -13,7 +13,6 @@ export type Interlocuteur = z.infer<typeof interlocuteurSchema>;
 
 export const fournisseurSchema = z.object({
   nom: z.string().trim().min(1, "Le nom du fournisseur est obligatoire"),
-  denomination_courte: optionnel(),
   nature_fourniture: optionnel(),
   interlocuteurs: z.array(interlocuteurSchema).default([]),
   site_web: optionnel(),
@@ -54,7 +53,6 @@ export const CHAMPS_VISIBLES_TECHNICIEN: (keyof FournisseurInput)[] = [
 
 export const champsFournisseur: { cle: keyof FournisseurInput; label: string }[] = [
   { cle: "nom", label: "Nom" },
-  { cle: "denomination_courte", label: "Dénomination courte" },
   { cle: "nature_fourniture", label: "Nature fourniture" },
   { cle: "commune", label: "Ville" },
   { cle: "code_postal", label: "Code postal" },

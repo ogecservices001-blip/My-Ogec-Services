@@ -85,7 +85,7 @@ export const ENTETES_SITES: Record<number, string> = {
   6: "Nb Heures Vendues",
   7: "Nb Heures Vendues Assistant",
   8: "Qté Heures Programmées",
-  9: "Qté Heures Restantes",
+  9: "Qté Heures Restantes à Planifier",
   10: "Fréq. Entretien/an",
   11: "Commune",
   12: "Code Postal",
@@ -221,7 +221,10 @@ export function normaliserValeurImportSite(champ: keyof SiteInput, valeur: strin
 /// donné (colonnes dans le même ordre que COLONNES_SITES/ENTETES_SITES) :
 /// N° Client/N° Site dérivés de n_affaire (pas de champ dédié en base),
 /// téléphones au format international, dates au format JJ/MM/AAAA.
-export function ligneSite(site: Record<string, unknown>): string[] {
+/// `heuresRestantes`, si fourni (voir calculerLignesAuditHeures),
+/// remplace la valeur figée de qte_heures_restantes par le calcul en
+/// direct (créneaux + BI validés vs. contrat) — jamais réimportée.
+export function ligneSite(site: Record<string, unknown>, heuresRestantes?: number): string[] {
   const ligne: string[] = new Array(NB_COLONNES_SITES).fill("");
   for (const { index, champ } of COLONNES_SITES) {
     const valeur = String(site[champ] ?? "");
@@ -233,5 +236,6 @@ export function ligneSite(site: Record<string, unknown>): string[] {
   const [numClient, numSite] = numeroClientEtSite(String(site.n_affaire ?? ""));
   ligne[3] = numClient;
   ligne[4] = numSite;
+  if (heuresRestantes !== undefined) ligne[9] = String(heuresRestantes);
   return ligne;
 }

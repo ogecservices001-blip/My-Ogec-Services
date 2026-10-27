@@ -131,7 +131,7 @@ export const groupesChampsSite: {
       { cle: "nb_heures_vendues", label: "Nb Heures vendues" },
       { cle: "nb_heures_vendues_assistant", label: "Nb Heures vendues assistant" },
       { cle: "qte_heures_programmees", label: "Qté heures programmées" },
-      { cle: "qte_heures_restantes", label: "Qté heures restantes" },
+      { cle: "qte_heures_restantes", label: "Qté heures restantes à planifier" },
       { cle: "taux_horaire_regie", label: "Taux horaire régie" },
       { cle: "taux_horaire_vendu", label: "Taux horaire vendu" },
       { cle: "forfait_deplacement", label: "Forfait déplacement" },

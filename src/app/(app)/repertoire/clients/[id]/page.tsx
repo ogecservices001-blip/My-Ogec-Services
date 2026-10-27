@@ -21,6 +21,7 @@ import { formaterDate, telInternational } from "@/lib/format";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonsRecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
 import { chargerRecapDevis, chargerRecapBI, chargerRecapDepannages } from "@/lib/repertoire/recap";
+import { calculerLignesAuditHeures } from "@/app/(app)/planning/audit-heures/calcul";
 import type { Site } from "@/lib/types";
 import { supprimerSite } from "../actions";
 
@@ -111,6 +112,14 @@ export default async function SiteDetailPage({
     chargerRecapBI([id]),
     chargerRecapDepannages([id]),
   ]);
+
+  // "Qté heures programmées/restantes" : jamais une valeur figée mais
+  // recalculées en direct depuis Planning (créneaux + BI validés vs.
+  // contrat) — même calcul que /planning/audit-heures. Non pertinent
+  // pour un site hors contrat (pas de contrat, pas d'heures à suivre).
+  const ligneAudit = !site.hors_contrat
+    ? (await calculerLignesAuditHeures(supabase)).find((l) => l.id === id)
+    : undefined;
 
   return (
     <div>
@@ -235,8 +244,8 @@ export default async function SiteDetailPage({
             champs={[
               ["Nb Heures vendues", site.nb_heures_vendues],
               ["Nb Heures vendues assistant", site.nb_heures_vendues_assistant],
-              ["Qté heures programmées", site.qte_heures_programmees],
-              ["Qté heures restantes", site.qte_heures_restantes],
+              ["Qté heures programmées", ligneAudit ? String(ligneAudit.programmeesTech) : site.qte_heures_programmees],
+              ["Qté heures restantes à planifier", ligneAudit ? String(ligneAudit.progTech) : site.qte_heures_restantes],
               ["Taux horaire régie", site.taux_horaire_regie],
               ["Taux horaire vendu", site.taux_horaire_vendu],
               ["Forfait déplacement", site.forfait_deplacement],

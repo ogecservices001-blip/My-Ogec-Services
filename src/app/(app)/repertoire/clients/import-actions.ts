@@ -47,7 +47,7 @@ const LABELS: Record<keyof SiteInput, string> = {
   nb_heures_vendues: "Nb Heures vendues",
   nb_heures_vendues_assistant: "Nb Heures vendues assistant",
   qte_heures_programmees: "Qté heures programmées",
-  qte_heures_restantes: "Qté heures restantes",
+  qte_heures_restantes: "Qté heures restantes à planifier",
   taux_horaire_regie: "Taux horaire régie",
   taux_horaire_vendu: "Taux horaire vendu",
   forfait_deplacement: "Forfait déplacement",

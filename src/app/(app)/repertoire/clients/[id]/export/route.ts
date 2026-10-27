@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { ENTETES_SITES, NB_COLONNES_SITES, ligneSite } from "@/lib/repertoire/sites-excel";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
+import { calculerLignesAuditHeures } from "@/app/(app)/planning/audit-heures/calcul";
 
 /// Exporte un seul site — même format que /repertoire/clients/export,
 /// réimportable tel quel.
@@ -17,6 +18,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ erreur: error?.message ?? "Site introuvable." }, { status: 404 });
   }
 
+  const lignesAudit = await calculerLignesAuditHeures(supabase);
+  const heuresRestantes = lignesAudit.find((l) => l.id === site.id)?.progTech;
+
   const workbook = new ExcelJS.Workbook();
   const feuille = workbook.addWorksheet("SITES");
 
@@ -24,7 +28,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   for (let i = 0; i < NB_COLONNES_SITES; i++) entetes.push(ENTETES_SITES[i] ?? "");
   feuille.addRow(entetes);
 
-  feuille.addRow(ligneSite(site));
+  feuille.addRow(ligneSite(site, heuresRestantes));
 
   finaliserFeuille(feuille);
 

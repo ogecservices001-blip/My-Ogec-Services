@@ -8,7 +8,7 @@ import type { Tables } from "@/lib/types";
 import type { Site } from "@/lib/types";
 import { Tableur } from "@/components/tableur";
 import { FiltreSelect } from "@/components/filtre-select";
-import { NATURE_DEVIS, labelNatureDevis } from "@/lib/devis/constants";
+import { NATURES_DEVIS_SELECTIONNABLES, labelNatureDevis } from "@/lib/devis/constants";
 import { modifierDevis, supprimerDevis, type DevisInput } from "../../actions";
 import { eur } from "../../registre-liste";
 
@@ -169,7 +169,7 @@ function ModaleDevis({ devis, onClose }: { devis: Devis; onClose: () => void }) 
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
               >
                 <option value="">— Non précisée —</option>
-                {Object.entries(NATURE_DEVIS).map(([code, label]) => (
+                {Object.entries(NATURES_DEVIS_SELECTIONNABLES).map(([code, label]) => (
                   <option key={code} value={code}>
                     {label}
                   </option>

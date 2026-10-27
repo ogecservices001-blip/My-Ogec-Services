@@ -1,6 +1,6 @@
 import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { NATURE_DEVIS } from "@/lib/devis/constants";
+import { NATURES_DEVIS_SELECTIONNABLES } from "@/lib/devis/constants";
 import { NouveauDevisForm } from "./nouveau-devis-form";
 
 export default async function NouveauDevisPage({
@@ -21,7 +21,7 @@ export default async function NouveauDevisPage({
   return (
     <NouveauDevisForm
       sites={(sites ?? []).map((s) => ({ id: s.id, nom: s.nom, site: s.site, horsContrat: s.hors_contrat }))}
-      natures={Object.entries(NATURE_DEVIS).map(([valeur, label]) => ({ valeur, label }))}
+      natures={Object.entries(NATURES_DEVIS_SELECTIONNABLES).map(([valeur, label]) => ({ valeur, label }))}
       prefill={prefill}
     />
   );

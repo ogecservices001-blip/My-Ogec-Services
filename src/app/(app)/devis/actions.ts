@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
-import { NATURE_DEVIS } from "@/lib/devis/constants";
+import { NATURES_DEVIS_SELECTIONNABLES } from "@/lib/devis/constants";
 import {
   formaterNumeroDevis,
   initialesDe,
@@ -49,7 +49,7 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
   const profil = await requireAdmin();
   if (!input.siteId) return { ok: false, erreur: "Choisis un site." };
   if (!input.libelle.trim()) return { ok: false, erreur: "Le libellé est obligatoire." };
-  if (!NATURE_DEVIS[input.nature]) return { ok: false, erreur: "Choisis une nature." };
+  if (!NATURES_DEVIS_SELECTIONNABLES[input.nature]) return { ok: false, erreur: "Choisis une nature." };
   const lignesValides = input.lignes.filter((l) => l.designation.trim());
   if (lignesValides.length === 0) return { ok: false, erreur: "Ajoute au moins une ligne d'article." };
 

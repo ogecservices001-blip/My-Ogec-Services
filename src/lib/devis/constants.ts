@@ -17,3 +17,10 @@ export const NATURE_DEVIS: Record<string, string> = {
 export function labelNatureDevis(code: string): string {
   return NATURE_DEVIS[code] ?? code;
 }
+
+/// Natures proposées à la création/au filtrage d'un devis — "Entretien
+/// sous contrat" (code 20) exclu : c'est déjà couvert par le contrat en
+/// cours, un devis n'a jamais de raison d'exister pour ça.
+export const NATURES_DEVIS_SELECTIONNABLES: Record<string, string> = Object.fromEntries(
+  Object.entries(NATURE_DEVIS).filter(([code]) => code !== "20"),
+);

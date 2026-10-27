@@ -36,6 +36,28 @@ export const COLONNES_SOMMAIRE = [
   "N° dernier bordereau étanchéité",
 ];
 
+/// Tri standard d'un export "Sommaire" : par site (ordre de n_affaire —
+/// numérique, pas alphabétique, pour garder l'ordre CSAPA NORD/EST/SUD
+/// = 01/02/03 plutôt que l'ordre du nom), puis par Groupe, puis par
+/// Numéro Équipement (numérique). Sur un export mono-site, le tri par
+/// site ne change rien (toutes les lignes partagent le même n_affaire).
+export function trierPourExport(
+  equipements: Equipement[],
+  sitesById: Record<string, { n_affaire: string }>,
+): Equipement[] {
+  return [...equipements].sort((a, b) => {
+    const cSite = (sitesById[a.site_id]?.n_affaire ?? "").localeCompare(
+      sitesById[b.site_id]?.n_affaire ?? "",
+      undefined,
+      { numeric: true },
+    );
+    if (cSite !== 0) return cSite;
+    const cGroupe = a.groupe.localeCompare(b.groupe, "fr");
+    if (cGroupe !== 0) return cGroupe;
+    return a.numero_equipement.localeCompare(b.numero_equipement, undefined, { numeric: true });
+  });
+}
+
 function cellNumerique(valeur: unknown): number | string {
   const texte = valeur?.toString() ?? "";
   const nombre = Number(texte.replace(",", "."));

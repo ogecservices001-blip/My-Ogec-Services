@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import type { Equipement, TypeEquipement } from "@/lib/gmao/types";
-import { COLONNES_SOMMAIRE, ligneSommaire } from "@/lib/gmao/equipement-export";
+import { COLONNES_SOMMAIRE, ligneSommaire, trierPourExport } from "@/lib/gmao/equipement-export";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 
@@ -38,7 +38,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ nom
   const workbook = new ExcelJS.Workbook();
   const feuille = workbook.addWorksheet("Sommaire");
   feuille.addRow(COLONNES_SOMMAIRE);
-  for (const eq of equipements) {
+  for (const eq of trierPourExport(equipements, sitesById)) {
     const site = sitesById[eq.site_id];
     if (site) feuille.addRow(ligneSommaire(eq, site, typesById));
   }

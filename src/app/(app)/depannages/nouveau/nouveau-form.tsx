@@ -2,8 +2,6 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { creerDepannage, chargerEquipementsDuSite, type EquipementDuSite } from "./actions";
 
 type Site = {
@@ -96,15 +94,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
   }
 
   return (
-    <div className="mx-auto max-w-xl">
-      <Link
-        href="/depannages"
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour
-      </Link>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Créer un dépannage</h1>
+    <div>
       <p className="mb-5 text-sm text-slate-500">
         Pour un appel reçu par téléphone/email — l&apos;équipement est optionnel si le client ne sait pas
         précisément lequel est concerné.

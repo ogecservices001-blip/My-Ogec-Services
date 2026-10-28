@@ -2,8 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Plus, Trash2, ScanLine } from "lucide-react";
+import { Plus, Trash2, ScanLine } from "lucide-react";
 import type { Fournisseur } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
 import { INCOTERMS, ADRESSES_LIVRAISON_PRESETS, tauxTvaDefaut } from "@/lib/commandes-fournisseur/constants";
@@ -206,16 +205,7 @@ export function NouvelleCommandeForm({
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <Link
-        href={`/devis/${devis.id}/statut`}
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour au devis
-      </Link>
-      <h1 className="mb-4 text-2xl font-bold tracking-tight text-slate-900">Nouveau bon de commande</h1>
-
+    <div>
       <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
         <p className="font-bold text-slate-900">{devis.numero}</p>
         <p className="text-sm font-semibold text-slate-700">{[site?.nom, site?.site].filter(Boolean).join(" — ")}</p>

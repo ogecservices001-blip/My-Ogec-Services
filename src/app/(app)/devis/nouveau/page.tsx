@@ -1,6 +1,7 @@
 import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { NATURES_DEVIS_SELECTIONNABLES } from "@/lib/devis/constants";
+import { ModalEcran } from "@/components/modal-ecran";
 import { NouveauDevisForm } from "./nouveau-devis-form";
 
 export default async function NouveauDevisPage({
@@ -19,11 +20,13 @@ export default async function NouveauDevisPage({
   const prefill = prefillSite ? { ...prefillSite, compteRendu: compteRendu ?? "" } : null;
 
   return (
-    <NouveauDevisForm
-      sites={(sites ?? []).map((s) => ({ id: s.id, nom: s.nom, site: s.site, horsContrat: s.hors_contrat }))}
-      natures={Object.entries(NATURES_DEVIS_SELECTIONNABLES).map(([valeur, label]) => ({ valeur, label }))}
-      prefill={prefill}
-    />
+    <ModalEcran titre="Nouveau devis" hrefFermer="/devis" large>
+      <NouveauDevisForm
+        sites={(sites ?? []).map((s) => ({ id: s.id, nom: s.nom, site: s.site, horsContrat: s.hors_contrat }))}
+        natures={Object.entries(NATURES_DEVIS_SELECTIONNABLES).map(([valeur, label]) => ({ valeur, label }))}
+        prefill={prefill}
+      />
+    </ModalEcran>
   );
 }
 

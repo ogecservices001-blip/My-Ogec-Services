@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { ModalEcran } from "@/components/modal-ecran";
 import { NouveauDepannageForm } from "./nouveau-form";
 
 export default async function NouveauDepannagePage() {
@@ -14,5 +15,9 @@ export default async function NouveauDepannagePage() {
     supabase.from("profiles").select("id, name, portable").in("role", ["technicien", "en_attente"]).order("name"),
   ]);
 
-  return <NouveauDepannageForm sites={sites ?? []} techniciens={techniciens ?? []} />;
+  return (
+    <ModalEcran titre="Créer un dépannage" hrefFermer="/depannages" large>
+      <NouveauDepannageForm sites={sites ?? []} techniciens={techniciens ?? []} />
+    </ModalEcran>
+  );
 }

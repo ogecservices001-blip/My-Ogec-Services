@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { creerDevis, listerEquipementsDuSite } from "../actions";
 import {
   ligneDevisVide,
@@ -146,16 +146,7 @@ export function NouveauDevisForm({
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <Link
-        href="/devis"
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour
-      </Link>
-      <h1 className="mb-5 text-2xl font-bold tracking-tight text-slate-900">Nouveau devis</h1>
-
+    <div>
       {prefill && (
         <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
           Pré-rempli depuis &quot;Devis à établir&quot;

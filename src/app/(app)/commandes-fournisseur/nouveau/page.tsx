@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { ModalEcran } from "@/components/modal-ecran";
 import { NouvelleCommandeForm } from "./nouvelle-commande-form";
 
 export default async function NouvelleCommandePage({
@@ -22,10 +23,12 @@ export default async function NouvelleCommandePage({
   ]);
 
   return (
-    <NouvelleCommandeForm
-      devis={{ id: devis.id, numero: devis.numero, libelle: devis.libelle }}
-      site={site ?? null}
-      fournisseurs={fournisseurs ?? []}
-    />
+    <ModalEcran titre="Nouveau bon de commande" hrefFermer={`/devis/${devis.id}/statut`} large>
+      <NouvelleCommandeForm
+        devis={{ id: devis.id, numero: devis.numero, libelle: devis.libelle }}
+        site={site ?? null}
+        fournisseurs={fournisseurs ?? []}
+      />
+    </ModalEcran>
   );
 }

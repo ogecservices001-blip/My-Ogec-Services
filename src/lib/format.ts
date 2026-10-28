@@ -39,7 +39,7 @@ export function indicatifTel(localisation: string): string | null {
   return null;
 }
 
-/// "0692 91 02 26" → "+262 692 91 02 26" (indicatif par défaut : La
+/// "0693 11 82 87" → "+262 693 11 82 87" (indicatif par défaut : La
 /// Réunion, où se trouvent l'entreprise, ses sites clients et ses
 /// collaborateurs — passer `indicatifTel(fournisseur.localisation)`
 /// pour un fournisseur, qui peut être en métropole). Ne touche pas aux
@@ -52,8 +52,11 @@ export function telInternational(numero: string, indicatif: string | null = "262
   if (!indicatif) return numero;
   const chiffres = numero.replace(/\D/g, "");
   if (chiffres.length !== 10 || !chiffres.startsWith("0")) return numero;
-  const groupes = chiffres.slice(1).match(/.{2}/g) ?? [];
-  return `+${indicatif} ${groupes.join(" ")}`;
+  // 9 chiffres après le 0 : "693" puis 3 paires à La Réunion ("+262 693
+  // 11 82 87"), 1 puis 4 paires en métropole ("+33 1 47 40 90 03").
+  const n = chiffres.slice(1);
+  const tete = indicatif === "33" ? 1 : 3;
+  return `+${indicatif} ${n.slice(0, tete)} ${n.slice(tete).match(/.{2}/g)!.join(" ")}`;
 }
 
 /// Inverse de telInternational (+262 ou +33, tous deux à 9 chiffres

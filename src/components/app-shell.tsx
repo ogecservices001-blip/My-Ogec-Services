@@ -1,7 +1,10 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { Suspense } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import { Sidebar } from "@/components/sidebar";
+import { construireModules } from "@/lib/menus";
 
 /// Écrans qui ont besoin de toute la largeur de la fenêtre (tableaux
 /// denses type classeur) plutôt que l'appli centrée dans une colonne
@@ -34,6 +37,54 @@ const LARGEUR_PLEINE_PATTERNS = [/^\/depannages\/[0-9a-f-]{20,}$/i, /^\/bi\/[0-9
 /// propre bouton retour, puisque la sidebar n'est plus là pour naviguer.
 const SANS_SIDEBAR = ["/planning", "/planning/audit-heures", "/planning/heures-par-pole"];
 
+/// Module/sous-menu correspondant au chemin actuel — même logique de
+/// correspondance (exact ou préfixe de fiche détail) que la barre
+/// latérale, pour que le fil d'ariane reste cohérent avec le volet
+/// ouvert au survol.
+function Fil({ isAdmin }: { isAdmin: boolean }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const cheminActuel = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "");
+  const modules = construireModules(isAdmin);
+
+  let moduleCourant: (typeof modules)[number] | undefined;
+  let sousMenuCourant: { nom: string; href?: string } | undefined;
+  for (const m of modules) {
+    const s = m.sousMenus.find((s) => s.href === cheminActuel);
+    if (s) {
+      moduleCourant = m;
+      sousMenuCourant = s;
+      break;
+    }
+  }
+  if (!moduleCourant) {
+    for (const m of modules) {
+      const s = m.sousMenus.find((s) => s.href && pathname.startsWith(`${s.href.split("?")[0]}/`));
+      if (s) {
+        moduleCourant = m;
+        sousMenuCourant = s;
+        break;
+      }
+    }
+  }
+
+  if (!moduleCourant) return null;
+
+  return (
+    <div className="flex h-10 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 sm:px-6">
+      <span className="text-xs text-slate-400">Accueil</span>
+      <ChevronRight className="h-3 w-3 text-slate-300" />
+      <span className="text-xs font-medium text-slate-500">{moduleCourant.nom}</span>
+      {sousMenuCourant && (
+        <>
+          <ChevronRight className="h-3 w-3 text-slate-300" />
+          <span className="text-xs font-medium text-brand-green-dark">{sousMenuCourant.nom}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function AppShell({
   isAdmin,
   children,
@@ -52,11 +103,16 @@ export function AppShell({
   }
 
   return (
-    <div className={`mx-auto flex ${pleine ? "" : "max-w-6xl"}`}>
+    <div className="flex">
       <Sidebar isAdmin={isAdmin} />
-      <main className="min-w-0 flex-1 p-4 sm:p-6">
-        <div className={`mx-auto w-full ${pleine ? "" : "max-w-3xl"}`}>{children}</div>
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Suspense fallback={null}>
+          <Fil isAdmin={isAdmin} />
+        </Suspense>
+        <main className={`mx-auto w-full flex-1 p-4 sm:p-6 ${pleine ? "" : "max-w-6xl"}`}>
+          <div className={`mx-auto w-full ${pleine ? "" : "max-w-3xl"}`}>{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

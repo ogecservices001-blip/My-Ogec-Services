@@ -3,11 +3,14 @@
 :root {
   --background: #f4f5f7;
   --foreground: #0f172a;
-  /* Couleurs de marque OGEC Services, extraites du logo historique. */
-  --brand-green: #4f9a41;
-  --brand-green-dark: #3f7d34;
+  /* Couleurs de marque OGEC Services — alignées sur la présentation
+     MyOgec Services d'Olivier (vert #3ecf8e, barre sombre #1c1c1c). */
+  --brand-green: #3ecf8e;
+  --brand-green-dark: #1f9f6c;
   --brand-slate: #4b6b81;
   --brand-slate-dark: #37505f;
+  --shell-bg: #1c1c1c;
+  --shell-bg-raised: #181818;
 }
 
 @theme inline {

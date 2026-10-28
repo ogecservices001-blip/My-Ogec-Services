@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
+import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { Sidebar } from "@/components/sidebar";
@@ -70,11 +71,21 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
 
   if (!moduleCourant) return null;
 
+  const hrefModule = moduleCourant.sousMenus.find((s) => s.href)?.href;
+
   return (
     <div className="flex h-10 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 sm:px-6">
-      <span className="text-xs text-slate-400">Accueil</span>
+      <Link href="/" className="text-xs text-slate-400 transition hover:text-brand-green-dark">
+        Accueil
+      </Link>
       <ChevronRight className="h-3 w-3 text-slate-300" />
-      <span className="text-xs font-medium text-slate-500">{moduleCourant.nom}</span>
+      {hrefModule && sousMenuCourant ? (
+        <Link href={hrefModule} className="text-xs font-medium text-slate-500 transition hover:text-brand-green-dark">
+          {moduleCourant.nom}
+        </Link>
+      ) : (
+        <span className="text-xs font-medium text-brand-green-dark">{moduleCourant.nom}</span>
+      )}
       {sousMenuCourant && (
         <>
           <ChevronRight className="h-3 w-3 text-slate-300" />

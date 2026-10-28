@@ -5,7 +5,26 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { Sidebar } from "@/components/sidebar";
-import { construireModules } from "@/lib/menus";
+import { construireModules, type Module } from "@/lib/menus";
+
+/// Racine d'un module = préfixe de chemin commun à tous ses
+/// sous-menus (ex. "/repertoire/clients", ".../fournisseurs",
+/// ".../collaborateurs" → "/repertoire", la page d'accueil du module,
+/// même si elle n'est le href d'aucun sous-menu) — jamais juste "le
+/// premier sous-menu", qui ramènerait au hasard sur une sous-page
+/// précise plutôt que sur l'accueil du module.
+function racineModule(m: Module): string | undefined {
+  const chemins = m.sousMenus.filter((s) => s.href).map((s) => s.href!.split("?")[0].split("/").filter(Boolean));
+  if (chemins.length === 0) return undefined;
+  const longueurMin = Math.min(...chemins.map((c) => c.length));
+  const racine: string[] = [];
+  for (let i = 0; i < longueurMin; i++) {
+    const segment = chemins[0][i];
+    if (chemins.every((c) => c[i] === segment)) racine.push(segment);
+    else break;
+  }
+  return racine.length > 0 ? `/${racine.join("/")}` : undefined;
+}
 
 /// Écrans qui ont besoin de toute la largeur de la fenêtre (tableaux
 /// denses type classeur) plutôt que l'appli centrée dans une colonne
@@ -71,7 +90,7 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
 
   if (!moduleCourant) return null;
 
-  const hrefModule = moduleCourant.sousMenus.find((s) => s.href)?.href;
+  const hrefModule = racineModule(moduleCourant);
 
   return (
     <div className="flex h-10 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 sm:px-6">

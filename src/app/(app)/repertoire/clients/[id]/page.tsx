@@ -12,6 +12,9 @@ import {
   Wrench,
   Upload,
   Download,
+  FileSignature,
+  ClipboardList,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -19,8 +22,6 @@ import { getCurrentProfile } from "@/lib/profile";
 import { formaterDate, telInternational } from "@/lib/format";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { FilAjouter } from "@/components/fil-extra-context";
-import { BoutonsRecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
-import { chargerRecapDevis, chargerRecapBI, chargerRecapDepannages } from "@/lib/repertoire/recap";
 import { calculerLignesAuditHeures } from "@/app/(app)/planning/audit-heures/calcul";
 import type { Site } from "@/lib/types";
 import { supprimerSite } from "../actions";
@@ -77,12 +78,6 @@ export default async function SiteDetailPage({
 
   if (!s) notFound();
   const site = s as Site;
-
-  const [recapDevis, recapBi, recapDepannages] = await Promise.all([
-    chargerRecapDevis([id]),
-    chargerRecapBI([id]),
-    chargerRecapDepannages([id]),
-  ]);
 
   // "Qté heures programmées/restantes" : jamais une valeur figée mais
   // recalculées en direct depuis Planning (créneaux + BI validés vs.
@@ -152,7 +147,27 @@ export default async function SiteDetailPage({
             Modifier
           </Link>
         )}
-        <BoutonsRecapDevisEtBI devis={recapDevis} bi={recapBi} depannages={recapDepannages} isAdmin={isAdmin} />
+        <Link
+          href={`/repertoire/clients/${id}/devis`}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        >
+          <FileSignature className="h-4 w-4" strokeWidth={2} />
+          Devis
+        </Link>
+        <Link
+          href={`/repertoire/clients/${id}/bon-intervention`}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        >
+          <ClipboardList className="h-4 w-4" strokeWidth={2} />
+          Bon d&apos;intervention
+        </Link>
+        <Link
+          href={`/repertoire/clients/${id}/depannages`}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        >
+          <Zap className="h-4 w-4" strokeWidth={2} />
+          Dépannages
+        </Link>
         {isAdmin && (
           <BoutonSupprimer
             action={supprimerSite.bind(null, id)}

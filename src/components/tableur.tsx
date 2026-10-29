@@ -186,7 +186,7 @@ export function Tableur({
   return (
     <>
       <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
-        <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: largeurMin }}>
+        <table className="w-full table-auto border-collapse text-sm" style={{ minWidth: largeurMin }}>
           <thead>
             <tr>
               {ordre.map((c, position) => {
@@ -272,7 +272,7 @@ export function Tableur({
                 {ordre.map((c) => (
                   <td
                     key={c}
-                    className={`truncate border-b border-slate-100 px-2 py-2 text-slate-700 ${
+                    className={`whitespace-nowrap border-b border-slate-100 px-2 py-2 text-slate-700 ${
                       colonnes[c]?.droite ? "text-right" : ""
                     }`}
                   >

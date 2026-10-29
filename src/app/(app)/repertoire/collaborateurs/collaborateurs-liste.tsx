@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, Search, Phone, ChevronDown, Upload, Download, Pencil, KeyRound } from "lucide-react";
+import { Search, Phone, ChevronDown, Upload, Download, Pencil, KeyRound } from "lucide-react";
 import type { Profil } from "@/lib/types";
 import { initiales, telInternational } from "@/lib/format";
 import { recupererMotDePasse } from "./mdp-actions";
@@ -39,14 +39,11 @@ export function CollaborateursListe({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <Link
-          href="/repertoire"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-          Retour
-        </Link>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Annuaire collaborateurs</h1>
+          <p className="text-sm text-slate-500">{filtres.length} collaborateur(s)</p>
+        </div>
         {isAdmin && (
           <div className="flex items-center gap-2">
             <a
@@ -66,10 +63,6 @@ export function CollaborateursListe({
           </div>
         )}
       </div>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
-        Annuaire collaborateurs
-      </h1>
-      <p className="mb-5 text-sm text-slate-500">{filtres.length} collaborateur(s)</p>
 
       <div className="relative mb-4">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

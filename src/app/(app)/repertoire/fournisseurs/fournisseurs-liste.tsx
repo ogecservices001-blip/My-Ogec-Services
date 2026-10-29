@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
   Search,
   ChevronDown,
   Truck,
@@ -54,14 +53,11 @@ export function FournisseursListe({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <Link
-          href="/repertoire"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-          Retour
-        </Link>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Fournisseurs</h1>
+          <p className="text-sm text-slate-500">{filtres.length} fournisseur(s)</p>
+        </div>
         {isAdmin && (
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- téléchargement de fichier, pas une page interne */}
@@ -89,10 +85,6 @@ export function FournisseursListe({
           </div>
         )}
       </div>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
-        Fournisseurs
-      </h1>
-      <p className="mb-5 text-sm text-slate-500">{filtres.length} fournisseur(s)</p>
 
       <div className="mb-4 flex flex-wrap gap-2.5">
         <div className="relative min-w-[220px] flex-1">

@@ -129,7 +129,7 @@ export function Tableur({
                     style={col.largeur ? { width: col.largeur } : undefined}
                     className={`relative border-b border-slate-200 px-2 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 ${
                       col.droite ? "text-right" : "text-left"
-                    }`}
+                    } ${c > 0 ? "border-l border-slate-100" : ""}`}
                   >
                     <span className="inline-flex items-center gap-1">
                       {col.titre}

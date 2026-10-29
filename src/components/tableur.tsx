@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { Filter } from "lucide-react";
+import { Filter, GripVertical } from "lucide-react";
 
 export type ColonneTableur = { titre: string; largeur?: string; droite?: boolean };
 
@@ -46,6 +46,38 @@ export function Tableur({
 }) {
   const [filtres, setFiltres] = useState<Record<number, Set<string>>>({});
   const [colonneOuverte, setColonneOuverte] = useState<number | null>(null);
+
+  /// Ordre d'affichage des colonnes (index réels dans `colonnes`) —
+  /// déplaçable par glisser-déposer sur l'en-tête, comme chez Olivier.
+  /// Les filtres restent toujours indexés par colonne réelle, jamais
+  /// par position affichée, pour ne pas se mélanger après un
+  /// réordonnancement.
+  const [ordreBrut, setOrdre] = useState<number[]>(() => colonnes.map((_, i) => i));
+  // Si `colonnes` change de forme (écran différent réutilisant le même
+  // composant monté), on retombe sur l'ordre d'origine plutôt que de
+  // planter sur des index obsolètes — jamais de setState dans un effet
+  // pour ça, juste une valeur dérivée au rendu.
+  const ordre = ordreBrut.length === colonnes.length ? ordreBrut : colonnes.map((_, i) => i);
+  const [colonneGlissee, setColonneGlissee] = useState<number | null>(null);
+  const [colonneSurvolee, setColonneSurvolee] = useState<number | null>(null);
+
+  function deposerColonne(cible: number) {
+    if (colonneGlissee === null || colonneGlissee === cible) {
+      setColonneGlissee(null);
+      setColonneSurvolee(null);
+      return;
+    }
+    setOrdre((prev) => {
+      const next = [...prev];
+      const depart = next.indexOf(colonneGlissee);
+      const arrivee = next.indexOf(cible);
+      next.splice(depart, 1);
+      next.splice(arrivee, 0, colonneGlissee);
+      return next;
+    });
+    setColonneGlissee(null);
+    setColonneSurvolee(null);
+  }
 
   function valeurDe(r: number, c: number): string | null {
     const v = valeurs?.[r]?.[c];
@@ -120,18 +152,37 @@ export function Tableur({
         <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: largeurMin }}>
           <thead>
             <tr>
-              {colonnes.map((col, c) => {
+              {ordre.map((c, position) => {
+                const col = colonnes[c];
                 const options = optionsParColonne[c];
                 const actif = Boolean(filtres[c]);
                 return (
                   <th
                     key={c}
+                    draggable
+                    onDragStart={() => setColonneGlissee(c)}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (colonneSurvolee !== c) setColonneSurvolee(c);
+                    }}
+                    onDragLeave={() => setColonneSurvolee((prev) => (prev === c ? null : prev))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      deposerColonne(c);
+                    }}
+                    onDragEnd={() => {
+                      setColonneGlissee(null);
+                      setColonneSurvolee(null);
+                    }}
                     style={col.largeur ? { width: col.largeur } : undefined}
                     className={`relative border-b border-slate-200 px-2 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 ${
                       col.droite ? "text-right" : "text-left"
-                    } ${c > 0 ? "border-l border-slate-100" : ""}`}
+                    } ${position > 0 ? "border-l border-slate-100" : ""} ${
+                      colonneGlissee === c ? "opacity-40" : ""
+                    } ${colonneSurvolee === c && colonneGlissee !== c ? "bg-brand-green/5" : ""}`}
                   >
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex cursor-grab items-center gap-1 active:cursor-grabbing">
+                      <GripVertical className="h-3 w-3 shrink-0 text-slate-300" strokeWidth={2} />
                       {col.titre}
                       {options && (
                         <button
@@ -181,14 +232,14 @@ export function Tableur({
           <tbody>
             {lignesFiltrees.map(({ cellules }, r) => (
               <tr key={r} className={r % 2 === 1 ? "bg-slate-50/50" : ""}>
-                {cellules.map((cellule, c) => (
+                {ordre.map((c) => (
                   <td
                     key={c}
                     className={`truncate border-b border-slate-100 px-2 py-2 text-slate-700 ${
                       colonnes[c]?.droite ? "text-right" : ""
                     }`}
                   >
-                    {cellule}
+                    {cellules[c]}
                   </td>
                 ))}
               </tr>
@@ -197,9 +248,9 @@ export function Tableur({
           {pied && (
             <tfoot>
               <tr className="bg-slate-100 font-bold text-slate-900">
-                {pied.map((cellule, c) => (
+                {ordre.map((c) => (
                   <td key={c} className={`px-2 py-2 ${colonnes[c]?.droite ? "text-right" : ""}`}>
-                    {cellule}
+                    {pied[c]}
                   </td>
                 ))}
               </tr>

@@ -1,8 +1,15 @@
 import { notFound } from "next/navigation";
-import { Cog } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { FilAjouter } from "@/components/fil-extra-context";
 import type { Equipement } from "@/lib/gmao/types";
+
+const COLONNES: ColonneTableur[] = [
+  { titre: "Groupe" },
+  { titre: "Nom" },
+  { titre: "N° équipement" },
+  { titre: "Localisation" },
+];
 
 /// Vue simple et rapide du parc d'un client, côté Répertoire — juste ce
 /// qui est physiquement installé (nom, numéro, localisation), sans les
@@ -24,19 +31,9 @@ export default async function EquipementsClientPage({
   if (!site) notFound();
 
   const liste = (equipements ?? []) as Equipement[];
-
-  const parGroupe = new Map<string, Equipement[]>();
-  for (const eq of liste) {
-    const g = eq.groupe.trim() || "Sans groupe";
-    const l = parGroupe.get(g) ?? [];
-    l.push(eq);
-    parGroupe.set(g, l);
-  }
-  const groupesTries = [...parGroupe.keys()].sort((a, b) => {
-    if (a === "Sans groupe") return 1;
-    if (b === "Sans groupe") return -1;
-    return a.localeCompare(b);
-  });
+  const lignes = liste
+    .map((eq) => ({ groupe: eq.groupe.trim() || "Sans groupe", eq }))
+    .sort((a, b) => a.groupe.localeCompare(b.groupe, "fr") || a.eq.nom.localeCompare(b.eq.nom, "fr"));
 
   return (
     <div>
@@ -52,29 +49,12 @@ export default async function EquipementsClientPage({
         {[site.nom, site.site].filter(Boolean).join(" — ")} — {liste.length} équipement(s)
       </p>
 
-      {liste.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">Aucun équipement enregistré pour ce client</p>
-      ) : (
-        <div>
-          {groupesTries.map((groupe) => (
-            <div key={groupe}>
-              {groupesTries.length > 1 && (
-                <p className="border-t border-slate-100 px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 first:border-t-0">
-                  {groupe}
-                </p>
-              )}
-              {parGroupe.get(groupe)!.map((eq) => (
-                <div key={eq.id} className="flex items-center gap-2.5 border-t border-slate-50 px-4 py-2.5 text-sm first:border-t-0">
-                  <Cog className="h-3.5 w-3.5 shrink-0 text-slate-300" strokeWidth={2} />
-                  <span className="min-w-0 truncate text-slate-800">
-                    {[eq.nom, eq.numero_equipement, eq.localisation].filter(Boolean).join(" ")}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
+      <Tableur
+        colonnes={COLONNES}
+        lignes={lignes.map(({ groupe, eq }) => [groupe, eq.nom, eq.numero_equipement, eq.localisation])}
+        valeurs={lignes.map(({ groupe, eq }) => [groupe, eq.nom, eq.numero_equipement, eq.localisation])}
+        vide="Aucun équipement enregistré pour ce client"
+      />
     </div>
   );
 }

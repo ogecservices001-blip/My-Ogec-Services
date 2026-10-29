@@ -26,7 +26,7 @@ const modules: {
   adminSeulement?: boolean;
 }[] = [
   {
-    href: "/repertoire",
+    href: "/repertoire/clients",
     titre: "Répertoire",
     sousTitre: "Clients, fournisseurs et collaborateurs",
     icone: BookUser,

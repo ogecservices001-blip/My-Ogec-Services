@@ -93,7 +93,10 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
 
   if (!moduleCourant) return null;
 
-  const hrefModule = racineModule(moduleCourant);
+  // "Répertoire" n'a plus de page d'accueil dédiée (4 cartes) depuis que
+  // le volet de la barre latérale couvre déjà ce rôle — pas de lien pour
+  // ce module précis, les autres gardent leur racine réelle.
+  const hrefModule = moduleCourant.nom === "Répertoire" ? undefined : racineModule(moduleCourant);
 
   return (
     <div className="flex h-10 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 sm:px-6">

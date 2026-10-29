@@ -134,12 +134,12 @@ function VueTechnicien({ fournisseurs }: { fournisseurs: Fournisseur[] }) {
   }
 
   return (
-    <ul className="space-y-3">
+    <ul>
       {fournisseurs.map((f) => {
         const interlocuteurs = interlocuteursDe(f);
         const indicatif = indicatifTel(f.localisation);
         return (
-          <li key={f.id} className="overflow-hidden rounded-2xl bg-white shadow-sm">
+          <li key={f.id} className="border-t border-slate-100 first:border-t-0">
             <button
               onClick={() => setOuvert(ouvert === f.id ? null : f.id)}
               className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-slate-50"

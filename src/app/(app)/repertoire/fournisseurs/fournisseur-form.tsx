@@ -63,25 +63,23 @@ export function FournisseurForm({ fournisseur }: { fournisseur?: Fournisseur }) 
         <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>
       )}
 
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-        <div className="grid gap-3 sm:grid-cols-2">
-          {champsFournisseur.map((champ) => (
-            <div key={champ.cle}>
-              <label htmlFor={champ.cle} className={ETIQUETTE}>
-                {champ.label}
-              </label>
-              <input
-                id={champ.cle}
-                value={champs[champ.cle] ?? ""}
-                onChange={(e) => setChamps((prev) => ({ ...prev, [champ.cle]: e.target.value }))}
-                className={CHAMP}
-              />
-            </div>
-          ))}
-        </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {champsFournisseur.map((champ) => (
+          <div key={champ.cle}>
+            <label htmlFor={champ.cle} className={ETIQUETTE}>
+              {champ.label}
+            </label>
+            <input
+              id={champ.cle}
+              value={champs[champ.cle] ?? ""}
+              onChange={(e) => setChamps((prev) => ({ ...prev, [champ.cle]: e.target.value }))}
+              className={CHAMP}
+            />
+          </div>
+        ))}
       </div>
 
-      <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+      <div className="mt-5 border-t border-slate-100 pt-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-bold text-slate-900">Interlocuteurs</h2>
           <button

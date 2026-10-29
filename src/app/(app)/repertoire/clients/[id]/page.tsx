@@ -163,7 +163,7 @@ export default async function SiteDetailPage({
         )}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div>
         <Section
           titre="Identité & Site"
           icone={IdCard}

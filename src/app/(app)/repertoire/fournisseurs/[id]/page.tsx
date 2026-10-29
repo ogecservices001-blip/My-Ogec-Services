@@ -83,7 +83,7 @@ export default async function FournisseurDetailPage({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div>
         <p className="border-t border-slate-100 bg-slate-50/70 px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 first:border-t-0">
           Interlocuteurs
         </p>

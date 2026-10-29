@@ -55,7 +55,7 @@ export default async function EquipementsClientPage({
       {liste.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">Aucun équipement enregistré pour ce client</p>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <div>
           {groupesTries.map((groupe) => (
             <div key={groupe}>
               {groupesTries.length > 1 && (

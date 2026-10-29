@@ -42,8 +42,7 @@ export function ModifierProfilForm({ profil }: { profil: Profil }) {
         </p>
       )}
 
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-        <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label htmlFor="qualite" className="mb-1 block text-xs font-medium text-slate-600">
               Qualité
@@ -92,7 +91,6 @@ export function ModifierProfilForm({ profil }: { profil: Profil }) {
             );
           })}
         </div>
-      </div>
 
       <div className="mt-6 flex justify-end">
         <button

@@ -27,20 +27,11 @@ export function SiteForm({ site }: { site?: Site }) {
       )}
 
       {groupesChampsSite.map((groupe) => (
-        <div
-          key={groupe.titre}
-          className={`mb-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm ${
-            groupe.adminOnly ? "border-l-4 border-l-orange-300" : "border-l-4 border-l-brand-green/40"
-          }`}
-        >
-          <div
-            className={`px-4 py-2.5 ${groupe.adminOnly ? "bg-orange-50/50" : "bg-green-50/50"}`}
-          >
-            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">
-              {groupe.titre}
-            </h2>
-          </div>
-          <div className="grid gap-3 p-4 sm:grid-cols-2">
+        <div key={groupe.titre} className="mb-5">
+          <h2 className="mb-2 border-t border-slate-100 pt-4 text-xs font-bold uppercase tracking-wide text-slate-500 first:border-t-0 first:pt-0">
+            {groupe.titre}
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
             {groupe.champs.map((champ) => {
               const erreur =
                 state && !state.ok ? state.champs?.[champ.cle] : undefined;

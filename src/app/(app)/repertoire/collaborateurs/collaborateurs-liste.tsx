@@ -78,7 +78,7 @@ export function CollaborateursListe({
       {filtres.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">Aucun collaborateur trouvé</p>
       ) : (
-        <ul className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <ul>
           {filtres.map((p) => (
             <li key={p.id} className="border-t border-slate-50 first:border-t-0">
               <button

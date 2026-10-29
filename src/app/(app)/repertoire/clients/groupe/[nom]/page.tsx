@@ -91,28 +91,15 @@ export default async function SitesDuClientPage({
         )}
       </div>
 
-      <ul className="space-y-3">
+      <ul>
         {sites.map((s) => (
-          <li key={s.id}>
-            <Link
-              href={`/repertoire/clients/${s.id}`}
-              className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
-            >
-              <span
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                  horsContrat ? "bg-orange-100" : "bg-green-100"
-                }`}
-              >
-                <MapPin
-                  className={`h-5 w-5 ${
-                    horsContrat ? "text-orange-600" : "text-brand-green-dark"
-                  }`}
-                  strokeWidth={2}
-                />
-              </span>
-              <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">
-                {s.site || "Site sans nom"}
-              </span>
+          <li key={s.id} className="border-t border-slate-100 first:border-t-0">
+            <Link href={`/repertoire/clients/${s.id}`} className="flex items-center gap-3 py-2.5 hover:text-brand-green-dark">
+              <MapPin
+                className={`h-4 w-4 shrink-0 ${horsContrat ? "text-orange-600" : "text-brand-green-dark"}`}
+                strokeWidth={2}
+              />
+              <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{s.site || "Site sans nom"}</span>
               <span className="shrink-0 text-sm text-slate-400">{s.commune}</span>
               <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
             </Link>

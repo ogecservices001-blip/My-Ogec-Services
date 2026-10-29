@@ -159,7 +159,7 @@ function VueTechnicien({ fournisseurs }: { fournisseurs: Fournisseur[] }) {
               />
             </button>
             {ouvert === f.id && (
-              <div className="space-y-3 border-t border-slate-50 bg-slate-50/50 px-4 py-3">
+              <div className="space-y-3 border-t border-slate-50 px-4 py-3">
                 {(f.adresse || f.complement_adresse) && (
                   <p className="text-sm text-slate-600">
                     {[f.adresse, f.complement_adresse, [f.code_postal, f.commune].filter(Boolean).join(" ")]

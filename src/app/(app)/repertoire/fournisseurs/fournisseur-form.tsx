@@ -97,7 +97,7 @@ export function FournisseurForm({ fournisseur }: { fournisseur?: Fournisseur }) 
         ) : (
           <div className="space-y-3">
             {interlocuteurs.map((it, i) => (
-              <div key={i} className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+              <div key={i} className="border-t border-slate-100 pt-3 first:border-t-0 first:pt-0">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     Interlocuteur {i + 1}

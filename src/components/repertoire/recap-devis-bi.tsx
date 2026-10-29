@@ -22,7 +22,7 @@ function CarteRecap({
 }) {
   return (
     <div className="mb-4 w-full">
-      <div className="flex items-center gap-2 border-t border-slate-100 bg-slate-50/70 px-4 py-2 first:border-t-0">
+      <div className="flex items-center gap-2 border-t border-slate-100 px-4 py-2 first:border-t-0">
         <Icone className="h-3.5 w-3.5 text-slate-400" strokeWidth={2.25} />
         <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">{titre}</h2>
       </div>

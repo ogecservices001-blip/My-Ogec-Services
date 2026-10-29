@@ -67,7 +67,7 @@ export default async function EquipementsClientPage({
           {groupesTries.map((groupe) => (
             <div key={groupe}>
               {groupesTries.length > 1 && (
-                <p className="border-t border-slate-100 bg-slate-50/70 px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 first:border-t-0">
+                <p className="border-t border-slate-100 px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 first:border-t-0">
                   {groupe}
                 </p>
               )}

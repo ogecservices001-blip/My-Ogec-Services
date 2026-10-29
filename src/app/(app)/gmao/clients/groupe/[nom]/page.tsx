@@ -1,10 +1,19 @@
 import Link from "next/link";
-import { ChevronRight, MapPin, Download, Upload } from "lucide-react";
+import { Download, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { supprimerEquipementsPourSites } from "@/app/(app)/gmao/actions";
 import type { Site } from "@/lib/types";
+
+const COLONNES: ColonneTableur[] = [
+  { titre: "Lots" },
+  { titre: "Adresse" },
+  { titre: "CP", largeur: "90px" },
+  { titre: "Commune" },
+  { titre: "N° affaire", largeur: "110px" },
+];
 
 export default async function GmaoSitesDuClientPage({
   params,
@@ -56,21 +65,20 @@ export default async function GmaoSitesDuClientPage({
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">{nomDecode}</h1>
       <p className="mb-5 text-sm text-slate-500">{sites.length} site(s)</p>
 
-      <ul>
-        {sites.map((s) => (
-          <li key={s.id} className="border-t border-slate-100 first:border-t-0">
-            <Link href={`/gmao/clients/${s.id}/equipements`} className="flex items-center gap-3 py-2.5 hover:text-brand-green-dark">
-              <MapPin
-                className={`h-4 w-4 shrink-0 ${horsContrat ? "text-orange-600" : "text-brand-green-dark"}`}
-                strokeWidth={2}
-              />
-              <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{s.site || "Site sans nom"}</span>
-              <span className="shrink-0 text-sm text-slate-400">{s.commune}</span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <Tableur
+        colonnes={COLONNES}
+        lignes={sites.map((s) => [
+          <Link key="site" href={`/gmao/clients/${s.id}/equipements`} className="font-bold text-slate-900 hover:underline">
+            {s.site || "Site sans nom"}
+          </Link>,
+          s.adresse,
+          s.code_postal,
+          s.commune,
+          s.n_affaire,
+        ])}
+        valeurs={sites.map((s) => [s.site, s.adresse, s.code_postal, s.commune, s.n_affaire])}
+        vide="Aucun site pour ce client"
+      />
 
       {isAdmin && siteIds.length > 0 && (
         <div className="mt-6">

@@ -1,13 +1,22 @@
 import Link from "next/link";
-import { ChevronRight, MapPin, Plus, Upload, Download } from "lucide-react";
+import { Plus, Upload, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { FilAjouter } from "@/components/fil-extra-context";
 import { BoutonsRecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
+import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { chargerRecapDevis, chargerRecapBI, chargerRecapDepannages } from "@/lib/repertoire/recap";
 import type { Site } from "@/lib/types";
 import { supprimerSitesDuClient } from "../../actions";
+
+const COLONNES: ColonneTableur[] = [
+  { titre: "Lots" },
+  { titre: "Adresse" },
+  { titre: "CP", largeur: "90px" },
+  { titre: "Commune" },
+  { titre: "N° affaire", largeur: "110px" },
+];
 
 export default async function SitesDuClientPage({
   params,
@@ -86,21 +95,20 @@ export default async function SitesDuClientPage({
         )}
       </div>
 
-      <ul>
-        {sites.map((s) => (
-          <li key={s.id} className="border-t border-slate-100 first:border-t-0">
-            <Link href={`/repertoire/clients/${s.id}`} className="flex items-center gap-3 py-2.5 hover:text-brand-green-dark">
-              <MapPin
-                className={`h-4 w-4 shrink-0 ${horsContrat ? "text-orange-600" : "text-brand-green-dark"}`}
-                strokeWidth={2}
-              />
-              <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{s.site || "Site sans nom"}</span>
-              <span className="shrink-0 text-sm text-slate-400">{s.commune}</span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <Tableur
+        colonnes={COLONNES}
+        lignes={sites.map((s) => [
+          <Link key="site" href={`/repertoire/clients/${s.id}`} className="font-bold text-slate-900 hover:underline">
+            {s.site || "Site sans nom"}
+          </Link>,
+          s.adresse,
+          s.code_postal,
+          s.commune,
+          s.n_affaire,
+        ])}
+        valeurs={sites.map((s) => [s.site, s.adresse, s.code_postal, s.commune, s.n_affaire])}
+        vide="Aucun site pour ce client"
+      />
     </div>
   );
 }

@@ -76,11 +76,13 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
 
   let moduleCourant: (typeof modules)[number] | undefined;
   let sousMenuCourant: { nom: string; href?: string } | undefined;
+  let surPageExacte = false;
   for (const m of modules) {
     const s = m.sousMenus.find((s) => s.href === cheminActuel);
     if (s) {
       moduleCourant = m;
       sousMenuCourant = s;
+      surPageExacte = true;
       break;
     }
   }
@@ -98,9 +100,10 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
   if (!moduleCourant) return null;
 
   // "Répertoire" n'a plus de page d'accueil dédiée (4 cartes) depuis que
-  // le volet de la barre latérale couvre déjà ce rôle — pas de lien pour
-  // ce module précis, les autres gardent leur racine réelle.
-  const hrefModule = moduleCourant.nom === "Répertoire" ? undefined : racineModule(moduleCourant);
+  // le volet de la barre latérale couvre déjà ce rôle — on retombe sur
+  // "Clients sous contrat", une vraie page, plutôt que de laisser le
+  // lien mort.
+  const hrefModule = moduleCourant.nom === "Répertoire" ? "/repertoire/clients" : racineModule(moduleCourant);
 
   return (
     <div className="flex h-10 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 sm:px-6">
@@ -118,7 +121,16 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
       {sousMenuCourant && (
         <>
           <ChevronRight className="h-3 w-3 text-slate-300" />
-          <span className="text-xs font-medium text-brand-green-dark">{sousMenuCourant.nom}</span>
+          {!surPageExacte && sousMenuCourant.href ? (
+            <Link
+              href={sousMenuCourant.href}
+              className="text-xs font-medium text-slate-500 transition hover:text-brand-green-dark"
+            >
+              {sousMenuCourant.nom}
+            </Link>
+          ) : (
+            <span className="text-xs font-medium text-brand-green-dark">{sousMenuCourant.nom}</span>
+          )}
         </>
       )}
     </div>

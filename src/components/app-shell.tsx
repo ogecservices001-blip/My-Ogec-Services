@@ -43,6 +43,9 @@ const LARGEUR_PLEINE = [
   "/depannages/statistiques",
   "/prestations/realisees",
   "/prestations/annulees",
+  "/repertoire/clients",
+  "/repertoire/fournisseurs",
+  "/repertoire/collaborateurs",
 ];
 /// Sections entières (toutes les sous-pages), réservées à l'admin.
 const LARGEUR_PLEINE_SECTIONS = ["/devis", "/commandes-fournisseur"];

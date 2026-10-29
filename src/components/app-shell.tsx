@@ -43,12 +43,16 @@ const LARGEUR_PLEINE = [
   "/depannages/statistiques",
   "/prestations/realisees",
   "/prestations/annulees",
+];
+/// Sections entières (toutes les sous-pages : listing, fiche détail,
+/// modifier, groupe, importer...).
+const LARGEUR_PLEINE_SECTIONS = [
+  "/devis",
+  "/commandes-fournisseur",
   "/repertoire/clients",
   "/repertoire/fournisseurs",
   "/repertoire/collaborateurs",
 ];
-/// Sections entières (toutes les sous-pages), réservées à l'admin.
-const LARGEUR_PLEINE_SECTIONS = ["/devis", "/commandes-fournisseur"];
 /// Fiches de détail dynamiques (/depannages/{id}, /bi/{id}) — un
 /// préfixe sur "/bi" élargirait aussi "nouveau" (assistant technicien),
 /// qui doit rester en colonne centrée ; "/bi/{id}/pdf" ne matche pas

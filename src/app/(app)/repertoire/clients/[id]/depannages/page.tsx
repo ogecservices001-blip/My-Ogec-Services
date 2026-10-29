@@ -3,24 +3,40 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { FilAjouter } from "@/components/fil-extra-context";
-import { chargerRecapDepannages, type LigneRecap } from "@/lib/repertoire/recap";
+import { formaterDate } from "@/lib/format";
 import type { Site } from "@/lib/types";
 
-const COLONNES: ColonneTableur[] = [{ titre: "Statut" }, { titre: "Numéro" }, { titre: "Libellé" }];
+const COLONNES: ColonneTableur[] = [
+  { titre: "Statut" },
+  { titre: "Date" },
+  { titre: "Équipement" },
+  { titre: "Motif" },
+  { titre: "Lieu de la panne" },
+  { titre: "Intervenant" },
+  { titre: "N° demande" },
+  { titre: "Date traitement" },
+];
 
 export default async function DepannagesClientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: site } = await supabase.from("sites_view").select("id, nom, site, hors_contrat").eq("id", id).single();
+  const [{ data: site }, { data: demandes }] = await Promise.all([
+    supabase.from("sites_view").select("id, nom, site, hors_contrat").eq("id", id).single(),
+    supabase
+      .from("demandes_depannage")
+      .select("id, numero, statut, date_creation, date_traitement, equipement_nom, message, lieu_panne, intervenant_id")
+      .eq("site_id", id)
+      .order("date_creation", { ascending: false }),
+  ]);
   if (!site) notFound();
   const s = site as Site;
 
-  const recap = await chargerRecapDepannages([id]);
-  const groupes: [string, LigneRecap[]][] = [
-    ["En cours", recap.enCours],
-    ["Traité", recap.traitees],
-  ];
-  const lignes = groupes.flatMap(([statut, l]) => l.map((ligne) => ({ statut, ligne })));
+  const intervenantIds = [...new Set((demandes ?? []).map((d) => d.intervenant_id).filter((v): v is string => Boolean(v)))];
+  const { data: intervenants } =
+    intervenantIds.length > 0 ? await supabase.from("profiles").select("id, name").in("id", intervenantIds) : { data: [] };
+  const nomParIntervenant = new Map((intervenants ?? []).map((p) => [p.id, p.name]));
+
+  const lignes = demandes ?? [];
 
   return (
     <div>
@@ -37,14 +53,27 @@ export default async function DepannagesClientPage({ params }: { params: Promise
       </div>
       <Tableur
         colonnes={COLONNES}
-        lignes={lignes.map(({ statut, ligne }) => [
-          statut,
-          <Link key="numero" href={ligne.href} className="font-bold text-slate-900 hover:underline">
-            {ligne.numero}
+        lignes={lignes.map((d) => [
+          d.statut === "traitee" ? "Traité" : "En cours",
+          formaterDate(d.date_creation),
+          d.equipement_nom,
+          d.message,
+          d.lieu_panne,
+          d.intervenant_id ? (nomParIntervenant.get(d.intervenant_id) ?? "") : "",
+          <Link key="numero" href={`/depannages/${d.id}`} className="font-bold text-slate-900 hover:underline">
+            {d.numero || "(sans numéro)"}
           </Link>,
-          ligne.libelle,
+          d.date_traitement ? formaterDate(d.date_traitement) : "",
         ])}
-        valeurs={lignes.map(({ statut, ligne }) => [statut, ligne.numero, ligne.libelle])}
+        valeurs={lignes.map((d) => [
+          d.statut === "traitee" ? "Traité" : "En cours",
+          formaterDate(d.date_creation),
+          d.equipement_nom,
+          d.message,
+          d.lieu_panne,
+          d.intervenant_id ? (nomParIntervenant.get(d.intervenant_id) ?? "") : "",
+          d.numero,
+        ])}
         vide="Aucun dépannage pour ce site"
       />
     </div>

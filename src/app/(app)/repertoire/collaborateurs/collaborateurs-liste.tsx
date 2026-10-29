@@ -2,10 +2,22 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Search, Phone, ChevronDown, Upload, Download, Pencil, KeyRound } from "lucide-react";
+import { Search, Phone, Upload, Download, KeyRound } from "lucide-react";
+import { Tableur, type ColonneTableur } from "@/components/tableur";
 import type { Profil } from "@/lib/types";
-import { initiales, telInternational } from "@/lib/format";
+import { telInternational } from "@/lib/format";
 import { recupererMotDePasse } from "./mdp-actions";
+
+const COLONNES: ColonneTableur[] = [
+  { titre: "Nom" },
+  { titre: "Qualité" },
+  { titre: "Portable" },
+  { titre: "Email pro" },
+  { titre: "Email personnel" },
+  { titre: "Commune" },
+  { titre: "Véhicule" },
+];
+const COLONNES_ADMIN: ColonneTableur[] = [...COLONNES, { titre: "" }];
 
 export function CollaborateursListe({
   profils,
@@ -15,7 +27,6 @@ export function CollaborateursListe({
   isAdmin: boolean;
 }) {
   const [recherche, setRecherche] = useState("");
-  const [ouvert, setOuvert] = useState<string | null>(null);
   const [mdpVisibles, setMdpVisibles] = useState<Record<string, string>>({});
   const [chargementMdp, startChargementMdp] = useTransition();
 
@@ -30,10 +41,7 @@ export function CollaborateursListe({
   }
 
   const filtres = useMemo(
-    () =>
-      profils.filter((p) =>
-        p.name.toLowerCase().includes(recherche.toLowerCase()),
-      ),
+    () => profils.filter((p) => p.name.toLowerCase().includes(recherche.toLowerCase())),
     [profils, recherche],
   );
 
@@ -75,79 +83,60 @@ export function CollaborateursListe({
         </div>
       </div>
 
-      {filtres.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">Aucun collaborateur trouvé</p>
-      ) : (
-        <ul>
-          {filtres.map((p) => (
-            <li key={p.id} className="border-t border-slate-50 first:border-t-0">
-              <button
-                onClick={() => setOuvert(ouvert === p.id ? null : p.id)}
-                className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-slate-50"
+      <Tableur
+        colonnes={isAdmin ? COLONNES_ADMIN : COLONNES}
+        lignes={filtres.map((p) => {
+          const base = [
+            isAdmin ? (
+              <Link key="nom" href={`/repertoire/collaborateurs/${p.id}/modifier`} className="font-bold text-slate-900 hover:underline">
+                {p.name}
+              </Link>
+            ) : (
+              p.name
+            ),
+            p.qualite,
+            p.portable ? (
+              <a
+                key="tel"
+                href={`tel:${telInternational(p.portable)}`}
+                className="inline-flex items-center gap-1.5 text-brand-green-dark hover:underline"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600">
-                  {initiales(p.name)}
-                </span>
-                <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">
-                  {p.name}
-                </span>
-                {p.portable && (
-                  <a
-                    href={`tel:${telInternational(p.portable)}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-brand-green-dark transition hover:bg-brand-green/10"
-                  >
-                    <Phone className="h-3.5 w-3.5" strokeWidth={2} />
-                    {telInternational(p.portable)}
-                  </a>
-                )}
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-slate-300 transition ${
-                    ouvert === p.id ? "rotate-180" : ""
-                  }`}
-                />
+                <Phone className="h-3.5 w-3.5" strokeWidth={2} />
+                {telInternational(p.portable)}
+              </a>
+            ) : (
+              ""
+            ),
+            p.email_pro,
+            p.email_perso,
+            p.commune_habitation,
+            p.vehicule,
+          ];
+          if (!isAdmin) return base;
+          return [
+            ...base,
+            mdpVisibles[p.id] === undefined ? (
+              <button
+                key="mdp"
+                type="button"
+                onClick={() => voirMotDePasse(p.id)}
+                disabled={chargementMdp}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-100 disabled:opacity-60"
+              >
+                <KeyRound className="h-3.5 w-3.5" strokeWidth={2} />
+                Mot de passe
               </button>
-              {ouvert === p.id && (
-                <div className="space-y-1.5 border-t border-slate-50 bg-slate-50/50 px-4 py-3 pl-[68px] text-sm text-slate-600">
-                  {p.qualite && <p>Qualité : {p.qualite}</p>}
-                  {p.email_pro && <p>Email pro : {p.email_pro}</p>}
-                  {p.email_perso && <p>Email personnel : {p.email_perso}</p>}
-                  {p.commune_habitation && (
-                    <p>Commune : {p.commune_habitation}</p>
-                  )}
-                  {p.vehicule && <p>Véhicule : {p.vehicule}</p>}
-                  {isAdmin && (
-                    <div className="flex flex-wrap items-center gap-2 pt-1.5">
-                      <Link
-                        href={`/repertoire/collaborateurs/${p.id}/modifier`}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-100"
-                      >
-                        <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
-                        Modifier
-                      </Link>
-                      {mdpVisibles[p.id] === undefined ? (
-                        <button
-                          onClick={() => voirMotDePasse(p.id)}
-                          disabled={chargementMdp}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-100 disabled:opacity-60"
-                        >
-                          <KeyRound className="h-3.5 w-3.5" strokeWidth={2} />
-                          Voir le mot de passe
-                        </button>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                          <KeyRound className="h-3.5 w-3.5" strokeWidth={2} />
-                          {mdpVisibles[p.id]}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+            ) : (
+              <span key="mdp" className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                <KeyRound className="h-3.5 w-3.5" strokeWidth={2} />
+                {mdpVisibles[p.id]}
+              </span>
+            ),
+          ];
+        })}
+        valeurs={filtres.map((p) => [p.name, p.qualite, p.portable, p.email_pro, p.email_perso, p.commune_habitation, p.vehicule])}
+        vide="Aucun collaborateur trouvé"
+      />
     </div>
   );
 }

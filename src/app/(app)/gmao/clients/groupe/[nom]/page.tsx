@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ChevronRight, MapPin, Download, Upload } from "lucide-react";
+import { ChevronRight, MapPin, Download, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
@@ -33,14 +33,7 @@ export default async function GmaoSitesDuClientPage({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <Link
-          href={`/gmao/clients?horsContrat=${horsContrat ? "1" : "0"}`}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-          Retour
-        </Link>
+      <div className="mb-4 flex items-center justify-end">
         {isAdmin && siteIds.length > 0 && (
           <div className="flex items-center gap-2">
             <a
@@ -63,26 +56,15 @@ export default async function GmaoSitesDuClientPage({
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">{nomDecode}</h1>
       <p className="mb-5 text-sm text-slate-500">{sites.length} site(s)</p>
 
-      <ul className="space-y-3">
+      <ul>
         {sites.map((s) => (
-          <li key={s.id}>
-            <Link
-              href={`/gmao/clients/${s.id}/equipements`}
-              className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
-            >
-              <span
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                  horsContrat ? "bg-orange-100" : "bg-green-100"
-                }`}
-              >
-                <MapPin
-                  className={`h-5 w-5 ${horsContrat ? "text-orange-600" : "text-brand-green-dark"}`}
-                  strokeWidth={2}
-                />
-              </span>
-              <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">
-                {s.site || "Site sans nom"}
-              </span>
+          <li key={s.id} className="border-t border-slate-100 first:border-t-0">
+            <Link href={`/gmao/clients/${s.id}/equipements`} className="flex items-center gap-3 py-2.5 hover:text-brand-green-dark">
+              <MapPin
+                className={`h-4 w-4 shrink-0 ${horsContrat ? "text-orange-600" : "text-brand-green-dark"}`}
+                strokeWidth={2}
+              />
+              <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{s.site || "Site sans nom"}</span>
               <span className="shrink-0 text-sm text-slate-400">{s.commune}</span>
               <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
             </Link>

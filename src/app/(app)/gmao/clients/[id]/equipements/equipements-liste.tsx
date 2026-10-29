@@ -142,10 +142,10 @@ function Groupe({
   const heuresGroupe = sommeHeuresAnnee(equipements, references, freqCouranteParEquipement);
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+    <div className="border-t border-slate-100 pt-3 first:border-t-0 first:pt-0">
       <button
         onClick={() => setOuvert((v) => !v)}
-        className="flex w-full items-center gap-3 px-5 py-3.5 text-left"
+        className="flex w-full items-center gap-3 px-1 py-2 text-left"
       >
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${couleur.bg}`}>
           <Cog className={`h-5 w-5 ${couleur.text}`} strokeWidth={2} />

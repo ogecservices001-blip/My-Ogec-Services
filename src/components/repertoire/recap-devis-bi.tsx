@@ -21,9 +21,9 @@ function CarteRecap({
   isAdmin: boolean;
 }) {
   return (
-    <div className="mb-4 w-full overflow-hidden rounded-2xl border border-l-4 border-slate-200/80 border-l-brand-green/40 bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b border-slate-100 bg-green-50/50 px-4 py-2.5">
-        <Icone className="h-3.5 w-3.5 text-brand-green-dark" strokeWidth={2.25} />
+    <div className="mb-4 w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div className="flex items-center gap-2 border-t border-slate-100 bg-slate-50/70 px-4 py-2 first:border-t-0">
+        <Icone className="h-3.5 w-3.5 text-slate-400" strokeWidth={2.25} />
         <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">{titre}</h2>
       </div>
       <div className="divide-y divide-slate-50">

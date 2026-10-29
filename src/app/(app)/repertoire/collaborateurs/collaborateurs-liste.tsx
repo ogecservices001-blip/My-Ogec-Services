@@ -78,12 +78,9 @@ export function CollaborateursListe({
       {filtres.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">Aucun collaborateur trouvé</p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
           {filtres.map((p) => (
-            <li
-              key={p.id}
-              className="overflow-hidden rounded-2xl bg-white shadow-sm"
-            >
+            <li key={p.id} className="border-t border-slate-50 first:border-t-0">
               <button
                 onClick={() => setOuvert(ouvert === p.id ? null : p.id)}
                 className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-slate-50"

@@ -55,25 +55,22 @@ export default async function EquipementsClientPage({
       {liste.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">Aucun équipement enregistré pour ce client</p>
       ) : (
-        <div className="space-y-4">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
           {groupesTries.map((groupe) => (
             <div key={groupe}>
               {groupesTries.length > 1 && (
-                <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">{groupe}</p>
+                <p className="border-t border-slate-100 bg-slate-50/70 px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 first:border-t-0">
+                  {groupe}
+                </p>
               )}
-              <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-                {parGroupe.get(groupe)!.map((eq, i) => (
-                  <div
-                    key={eq.id}
-                    className={`flex items-center gap-2.5 px-4 py-2.5 text-sm ${i > 0 ? "border-t border-slate-50" : ""}`}
-                  >
-                    <Cog className="h-3.5 w-3.5 shrink-0 text-slate-300" strokeWidth={2} />
-                    <span className="min-w-0 truncate text-slate-800">
-                      {[eq.nom, eq.numero_equipement, eq.localisation].filter(Boolean).join(" ")}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              {parGroupe.get(groupe)!.map((eq) => (
+                <div key={eq.id} className="flex items-center gap-2.5 border-t border-slate-50 px-4 py-2.5 text-sm first:border-t-0">
+                  <Cog className="h-3.5 w-3.5 shrink-0 text-slate-300" strokeWidth={2} />
+                  <span className="min-w-0 truncate text-slate-800">
+                    {[eq.nom, eq.numero_equipement, eq.localisation].filter(Boolean).join(" ")}
+                  </span>
+                </div>
+              ))}
             </div>
           ))}
         </div>

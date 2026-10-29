@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { Plus, Upload, Download } from "lucide-react";
+import { Plus, Upload, Download, FileSignature, ClipboardList, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { FilAjouter } from "@/components/fil-extra-context";
-import { BoutonsRecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
-import { chargerRecapDevis, chargerRecapBI, chargerRecapDepannages } from "@/lib/repertoire/recap";
 import type { Site } from "@/lib/types";
 import { supprimerSitesDuClient } from "../../actions";
 
@@ -41,12 +39,6 @@ export default async function SitesDuClientPage({
     .eq("hors_contrat", horsContrat)
     .order("site");
   const sites = (data as Site[]) ?? [];
-  const siteIds = sites.map((s) => s.id);
-  const [recapDevis, recapBi, recapDepannages] = await Promise.all([
-    chargerRecapDevis(siteIds),
-    chargerRecapBI(siteIds),
-    chargerRecapDepannages(siteIds),
-  ]);
 
   return (
     <div>
@@ -84,7 +76,27 @@ export default async function SitesDuClientPage({
       <p className="mb-3 text-sm text-slate-500">{sites.length} site(s)</p>
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
-        <BoutonsRecapDevisEtBI devis={recapDevis} bi={recapBi} depannages={recapDepannages} isAdmin={isAdmin} />
+        <Link
+          href={`/repertoire/clients/groupe/${nom}/devis?horsContrat=${horsContrat ? 1 : 0}`}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        >
+          <FileSignature className="h-4 w-4" strokeWidth={2} />
+          Devis
+        </Link>
+        <Link
+          href={`/repertoire/clients/groupe/${nom}/bon-intervention?horsContrat=${horsContrat ? 1 : 0}`}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        >
+          <ClipboardList className="h-4 w-4" strokeWidth={2} />
+          Bon d&apos;intervention
+        </Link>
+        <Link
+          href={`/repertoire/clients/groupe/${nom}/depannages?horsContrat=${horsContrat ? 1 : 0}`}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        >
+          <Zap className="h-4 w-4" strokeWidth={2} />
+          Dépannages
+        </Link>
         {isAdmin && sites.length > 0 && (
           <BoutonSupprimer
             action={supprimerSitesDuClient.bind(null, nomDecode)}

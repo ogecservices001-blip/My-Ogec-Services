@@ -2,15 +2,19 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Search,
-  ChevronRight,
-  Building2,
-  Plus,
-  Upload,
-  Download,
-} from "lucide-react";
+import { Search, Plus, Upload, Download } from "lucide-react";
+import { Tableur, type ColonneTableur } from "@/components/tableur";
 import type { Site } from "@/lib/types";
+
+const COLONNES: ColonneTableur[] = [
+  { titre: "Adresse" },
+  { titre: "Complément" },
+  { titre: "CP", largeur: "90px" },
+  { titre: "Commune" },
+  { titre: "Payeur" },
+  { titre: "N° affaire", largeur: "110px" },
+  { titre: "Lots" },
+];
 
 export function ClientsListe({
   sites,
@@ -23,15 +27,20 @@ export function ClientsListe({
 }) {
   const [recherche, setRecherche] = useState("");
 
-  const groupes = useMemo(() => {
-    const parNom = new Map<string, Site[]>();
-    for (const s of sites) {
-      if (!s.nom.toLowerCase().includes(recherche.toLowerCase())) continue;
-      const liste = parNom.get(s.nom) ?? [];
-      liste.push(s);
-      parNom.set(s.nom, liste);
-    }
-    return [...parNom.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  const nbClients = useMemo(() => new Set(sites.map((s) => s.nom)).size, [sites]);
+
+  const filtres = useMemo(() => {
+    const cible = recherche.toLowerCase();
+    return sites
+      .filter(
+        (s) =>
+          s.nom.toLowerCase().includes(cible) ||
+          s.adresse.toLowerCase().includes(cible) ||
+          s.commune.toLowerCase().includes(cible) ||
+          s.n_affaire.toLowerCase().includes(cible) ||
+          s.site.toLowerCase().includes(cible),
+      )
+      .sort((a, b) => a.nom.localeCompare(b.nom, "fr") || a.site.localeCompare(b.site, "fr"));
   }, [sites, recherche]);
 
   return (
@@ -42,7 +51,7 @@ export function ClientsListe({
             {horsContrat ? "Clients hors contrat" : "Clients sous contrat"}
           </h1>
           <p className="text-sm text-slate-500">
-            {groupes.length} client(s) — {sites.length} site(s)
+            {nbClients} client(s) — {sites.length} site(s)
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -101,46 +110,22 @@ export function ClientsListe({
         </div>
       </div>
 
-      {groupes.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">
-          Aucun client trouvé
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {groupes.map(([nom, sitesDuClient]) => (
-            <li key={nom}>
-              <Link
-                href={
-                  sitesDuClient.length === 1
-                    ? `/repertoire/clients/${sitesDuClient[0].id}`
-                    : `/repertoire/clients/groupe/${encodeURIComponent(nom)}?horsContrat=${horsContrat ? 1 : 0}`
-                }
-                className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
-              >
-                <span
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                    horsContrat ? "bg-orange-100" : "bg-green-100"
-                  }`}
-                >
-                  <Building2
-                    className={`h-5 w-5 ${
-                      horsContrat ? "text-orange-600" : "text-brand-green-dark"
-                    }`}
-                    strokeWidth={2}
-                  />
-                </span>
-                <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">
-                  {nom}
-                </span>
-                <span className="shrink-0 text-sm text-slate-400">
-                  {sitesDuClient.length} site(s)
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      <Tableur
+        colonnes={COLONNES}
+        lignes={filtres.map((s) => [
+          <Link key="adresse" href={`/repertoire/clients/${s.id}`} className="font-bold text-slate-900 hover:underline">
+            {s.adresse || "—"}
+          </Link>,
+          s.complement_adresse,
+          s.code_postal,
+          s.commune,
+          s.nom,
+          s.n_affaire,
+          s.site,
+        ])}
+        valeurs={filtres.map((s) => [s.adresse, s.complement_adresse, s.code_postal, s.commune, s.nom, s.n_affaire, s.site])}
+        vide="Aucun client trouvé"
+      />
     </div>
   );
 }

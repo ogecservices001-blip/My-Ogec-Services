@@ -113,15 +113,21 @@ export function ClientsListe({
       <Tableur
         colonnes={COLONNES}
         lignes={filtres.map((s) => [
-          <Link key="adresse" href={`/repertoire/clients/${s.id}`} className="font-bold text-slate-900 hover:underline">
-            {s.adresse || "—"}
-          </Link>,
+          s.adresse,
           s.complement_adresse,
           s.code_postal,
           s.commune,
-          s.nom,
+          <Link
+            key="payeur"
+            href={`/repertoire/clients/groupe/${encodeURIComponent(s.nom)}?horsContrat=${horsContrat ? 1 : 0}`}
+            className="font-bold text-slate-900 hover:underline"
+          >
+            {s.nom}
+          </Link>,
           s.n_affaire,
-          s.site,
+          <Link key="lots" href={`/repertoire/clients/${s.id}`} className="text-brand-green-dark hover:underline">
+            {s.site || "—"}
+          </Link>,
         ])}
         valeurs={filtres.map((s) => [s.adresse, s.complement_adresse, s.code_postal, s.commune, s.nom, s.n_affaire, s.site])}
         vide="Aucun client trouvé"

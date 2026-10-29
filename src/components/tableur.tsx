@@ -13,6 +13,36 @@ export type ValeurCellule = string | number | null | undefined;
 
 const SANS_FILTRE = "__sans_filtre__";
 
+/// Clé de rangement de l'ordre des colonnes — dérivée des titres (un
+/// tableau différent, ex. Clients vs Fournisseurs, a un ordre
+/// indépendant), pour que le glisser-déposer survive à un
+/// rechargement de page sans qu'un identifiant explicite soit requis
+/// à chaque appel.
+function cleOrdreColonnes(colonnes: ColonneTableur[]): string {
+  return `tableur-ordre:${colonnes.map((c) => c.titre).join("|")}`;
+}
+
+function chargerOrdre(colonnes: ColonneTableur[]): number[] {
+  const defaut = colonnes.map((_, i) => i);
+  if (typeof window === "undefined") return defaut;
+  try {
+    const sauve = window.localStorage.getItem(cleOrdreColonnes(colonnes));
+    if (!sauve) return defaut;
+    const valeurs: unknown = JSON.parse(sauve);
+    if (
+      Array.isArray(valeurs) &&
+      valeurs.length === colonnes.length &&
+      new Set(valeurs).size === colonnes.length &&
+      valeurs.every((v) => typeof v === "number" && v >= 0 && v < colonnes.length)
+    ) {
+      return valeurs as number[];
+    }
+  } catch {
+    // Stockage indisponible (navigation privée...) : ordre par défaut.
+  }
+  return defaut;
+}
+
 /// Tableau façon classeur Excel (en-têtes fixes, lignes alternées), même
 /// rendu que le registre Devis et Audit Heures. Chaque colonne dont la
 /// valeur est connue (texte/nombre simple en cellule, ou fournie via
@@ -52,14 +82,23 @@ export function Tableur({
   /// Les filtres restent toujours indexés par colonne réelle, jamais
   /// par position affichée, pour ne pas se mélanger après un
   /// réordonnancement.
-  const [ordreBrut, setOrdre] = useState<number[]>(() => colonnes.map((_, i) => i));
+  const [ordreBrut, setOrdreBrut] = useState<number[]>(() => chargerOrdre(colonnes));
   // Si `colonnes` change de forme (écran différent réutilisant le même
-  // composant monté), on retombe sur l'ordre d'origine plutôt que de
+  // composant monté), on retombe sur l'ordre par défaut plutôt que de
   // planter sur des index obsolètes — jamais de setState dans un effet
   // pour ça, juste une valeur dérivée au rendu.
   const ordre = ordreBrut.length === colonnes.length ? ordreBrut : colonnes.map((_, i) => i);
   const [colonneGlissee, setColonneGlissee] = useState<number | null>(null);
   const [colonneSurvolee, setColonneSurvolee] = useState<number | null>(null);
+
+  function definirOrdre(next: number[]) {
+    setOrdreBrut(next);
+    try {
+      window.localStorage.setItem(cleOrdreColonnes(colonnes), JSON.stringify(next));
+    } catch {
+      // Stockage indisponible : l'ordre reste actif pour cette session seulement.
+    }
+  }
 
   function deposerColonne(cible: number) {
     if (colonneGlissee === null || colonneGlissee === cible) {
@@ -67,14 +106,12 @@ export function Tableur({
       setColonneSurvolee(null);
       return;
     }
-    setOrdre((prev) => {
-      const next = [...prev];
-      const depart = next.indexOf(colonneGlissee);
-      const arrivee = next.indexOf(cible);
-      next.splice(depart, 1);
-      next.splice(arrivee, 0, colonneGlissee);
-      return next;
-    });
+    const next = [...ordre];
+    const depart = next.indexOf(colonneGlissee);
+    const arrivee = next.indexOf(cible);
+    next.splice(depart, 1);
+    next.splice(arrivee, 0, colonneGlissee);
+    definirOrdre(next);
     setColonneGlissee(null);
     setColonneSurvolee(null);
   }

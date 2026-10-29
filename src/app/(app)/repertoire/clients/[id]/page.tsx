@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { formaterDate, telInternational } from "@/lib/format";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { FilAjouter } from "@/components/fil-extra-context";
 import { BoutonsRecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
 import { chargerRecapDevis, chargerRecapBI, chargerRecapDepannages } from "@/lib/repertoire/recap";
 import { calculerLignesAuditHeures } from "@/app/(app)/planning/audit-heures/calcul";
@@ -122,6 +123,7 @@ export default async function SiteDetailPage({
         )}
       </div>
 
+      <FilAjouter nom={[site.nom, site.site].filter(Boolean).join(" — ")} />
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">

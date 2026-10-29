@@ -4,6 +4,7 @@ import { ArrowLeft, Pencil, Phone } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { FilAjouter } from "@/components/fil-extra-context";
 import type { Fournisseur } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
 import { tvaSurFacture } from "@/lib/validation/fournisseur";
@@ -56,6 +57,7 @@ export default async function FournisseurDetailPage({
 
   return (
     <div>
+      <FilAjouter nom={f.nom} />
       <Link
         href="/repertoire/fournisseurs"
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"

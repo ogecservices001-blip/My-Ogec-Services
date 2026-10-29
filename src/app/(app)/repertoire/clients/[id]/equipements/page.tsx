@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Cog } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { FilAjouter } from "@/components/fil-extra-context";
 import type { Equipement } from "@/lib/gmao/types";
 
 /// Vue simple et rapide du parc d'un client, côté Répertoire — juste ce
@@ -40,6 +41,7 @@ export default async function EquipementsClientPage({
 
   return (
     <div>
+      <FilAjouter nom={`${[site.nom, site.site].filter(Boolean).join(" — ")} — Équipements`} />
       <Link
         href={`/repertoire/clients/${id}`}
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"

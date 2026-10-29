@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { Sidebar } from "@/components/sidebar";
+import { useFilExtraLecture } from "@/components/fil-extra-context";
 import { construireModules, type Module } from "@/lib/menus";
 
 /// Racine d'un module = préfixe de chemin commun à tous ses
@@ -97,6 +98,8 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
     }
   }
 
+  const extra = useFilExtraLecture();
+
   if (!moduleCourant) return null;
 
   // "Répertoire" n'a plus de page d'accueil dédiée (4 cartes) depuis que
@@ -121,7 +124,7 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
       {sousMenuCourant && (
         <>
           <ChevronRight className="h-3 w-3 text-slate-300" />
-          {!surPageExacte && sousMenuCourant.href ? (
+          {(!surPageExacte || extra) && sousMenuCourant.href ? (
             <Link
               href={sousMenuCourant.href}
               className="text-xs font-medium text-slate-500 transition hover:text-brand-green-dark"
@@ -131,6 +134,12 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
           ) : (
             <span className="text-xs font-medium text-brand-green-dark">{sousMenuCourant.nom}</span>
           )}
+        </>
+      )}
+      {extra && (
+        <>
+          <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
+          <span className="truncate text-xs font-medium text-brand-green-dark">{extra}</span>
         </>
       )}
     </div>

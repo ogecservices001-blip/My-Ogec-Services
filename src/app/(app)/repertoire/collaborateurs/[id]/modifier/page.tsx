@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminOuAccueil } from "@/lib/auth";
+import { FilAjouter } from "@/components/fil-extra-context";
 import type { Profil } from "@/lib/types";
 import { ModifierProfilForm } from "../../modifier-form";
 
@@ -21,6 +22,7 @@ export default async function ModifierProfilPage({
 
   return (
     <div>
+      <FilAjouter nom={`${profil.name} — Modifier`} />
       <Link
         href="/repertoire/collaborateurs"
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"

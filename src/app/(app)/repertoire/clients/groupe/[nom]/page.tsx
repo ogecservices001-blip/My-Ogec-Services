@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronRight, MapPin, Plus, Upload, Download } from "lucide-
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { FilAjouter } from "@/components/fil-extra-context";
 import { BoutonsRecapDevisEtBI } from "@/components/repertoire/recap-devis-bi";
 import { chargerRecapDevis, chargerRecapBI, chargerRecapDepannages } from "@/lib/repertoire/recap";
 import type { Site } from "@/lib/types";
@@ -40,6 +41,7 @@ export default async function SitesDuClientPage({
 
   return (
     <div>
+      <FilAjouter nom={nomDecode} />
       <div className="mb-4 flex items-center justify-between">
         <Link
           href={`/repertoire/clients${horsContrat ? "?horsContrat=1" : ""}`}

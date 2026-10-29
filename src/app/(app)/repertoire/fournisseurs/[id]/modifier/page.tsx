@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminOuAccueil } from "@/lib/auth";
+import { FilAjouter } from "@/components/fil-extra-context";
 import type { Fournisseur } from "@/lib/types";
 import { FournisseurForm } from "../../fournisseur-form";
 
@@ -25,6 +26,7 @@ export default async function ModifierFournisseurPage({
 
   return (
     <div>
+      <FilAjouter nom={`${fournisseur.nom} — Modifier`} />
       <Link
         href={`/repertoire/fournisseurs/${id}`}
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"

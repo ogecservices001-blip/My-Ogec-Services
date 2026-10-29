@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ChevronRight, MapPin, Plus, Upload, Download } from "lucide-react";
+import { ChevronRight, MapPin, Plus, Upload, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
@@ -42,14 +42,7 @@ export default async function SitesDuClientPage({
   return (
     <div>
       <FilAjouter maillons={[{ nom: nomDecode }]} />
-      <div className="mb-4 flex items-center justify-between">
-        <Link
-          href={`/repertoire/clients${horsContrat ? "?horsContrat=1" : ""}`}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-          Retour
-        </Link>
+      <div className="mb-4 flex items-center justify-end">
         {isAdmin && (
           <div className="flex items-center gap-2">
             <a

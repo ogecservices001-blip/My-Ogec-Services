@@ -1,6 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminOuAccueil } from "@/lib/auth";
 import { FilAjouter } from "@/components/fil-extra-context";
@@ -23,13 +21,6 @@ export default async function ModifierProfilPage({
   return (
     <div>
       <FilAjouter maillons={[{ nom: profil.name }, { nom: "Modifier" }]} />
-      <Link
-        href="/repertoire/collaborateurs"
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour
-      </Link>
       <h1 className="mb-5 text-2xl font-bold tracking-tight text-slate-900">{profil.name}</h1>
       <ModifierProfilForm profil={profil} />
     </div>

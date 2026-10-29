@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Cog } from "lucide-react";
+import { Cog } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { FilAjouter } from "@/components/fil-extra-context";
 import type { Equipement } from "@/lib/gmao/types";
@@ -48,13 +47,6 @@ export default async function EquipementsClientPage({
           { nom: "Équipements" },
         ]}
       />
-      <Link
-        href={`/repertoire/clients/${id}`}
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour
-      </Link>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Équipements client</h1>
       <p className="mb-5 text-sm text-slate-500">
         {[site.nom, site.site].filter(Boolean).join(" — ")} — {liste.length} équipement(s)

@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, ChevronDown, Upload, Download, Plus, Pencil, Clock, FolderTree } from "lucide-react";
+import { ChevronDown, Upload, Download, Plus, Pencil, Clock, FolderTree } from "lucide-react";
 import type { ReferenceHoraire } from "@/lib/gmao/types";
 import { construireArbreReferences, compterFeuilles, type NoeudReference } from "@/lib/gmao/reference-horaire-tree";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
@@ -39,14 +38,7 @@ export function HeuresArbre({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <Link
-          href="/gmao/referentiel"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-          Retour
-        </Link>
+      <div className="mb-4 flex items-center justify-end">
         {isAdmin && (
           <div className="flex items-center gap-2">
             <a

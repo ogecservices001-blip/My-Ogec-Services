@@ -108,7 +108,7 @@ const modules: {
     actif: true,
   },
   {
-    href: "/gmao/referentiel",
+    href: "/gmao/referentiel/heures",
     titre: "Référentiel GMAO",
     sousTitre: "Heures et gammes de maintenance",
     icone: LibraryBig,

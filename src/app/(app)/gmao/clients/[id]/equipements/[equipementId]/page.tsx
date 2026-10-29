@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Cog, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { FilAjouter } from "@/components/fil-extra-context";
 import type { Equipement, TypeEquipement, ChampListeLigne } from "@/lib/gmao/types";
 import { concatTypeEquipement, analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { calculerHeuresVisite, heuresCumulAnnee } from "@/lib/gmao/calcul-heures-visite";
@@ -71,14 +72,8 @@ export default async function VisualiserEquipementPage({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <Link
-          href={`/gmao/clients/${id}/equipements`}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-          Retour
-        </Link>
+      <FilAjouter maillons={[{ nom: [site.nom, site.site].filter(Boolean).join(" — ") }, { nom: eq.nom }]} />
+      <div className="mb-4 flex items-center justify-end">
         <Link
           href={`/gmao/clients/${id}/equipements/${equipementId}/releves`}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
@@ -88,29 +83,19 @@ export default async function VisualiserEquipementPage({
         </Link>
       </div>
 
-      <div className="mb-5 flex items-center gap-4 rounded-2xl bg-teal-50 p-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white">
-          <Cog className="h-6 w-6 text-teal-600" strokeWidth={2} />
-        </span>
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-slate-600">
-            {[site.nom, site.site].filter(Boolean).join(" — ")}
-          </p>
-          <p className="text-sm font-bold text-teal-800">
-            {type.code} — {type.nom}
-          </p>
-          <p className="text-sm font-semibold text-slate-900">{eq.nom}</p>
-          <p className="text-xs text-slate-500">
-            {[eq.groupe && `Groupe : ${eq.groupe}`, [eq.numero_equipement, eq.localisation].filter(Boolean).join(" — ")]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-          {typeConcat && <p className="mt-1 text-sm font-bold text-teal-800">{typeConcat}</p>}
-        </div>
+      <div className="mb-5">
+        <p className="text-sm font-semibold text-slate-500">{type.code} — {type.nom}</p>
+        <h1 className="text-xl font-bold text-slate-900">{eq.nom}</h1>
+        <p className="text-sm text-slate-500">
+          {[eq.groupe && `Groupe : ${eq.groupe}`, [eq.numero_equipement, eq.localisation].filter(Boolean).join(" — ")]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+        {typeConcat && <p className="mt-1 text-sm font-semibold text-brand-green-dark">{typeConcat}</p>}
       </div>
 
       {(devisEnCours.length > 0 || (depannagesOuverts ?? []).length > 0 || bonsIntervention.length > 0) && (
-        <div className="mb-5 space-y-1.5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+        <div className="mb-5 space-y-1.5 border-t border-slate-100 pt-3">
           {devisEnCours.map((d, i) => (
             <p key={`devis-${i}`} className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-red-700">
               {d.numero}
@@ -149,7 +134,7 @@ export default async function VisualiserEquipementPage({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div className="border-t border-slate-100 pt-1">
         {champsRenseignes.length === 0 && !freqEntretienAnnuelle ? (
           <p className="px-4 py-4 text-sm text-slate-400">Aucune information renseignée</p>
         ) : (
@@ -209,18 +194,18 @@ export default async function VisualiserEquipementPage({
       </div>
 
       {(eq.remarque_technicien || eq.informations_internes) && (
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
           {eq.remarque_technicien && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
-              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-amber-600">Remarque technicien</p>
+            <p className="text-sm text-slate-700">
+              <span className="font-bold uppercase tracking-wide text-amber-600">Remarque technicien : </span>
               {eq.remarque_technicien}
-            </div>
+            </p>
           )}
           {eq.informations_internes && (
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 text-sm text-slate-700 shadow-sm">
-              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">Informations internes</p>
+            <p className="text-sm text-slate-700">
+              <span className="font-bold uppercase tracking-wide text-slate-500">Informations internes : </span>
               {eq.informations_internes}
-            </div>
+            </p>
           )}
         </div>
       )}
@@ -229,7 +214,7 @@ export default async function VisualiserEquipementPage({
         const lignes = Array.isArray(c[def.cle]) ? (c[def.cle] as ChampListeLigne[]) : [];
         if (lignes.length === 0) return null;
         return (
-          <div key={def.cle} className="mt-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div key={def.cle} className="mt-3 border-t border-slate-100 pt-3">
             <p className="mb-2 text-sm font-bold text-slate-900">{def.label}</p>
             <div className="space-y-1">
               {lignes.map((ligne, i) => (

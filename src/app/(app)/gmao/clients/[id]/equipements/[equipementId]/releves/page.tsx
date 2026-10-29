@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, CalendarDays, User, AlertTriangle } from "lucide-react";
+import { CalendarDays, User, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { FilAjouter } from "@/components/fil-extra-context";
 import type { Equipement, TypeEquipement, Releve } from "@/lib/gmao/types";
 
 function deuxChiffres(n: number): string {
@@ -40,20 +40,14 @@ export default async function HistoriqueRelevesPage({
 
   return (
     <div>
-      <Link
-        href={`/gmao/clients/${id}/equipements`}
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour
-      </Link>
+      <FilAjouter maillons={[{ nom: equipement.nom }, { nom: "Historique" }]} />
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Historique — {equipement.nom}</h1>
       <p className="mb-5 text-sm text-slate-500">{releves.length} visite(s) enregistrée(s)</p>
 
       {releves.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">Aucune visite enregistrée pour cet équipement</p>
       ) : (
-        <div className="space-y-3">
+        <div>
           {releves.map((releve) => (
             <CarteReleve key={releve.id} releve={releve} type={type} />
           ))}
@@ -101,7 +95,7 @@ function CarteReleve({ releve, type }: { releve: Releve; type: TypeEquipement })
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+    <div className="border-t border-slate-100 py-3 first:border-t-0">
       <div className="flex flex-wrap items-center gap-3">
         <span className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
           <CalendarDays className="h-4 w-4 text-teal-600" strokeWidth={2} />
@@ -125,8 +119,8 @@ function CarteReleve({ releve, type }: { releve: Releve; type: TypeEquipement })
       </div>
 
       {anomalies.length > 0 && (
-        <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 p-3">
-          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-orange-800">
+        <div className="mt-2">
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-bold text-orange-800">
             <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />
             Points signalés
           </p>

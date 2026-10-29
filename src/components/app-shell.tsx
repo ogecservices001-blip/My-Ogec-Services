@@ -103,11 +103,15 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
 
   if (!moduleCourant) return null;
 
-  // "Répertoire" n'a plus de page d'accueil dédiée (4 cartes) depuis que
-  // le volet de la barre latérale couvre déjà ce rôle — on retombe sur
-  // "Clients sous contrat", une vraie page, plutôt que de laisser le
-  // lien mort.
-  const hrefModule = moduleCourant.nom === "Répertoire" ? "/repertoire/clients" : racineModule(moduleCourant);
+  // Modules dont la racine calculée (préfixe commun des sous-menus)
+  // pointerait vers une page d'accueil à cartes supprimée (redondante
+  // avec le volet de la barre latérale) — on retombe sur une vraie
+  // page, le premier sous-menu, plutôt que de laisser le lien mort.
+  const RACINES_SANS_PAGE: Record<string, string> = {
+    Répertoire: "/repertoire/clients",
+    "Référentiel GMAO": "/gmao/referentiel/heures",
+  };
+  const hrefModule = RACINES_SANS_PAGE[moduleCourant.nom] ?? racineModule(moduleCourant);
 
   return (
     <div className="flex h-10 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 sm:px-6">

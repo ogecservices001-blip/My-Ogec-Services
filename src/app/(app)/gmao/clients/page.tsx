@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { Equipement, ReferenceHoraire } from "@/lib/gmao/types";
+import type { Site } from "@/lib/types";
 import { freqCouranteCalculeeBatch } from "@/lib/gmao/releve-service";
 import { sommeHeuresAnnee } from "@/lib/gmao/calcul-heures-visite";
 import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 import { supprimerEquipementsPourSites } from "@/app/(app)/gmao/actions";
-import { GmaoClientsListe, type ClientGroupe } from "./clients-liste";
+import { GmaoClientsListe, type LigneSiteGmao } from "./clients-liste";
 
 export default async function GmaoClientsPage({
   searchParams,
@@ -18,12 +19,13 @@ export default async function GmaoClientsPage({
   const supabase = await createClient();
   const profile = await getCurrentProfile();
   const isAdmin = profile?.role === "admin";
-  const [{ data: sites }, { data: references }] = await Promise.all([
+  const [{ data: sitesData }, { data: references }] = await Promise.all([
     supabase.from("sites_view").select("*").eq("hors_contrat", horsContrat).order("nom"),
     supabase.from("references_horaires").select("*"),
   ]);
+  const sites = (sitesData ?? []) as Site[];
 
-  const siteIds = (sites ?? []).map((s) => s.id);
+  const siteIds = sites.map((s) => s.id);
   const listeEquipements = await recupererToutesLesLignes<Equipement>((debut, fin) =>
     supabase.from("equipements").select("*").in("site_id", siteIds).range(debut, fin),
   );
@@ -38,30 +40,21 @@ export default async function GmaoClientsPage({
     equipementsParSite.set(eq.site_id, liste);
   }
 
-  const sitesParNom = new Map<string, { id: string; nom: string; site: string }[]>();
-  for (const s of sites ?? []) {
-    const liste = sitesParNom.get(s.nom) ?? [];
-    liste.push({ id: s.id, nom: s.nom, site: s.site });
-    sitesParNom.set(s.nom, liste);
-  }
-
   const references_ = (references ?? []) as ReferenceHoraire[];
-  const groupes: ClientGroupe[] = [...sitesParNom.entries()]
-    .map(([nom, sitesClient]) => {
-      const equipementsClient = sitesClient.flatMap((s) => equipementsParSite.get(s.id) ?? []);
-      return {
-        nom,
-        siteIds: sitesClient.map((s) => s.id),
-        nbSites: sitesClient.length,
-        heures: sommeHeuresAnnee(equipementsClient, references_, freqCouranteParEquipement),
-        siteUniqueId: sitesClient.length === 1 ? sitesClient[0].id : null,
-      };
-    })
-    .sort((a, b) => a.nom.localeCompare(b.nom));
+  const lignes: LigneSiteGmao[] = sites.map((s) => ({
+    id: s.id,
+    nom: s.nom,
+    site: s.site,
+    adresse: s.adresse,
+    complement_adresse: s.complement_adresse,
+    code_postal: s.code_postal,
+    commune: s.commune,
+    heures: sommeHeuresAnnee(equipementsParSite.get(s.id) ?? [], references_, freqCouranteParEquipement),
+  }));
 
   return (
     <GmaoClientsListe
-      groupes={groupes}
+      lignes={lignes}
       horsContrat={horsContrat}
       isAdmin={isAdmin}
       tousLesSiteIds={siteIds}

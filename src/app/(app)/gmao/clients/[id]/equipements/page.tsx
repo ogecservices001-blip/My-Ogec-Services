@@ -46,49 +46,44 @@ export default async function EquipementsSitePage({
           { nom: site.site || "Site sans nom" },
         ]}
       />
-      <div className="mb-4 flex items-center justify-end">
-        <div className="flex items-center gap-2">
-          {isAdmin && (
-            <>
-              <a
-                href={`/gmao/clients/${id}/equipements/export`}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
-                title="Exporter en Excel"
-              >
-                <Download className="h-4 w-4" strokeWidth={2.25} />
-              </a>
-              <Link
-                href={`/gmao/clients/${id}/equipements/importer`}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
-                title="Importer un fichier"
-              >
-                <Upload className="h-4 w-4" strokeWidth={2.25} />
-              </Link>
-            </>
-          )}
-          <Link
-            href={`/gmao/clients/${id}/equipements/nouveau`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
-            Ajouter
-          </Link>
-        </div>
-      </div>
-
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Parc GMAO</h1>
-      <p className="mb-5 text-sm text-slate-500">{[site.nom, site.site].filter(Boolean).join(" — ")}</p>
-
-      {isAdmin && (equipements ?? []).length > 0 && (
-        <div className="mb-4">
+      <div className="mb-2 flex flex-wrap items-center justify-end gap-2">
+        {isAdmin && (equipements ?? []).length > 0 && (
           <BoutonSupprimer
             action={supprimerEquipementsPourSites.bind(null, [id])}
             confirmation={`Supprime tous les équipements de ce site (${(equipements ?? []).length}) — action irréversible.`}
             redirectTo={`/gmao/clients/${id}/equipements`}
             label="Supprimer tout le parc de ce site"
           />
+        )}
+        <Link
+          href={`/gmao/clients/${id}/equipements/nouveau`}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
+          Ajouter
+        </Link>
+      </div>
+      {isAdmin && (
+        <div className="mb-4 flex items-center justify-end gap-2">
+          <a
+            href={`/gmao/clients/${id}/equipements/export`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+            title="Exporter en Excel"
+          >
+            <Download className="h-4 w-4" strokeWidth={2.25} />
+          </a>
+          <Link
+            href={`/gmao/clients/${id}/equipements/importer`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+            title="Importer un fichier"
+          >
+            <Upload className="h-4 w-4" strokeWidth={2.25} />
+          </Link>
         </div>
       )}
+
+      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Parc GMAO</h1>
+      <p className="mb-5 text-sm text-slate-500">{[site.nom, site.site].filter(Boolean).join(" — ")}</p>
 
       <EquipementsListe
         siteId={id}

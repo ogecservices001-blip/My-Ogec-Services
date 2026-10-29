@@ -44,9 +44,15 @@ export default async function GmaoSitesDuClientPage({
   return (
     <div>
       <FilAjouter maillons={[{ nom: nomDecode }]} />
-      <div className="mb-4 flex items-center justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
         {isAdmin && siteIds.length > 0 && (
-          <div className="flex items-center gap-2">
+          <>
+            <BoutonSupprimer
+              action={supprimerEquipementsPourSites.bind(null, siteIds)}
+              confirmation={`Supprime tous les équipements de tous les sites de "${nomDecode}" (${sites.length} site(s)) — action irréversible.`}
+              redirectTo={`/gmao/clients/groupe/${nom}?horsContrat=${horsContrat ? "1" : "0"}`}
+              label="Supprimer tous les équipements de ce client"
+            />
             <a
               href={`/gmao/clients/groupe/${nom}/export`}
               className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
@@ -61,7 +67,7 @@ export default async function GmaoSitesDuClientPage({
             >
               <Upload className="h-4 w-4" strokeWidth={2.25} />
             </Link>
-          </div>
+          </>
         )}
       </div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">{nomDecode}</h1>
@@ -81,17 +87,6 @@ export default async function GmaoSitesDuClientPage({
         valeurs={sites.map((s) => [s.site, s.adresse, s.code_postal, s.commune, s.n_affaire])}
         vide="Aucun site pour ce client"
       />
-
-      {isAdmin && siteIds.length > 0 && (
-        <div className="mt-6">
-          <BoutonSupprimer
-            action={supprimerEquipementsPourSites.bind(null, siteIds)}
-            confirmation={`Supprime tous les équipements de tous les sites de "${nomDecode}" (${sites.length} site(s)) — action irréversible.`}
-            redirectTo={`/gmao/clients/groupe/${nom}?horsContrat=${horsContrat ? "1" : "0"}`}
-            label="Supprimer tous les équipements de ce client"
-          />
-        </div>
-      )}
     </div>
   );
 }

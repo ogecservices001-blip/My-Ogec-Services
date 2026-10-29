@@ -8,24 +8,36 @@ import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import type { ActionResult } from "@/lib/action-result";
 import type { HeuresAnnee } from "@/lib/gmao/calcul-heures-visite";
 
-export type ClientGroupe = {
+export type LigneSiteGmao = {
+  id: string;
   nom: string;
-  siteIds: string[];
-  nbSites: number;
+  site: string;
+  adresse: string;
+  complement_adresse: string;
+  code_postal: string;
+  commune: string;
   heures: HeuresAnnee;
-  /// Non-null quand ce client n'a qu'un seul site — on saute alors
-  /// directement au parc, sans passer par le sélecteur de site.
-  siteUniqueId: string | null;
 };
 
+const COLONNES: ColonneTableur[] = [
+  { titre: "Payeur" },
+  { titre: "Lots" },
+  { titre: "CP", largeur: "90px" },
+  { titre: "Commune" },
+  { titre: "Adresse" },
+  { titre: "Complément" },
+  { titre: "Heures Tech", largeur: "110px", droite: true },
+  { titre: "Heures Assistant", largeur: "140px", droite: true },
+];
+
 export function GmaoClientsListe({
-  groupes,
+  lignes,
   horsContrat,
   isAdmin,
   tousLesSiteIds,
   supprimerAction,
 }: {
-  groupes: ClientGroupe[];
+  lignes: LigneSiteGmao[];
   horsContrat: boolean;
   isAdmin: boolean;
   tousLesSiteIds: string[];
@@ -33,10 +45,18 @@ export function GmaoClientsListe({
 }) {
   const [recherche, setRecherche] = useState("");
 
-  const filtres = useMemo(
-    () => groupes.filter((g) => g.nom.toLowerCase().includes(recherche.toLowerCase())),
-    [groupes, recherche],
-  );
+  const filtres = useMemo(() => {
+    const cible = recherche.toLowerCase();
+    return lignes.filter(
+      (l) =>
+        l.nom.toLowerCase().includes(cible) ||
+        l.site.toLowerCase().includes(cible) ||
+        l.commune.toLowerCase().includes(cible) ||
+        l.adresse.toLowerCase().includes(cible),
+    );
+  }, [lignes, recherche]);
+
+  const nbClients = useMemo(() => new Set(filtres.map((l) => l.nom)).size, [filtres]);
 
   return (
     <div>
@@ -45,9 +65,21 @@ export function GmaoClientsListe({
           <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
             {horsContrat ? "GMAO — Clients hors contrat" : "GMAO — Clients sous contrat"}
           </h1>
-          <p className="text-sm text-slate-500">{filtres.length} client(s)</p>
+          <p className="text-sm text-slate-500">
+            {nbClients} client(s) — {filtres.length} site(s)
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
+          {isAdmin && tousLesSiteIds.length > 0 && (
+            <BoutonSupprimer
+              action={supprimerAction}
+              confirmation={`Supprime tous les équipements des sites ${
+                horsContrat ? "hors contrat" : "sous contrat"
+              } (${lignes.length} site(s)) — action irréversible.`}
+              redirectTo={`/gmao/clients?horsContrat=${horsContrat ? 1 : 0}`}
+              label="Supprimer tout le parc de cette liste"
+            />
+          )}
           <div className="flex gap-1.5 rounded-xl bg-slate-100 p-1">
             <Link
               href="/gmao/clients?horsContrat=0"
@@ -103,47 +135,29 @@ export function GmaoClientsListe({
         </div>
       </div>
 
-      {isAdmin && tousLesSiteIds.length > 0 && (
-        <div className="mb-4">
-          <BoutonSupprimer
-            action={supprimerAction}
-            confirmation={`Supprime tous les équipements des ${groupes.length} client(s) ${
-              horsContrat ? "hors contrat" : "sous contrat"
-            } — action irréversible.`}
-            redirectTo={`/gmao/clients?horsContrat=${horsContrat ? 1 : 0}`}
-            label="Supprimer tout le parc de cette liste"
-          />
-        </div>
-      )}
-
       <Tableur
         colonnes={COLONNES}
-        lignes={filtres.map((g) => [
+        lignes={filtres.map((l) => [
           <Link
-            key="nom"
-            href={
-              g.siteUniqueId
-                ? `/gmao/clients/${g.siteUniqueId}/equipements`
-                : `/gmao/clients/groupe/${encodeURIComponent(g.nom)}?horsContrat=${horsContrat ? 1 : 0}`
-            }
+            key="payeur"
+            href={`/gmao/clients/groupe/${encodeURIComponent(l.nom)}?horsContrat=${horsContrat ? 1 : 0}`}
             className="font-bold text-slate-900 hover:underline"
           >
-            {g.nom}
+            {l.nom}
           </Link>,
-          g.nbSites,
-          g.heures.prevues.heuresTech || "",
-          g.heures.prevues.heuresAssistant || "",
+          <Link key="site" href={`/gmao/clients/${l.id}/equipements`} className="text-brand-green-dark hover:underline">
+            {l.site || "Site sans nom"}
+          </Link>,
+          l.code_postal,
+          l.commune,
+          l.adresse,
+          l.complement_adresse,
+          l.heures.prevues.heuresTech || "",
+          l.heures.prevues.heuresAssistant || "",
         ])}
-        valeurs={filtres.map((g) => [g.nom])}
-        vide="Aucun client trouvé"
+        valeurs={filtres.map((l) => [l.nom, l.site, l.code_postal, l.commune, l.adresse, l.complement_adresse])}
+        vide="Aucun site trouvé"
       />
     </div>
   );
 }
-
-const COLONNES: ColonneTableur[] = [
-  { titre: "Client" },
-  { titre: "Sites", largeur: "90px", droite: true },
-  { titre: "Heures Tech", largeur: "120px", droite: true },
-  { titre: "Heures Assistant", largeur: "140px", droite: true },
-];

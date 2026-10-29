@@ -26,7 +26,9 @@ export default async function ModifierFournisseurPage({
 
   return (
     <div>
-      <FilAjouter nom={`${fournisseur.nom} — Modifier`} />
+      <FilAjouter
+        maillons={[{ nom: fournisseur.nom, href: `/repertoire/fournisseurs/${id}` }, { nom: "Modifier" }]}
+      />
       <Link
         href={`/repertoire/fournisseurs/${id}`}
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"

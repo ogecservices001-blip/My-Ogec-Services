@@ -16,13 +16,19 @@ export default async function ModifierSitePage({
   const { id } = await params;
 
   const supabase = await createClient();
-  const { data } = await supabase.from("sites").select("*").eq("id", id).single();
+  const { data } = await supabase.from("sites_view").select("*").eq("id", id).single();
   if (!data) notFound();
   const site = data as Site;
 
   return (
     <div>
-      <FilAjouter nom={`${[site.nom, site.site].filter(Boolean).join(" — ")} — Modifier`} />
+      <FilAjouter
+        maillons={[
+          { nom: site.nom, href: `/repertoire/clients/groupe/${encodeURIComponent(site.nom)}?horsContrat=${site.hors_contrat ? 1 : 0}` },
+          { nom: site.site || "Site sans nom", href: `/repertoire/clients/${id}` },
+          { nom: "Modifier" },
+        ]}
+      />
       <Link
         href={`/repertoire/clients/${id}`}
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"

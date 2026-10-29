@@ -41,7 +41,7 @@ export default async function SitesDuClientPage({
 
   return (
     <div>
-      <FilAjouter nom={nomDecode} />
+      <FilAjouter maillons={[{ nom: nomDecode }]} />
       <div className="mb-4 flex items-center justify-between">
         <Link
           href={`/repertoire/clients${horsContrat ? "?horsContrat=1" : ""}`}

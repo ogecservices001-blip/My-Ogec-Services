@@ -19,7 +19,7 @@ export default async function EquipementsClientPage({
   const supabase = await createClient();
 
   const [{ data: site }, { data: equipements }] = await Promise.all([
-    supabase.from("sites").select("id, nom, site").eq("id", id).single(),
+    supabase.from("sites_view").select("id, nom, site, hors_contrat").eq("id", id).single(),
     supabase.from("equipements").select("*").eq("site_id", id).order("nom"),
   ]);
   if (!site) notFound();
@@ -41,7 +41,13 @@ export default async function EquipementsClientPage({
 
   return (
     <div>
-      <FilAjouter nom={`${[site.nom, site.site].filter(Boolean).join(" — ")} — Équipements`} />
+      <FilAjouter
+        maillons={[
+          { nom: site.nom, href: `/repertoire/clients/groupe/${encodeURIComponent(site.nom)}?horsContrat=${site.hors_contrat ? 1 : 0}` },
+          { nom: site.site || "Site sans nom", href: `/repertoire/clients/${id}` },
+          { nom: "Équipements" },
+        ]}
+      />
       <Link
         href={`/repertoire/clients/${id}`}
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"

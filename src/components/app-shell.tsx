@@ -124,7 +124,7 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
       {sousMenuCourant && (
         <>
           <ChevronRight className="h-3 w-3 text-slate-300" />
-          {(!surPageExacte || extra) && sousMenuCourant.href ? (
+          {(!surPageExacte || extra.length > 0) && sousMenuCourant.href ? (
             <Link
               href={sousMenuCourant.href}
               className="text-xs font-medium text-slate-500 transition hover:text-brand-green-dark"
@@ -136,12 +136,21 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
           )}
         </>
       )}
-      {extra && (
-        <>
-          <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
-          <span className="truncate text-xs font-medium text-brand-green-dark">{extra}</span>
-        </>
-      )}
+      {extra.map((maillon, i) => {
+        const dernier = i === extra.length - 1;
+        return (
+          <span key={i} className="flex min-w-0 items-center gap-2">
+            <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
+            {!dernier && maillon.href ? (
+              <Link href={maillon.href} className="truncate text-xs font-medium text-slate-500 transition hover:text-brand-green-dark">
+                {maillon.nom}
+              </Link>
+            ) : (
+              <span className="truncate text-xs font-medium text-brand-green-dark">{maillon.nom}</span>
+            )}
+          </span>
+        );
+      })}
     </div>
   );
 }

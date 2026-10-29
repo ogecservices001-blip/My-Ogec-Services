@@ -123,7 +123,12 @@ export default async function SiteDetailPage({
         )}
       </div>
 
-      <FilAjouter nom={[site.nom, site.site].filter(Boolean).join(" — ")} />
+      <FilAjouter
+        maillons={[
+          { nom: site.nom, href: `/repertoire/clients/groupe/${encodeURIComponent(site.nom)}?horsContrat=${site.hors_contrat ? 1 : 0}` },
+          { nom: site.site || "Site sans nom" },
+        ]}
+      />
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">

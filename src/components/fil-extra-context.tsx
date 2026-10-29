@@ -2,13 +2,19 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-type FilExtraValue = { extra: string | null; setExtra: (nom: string | null) => void };
+export type MaillonFil = { nom: string; href?: string };
+
+type FilExtraValue = { maillons: MaillonFil[]; setMaillons: (m: MaillonFil[] | null) => void };
 
 const FilExtraContext = createContext<FilExtraValue | null>(null);
 
 export function FilExtraProvider({ children }: { children: React.ReactNode }) {
-  const [extra, setExtra] = useState<string | null>(null);
-  return <FilExtraContext.Provider value={{ extra, setExtra }}>{children}</FilExtraContext.Provider>;
+  const [maillons, setMaillons] = useState<MaillonFil[]>([]);
+  return (
+    <FilExtraContext.Provider value={{ maillons, setMaillons: (m) => setMaillons(m ?? []) }}>
+      {children}
+    </FilExtraContext.Provider>
+  );
 }
 
 function useFilExtra() {
@@ -18,18 +24,22 @@ function useFilExtra() {
 }
 
 /// À placer sur une fiche de détail (site, fournisseur...) pour
-/// ajouter un dernier maillon au fil d'ariane avec son nom — se
-/// retire automatiquement en quittant la page ou en changeant de
-/// fiche, pour que le fil reflète toujours où on se trouve vraiment.
-export function FilAjouter({ nom }: { nom: string }) {
-  const { setExtra } = useFilExtra();
+/// ajouter un ou plusieurs derniers maillons au fil d'ariane — ex.
+/// [{ nom: "A.N.P.A.A 974", href: "/repertoire/clients/groupe/..." },
+/// { nom: "CSAPA EST" }] pour retrouver le client ET le site précis,
+/// chacun cliquable sauf le dernier (la page courante). Se retire
+/// automatiquement en quittant la page ou en changeant de fiche.
+export function FilAjouter({ maillons }: { maillons: MaillonFil[] }) {
+  const { setMaillons } = useFilExtra();
+  const cle = JSON.stringify(maillons);
   useEffect(() => {
-    setExtra(nom);
-    return () => setExtra(null);
-  }, [nom, setExtra]);
+    setMaillons(maillons);
+    return () => setMaillons(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cle, setMaillons]);
   return null;
 }
 
-export function useFilExtraLecture(): string | null {
-  return useFilExtra().extra;
+export function useFilExtraLecture(): MaillonFil[] {
+  return useFilExtra().maillons;
 }

@@ -7,14 +7,19 @@ import { COLONNES_SOMMAIRE, ligneSommaire, trierPourExport } from "@/lib/gmao/eq
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
 import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 
-/// Exporte le parc GMAO entier, tous clients confondus — port de
-/// `GmaoHomeScreen._exporterTout`.
-export async function GET() {
+/// Exporte le parc GMAO — tous clients confondus si `horsContrat` est
+/// absent, sinon filtré (même périmètre que l'écran "Clients sous
+/// contrat" / "Clients hors contrat").
+export async function GET(request: Request) {
   await requireAdmin();
 
+  const horsContratParam = new URL(request.url).searchParams.get("horsContrat");
+
   const supabase = await createClient();
+  let requeteSites = supabase.from("sites_view").select("id, nom, site, n_affaire, hors_contrat");
+  if (horsContratParam !== null) requeteSites = requeteSites.eq("hors_contrat", horsContratParam === "1");
   const [{ data: sites, error: errSites }, { data: types }] = await Promise.all([
-    supabase.from("sites").select("id, nom, site, n_affaire"),
+    requeteSites,
     supabase.from("types_equipement").select("*"),
   ]);
   if (errSites) return NextResponse.json({ erreur: errSites.message }, { status: 500 });

@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/profile";
 import type { Equipement, ReferenceHoraire } from "@/lib/gmao/types";
 import { freqCouranteCalculeeBatch } from "@/lib/gmao/releve-service";
 import { sommeHeuresAnnee } from "@/lib/gmao/calcul-heures-visite";
 import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
+import { supprimerEquipementsPourSites } from "@/app/(app)/gmao/actions";
 import { GmaoClientsListe, type ClientGroupe } from "./clients-liste";
 
 export default async function GmaoClientsPage({
@@ -14,6 +16,8 @@ export default async function GmaoClientsPage({
   const horsContrat = horsContratParam === "1";
 
   const supabase = await createClient();
+  const profile = await getCurrentProfile();
+  const isAdmin = profile?.role === "admin";
   const [{ data: sites }, { data: references }] = await Promise.all([
     supabase.from("sites_view").select("*").eq("hors_contrat", horsContrat).order("nom"),
     supabase.from("references_horaires").select("*"),
@@ -59,7 +63,9 @@ export default async function GmaoClientsPage({
     <GmaoClientsListe
       groupes={groupes}
       horsContrat={horsContrat}
-      titre={horsContrat ? "GMAO — Clients hors contrat" : "GMAO — Clients sous contrat"}
+      isAdmin={isAdmin}
+      tousLesSiteIds={siteIds}
+      supprimerAction={supprimerEquipementsPourSites.bind(null, siteIds)}
     />
   );
 }

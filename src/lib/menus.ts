@@ -84,9 +84,9 @@ export function construireModules(isAdmin: boolean): Module[] {
       icone: Wrench,
       couleur: "bg-teal-100 text-teal-600",
       sousMenus: [
-        { nom: "Accueil GMAO", href: "/gmao" },
         { nom: "Clients sous contrat", href: "/gmao/clients?horsContrat=0" },
         { nom: "Clients hors contrat", href: "/gmao/clients?horsContrat=1" },
+        { nom: "Scanner QR", href: "/gmao/scanner" },
       ],
     },
     {

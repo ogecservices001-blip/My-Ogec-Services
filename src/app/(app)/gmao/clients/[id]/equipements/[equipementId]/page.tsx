@@ -22,7 +22,7 @@ export default async function VisualiserEquipementPage({
   const supabase = await createClient();
 
   const [{ data: site }, { data: eqData }, { data: references }] = await Promise.all([
-    supabase.from("sites").select("id, nom, site").eq("id", id).single(),
+    supabase.from("sites_view").select("id, nom, site, hors_contrat").eq("id", id).single(),
     supabase.from("equipements").select("*").eq("id", equipementId).eq("site_id", id).single(),
     supabase.from("references_horaires").select("*"),
   ]);
@@ -72,7 +72,13 @@ export default async function VisualiserEquipementPage({
 
   return (
     <div>
-      <FilAjouter maillons={[{ nom: [site.nom, site.site].filter(Boolean).join(" — ") }, { nom: eq.nom }]} />
+      <FilAjouter
+        maillons={[
+          { nom: site.nom, href: `/gmao/clients/groupe/${encodeURIComponent(site.nom)}?horsContrat=${site.hors_contrat ? 1 : 0}` },
+          { nom: site.site || "Site sans nom", href: `/gmao/clients/${id}/equipements` },
+          { nom: eq.nom },
+        ]}
+      />
       <div className="mb-4 flex items-center justify-end">
         <Link
           href={`/gmao/clients/${id}/equipements/${equipementId}/releves`}

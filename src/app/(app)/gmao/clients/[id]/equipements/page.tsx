@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Upload, Download } from "lucide-react";
+import { Plus, Upload, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { Equipement, TypeEquipement, ReferenceHoraire } from "@/lib/gmao/types";
+import type { Site } from "@/lib/types";
 import { freqCouranteCalculeeBatch } from "@/lib/gmao/releve-service";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { FilAjouter } from "@/components/fil-extra-context";
 import { supprimerEquipementsPourSites } from "@/app/(app)/gmao/actions";
 import { EquipementsListe } from "./equipements-liste";
 
@@ -18,13 +20,14 @@ export default async function EquipementsSitePage({
   const supabase = await createClient();
   const profile = await getCurrentProfile();
 
-  const [{ data: site }, { data: equipements }, { data: types }, { data: references }] = await Promise.all([
-    supabase.from("sites").select("id, nom, site").eq("id", id).single(),
+  const [{ data: siteData }, { data: equipements }, { data: types }, { data: references }] = await Promise.all([
+    supabase.from("sites_view").select("id, nom, site, hors_contrat").eq("id", id).single(),
     supabase.from("equipements").select("*").eq("site_id", id),
     supabase.from("types_equipement").select("*"),
     supabase.from("references_horaires").select("*"),
   ]);
-  if (!site) notFound();
+  if (!siteData) notFound();
+  const site = siteData as Pick<Site, "id" | "nom" | "site" | "hors_contrat">;
 
   const isAdmin = profile?.role === "admin";
   const typesById: Record<string, TypeEquipement> = {};
@@ -37,14 +40,13 @@ export default async function EquipementsSitePage({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <Link
-          href="/gmao"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-          Retour
-        </Link>
+      <FilAjouter
+        maillons={[
+          { nom: site.nom, href: `/gmao/clients/groupe/${encodeURIComponent(site.nom)}?horsContrat=${site.hors_contrat ? 1 : 0}` },
+          { nom: site.site || "Site sans nom" },
+        ]}
+      />
+      <div className="mb-4 flex items-center justify-end">
         <div className="flex items-center gap-2">
           {isAdmin && (
             <>

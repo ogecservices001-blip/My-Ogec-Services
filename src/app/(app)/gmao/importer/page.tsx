@@ -13,8 +13,8 @@ export default async function ImporterGlobalPage() {
       titre="Importer des équipements — tous clients"
       sousTitre='Classeur "Sommaire" partagé, rattachement automatique par Numéro Client/Site.'
       siteIds={siteIds}
-      retourHref="/gmao"
-      cheminsARevalider={["/gmao"]}
+      retourHref="/gmao/clients?horsContrat=0"
+      cheminsARevalider={["/gmao/clients"]}
     />
   );
 }

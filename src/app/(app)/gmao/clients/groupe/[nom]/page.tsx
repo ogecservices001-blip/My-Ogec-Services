@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
+import { FilAjouter } from "@/components/fil-extra-context";
 import { supprimerEquipementsPourSites } from "@/app/(app)/gmao/actions";
 import type { Site } from "@/lib/types";
 
@@ -42,6 +43,7 @@ export default async function GmaoSitesDuClientPage({
 
   return (
     <div>
+      <FilAjouter maillons={[{ nom: nomDecode }]} />
       <div className="mb-4 flex items-center justify-end">
         {isAdmin && siteIds.length > 0 && (
           <div className="flex items-center gap-2">

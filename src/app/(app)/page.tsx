@@ -53,7 +53,7 @@ const modules: {
     actif: true,
   },
   {
-    href: "/gmao",
+    href: "/gmao/clients?horsContrat=0",
     titre: "GMAO",
     sousTitre: "Parc équipements et relevés d'entretien",
     icone: Wrench,

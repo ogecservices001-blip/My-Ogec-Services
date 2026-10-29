@@ -93,7 +93,7 @@ export function ScannerClient() {
   return (
     <div className="fixed inset-0 z-50 bg-black">
       <Link
-        href="/gmao"
+        href="/gmao/clients?horsContrat=0"
         className="absolute left-4 top-4 z-10 flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm"
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />

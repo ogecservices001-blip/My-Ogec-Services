@@ -21,11 +21,12 @@ export default async function HistoriqueRelevesPage({
   const { id, equipementId } = await params;
   const supabase = await createClient();
 
-  const [{ data: eqData }, { data: relevesData, error }] = await Promise.all([
+  const [{ data: site }, { data: eqData }, { data: relevesData, error }] = await Promise.all([
+    supabase.from("sites_view").select("id, nom, site, hors_contrat").eq("id", id).single(),
     supabase.from("equipements").select("*").eq("id", equipementId).eq("site_id", id).single(),
     supabase.from("releves").select("*").eq("equipement_id", equipementId).order("date", { ascending: false }),
   ]);
-  if (!eqData) notFound();
+  if (!site || !eqData) notFound();
   const equipement = eqData as Equipement;
   if (error) throw new Error(error.message);
 

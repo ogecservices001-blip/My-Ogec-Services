@@ -89,13 +89,23 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
     }
   }
   if (!moduleCourant) {
+    // Préfixe le plus long qui gagne (pas le premier trouvé) : sur GMAO,
+    // "/gmao" (Accueil GMAO) est un préfixe de "/gmao/clients" (Clients
+    // sous contrat) — sans ça, une fiche sous "/gmao/clients/..."
+    // matchait à tort "Accueil GMAO".
+    let meilleur: { m: (typeof modules)[number]; s: { nom: string; href?: string } } | null = null;
     for (const m of modules) {
-      const s = m.sousMenus.find((s) => s.href && pathname.startsWith(`${s.href.split("?")[0]}/`));
-      if (s) {
-        moduleCourant = m;
-        sousMenuCourant = s;
-        break;
+      for (const s of m.sousMenus) {
+        if (!s.href) continue;
+        const base = s.href.split("?")[0];
+        if (pathname.startsWith(`${base}/`) && (!meilleur || base.length > meilleur.s.href!.split("?")[0].length)) {
+          meilleur = { m, s };
+        }
       }
+    }
+    if (meilleur) {
+      moduleCourant = meilleur.m;
+      sousMenuCourant = meilleur.s;
     }
   }
 
@@ -109,6 +119,7 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
   // page, le premier sous-menu, plutôt que de laisser le lien mort.
   const RACINES_SANS_PAGE: Record<string, string> = {
     Répertoire: "/repertoire/clients",
+    GMAO: "/gmao/clients?horsContrat=0",
     "Référentiel GMAO": "/gmao/referentiel/heures",
   };
   const hrefModule = RACINES_SANS_PAGE[moduleCourant.nom] ?? racineModule(moduleCourant);

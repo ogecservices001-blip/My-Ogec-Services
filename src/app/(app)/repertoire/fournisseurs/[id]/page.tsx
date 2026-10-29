@@ -83,14 +83,14 @@ export default async function FournisseurDetailPage({
         </div>
       )}
 
-      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-        <p className="border-b border-slate-100 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-400">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <p className="border-t border-slate-100 bg-slate-50/70 px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 first:border-t-0">
           Interlocuteurs
         </p>
         {interlocuteurs.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-slate-300">Aucun interlocuteur renseigné</p>
+          <p className="border-t border-slate-50 px-4 py-3 text-sm text-slate-300">Aucun interlocuteur renseigné</p>
         ) : (
-          <ul className="divide-y divide-slate-50">
+          <ul className="divide-y divide-slate-50 border-t border-slate-50">
             {interlocuteurs.map((it, i) => (
               <li key={i} className="px-4 py-3">
                 <p className="text-sm font-semibold text-slate-900">{it.nom || "—"}</p>
@@ -117,29 +117,15 @@ export default async function FournisseurDetailPage({
             ))}
           </ul>
         )}
-      </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <p className="border-t border-slate-100 bg-slate-50/70 px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+          Fiche
+        </p>
         <dl>
-          {[...champsTechnicien, ...(isAdmin ? champsAdmin : [])].map(([label, valeur], i) => (
-            <div
-              key={label}
-              className={`flex flex-col gap-0.5 px-4 py-2.5 sm:flex-row sm:items-baseline sm:gap-2 ${
-                i > 0 ? "border-t border-slate-50" : ""
-              }`}
-            >
-              <dt className="text-[13px] text-slate-500 sm:w-52 sm:shrink-0">
-                {label}
-              </dt>
-              <dd
-                className={
-                  valeur
-                    ? "text-sm font-medium text-slate-900"
-                    : "text-sm text-slate-300"
-                }
-              >
-                {valeur || "—"}
-              </dd>
+          {[...champsTechnicien, ...(isAdmin ? champsAdmin : [])].map(([label, valeur]) => (
+            <div key={label} className="flex flex-col gap-0.5 border-t border-slate-50 px-4 py-2.5 sm:flex-row sm:items-baseline sm:gap-2">
+              <dt className="text-[13px] text-slate-500 sm:w-52 sm:shrink-0">{label}</dt>
+              <dd className={valeur ? "text-sm font-medium text-slate-900" : "text-sm text-slate-300"}>{valeur || "—"}</dd>
             </div>
           ))}
         </dl>

@@ -53,70 +53,69 @@ export function FournisseursListe({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Fournisseurs</h1>
           <p className="text-sm text-slate-500">{filtres.length} fournisseur(s)</p>
         </div>
-        {isAdmin && (
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- téléchargement de fichier, pas une page interne */}
-            <a
-              href="/repertoire/fournisseurs/export"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
-              title="Exporter en Excel"
-            >
-              <Download className="h-4 w-4" strokeWidth={2.25} />
-            </a>
-            <Link
-              href="/repertoire/fournisseurs/importer"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
-              title="Importer un fichier"
-            >
-              <Upload className="h-4 w-4" strokeWidth={2.25} />
-            </Link>
-            <Link
-              href="/repertoire/fournisseurs/nouveau"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.5} />
-              Ajouter
-            </Link>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              placeholder="Rechercher un fournisseur..."
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              className="w-56 rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+            />
           </div>
-        )}
-      </div>
-
-      <div className="mb-4 flex flex-wrap gap-2.5">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            placeholder="Rechercher un fournisseur..."
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-          />
+          <select
+            value={nature}
+            onChange={(e) => setNature(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+          >
+            <option value="">Toutes les natures</option>
+            {natures.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          <select
+            value={localisation}
+            onChange={(e) => setLocalisation(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+          >
+            <option value="">Toutes localisations</option>
+            <option value="Réunion">Réunion</option>
+            <option value="Métropole">Métropole</option>
+          </select>
+          {isAdmin && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- téléchargement de fichier, pas une page interne */}
+              <a
+                href="/repertoire/fournisseurs/export"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                title="Exporter en Excel"
+              >
+                <Download className="h-4 w-4" strokeWidth={2.25} />
+              </a>
+              <Link
+                href="/repertoire/fournisseurs/importer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                title="Importer un fichier"
+              >
+                <Upload className="h-4 w-4" strokeWidth={2.25} />
+              </Link>
+              <Link
+                href="/repertoire/fournisseurs/nouveau"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.5} />
+                Ajouter
+              </Link>
+            </>
+          )}
         </div>
-        <select
-          value={nature}
-          onChange={(e) => setNature(e.target.value)}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-        >
-          <option value="">Toutes les natures</option>
-          {natures.map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
-        <select
-          value={localisation}
-          onChange={(e) => setLocalisation(e.target.value)}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-        >
-          <option value="">Toutes localisations</option>
-          <option value="Réunion">Réunion</option>
-          <option value="Métropole">Métropole</option>
-        </select>
       </div>
 
       {isAdmin ? <VueAdmin fournisseurs={filtres} /> : <VueTechnicien fournisseurs={filtres} />}

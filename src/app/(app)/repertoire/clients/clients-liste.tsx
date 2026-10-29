@@ -36,7 +36,7 @@ export function ClientsListe({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
             {horsContrat ? "Clients hors contrat" : "Clients sous contrat"}
@@ -45,60 +45,59 @@ export function ClientsListe({
             {groupes.length} client(s) — {sites.length} site(s)
           </p>
         </div>
-        {isAdmin && (
-          <div className="flex items-center gap-2">
-            <a
-              href={`/repertoire/clients/export?horsContrat=${horsContrat ? 1 : 0}`}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
-              title="Exporter en Excel"
-            >
-              <Download className="h-4 w-4" strokeWidth={2.25} />
-            </a>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex gap-1.5 rounded-xl bg-slate-100 p-1">
             <Link
-              href="/repertoire/clients/importer"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
-              title="Importer un fichier"
+              href="/repertoire/clients"
+              className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                !horsContrat ? "bg-brand-green text-white shadow-sm" : "text-slate-500 hover:text-slate-900"
+              }`}
             >
-              <Upload className="h-4 w-4" strokeWidth={2.25} />
+              Sous contrat
             </Link>
             <Link
-              href={`/repertoire/clients/nouveau${horsContrat ? "?horsContrat=1" : ""}`}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
+              href="/repertoire/clients?horsContrat=1"
+              className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                horsContrat ? "bg-brand-green text-white shadow-sm" : "text-slate-500 hover:text-slate-900"
+              }`}
             >
-              <Plus className="h-4 w-4" strokeWidth={2.5} />
-              Ajouter
+              Hors contrat
             </Link>
           </div>
-        )}
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center gap-2.5">
-        <div className="flex gap-1.5 rounded-xl bg-slate-100 p-1">
-          <Link
-            href="/repertoire/clients"
-            className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
-              !horsContrat ? "bg-brand-green text-white shadow-sm" : "text-slate-500 hover:text-slate-900"
-            }`}
-          >
-            Sous contrat
-          </Link>
-          <Link
-            href="/repertoire/clients?horsContrat=1"
-            className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
-              horsContrat ? "bg-brand-green text-white shadow-sm" : "text-slate-500 hover:text-slate-900"
-            }`}
-          >
-            Hors contrat
-          </Link>
-        </div>
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            placeholder="Rechercher un client..."
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-          />
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              placeholder="Rechercher un client..."
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              className="w-56 rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+            />
+          </div>
+          {isAdmin && (
+            <>
+              <a
+                href={`/repertoire/clients/export?horsContrat=${horsContrat ? 1 : 0}`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                title="Exporter en Excel"
+              >
+                <Download className="h-4 w-4" strokeWidth={2.25} />
+              </a>
+              <Link
+                href="/repertoire/clients/importer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                title="Importer un fichier"
+              >
+                <Upload className="h-4 w-4" strokeWidth={2.25} />
+              </Link>
+              <Link
+                href={`/repertoire/clients/nouveau${horsContrat ? "?horsContrat=1" : ""}`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.5} />
+                Ajouter
+              </Link>
+            </>
+          )}
         </div>
       </div>
 

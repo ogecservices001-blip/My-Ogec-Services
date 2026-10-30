@@ -124,11 +124,31 @@ export function Tableur({
     return null;
   }
 
+  /// Une ligne respecte les filtres actifs, sauf celui de `exclureColonne`
+  /// — pour qu'un filtre n'influence jamais la liste de ses propres
+  /// options (sinon décocher une valeur la ferait disparaître du menu).
+  function ligneRespecteFiltres(r: number, exclureColonne?: number): boolean {
+    return Object.entries(filtres).every(([c, actives]) => {
+      if (Number(c) === exclureColonne) return true;
+      // Aucune case cochée = pas de restriction sur cette colonne (pas
+      // "masquer tout") — "Aucun" ne sert qu'à repartir de zéro avant
+      // de cocher soi-même les valeurs voulues.
+      if (actives.size === 0) return true;
+      const v = valeurDe(r, Number(c));
+      return actives.has(v === "" || v === null ? SANS_FILTRE : v);
+    });
+  }
+
+  /// Filtres en cascade (comme Excel) : les options proposées pour une
+  /// colonne ne portent que sur les lignes déjà conformes aux *autres*
+  /// filtres actifs — choisir "Split Autonome" en Type 1 ne doit plus
+  /// proposer les Type 2 d'autres familles en Type 2.
   const optionsParColonne = useMemo(() => {
     return colonnes.map((_, c) => {
       const vues = new Set<string>();
       let filtrable = false;
       for (let r = 0; r < lignes.length; r++) {
+        if (!ligneRespecteFiltres(r, c)) continue;
         const v = valeurDe(r, c);
         if (v !== null) {
           filtrable = true;
@@ -139,21 +159,12 @@ export function Tableur({
       return [...vues].sort((a, b) => a.localeCompare(b, "fr"));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colonnes, lignes, valeurs]);
+  }, [colonnes, lignes, valeurs, filtres]);
 
   const lignesFiltrees = useMemo(() => {
     return lignes
       .map((cellules, r) => ({ cellules, r }))
-      .filter(({ r }) =>
-        Object.entries(filtres).every(([c, actives]) => {
-          // Aucune case cochée = pas de restriction sur cette colonne
-          // (pas "masquer tout") — "Aucun" ne sert qu'à repartir de
-          // zéro avant de cocher soi-même les valeurs voulues.
-          if (actives.size === 0) return true;
-          const v = valeurDe(r, Number(c));
-          return actives.has(v === "" || v === null ? SANS_FILTRE : v);
-        }),
-      );
+      .filter(({ r }) => ligneRespecteFiltres(r));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lignes, valeurs, filtres]);
 

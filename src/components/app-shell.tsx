@@ -40,6 +40,7 @@ const LARGEUR_PLEINE = [
   "/planning/heures-par-pole",
   "/bi",
   "/bi/valides",
+  "/depannages",
   "/depannages/traitees",
   "/depannages/statistiques",
   "/prestations/realisees",

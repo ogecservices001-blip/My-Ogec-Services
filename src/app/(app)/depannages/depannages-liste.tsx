@@ -148,9 +148,10 @@ export function DepannagesListe({
             const devis = d.equipement_id ? (devisEnCours[d.equipement_id] ?? []) : [];
             const messageWhatsapp = `Dépannage N°${d.numero} — ${[d.client_nom, d.client_site].filter(Boolean).join(" — ")}\n${d.equipement_nom ? `Équipement : ${d.equipement_nom}\n` : ""}${d.lieu_panne ? `Lieu : ${d.lieu_panne}\n` : ""}${contact?.nom ? `Contact : ${contact.nom}\n` : ""}${contact?.tel ? `Tél : ${telInternational(contact.tel)}\n` : ""}Motif : ${d.message}`;
             const whatsapp = isAdmin && intervenant?.portable ? lienWhatsapp(intervenant.portable, messageWhatsapp) : null;
+            const libelleStatut = intervenant ? "En cours" : "Nouvelle";
             return [
-              <span key="statut" className={d.statut !== "traitee" ? "font-bold text-red-700" : ""}>
-                Nouvelle
+              <span key="statut" className={!intervenant ? "font-bold text-red-700" : "font-semibold text-amber-700"}>
+                {libelleStatut}
               </span>,
               <Link key="numero" href={`/depannages/${d.id}`} className="font-bold text-slate-900 hover:underline">
                 {d.numero}
@@ -196,7 +197,7 @@ export function DepannagesListe({
             ];
           })}
           valeurs={filtrees.map((d) => [
-            "Nouvelle",
+            d.intervenant_id ? "En cours" : "Nouvelle",
             d.numero,
             [d.client_nom, d.client_site].filter(Boolean).join(" — "),
             [d.equipement_nom, d.lieu_panne].filter(Boolean).join(" — "),

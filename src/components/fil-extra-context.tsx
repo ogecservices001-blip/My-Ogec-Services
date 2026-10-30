@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 export type MaillonFil = { nom: string; href?: string };
 
@@ -11,11 +11,15 @@ const FilExtraContext = createContext<FilExtraValue | null>(null);
 
 export function FilExtraProvider({ children }: { children: React.ReactNode }) {
   const [etat, setEtat] = useState<FilExtraState>({ maillons: [], sousMenu: null });
-  return (
-    <FilExtraContext.Provider value={{ ...etat, definir: (e) => setEtat(e ?? { maillons: [], sousMenu: null }) }}>
-      {children}
-    </FilExtraContext.Provider>
-  );
+  // `definir` doit garder la même identité d'un rendu à l'autre : sinon
+  // l'effet de FilAjouter (qui l'a en dépendance) se redéclenche à
+  // chaque appel, qui recrée l'état, qui redéclenche l'effet... une
+  // boucle de rendu continue plutôt qu'un simple "mise à jour une fois".
+  const definir = useCallback((e: FilExtraState | null) => {
+    setEtat(e ?? { maillons: [], sousMenu: null });
+  }, []);
+  const value = useMemo(() => ({ ...etat, definir }), [etat, definir]);
+  return <FilExtraContext.Provider value={value}>{children}</FilExtraContext.Provider>;
 }
 
 function useFilExtra() {

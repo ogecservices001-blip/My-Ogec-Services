@@ -7,13 +7,13 @@ import { Tableur, type ColonneTableur } from "@/components/tableur";
 import type { Site } from "@/lib/types";
 
 const COLONNES: ColonneTableur[] = [
-  { titre: "Adresse" },
-  { titre: "Complément" },
+  { titre: "Payeur" },
+  { titre: "Lots" },
   { titre: "CP", largeur: "90px" },
   { titre: "Commune" },
-  { titre: "Payeur" },
+  { titre: "Adresse" },
+  { titre: "Complément" },
   { titre: "N° affaire", largeur: "110px" },
-  { titre: "Lots" },
 ];
 
 export function ClientsListe({
@@ -113,10 +113,6 @@ export function ClientsListe({
       <Tableur
         colonnes={COLONNES}
         lignes={filtres.map((s) => [
-          s.adresse,
-          s.complement_adresse,
-          s.code_postal,
-          s.commune,
           <Link
             key="payeur"
             href={`/repertoire/clients/groupe/${encodeURIComponent(s.nom)}?horsContrat=${horsContrat ? 1 : 0}`}
@@ -124,12 +120,16 @@ export function ClientsListe({
           >
             {s.nom}
           </Link>,
-          s.n_affaire,
           <Link key="lots" href={`/repertoire/clients/${s.id}`} className="text-brand-green-dark hover:underline">
             {s.site || "—"}
           </Link>,
+          s.code_postal,
+          s.commune,
+          s.adresse,
+          s.complement_adresse,
+          s.n_affaire,
         ])}
-        valeurs={filtres.map((s) => [s.adresse, s.complement_adresse, s.code_postal, s.commune, s.nom, s.n_affaire, s.site])}
+        valeurs={filtres.map((s) => [s.nom, s.site, s.code_postal, s.commune, s.adresse, s.complement_adresse, s.n_affaire])}
         vide="Aucun client trouvé"
       />
     </div>

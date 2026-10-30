@@ -50,6 +50,9 @@ const EN_TETES_SOCIETE: Record<string, keyof FournisseurInput> = {
   "délai de paiement": "delai_paiement",
   "mode de règlement": "mode_reglement",
   "cgv reçues": "cgv_recues",
+  iban: "iban",
+  bic: "bic",
+  "bic / swift": "bic",
   "fiche mise à jour le": "fiche_maj_le",
 };
 
@@ -84,6 +87,8 @@ const LABELS: Record<keyof FournisseurInput, string> = {
   delai_paiement: "Délai de paiement",
   mode_reglement: "Mode de règlement",
   cgv_recues: "CGV reçues",
+  iban: "IBAN",
+  bic: "BIC / SWIFT",
   fiche_maj_le: "Fiche mise à jour le",
 };
 

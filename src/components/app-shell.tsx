@@ -110,9 +110,17 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
     }
   }
 
-  const extra = useFilExtraLecture();
+  const { maillons: extra, sousMenu: sousMenuForce } = useFilExtraLecture();
 
   if (!moduleCourant) return null;
+
+  // Une fiche de détail peut forcer le niveau intermédiaire du fil
+  // (ex. dépannage traité, accédé depuis "Dépannages traités" bien que
+  // l'URL seule pointerait vers "Dépannages en cours") — voir FilAjouter.
+  if (sousMenuForce) {
+    sousMenuCourant = sousMenuForce;
+    surPageExacte = false;
+  }
 
   // Modules dont la racine calculée (préfixe commun des sous-menus)
   // pointerait vers une page d'accueil à cartes supprimée (redondante

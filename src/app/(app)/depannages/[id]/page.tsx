@@ -98,7 +98,14 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
 
   return (
     <div>
-      <FilAjouter maillons={[{ nom: `N°${demande.numero}` }]} />
+      <FilAjouter
+        maillons={[{ nom: `N°${demande.numero}` }]}
+        sousMenu={
+          demande.statut === "traitee"
+            ? { nom: "Dépannages traités", href: "/depannages/traitees" }
+            : { nom: "Dépannages en cours", href: "/depannages" }
+        }
+      />
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Dépannage N°{demande.numero}</h1>

@@ -107,7 +107,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
           <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.erreur}</p>
         )}
 
-        <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+        <div className="space-y-3">
           <div className="flex gap-1.5 rounded-lg bg-slate-100 p-1">
             <button
               type="button"
@@ -187,7 +187,8 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
           )}
         </div>
 
-        <div className="mt-4 space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+        <div className="mt-5 space-y-3 border-t border-slate-100 pt-4">
+          <h2 className="text-sm font-bold text-slate-900">Détails de la demande</h2>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Motif de l&apos;appel</label>
             <textarea
@@ -242,7 +243,9 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
           </label>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:grid-cols-2">
+        <div className="mt-5 border-t border-slate-100 pt-4">
+          <h2 className="mb-3 text-sm font-bold text-slate-900">Affectation</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Intervenant assigné</label>
             <select
@@ -264,6 +267,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
               name="date_intervention_prevue"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
+          </div>
           </div>
         </div>
 

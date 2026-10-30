@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { creerDepannage, chargerEquipementsDuSite, type EquipementDuSite } from "./actions";
+import { creerDepannage, modifierDepannage, chargerEquipementsDuSite, type EquipementDuSite } from "./actions";
 
 type Site = {
   id: string;
@@ -15,19 +15,47 @@ type Site = {
 };
 type Technicien = { id: string; name: string; portable: string };
 
-export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; techniciens: Technicien[] }) {
-  const router = useRouter();
-  const [state, formAction, pending] = useActionState(creerDepannage, null);
+export type DepannageInitial = {
+  horsContrat: boolean;
+  clientNom: string;
+  siteId: string;
+  equipementId: string;
+  message: string;
+  lieuPanne: string;
+  numeroDemandeClient: string;
+  email: string;
+  intervenantId: string;
+  dateInterventionPrevue: string;
+  emailDejaEnvoye: boolean;
+};
 
-  const [horsContrat, setHorsContrat] = useState(false);
+export function NouveauDepannageForm({
+  sites,
+  techniciens,
+  idDepannage,
+  initial,
+}: {
+  sites: Site[];
+  techniciens: Technicien[];
+  /// Présent = formulaire en mode édition (met à jour ce dépannage au
+  /// lieu d'en créer un nouveau) — même formulaire des deux côtés, pour
+  /// que le bureau retrouve exactement l'écran utilisé à la création.
+  idDepannage?: string;
+  initial?: DepannageInitial;
+}) {
+  const router = useRouter();
+  const action = idDepannage ? modifierDepannage.bind(null, idDepannage) : creerDepannage;
+  const [state, formAction, pending] = useActionState(action, null);
+
+  const [horsContrat, setHorsContrat] = useState(initial?.horsContrat ?? false);
   const sitesDuPerimetre = useMemo(() => sites.filter((s) => s.hors_contrat === horsContrat), [sites, horsContrat]);
   const nomsClients = useMemo(
     () => [...new Set(sitesDuPerimetre.map((s) => s.nom))].sort((a, b) => a.localeCompare(b)),
     [sitesDuPerimetre],
   );
-  const [clientNom, setClientNom] = useState("");
+  const [clientNom, setClientNom] = useState(initial?.clientNom ?? "");
   const sitesDuClient = sitesDuPerimetre.filter((s) => s.nom === clientNom);
-  const [siteId, setSiteId] = useState("");
+  const [siteId, setSiteId] = useState(initial?.siteId ?? "");
 
   function changerPerimetre(valeur: boolean) {
     setHorsContrat(valeur);
@@ -43,13 +71,13 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
   // site (Répertoire) quand il change — sans écraser une saisie
   // manuelle déjà faite par le bureau (on ne remplace que si le champ
   // est resté tel qu'auto-rempli la fois précédente, ou vide).
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initial?.email ?? "");
   const dernierAutoRempli = useRef("");
 
   // Lieu de la panne pré-rempli avec la Localisation de l'équipement
   // choisi (même logique de non-écrasement que l'email ci-dessus).
-  const [equipementId, setEquipementId] = useState("");
-  const [lieuPanne, setLieuPanne] = useState("");
+  const [equipementId, setEquipementId] = useState(initial?.equipementId ?? "");
+  const [lieuPanne, setLieuPanne] = useState(initial?.lieuPanne ?? "");
   const dernierLieuAutoRempli = useRef("");
 
   function changerEquipement(id: string) {
@@ -195,6 +223,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
               name="message"
               rows={3}
               required
+              defaultValue={initial?.message}
               placeholder="Décris la panne rencontrée"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
@@ -213,7 +242,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
             <label className="mb-1 block text-xs font-medium text-slate-600">N° Demande Client</label>
             <input
               name="numero_demande_client"
-              defaultValue="Pas de référence"
+              defaultValue={initial?.numeroDemandeClient ?? "Pas de référence"}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
           </div>
@@ -235,7 +264,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
               type="checkbox"
               name="envoyer_email"
               value="1"
-              defaultChecked
+              defaultChecked={!initial?.emailDejaEnvoye}
               disabled={!email}
               className="h-4 w-4 accent-brand-green disabled:opacity-50"
             />
@@ -250,6 +279,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
             <label className="mb-1 block text-xs font-medium text-slate-600">Intervenant assigné</label>
             <select
               name="intervenant_id"
+              defaultValue={initial?.intervenantId ?? ""}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             >
               <option value="">— Non assigné —</option>
@@ -265,6 +295,7 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
             <input
               type="date"
               name="date_intervention_prevue"
+              defaultValue={initial?.dateInterventionPrevue}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
           </div>
@@ -277,7 +308,13 @@ export function NouveauDepannageForm({ sites, techniciens }: { sites: Site[]; te
             disabled={pending || !siteId}
             className="rounded-xl bg-red-700 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-red-800 disabled:opacity-60"
           >
-            {pending ? "Création..." : "Créer le dépannage"}
+            {idDepannage
+              ? pending
+                ? "Enregistrement..."
+                : "Enregistrer"
+              : pending
+                ? "Création..."
+                : "Créer le dépannage"}
           </button>
         </div>
       </form>

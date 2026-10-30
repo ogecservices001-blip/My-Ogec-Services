@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Download, MessageCircle, Mail, X, Wrench } from "lucide-react";
+import { Download, MessageCircle, Mail, X, Wrench, Pencil } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { FiltreSelect } from "@/components/filtre-select";
@@ -158,9 +158,9 @@ export function DepannagesListe({
             const devis = d.equipement_id ? (devisEnCours[d.equipement_id] ?? []) : [];
             const messageWhatsapp = `Dépannage N°${d.numero} — ${[d.client_nom, d.client_site].filter(Boolean).join(" — ")}\n${d.equipement_nom ? `Équipement : ${d.equipement_nom}\n` : ""}${d.lieu_panne ? `Lieu : ${d.lieu_panne}\n` : ""}${contact?.nom ? `Contact : ${contact.nom}\n` : ""}${contact?.tel ? `Tél : ${telInternational(contact.tel)}\n` : ""}Motif : ${d.message}`;
             const whatsapp = isAdmin && intervenant?.portable ? lienWhatsapp(intervenant.portable, messageWhatsapp) : null;
-            const libelleStatut = intervenant ? "En cours" : "Nouvelle";
+            const libelleStatut = intervenant ? "En cours" : "Nouveau";
             return [
-              <span key="statut" className={!intervenant ? "font-bold text-red-700" : "font-semibold text-amber-700"}>
+              <span key="statut" className={!intervenant ? "font-bold text-red-700" : "font-semibold text-green-700"}>
                 {libelleStatut}
               </span>,
               <Link key="numero" href={`/depannages/${d.id}`} className="font-bold text-slate-900 hover:underline">
@@ -174,6 +174,15 @@ export function DepannagesListe({
               intervenant?.name ?? "",
               d.date_intervention_prevue ? formaterDate(d.date_intervention_prevue) : "",
               <div key="actions" className="flex flex-wrap items-center justify-end gap-1.5">
+                {!intervenant && (
+                  <Link
+                    href={`/depannages/${d.id}/modifier`}
+                    title="Assigner un technicien et une date"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-slate-50"
+                  >
+                    <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                  </Link>
+                )}
                 {isAdmin && d.email && (
                   <button
                     onClick={() => setModaleId(d.id)}
@@ -217,7 +226,7 @@ export function DepannagesListe({
             ];
           })}
           valeurs={filtrees.map((d) => [
-            d.intervenant_id ? "En cours" : "Nouvelle",
+            d.intervenant_id ? "En cours" : "Nouveau",
             d.numero,
             [d.client_nom, d.client_site].filter(Boolean).join(" — "),
             [d.equipement_nom, d.lieu_panne].filter(Boolean).join(" — "),

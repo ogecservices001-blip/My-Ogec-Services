@@ -127,7 +127,7 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
             demande.statut === "traitee" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
           }`}
         >
-          {demande.statut === "traitee" ? "Traitée" : "Nouvelle"}
+          {demande.statut === "traitee" ? "Traité" : "Nouveau"}
         </span>
       </div>
 

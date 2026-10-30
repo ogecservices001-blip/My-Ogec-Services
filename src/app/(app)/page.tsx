@@ -8,11 +8,17 @@ export default async function AccueilPage() {
 
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <p className="mb-1 text-sm font-medium text-slate-400">Accueil</p>
-      <h1 className="mb-8 text-3xl font-bold tracking-tight text-slate-900">
+      <p className="mb-2 text-xl font-bold tracking-tight text-brand-green-dark">Accueil</p>
+      <h1 className="mb-10 text-3xl font-bold tracking-tight text-slate-900">
         {prenom ? `Bonjour ${prenom}` : "Bonjour"}
       </h1>
-      <Image src="/logo-icon.png" alt="OGEC Services" width={160} height={160} className="object-contain" />
+      <Image
+        src="/logo-icon.png"
+        alt="OGEC Services"
+        width={180}
+        height={180}
+        className="mx-auto object-contain drop-shadow-sm"
+      />
     </div>
   );
 }

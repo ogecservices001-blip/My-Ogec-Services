@@ -2,7 +2,7 @@ import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { ReferenceHoraire } from "@/lib/gmao/types";
-import { HeuresArbre } from "./heures-arbre";
+import { HeuresListe } from "./heures-liste";
 
 export default async function ReferencesHorairesPage() {
   await requireAdminOuAccueil();
@@ -12,7 +12,7 @@ export default async function ReferencesHorairesPage() {
   const { data } = await supabase.from("references_horaires").select("*").order("designation");
 
   return (
-    <HeuresArbre
+    <HeuresListe
       references={(data as ReferenceHoraire[]) ?? []}
       isAdmin={profile?.role === "admin"}
     />

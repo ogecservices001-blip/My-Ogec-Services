@@ -894,6 +894,7 @@ export type Database = {
       fournisseurs: {
         Row: {
           adresse: string
+          bic: string
           cgv_recues: string
           code_postal: string
           commune: string
@@ -902,6 +903,7 @@ export type Database = {
           delai_paiement: string
           fiche_maj_le: string
           forme_juridique: string
+          iban: string
           id: string
           interlocuteurs: Json
           legacy_id: string | null
@@ -921,6 +923,7 @@ export type Database = {
         }
         Insert: {
           adresse?: string
+          bic?: string
           cgv_recues?: string
           code_postal?: string
           commune?: string
@@ -929,6 +932,7 @@ export type Database = {
           delai_paiement?: string
           fiche_maj_le?: string
           forme_juridique?: string
+          iban?: string
           id?: string
           interlocuteurs?: Json
           legacy_id?: string | null
@@ -948,6 +952,7 @@ export type Database = {
         }
         Update: {
           adresse?: string
+          bic?: string
           cgv_recues?: string
           code_postal?: string
           commune?: string
@@ -956,6 +961,7 @@ export type Database = {
           delai_paiement?: string
           fiche_maj_le?: string
           forme_juridique?: string
+          iban?: string
           id?: string
           interlocuteurs?: Json
           legacy_id?: string | null

@@ -37,6 +37,8 @@ const FournisseurExtrait = z.object({
     .default("")
     .describe("UNIQUEMENT le délai de paiement (ex: \"60 jours\", \"30 jours fin de mois\", \"comptant\") — jamais le moyen de paiement ni une clause CGV complète"),
   mode_reglement: z.string().default("").describe("Moyen de paiement indiqué (chèque, virement, prélèvement...), si précisé"),
+  iban: z.string().default("").describe("IBAN du RIB fournisseur si un RIB figure sur le document"),
+  bic: z.string().default("").describe("BIC/SWIFT du RIB fournisseur si un RIB figure sur le document"),
   interlocuteurs: z.array(InterlocuteurExtrait).default([]),
 });
 
@@ -50,9 +52,10 @@ const PROMPT =
   "diffère du nom commercial (telle qu'écrite dans les mentions légales en bas de page), sa forme juridique " +
   "(SARL, SAS...), son SIREN, son SIRET, son numéro de TVA intracommunautaire, sa mention RCS ou RM, le délai de " +
   "paiement indiqué (uniquement le délai en tant que tel, jamais le moyen de paiement ni une clause CGV " +
-  "complète), le mode de règlement s'il est précisé (chèque, virement...), et chaque interlocuteur identifiable " +
-  "(nom, téléphone fixe, téléphone portable UNIQUEMENT s'il est explicitement distingué du fixe, email). " +
-  "Laisse vide tout champ absent du document — n'invente rien.";
+  "complète), le mode de règlement s'il est précisé (chèque, virement...), l'IBAN et le BIC/SWIFT du RIB si un " +
+  "RIB figure sur le document, et chaque interlocuteur identifiable (nom, téléphone fixe, téléphone portable " +
+  "UNIQUEMENT s'il est explicitement distingué du fixe, email). Laisse vide tout champ absent du document — " +
+  "n'invente rien.";
 
 /// Lit un devis/facture fournisseur (PDF ou image) pour pré-remplir une
 /// NOUVELLE fiche du répertoire Fournisseurs — jamais appliqué tel

@@ -68,6 +68,8 @@ export function FournisseurForm({ fournisseur }: { fournisseur?: Fournisseur }) 
         rcs_rm: r.rcs_rm || prev.rcs_rm,
         delai_paiement: r.delai_paiement || prev.delai_paiement,
         mode_reglement: r.mode_reglement || prev.mode_reglement,
+        iban: r.iban || prev.iban,
+        bic: r.bic || prev.bic,
       }));
       if (r.interlocuteurs.length > 0) {
         setInterlocuteurs((prev) => [...prev, ...r.interlocuteurs.filter((i) => i.nom || i.tel || i.portable || i.email)]);

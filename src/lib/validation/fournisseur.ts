@@ -32,6 +32,8 @@ export const fournisseurSchema = z.object({
   delai_paiement: optionnel(),
   mode_reglement: optionnel(),
   cgv_recues: optionnel(),
+  iban: optionnel(),
+  bic: optionnel(),
   fiche_maj_le: optionnel(),
 });
 
@@ -71,6 +73,8 @@ export const champsFournisseur: { cle: keyof FournisseurInput; label: string }[]
   { cle: "delai_paiement", label: "Délai de paiement" },
   { cle: "mode_reglement", label: "Mode de règlement" },
   { cle: "cgv_recues", label: "CGV reçues" },
+  { cle: "iban", label: "IBAN" },
+  { cle: "bic", label: "BIC / SWIFT" },
   { cle: "fiche_maj_le", label: "Fiche mise à jour le" },
 ];
 

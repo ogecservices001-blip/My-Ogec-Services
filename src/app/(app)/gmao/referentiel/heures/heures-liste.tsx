@@ -13,7 +13,6 @@ const COLONNES: ColonneTableur[] = [
   { titre: "Type 1" },
   { titre: "Type 2" },
   { titre: "Type 3" },
-  { titre: "Désignation" },
   { titre: "Tech An", droite: true, largeur: "70px" },
   { titre: "Assist. An", droite: true, largeur: "70px" },
   { titre: "Tech Sem", droite: true, largeur: "70px" },
@@ -98,21 +97,20 @@ export function HeuresListe({
         colonnes={isAdmin ? COLONNES_ADMIN : COLONNES}
         lignes={filtres.map((r) => {
           const base = [
-            r.type_equipement1,
-            r.type_equipement2,
-            r.type_equipement3,
             isAdmin ? (
               <button
-                key="designation"
+                key="type1"
                 type="button"
                 onClick={() => setModaleFormulaire({ existante: r })}
                 className="font-bold text-slate-900 hover:underline"
               >
-                {r.designation}
+                {r.type_equipement1}
               </button>
             ) : (
-              r.designation
+              r.type_equipement1
             ),
+            r.type_equipement2,
+            r.type_equipement3,
             r.hrs_tech_an,
             r.hrs_assistant_an,
             r.hrs_tech_sem,
@@ -141,7 +139,7 @@ export function HeuresListe({
             </div>,
           ];
         })}
-        valeurs={filtres.map((r) => [r.type_equipement1, r.type_equipement2, r.type_equipement3, r.designation])}
+        valeurs={filtres.map((r) => [r.type_equipement1, r.type_equipement2, r.type_equipement3])}
         vide="Référentiel vide — importe le classeur ou ajoute une ligne"
       />
 

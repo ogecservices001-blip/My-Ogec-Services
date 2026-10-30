@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Phone } from "lucide-react";
+import { Phone } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminOuAccueil } from "@/lib/auth";
+import { FilAjouter } from "@/components/fil-extra-context";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { chargerDevisEnCoursParEquipement } from "@/lib/devis/en-cours";
-import { LABEL_STATUT_DEVIS, TEINTE_STATUT_DEVIS } from "@/app/(app)/devis/statut";
+import { LABEL_STATUT_DEVIS } from "@/app/(app)/devis/statut";
 import { telInternational } from "@/lib/format";
 
 function deuxChiffres(n: number): string {
@@ -86,6 +87,7 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
     ["Demandé par", demandeurLabel],
     ["Équipement", demande.equipement_nom],
     ["Lieu de la panne", demande.lieu_panne],
+    ["Motif", demande.message],
     ["Créé le", formaterDateHeure(demande.date_creation)],
     ["Traité le", demande.date_traitement ? formaterDateHeure(demande.date_traitement) : ""],
     ["Délai de traitement", formaterDelaiEntre(demande.date_creation, demande.date_traitement)],
@@ -96,30 +98,16 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
 
   return (
     <div>
-      <Link
-        href="/depannages/traitees"
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour
-      </Link>
-
-      <div className="mb-5 rounded-2xl bg-white p-4 shadow-sm">
-        <p className="font-bold text-slate-900">Dépannage N°{demande.numero}</p>
-        <p className="mt-0.5 text-sm font-semibold text-slate-700">
-          {[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}
-        </p>
-        <p className="mt-1 text-sm text-slate-500">Demandé par : {demandeurLabel}</p>
-        {bon && (
-          <p className="mt-1 text-sm text-slate-500">
-            Bon d&apos;intervention :{" "}
-            <Link href={`/bi/${bon.id}`} className="font-semibold text-violet-700 hover:underline">
-              {bon.numero || "BI (brouillon)"}
-            </Link>
+      <FilAjouter maillons={[{ nom: `N°${demande.numero}` }]} />
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Dépannage N°{demande.numero}</h1>
+          <p className="text-sm font-semibold text-slate-700">
+            {[demande.client_nom, demande.client_site].filter(Boolean).join(" — ")}
           </p>
-        )}
+        </div>
         <span
-          className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
             demande.statut === "traitee" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
           }`}
         >
@@ -127,71 +115,45 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
         </span>
       </div>
 
-      <div className="mb-5 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-        <p className="border-b border-slate-100 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-400">
-          Informations du dépannage
+      {bon && (
+        <p className="mb-3 text-sm text-slate-600">
+          Bon d&apos;intervention :{" "}
+          <Link href={`/bi/${bon.id}`} className="font-semibold text-violet-700 hover:underline">
+            {bon.numero || "BI (brouillon)"}
+          </Link>{" "}
+          <StatutBadge statut={bon.statut} />
         </p>
-        <dl className="grid gap-x-6 gap-y-0.5 px-4 py-3 sm:grid-cols-2 xl:grid-cols-3">
-          {infos.map(([label, valeur]) => (
-            <div key={label} className="flex items-baseline gap-1.5 py-1 text-sm">
-              <dt className="shrink-0 text-slate-400">{label} :</dt>
-              <dd className={`min-w-0 truncate font-medium ${valeur ? "text-slate-800" : "text-slate-300"}`}>
-                {valeur || "—"}
-              </dd>
-            </div>
+      )}
+
+      <dl>
+        {infos.map(([label, valeur], i) => (
+          <div key={label} className={`flex flex-col gap-0.5 px-0 py-2.5 sm:flex-row sm:items-baseline sm:gap-2 ${i > 0 ? "border-t border-slate-50" : "border-t border-slate-100"}`}>
+            <dt className="text-[13px] text-slate-500 sm:w-60 sm:shrink-0">{label}</dt>
+            <dd className={valeur ? "text-sm font-medium text-slate-900" : "text-sm text-slate-300"}>{valeur || "—"}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {intervenant?.portable && (
+        <p className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-700">
+          <span className="font-semibold text-slate-900">{intervenant.name}</span> —{" "}
+          <a href={`tel:${telInternational(intervenant.portable)}`} className="inline-flex items-center gap-1 text-brand-green-dark hover:underline">
+            <Phone className="h-3.5 w-3.5" strokeWidth={2} />
+            {telInternational(intervenant.portable)}
+          </a>
+        </p>
+      )}
+
+      {devisEnCours.length > 0 && (
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          <h2 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">Devis en cours sur cet équipement</h2>
+          {devisEnCours.map((d, i) => (
+            <p key={i} className="text-sm text-slate-800">
+              {d.numero} — {LABEL_STATUT_DEVIS[d.statut]}
+            </p>
           ))}
-        </dl>
-      </div>
-
-      <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <h2 className="mb-2 text-sm font-bold text-slate-900">Motif</h2>
-          <p className="whitespace-pre-wrap text-sm text-slate-700">{demande.message || "—"}</p>
         </div>
-
-        {intervenant?.portable && (
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <h2 className="mb-2 text-sm font-bold text-slate-900">Intervenant</h2>
-            <p className="text-sm font-semibold text-slate-800">{intervenant.name}</p>
-            <a
-              href={`tel:${telInternational(intervenant.portable)}`}
-              className="mt-1 inline-flex items-center gap-1.5 text-sm text-brand-green-dark hover:underline"
-            >
-              <Phone className="h-3.5 w-3.5" strokeWidth={2} />
-              {telInternational(intervenant.portable)}
-            </a>
-          </div>
-        )}
-
-        {bon && (
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <h2 className="mb-2 text-sm font-bold text-slate-900">Bon d&apos;intervention</h2>
-            <Link
-              href={`/bi/${bon.id}`}
-              className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm hover:bg-slate-100"
-            >
-              <span className="font-semibold text-slate-900">{bon.numero || "BI (brouillon)"}</span>
-              <StatutBadge statut={bon.statut} />
-            </Link>
-          </div>
-        )}
-
-        {devisEnCours.length > 0 && (
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <h2 className="mb-2 text-sm font-bold text-slate-900">Devis en cours sur cet équipement</h2>
-            <ul className="space-y-1.5">
-              {devisEnCours.map((d, i) => (
-                <li key={i} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                  <span className="min-w-0 truncate font-semibold text-slate-900">{d.numero}</span>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${TEINTE_STATUT_DEVIS[d.statut]}`}>
-                    {LABEL_STATUT_DEVIS[d.statut]}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

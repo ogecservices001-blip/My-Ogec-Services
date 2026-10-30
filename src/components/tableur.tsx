@@ -146,6 +146,10 @@ export function Tableur({
       .map((cellules, r) => ({ cellules, r }))
       .filter(({ r }) =>
         Object.entries(filtres).every(([c, actives]) => {
+          // Aucune case cochée = pas de restriction sur cette colonne
+          // (pas "masquer tout") — "Aucun" ne sert qu'à repartir de
+          // zéro avant de cocher soi-même les valeurs voulues.
+          if (actives.size === 0) return true;
           const v = valeurDe(r, Number(c));
           return actives.has(v === "" || v === null ? SANS_FILTRE : v);
         }),

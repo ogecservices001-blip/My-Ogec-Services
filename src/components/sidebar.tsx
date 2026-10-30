@@ -86,14 +86,20 @@ function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
                   paddingRight: expanded ? 10 : 0,
                   justifyContent: expanded ? "flex-start" : "center",
                   backgroundColor: actif || ouvert ? "rgba(62,207,142,0.1)" : "transparent",
-                  color: !m.actif ? "#4b4b4b" : actif || ouvert ? "var(--brand-green)" : "#9a9a9a",
+                  color: !m.actif ? "#4b4b4b" : actif || ouvert ? "#ffffff" : "#9a9a9a",
                   cursor: m.actif ? "pointer" : "default",
                 }}
               >
                 <Icon className="h-4.5 w-4.5 shrink-0" strokeWidth={2} />
                 <span
                   className="truncate text-sm"
-                  style={{ opacity: expanded ? 1 : 0, width: expanded ? "auto" : 0, whiteSpace: "nowrap", transition: "opacity 0.15s ease" }}
+                  style={{
+                    opacity: expanded ? 1 : 0,
+                    width: expanded ? "auto" : 0,
+                    whiteSpace: "nowrap",
+                    transition: "opacity 0.15s ease",
+                    fontWeight: actif || ouvert ? 700 : 400,
+                  }}
                 >
                   {m.nom}
                 </span>
@@ -148,8 +154,9 @@ function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
                     onClick={() => setActiveNav(null)}
                     className="rounded-md px-3 py-2 text-sm transition-colors"
                     style={{
-                      color: actif ? "var(--brand-green)" : "#9a9a9a",
+                      color: actif ? "#ffffff" : "#9a9a9a",
                       backgroundColor: actif ? "rgba(62,207,142,0.1)" : "transparent",
+                      fontWeight: actif ? 700 : 400,
                     }}
                   >
                     {s.nom}
@@ -193,13 +200,18 @@ function MobileSidebarContenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNav
         const Icon = m.icone;
         const deplie = deplies.has(m.nom);
         const peutDeplier = m.actif && m.sousMenus.length > 0;
+        const actifModule = moduleActif(m, pathname, cheminActuel);
         return (
           <div key={m.nom}>
             <button
               onClick={() => peutDeplier && basculer(m.nom)}
               disabled={!peutDeplier}
               className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors"
-              style={{ color: !m.actif ? "#4b4b4b" : "#d4d4d4" }}
+              style={{
+                color: !m.actif ? "#4b4b4b" : actifModule ? "#ffffff" : "#d4d4d4",
+                fontWeight: actifModule ? 700 : 400,
+                backgroundColor: actifModule ? "rgba(62,207,142,0.1)" : "transparent",
+              }}
             >
               <span className="flex items-center gap-2.5">
                 <Icon className="h-4.5 w-4.5 shrink-0" strokeWidth={2} />
@@ -235,9 +247,9 @@ function MobileSidebarContenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNav
                         onClick={onNavigate}
                         className="block rounded-md px-3 py-2 text-sm transition-colors"
                         style={{
-                          color: actif ? "var(--brand-green)" : "#9a9a9a",
+                          color: actif ? "#ffffff" : "#9a9a9a",
                           backgroundColor: actif ? "rgba(62,207,142,0.1)" : "transparent",
-                          fontWeight: actif ? 600 : 400,
+                          fontWeight: actif ? 700 : 400,
                         }}
                       >
                         {s.nom}

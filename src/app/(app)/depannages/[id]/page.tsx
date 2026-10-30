@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Phone } from "lucide-react";
+import { ArrowLeft, Phone } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminOuAccueil } from "@/lib/auth";
 import { FilAjouter } from "@/components/fil-extra-context";
@@ -96,6 +96,8 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
     ["Technicien assigné", intervenant?.name ?? ""],
   ];
 
+  const hrefRetour = demande.statut === "traitee" ? "/depannages/traitees" : "/depannages";
+
   return (
     <div>
       <FilAjouter
@@ -106,6 +108,13 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
             : { nom: "Dépannages en cours", href: "/depannages" }
         }
       />
+      <Link
+        href={hrefRetour}
+        className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-brand-green-dark"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+        Retour
+      </Link>
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Dépannage N°{demande.numero}</h1>

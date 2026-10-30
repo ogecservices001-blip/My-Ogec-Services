@@ -193,6 +193,11 @@ export function Tableur({
                 const col = colonnes[c];
                 const options = optionsParColonne[c];
                 const actif = Boolean(filtres[c]);
+                // Colonne d'actions (icônes sans titre) : figée à droite
+                // du tableau quand elle est en dernière position, pour
+                // qu'elle reste toujours accessible sans avoir à faire
+                // défiler un tableau large horizontalement.
+                const collee = col.titre === "" && position === ordre.length - 1;
                 return (
                   <th
                     key={c}
@@ -212,11 +217,13 @@ export function Tableur({
                       setColonneSurvolee(null);
                     }}
                     style={col.largeur ? { width: col.largeur } : undefined}
-                    className={`relative border-b border-slate-200 px-2 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 ${
+                    className={`relative border-b border-slate-200 bg-white px-2 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 ${
                       col.droite ? "text-right" : "text-left"
                     } ${position > 0 ? "border-l border-slate-100" : ""} ${
                       colonneGlissee === c ? "opacity-40" : ""
-                    } ${colonneSurvolee === c && colonneGlissee !== c ? "bg-brand-green/5" : ""}`}
+                    } ${colonneSurvolee === c && colonneGlissee !== c ? "bg-brand-green/5" : ""} ${
+                      collee ? "sticky right-0 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]" : ""
+                    }`}
                   >
                     <span className="inline-flex cursor-grab items-center gap-1 active:cursor-grabbing">
                       <GripVertical className="h-3 w-3 shrink-0 text-slate-300" strokeWidth={2} />
@@ -269,16 +276,23 @@ export function Tableur({
           <tbody>
             {lignesFiltrees.map(({ cellules }, r) => (
               <tr key={r} className={r % 2 === 1 ? "bg-slate-50/50" : ""}>
-                {ordre.map((c) => (
-                  <td
-                    key={c}
-                    className={`whitespace-nowrap border-b border-slate-100 px-2 py-2 text-slate-700 ${
-                      colonnes[c]?.droite ? "text-right" : ""
-                    }`}
-                  >
-                    {cellules[c]}
-                  </td>
-                ))}
+                {ordre.map((c, position) => {
+                  const collee = colonnes[c]?.titre === "" && position === ordre.length - 1;
+                  return (
+                    <td
+                      key={c}
+                      className={`whitespace-nowrap border-b border-slate-100 px-2 py-2 text-slate-700 ${
+                        colonnes[c]?.droite ? "text-right" : ""
+                      } ${
+                        collee
+                          ? `sticky right-0 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)] ${r % 2 === 1 ? "bg-slate-50" : "bg-white"}`
+                          : ""
+                      }`}
+                    >
+                      {cellules[c]}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

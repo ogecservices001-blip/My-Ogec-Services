@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { fournisseurSchema, type FournisseurInput } from "@/lib/validation/fournisseur";
 import type { ActionResult } from "@/lib/action-result";
+import { extraireFournisseurDepuisDevis, type FournisseurExtraitResultat } from "@/lib/repertoire/fournisseur-ocr";
 
 export async function creerFournisseur(input: FournisseurInput): Promise<ActionResult> {
   await requireAdmin();
@@ -74,6 +75,33 @@ export async function completerFicheFournisseurDepuisDevis(
   revalidatePath("/repertoire/fournisseurs");
   revalidatePath(`/repertoire/fournisseurs/${id}`);
   return { ok: true };
+}
+
+/// Lit le devis/facture fournisseur envoyé (PDF/photo) et renvoie les
+/// informations détectées pour pré-remplir le formulaire "Nouveau
+/// fournisseur" — à relire par le bureau, jamais enregistré directement.
+export async function analyserFournisseurDepuisDevis(
+  formData: FormData,
+): Promise<{ ok: true; resultat: FournisseurExtraitResultat } | { ok: false; erreur: string }> {
+  await requireAdmin();
+
+  const fichier = formData.get("fichier");
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { ok: false, erreur: "Aucun fichier sélectionné." };
+  }
+  const typesAcceptes = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+  if (!typesAcceptes.includes(fichier.type)) {
+    return { ok: false, erreur: "Fichier non pris en charge — envoie un PDF ou une photo (PNG/JPEG)." };
+  }
+
+  try {
+    const bytes = Buffer.from(await fichier.arrayBuffer());
+    const resultat = await extraireFournisseurDepuisDevis({ bytes, mimeType: fichier.type });
+    if (!resultat.nom) return { ok: false, erreur: "Impossible d'identifier le fournisseur sur ce document." };
+    return { ok: true, resultat };
+  } catch (e) {
+    return { ok: false, erreur: e instanceof Error ? e.message : "Échec de la lecture automatique." };
+  }
 }
 
 export async function supprimerFournisseur(id: string): Promise<ActionResult> {

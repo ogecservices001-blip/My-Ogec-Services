@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ScanLine } from "lucide-react";
 import { champsFournisseur, type FournisseurInput, type Interlocuteur } from "@/lib/validation/fournisseur";
-import { creerFournisseur, modifierFournisseur } from "./actions";
+import { creerFournisseur, modifierFournisseur, analyserFournisseurDepuisDevis } from "./actions";
 import type { Fournisseur } from "@/lib/types";
 
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
@@ -34,6 +34,48 @@ export function FournisseurForm({ fournisseur }: { fournisseur?: Fournisseur }) 
     setInterlocuteurs((prev) => prev.map((it, idx) => (idx === i ? { ...it, [champ]: valeur } : it)));
   }
 
+  const fichierRef = useRef<HTMLInputElement>(null);
+  const [analyse, startAnalyse] = useTransition();
+  const [erreurAnalyse, setErreurAnalyse] = useState<string | null>(null);
+
+  function analyserFichier() {
+    const fichier = fichierRef.current?.files?.[0];
+    if (!fichier) return;
+    setErreurAnalyse(null);
+    const formData = new FormData();
+    formData.set("fichier", fichier);
+    startAnalyse(async () => {
+      const res = await analyserFournisseurDepuisDevis(formData);
+      if (!res.ok) {
+        setErreurAnalyse(res.erreur);
+        return;
+      }
+      const r = res.resultat;
+      setChamps((prev) => ({
+        ...prev,
+        nom: r.nom || prev.nom,
+        nature_fourniture: r.nature_fourniture || prev.nature_fourniture,
+        site_web: r.site_web || prev.site_web,
+        adresse: r.adresse || prev.adresse,
+        complement_adresse: r.complement_adresse || prev.complement_adresse,
+        code_postal: r.code_postal || prev.code_postal,
+        commune: r.commune || prev.commune,
+        raison_sociale_exacte: r.raison_sociale_exacte || prev.raison_sociale_exacte,
+        forme_juridique: r.forme_juridique || prev.forme_juridique,
+        siren: r.siren || prev.siren,
+        siret: r.siret || prev.siret,
+        tva_intracom: r.tva_intracom || prev.tva_intracom,
+        rcs_rm: r.rcs_rm || prev.rcs_rm,
+        delai_paiement: r.delai_paiement || prev.delai_paiement,
+        mode_reglement: r.mode_reglement || prev.mode_reglement,
+      }));
+      if (r.interlocuteurs.length > 0) {
+        setInterlocuteurs((prev) => [...prev, ...r.interlocuteurs.filter((i) => i.nom || i.tel || i.portable || i.email)]);
+      }
+      if (fichierRef.current) fichierRef.current.value = "";
+    });
+  }
+
   function soumettre() {
     if (!champs.nom?.trim()) {
       setErreur("Le nom du fournisseur est obligatoire.");
@@ -61,6 +103,31 @@ export function FournisseurForm({ fournisseur }: { fournisseur?: Fournisseur }) 
     <div>
       {erreur && (
         <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>
+      )}
+
+      {!fournisseur && (
+        <div className="mb-5 border-b border-slate-100 pb-5">
+          <h2 className="mb-1 flex items-center gap-1.5 text-sm font-bold text-slate-900">
+            <ScanLine className="h-4 w-4 text-brand-green-dark" strokeWidth={2.25} />
+            Scanner un devis / une facture
+          </h2>
+          <p className="mb-2 text-xs text-slate-500">
+            Pré-remplit la fiche à partir d&apos;un devis ou d&apos;une facture de ce fournisseur (PDF, photo ou
+            capture d&apos;écran) — à relire avant d&apos;enregistrer.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input ref={fichierRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="text-sm text-slate-600" />
+            <button
+              type="button"
+              onClick={analyserFichier}
+              disabled={analyse}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 disabled:opacity-60"
+            >
+              {analyse ? "Lecture..." : "Lire le document"}
+            </button>
+          </div>
+          {erreurAnalyse && <p className="mt-2 text-xs text-red-600">{erreurAnalyse}</p>}
+        </div>
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">

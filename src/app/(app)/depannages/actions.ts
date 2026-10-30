@@ -78,5 +78,25 @@ export async function envoyerConfirmation(id: string, informationComplementaire:
     return { ok: false, erreur: e instanceof Error ? e.message : "Échec de l'envoi." };
   }
 
+  await supabase
+    .from("demandes_depannage")
+    .update({ email_prise_en_compte_envoye_le: new Date().toISOString() })
+    .eq("id", id);
+
+  return { ok: true };
+}
+
+/// Enregistre que le lien WhatsApp a été ouvert pour ce ticket —
+/// optimiste (on ne peut pas savoir si le message a réellement été
+/// envoyé une fois WhatsApp ouvert), sert uniquement à afficher un
+/// indicateur visuel "déjà contacté" sur le listing.
+export async function marquerWhatsappEnvoye(id: string): Promise<ActionResult> {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("demandes_depannage")
+    .update({ whatsapp_envoye_le: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { ok: false, erreur: error.message };
   return { ok: true };
 }

@@ -612,6 +612,7 @@ export type Database = {
           numero_demande_client: string
           site_id: string | null
           statut: Database["public"]["Enums"]["statut_depannage"]
+          whatsapp_envoye_le: string | null
         }
         Insert: {
           bon_intervention_id?: string | null
@@ -633,6 +634,7 @@ export type Database = {
           numero_demande_client?: string
           site_id?: string | null
           statut?: Database["public"]["Enums"]["statut_depannage"]
+          whatsapp_envoye_le?: string | null
         }
         Update: {
           bon_intervention_id?: string | null
@@ -654,6 +656,7 @@ export type Database = {
           numero_demande_client?: string
           site_id?: string | null
           statut?: Database["public"]["Enums"]["statut_depannage"]
+          whatsapp_envoye_le?: string | null
         }
         Relationships: [
           {

@@ -7,7 +7,7 @@ import { Download, MessageCircle, Mail, X, Wrench } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { FiltreSelect } from "@/components/filtre-select";
-import { envoyerConfirmation } from "./actions";
+import { envoyerConfirmation, marquerWhatsappEnvoye } from "./actions";
 import type { DevisEnCours } from "@/lib/devis/en-cours";
 import { LABEL_STATUT_DEVIS } from "@/app/(app)/devis/statut";
 import { telInternational } from "@/lib/format";
@@ -90,6 +90,16 @@ export function DepannagesListe({
   const filtrees = (vue === "en_cours" ? enCours : traitees).filter((d) => !client || d.client_nom === client);
   const [modaleId, setModaleId] = useState<string | null>(null);
   const demandeModale = demandes.find((d) => d.id === modaleId);
+  const router = useRouter();
+  const [, startTransitionWhatsapp] = useTransition();
+
+  function ouvrirWhatsapp(id: string, lien: string) {
+    window.open(lien, "_blank", "noopener,noreferrer");
+    startTransitionWhatsapp(async () => {
+      await marquerWhatsappEnvoye(id);
+      router.refresh();
+    });
+  }
 
   return (
     <div>
@@ -167,22 +177,32 @@ export function DepannagesListe({
                 {isAdmin && d.email && (
                   <button
                     onClick={() => setModaleId(d.id)}
-                    title="Répondre par email"
-                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-blue-200 text-blue-700 transition hover:bg-blue-50"
+                    title={d.email_prise_en_compte_envoye_le ? "Répondre par email (déjà envoyé)" : "Répondre par email (pas encore envoyé)"}
+                    className={`flex h-7 w-7 items-center justify-center rounded-lg border transition ${
+                      d.email_prise_en_compte_envoye_le
+                        ? "border-blue-200 text-blue-700 hover:bg-blue-50"
+                        : "border-red-300 text-red-700 hover:bg-red-50"
+                    }`}
                   >
                     <Mail className="h-3.5 w-3.5" strokeWidth={2} />
                   </button>
                 )}
                 {whatsapp && (
-                  <a
-                    href={whatsapp}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={`WhatsApp ${intervenant?.name}`}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-green-200 text-green-700 transition hover:bg-green-50"
+                  <button
+                    onClick={() => ouvrirWhatsapp(d.id, whatsapp)}
+                    title={
+                      d.whatsapp_envoye_le
+                        ? `WhatsApp ${intervenant?.name} (déjà ouvert)`
+                        : `WhatsApp ${intervenant?.name} (pas encore envoyé)`
+                    }
+                    className={`flex h-7 w-7 items-center justify-center rounded-lg border transition ${
+                      d.whatsapp_envoye_le
+                        ? "border-green-200 text-green-700 hover:bg-green-50"
+                        : "border-red-300 text-red-700 hover:bg-red-50"
+                    }`}
                   >
                     <MessageCircle className="h-3.5 w-3.5" strokeWidth={2} />
-                  </a>
+                  </button>
                 )}
                 {d.statut !== "traitee" && !isAdmin && (
                   <Link

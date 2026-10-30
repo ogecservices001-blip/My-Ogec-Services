@@ -52,6 +52,8 @@ export default async function FournisseurDetailPage({
     ["Délai de paiement", f.delai_paiement],
     ["Mode de règlement", f.mode_reglement],
     ["CGV reçues", f.cgv_recues],
+    ["IBAN", f.iban],
+    ["BIC / SWIFT", f.bic],
     ["Fiche mise à jour le", f.fiche_maj_le],
   ];
 

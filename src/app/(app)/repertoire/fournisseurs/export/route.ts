@@ -29,6 +29,8 @@ const ENTETES = [
   "Délai de paiement",
   "Mode de règlement",
   "CGV reçues",
+  "IBAN",
+  "BIC / SWIFT",
   "Fiche mise à jour le",
 ];
 
@@ -77,6 +79,8 @@ export async function GET() {
         f.delai_paiement,
         f.mode_reglement,
         f.cgv_recues,
+        f.iban,
+        f.bic,
         f.fiche_maj_le,
       ]);
     }

@@ -2,10 +2,10 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement, ChampListeLigne } from "@/lib/gmao/types";
+import type { Equipement, TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement, ChampListeLigne } from "@/lib/gmao/types";
 import { ChampListeEditor } from "@/components/gmao/champ-liste-editor";
 import { ChampEnTeteField, TypeEquipementSelects } from "@/components/gmao/champs-famille";
-import { creerEquipement } from "./actions";
+import { creerEquipement, modifierEquipement } from "./actions";
 
 export function EquipementForm({
   siteId,
@@ -15,6 +15,7 @@ export function EquipementForm({
   groupesExistants,
   nomTechnicienDefaut,
   frequenceDefaut,
+  equipementExistant,
 }: {
   siteId: string;
   types: TypeEquipement[];
@@ -23,29 +24,36 @@ export function EquipementForm({
   groupesExistants?: string[];
   nomTechnicienDefaut?: string;
   frequenceDefaut?: string;
+  equipementExistant?: Equipement;
 }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(creerEquipement, null);
+  const action = equipementExistant ? modifierEquipement.bind(null, equipementExistant.id) : creerEquipement;
+  const [state, formAction, pending] = useActionState(action, null);
 
-  const [typeId, setTypeId] = useState(types[0]?.id ?? "");
+  const [typeId, setTypeId] = useState(equipementExistant?.type_equipement_id ?? types[0]?.id ?? "");
   const type = types.find((t) => t.id === typeId) ?? null;
   // nomTech/freqEntretienAnnuelle : mêmes clés que les champs déjà
   // définis famille par famille (voir Référentiel Familles) — on ne
   // fait que pré-remplir leur valeur par défaut, le champ lui-même
   // s'affiche normalement dans "Informations spécifiques" quand la
   // famille le définit, pas de champ séparé à construire ici.
-  const [champsEnTete, setChampsEnTete] = useState<ChampsEnTeteEquipement>(() => ({
-    nomTech: nomTechnicienDefaut ?? "",
-    freqEntretienAnnuelle: frequenceDefaut ?? "",
-  }));
+  const [champsEnTete, setChampsEnTete] = useState<ChampsEnTeteEquipement>(() =>
+    equipementExistant
+      ? equipementExistant.champs_en_tete
+      : { nomTech: nomTechnicienDefaut ?? "", freqEntretienAnnuelle: frequenceDefaut ?? "" },
+  );
   const champsSupplementaires = type?.champs_en_tete_supplementaires ?? [];
+
+  const destination = equipementExistant
+    ? `/gmao/clients/${siteId}/equipements/${equipementExistant.id}`
+    : `/gmao/clients/${siteId}/equipements`;
 
   useEffect(() => {
     if (state?.ok) {
-      router.push(`/gmao/clients/${siteId}/equipements`);
+      router.push(destination);
       router.refresh();
     }
-  }, [state, router, siteId]);
+  }, [state, router, destination]);
 
   function changerType(id: string) {
     setTypeId(id);
@@ -83,17 +91,25 @@ export function EquipementForm({
           </select>
         </div>
 
-        <ChampTexte label="Nom (ex: UI VRV 04-06)" name="nom" required />
-        <ChampTexte label="Numéro équipement (ex: 462-01-31)" name="numero_equipement" defaultValue={numeroSuggere} />
-        <ChampTexte label="Localisation" name="localisation" />
+        <ChampTexte label="Nom (ex: UI VRV 04-06)" name="nom" defaultValue={equipementExistant?.nom} />
+        <ChampTexte
+          label="Numéro équipement (ex: 462-01-31)"
+          name="numero_equipement"
+          defaultValue={equipementExistant?.numero_equipement ?? numeroSuggere}
+        />
+        <ChampTexte label="Localisation" name="localisation" defaultValue={equipementExistant?.localisation} />
         <ChampTexte
           label="Groupe (ex: Split Système)"
           name="groupe"
-          defaultValue={groupesExistants?.length === 1 ? groupesExistants[0] : undefined}
+          defaultValue={equipementExistant?.groupe ?? (groupesExistants?.length === 1 ? groupesExistants[0] : undefined)}
           list="groupes-existants"
           options={groupesExistants}
         />
-        <ChampTexteLong label="Informations internes (jamais visible du client)" name="informations_internes" />
+        <ChampTexteLong
+          label="Informations internes (jamais visible du client)"
+          name="informations_internes"
+          defaultValue={equipementExistant?.informations_internes}
+        />
 
         {type && type.type_equipement1_fixe && (
           <TypeEquipementSelects
@@ -185,7 +201,7 @@ function ChampTexte({
   );
 }
 
-function ChampTexteLong({ label, name }: { label: string; name: string }) {
+function ChampTexteLong({ label, name, defaultValue }: { label: string; name: string; defaultValue?: string }) {
   return (
     <div>
       <label htmlFor={name} className="mb-1 block text-xs font-medium text-slate-600">
@@ -195,6 +211,7 @@ function ChampTexteLong({ label, name }: { label: string; name: string }) {
         id={name}
         name={name}
         rows={2}
+        defaultValue={defaultValue}
         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
       />
     </div>

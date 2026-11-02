@@ -88,10 +88,28 @@ export default async function VisualiserEquipementPage({
           <p className="text-sm font-semibold text-amber-800">
             Équipement ajouté sur le terrain, pas encore validé par le bureau.
           </p>
-          {isAdmin && <ValiderBouton id={equipementId} siteId={id} />}
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/gmao/clients/${id}/equipements/${equipementId}/modifier`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-50"
+              >
+                Corriger avant validation
+              </Link>
+              <ValiderBouton id={equipementId} siteId={id} />
+            </div>
+          )}
         </div>
       )}
-      <div className="mb-4 flex items-center justify-end">
+      <div className="mb-4 flex items-center justify-end gap-2">
+        {isAdmin && (
+          <Link
+            href={`/gmao/clients/${id}/equipements/${equipementId}/modifier`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+          >
+            Modifier
+          </Link>
+        )}
         <Link
           href={`/gmao/clients/${id}/equipements/${equipementId}/releves`}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"

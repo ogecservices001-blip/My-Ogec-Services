@@ -80,6 +80,59 @@ export async function creerEquipement(
   return { ok: true };
 }
 
+/// Correction de fiche — notamment pour permettre à l'admin de corriger
+/// les données avant de valider un équipement ajouté depuis le terrain
+/// (voir `validerEquipement`). Ne touche jamais à `hors_contrat`,
+/// `a_valider` ni `remarque_technicien` : ces statuts se décident à la
+/// création ou via `validerEquipement`, pas à chaque modification.
+export async function modifierEquipement(
+  id: string,
+  _prevState: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireAdmin();
+
+  const parsed = equipementSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { ok: false, erreur: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
+  }
+
+  let champsEnTete: ChampsEnTeteEquipement = {};
+  try {
+    champsEnTete = JSON.parse(String(formData.get("champs_en_tete_json") ?? "{}"));
+  } catch {
+    return { ok: false, erreur: "Champs spécifiques invalides." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: type } = await supabase
+    .from("types_equipement")
+    .select("type_equipement1_fixe")
+    .eq("id", parsed.data.type_equipement_id)
+    .single();
+  if (type?.type_equipement1_fixe) {
+    champsEnTete.typeEquipement1 = type.type_equipement1_fixe;
+  }
+
+  const { data: references } = await supabase.from("references_horaires").select("*");
+  const { reference } = analyserReference(champsEnTete, references ?? []);
+
+  const { error } = await supabase
+    .from("equipements")
+    .update({
+      ...parsed.data,
+      champs_en_tete: champsEnTete,
+      reference_horaire_id: reference?.id ?? null,
+    })
+    .eq("id", id);
+  if (error) return { ok: false, erreur: error.message };
+
+  revalidatePath(`/gmao/clients/${parsed.data.site_id}/equipements`);
+  revalidatePath(`/gmao/clients/${parsed.data.site_id}/equipements/${id}`);
+  return { ok: true };
+}
+
 export async function supprimerEquipement(id: string, siteId: string): Promise<ActionResult> {
   await requireAdmin();
 

@@ -45,6 +45,9 @@ export default async function VisualiserEquipementPage({
   const typeConcat = concatTypeEquipement(c);
   const freqEntretienAnnuelle = typeof c.freqEntretienAnnuelle === "string" ? c.freqEntretienAnnuelle : "";
   const freqAnnuelleNum = parseInt(freqEntretienAnnuelle, 10);
+  const nomTechnicien = typeof c.nomTechnicien === "string" ? c.nomTechnicien : "";
+  const dateMES = typeof c.dateMES === "string" ? c.dateMES : "";
+  const dateInterventionPrevue = typeof c.dateInterventionPrevue === "string" ? c.dateInterventionPrevue : "";
 
   const resultatReference = analyserReference(c, references ?? []);
   const freqCourante = await freqCouranteCalculee(supabase, equipementId);
@@ -153,14 +156,32 @@ export default async function VisualiserEquipementPage({
       )}
 
       <div className="border-t border-slate-100 pt-1">
-        {champsRenseignes.length === 0 && !freqEntretienAnnuelle ? (
+        {champsRenseignes.length === 0 && !freqEntretienAnnuelle && !nomTechnicien && !dateMES && !dateInterventionPrevue ? (
           <p className="px-4 py-4 text-sm text-slate-400">Aucune information renseignée</p>
         ) : (
           <dl>
+            {nomTechnicien && (
+              <div className="flex items-baseline gap-2 px-4 py-2.5">
+                <dt className="w-60 shrink-0 text-[13px] text-slate-500">Nom technicien</dt>
+                <dd className="text-sm font-semibold text-slate-900">{nomTechnicien}</dd>
+              </div>
+            )}
+            {dateMES && (
+              <div className="flex items-baseline gap-2 border-t border-slate-50 px-4 py-2.5">
+                <dt className="w-60 shrink-0 text-[13px] text-slate-500">Date M.E.S.</dt>
+                <dd className="text-sm font-semibold text-slate-900">{dateMES}</dd>
+              </div>
+            )}
             {freqEntretienAnnuelle && (
-              <div className="flex items-baseline gap-2 border-b border-slate-50 px-4 py-2.5">
+              <div className="flex items-baseline gap-2 border-t border-slate-50 px-4 py-2.5">
                 <dt className="w-60 shrink-0 text-[13px] text-slate-500">Fréquence entretien annuelle</dt>
                 <dd className="text-sm font-semibold text-slate-900">{freqEntretienAnnuelle}</dd>
+              </div>
+            )}
+            {dateInterventionPrevue && (
+              <div className="flex items-baseline gap-2 border-t border-slate-50 px-4 py-2.5">
+                <dt className="w-60 shrink-0 text-[13px] text-slate-500">Date interv. prévue</dt>
+                <dd className="text-sm font-semibold text-slate-900">{dateInterventionPrevue}</dd>
               </div>
             )}
             {cumul && (

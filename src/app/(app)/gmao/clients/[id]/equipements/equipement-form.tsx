@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement, ChampListeLigne } from "@/lib/gmao/types";
 import { ChampListeEditor } from "@/components/gmao/champ-liste-editor";
 import { ChampEnTeteField, TypeEquipementSelects } from "@/components/gmao/champs-famille";
+import { formaterDate, dateFrVersIso } from "@/lib/format";
 import { creerEquipement } from "./actions";
 
 export function EquipementForm({
@@ -13,19 +14,26 @@ export function EquipementForm({
   references,
   numeroSuggere,
   groupesExistants,
+  nomTechnicienDefaut,
+  frequenceDefaut,
 }: {
   siteId: string;
   types: TypeEquipement[];
   references: ReferenceHoraire[];
   numeroSuggere?: string;
   groupesExistants?: string[];
+  nomTechnicienDefaut?: string;
+  frequenceDefaut?: string;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(creerEquipement, null);
 
   const [typeId, setTypeId] = useState(types[0]?.id ?? "");
   const type = types.find((t) => t.id === typeId) ?? null;
-  const [champsEnTete, setChampsEnTete] = useState<ChampsEnTeteEquipement>({});
+  const [champsEnTete, setChampsEnTete] = useState<ChampsEnTeteEquipement>(() => ({
+    nomTechnicien: nomTechnicienDefaut ?? "",
+    freqEntretienAnnuelle: frequenceDefaut ?? "",
+  }));
 
   useEffect(() => {
     if (state?.ok) {
@@ -36,7 +44,12 @@ export function EquipementForm({
 
   function changerType(id: string) {
     setTypeId(id);
-    setChampsEnTete({});
+    setChampsEnTete((prev) => ({
+      nomTechnicien: prev.nomTechnicien,
+      dateMES: prev.dateMES,
+      freqEntretienAnnuelle: prev.freqEntretienAnnuelle,
+      dateInterventionPrevue: prev.dateInterventionPrevue,
+    }));
   }
 
   return (
@@ -85,6 +98,29 @@ export function EquipementForm({
             setChampsEnTete={setChampsEnTete}
           />
         )}
+
+        <ChampFixe
+          label="Nom technicien"
+          valeur={typeof champsEnTete.nomTechnicien === "string" ? champsEnTete.nomTechnicien : ""}
+          onChange={(v) => setChampsEnTete((prev) => ({ ...prev, nomTechnicien: v }))}
+        />
+        <ChampFixe
+          label="Date M.E.S."
+          type="date"
+          valeur={typeof champsEnTete.dateMES === "string" ? champsEnTete.dateMES : ""}
+          onChange={(v) => setChampsEnTete((prev) => ({ ...prev, dateMES: v }))}
+        />
+        <ChampFixe
+          label="Fréquence entretien annuelle"
+          valeur={typeof champsEnTete.freqEntretienAnnuelle === "string" ? champsEnTete.freqEntretienAnnuelle : ""}
+          onChange={(v) => setChampsEnTete((prev) => ({ ...prev, freqEntretienAnnuelle: v }))}
+        />
+        <ChampFixe
+          label="Date interv. prévue"
+          type="date"
+          valeur={typeof champsEnTete.dateInterventionPrevue === "string" ? champsEnTete.dateInterventionPrevue : ""}
+          onChange={(v) => setChampsEnTete((prev) => ({ ...prev, dateInterventionPrevue: v }))}
+        />
       </div>
 
       {type && type.champs_en_tete_supplementaires.length > 0 && (
@@ -163,6 +199,30 @@ function ChampTexte({
           ))}
         </datalist>
       )}
+    </div>
+  );
+}
+
+function ChampFixe({
+  label,
+  valeur,
+  onChange,
+  type,
+}: {
+  label: string;
+  valeur: string;
+  onChange: (v: string) => void;
+  type?: "date";
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
+      <input
+        type={type === "date" ? "date" : undefined}
+        value={type === "date" ? dateFrVersIso(valeur) : valeur}
+        onChange={(e) => onChange(type === "date" ? formaterDate(e.target.value) : e.target.value)}
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+      />
     </div>
   );
 }

@@ -12,12 +12,12 @@ export default async function NouvelEquipementPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireProfile();
+  const profile = await requireProfile();
   const { id } = await params;
   const supabase = await createClient();
 
   const [{ data: site }, { data: types }, { data: references }, { data: equipementsSite }] = await Promise.all([
-    supabase.from("sites").select("id, nom, site, n_affaire").eq("id", id).single(),
+    supabase.from("sites").select("id, nom, site, n_affaire, freq_entretien_an").eq("id", id).single(),
     supabase.from("types_equipement").select("*").order("nom"),
     supabase.from("references_horaires").select("*"),
     supabase.from("equipements").select("numero_equipement, groupe").eq("site_id", id),
@@ -59,6 +59,8 @@ export default async function NouvelEquipementPage({
           references={(references ?? []) as ReferenceHoraire[]}
           numeroSuggere={numeroSuggere}
           groupesExistants={groupesExistants}
+          nomTechnicienDefaut={profile.name}
+          frequenceDefaut={site.freq_entretien_an}
         />
       )}
     </div>

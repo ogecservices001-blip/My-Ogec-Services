@@ -1,13 +1,15 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import type { ChampEnTete, ChampListeLigne, ChampsEnTeteEquipement, ReferenceHoraire } from "@/lib/gmao/types";
+import { CLES_CHAMPS_FIXES_EQUIPEMENT, type ChampEnTete, type ChampListeLigne, type ChampsEnTeteEquipement, type ReferenceHoraire } from "@/lib/gmao/types";
 import { formaterDate, dateFrVersIso } from "@/lib/format";
 import { OcrScanButton } from "./ocr-scan-button";
 
 /// Champs sans bouton OCR — rien à scanner sur une plaque signalétique
-/// pour une date de contrôle, un n° de bordereau ou une valeur déjà
-/// couverte par un autre champ (charge réfrigérant, puissance).
+/// pour une date de contrôle, un n° de bordereau, une valeur déjà
+/// couverte par un autre champ (charge réfrigérant, puissance), ou un
+/// champ fixe du formulaire d'ajout (nom technicien, dates, fréquence
+/// — jamais sur une plaque signalétique non plus).
 const SANS_OCR = new Set([
   "chargeRefrigerant",
   "puissance",
@@ -16,6 +18,7 @@ const SANS_OCR = new Set([
   "numDernierBordereau",
   "dateDernierControleDesenfumage",
   "dateProchainControleDesenfumage",
+  ...CLES_CHAMPS_FIXES_EQUIPEMENT,
 ]);
 
 /// Un champ d'en-tête spécifique à une famille (texte ou liste de choix

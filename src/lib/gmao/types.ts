@@ -101,7 +101,7 @@ export const CLES_CHAMPS_FIXES_EQUIPEMENT = [
   "nomTechnicien",
   "dateMES",
   "freqEntretienAnnuelle",
-  "dateInterventionPrevue",
+  "dateIntervPrevue",
 ] as const;
 
 export type Equipement = Omit<Tables<"equipements">, "champs_en_tete"> & {

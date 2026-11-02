@@ -51,7 +51,7 @@ export function EquipementForm({
       nomTechnicien: prev.nomTechnicien,
       dateMES: prev.dateMES,
       freqEntretienAnnuelle: prev.freqEntretienAnnuelle,
-      dateInterventionPrevue: prev.dateInterventionPrevue,
+      dateIntervPrevue: prev.dateIntervPrevue,
     }));
   }
 
@@ -121,8 +121,8 @@ export function EquipementForm({
         <ChampFixe
           label="Date interv. prévue"
           type="date"
-          valeur={typeof champsEnTete.dateInterventionPrevue === "string" ? champsEnTete.dateInterventionPrevue : ""}
-          onChange={(v) => setChampsEnTete((prev) => ({ ...prev, dateInterventionPrevue: v }))}
+          valeur={typeof champsEnTete.dateIntervPrevue === "string" ? champsEnTete.dateIntervPrevue : ""}
+          onChange={(v) => setChampsEnTete((prev) => ({ ...prev, dateIntervPrevue: v }))}
         />
       </div>
 

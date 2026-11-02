@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement, ChampListeLigne } from "@/lib/gmao/types";
+import { CLES_CHAMPS_FIXES_EQUIPEMENT, type TypeEquipement, type ReferenceHoraire, type ChampsEnTeteEquipement, type ChampListeLigne } from "@/lib/gmao/types";
 import { ChampListeEditor } from "@/components/gmao/champ-liste-editor";
 import { ChampEnTeteField, TypeEquipementSelects } from "@/components/gmao/champs-famille";
 import { formaterDate, dateFrVersIso } from "@/lib/format";
@@ -34,6 +34,9 @@ export function EquipementForm({
     nomTechnicien: nomTechnicienDefaut ?? "",
     freqEntretienAnnuelle: frequenceDefaut ?? "",
   }));
+  const champsSupplementaires = (type?.champs_en_tete_supplementaires ?? []).filter(
+    (champ) => !CLES_CHAMPS_FIXES_EQUIPEMENT.includes(champ.cle as (typeof CLES_CHAMPS_FIXES_EQUIPEMENT)[number]),
+  );
 
   useEffect(() => {
     if (state?.ok) {
@@ -123,13 +126,13 @@ export function EquipementForm({
         />
       </div>
 
-      {type && type.champs_en_tete_supplementaires.length > 0 && (
+      {champsSupplementaires.length > 0 && (
         <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
             Informations spécifiques
           </p>
           <div className="space-y-3">
-            {type.champs_en_tete_supplementaires.map((champ) => (
+            {champsSupplementaires.map((champ) => (
               <ChampEnTeteField
                 key={champ.cle}
                 champ={champ}

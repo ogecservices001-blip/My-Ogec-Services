@@ -92,6 +92,18 @@ export type ChampListeLigne = Record<string, string>;
 /// (equipement_model.dart), schéma polymorphe piloté par la famille.
 export type ChampsEnTeteEquipement = Record<string, string | ChampListeLigne[]>;
 
+/// Clés fixes saisies directement par le formulaire d'ajout
+/// (nom technicien, dates, fréquence), jamais via le système de champs
+/// par famille — à exclure si une famille définit par ailleurs un
+/// champ "spécifique" avec la même clé, sinon le champ apparaît deux
+/// fois (une fois en fixe, une fois dans "Informations spécifiques").
+export const CLES_CHAMPS_FIXES_EQUIPEMENT = [
+  "nomTechnicien",
+  "dateMES",
+  "freqEntretienAnnuelle",
+  "dateInterventionPrevue",
+] as const;
+
 export type Equipement = Omit<Tables<"equipements">, "champs_en_tete"> & {
   champs_en_tete: ChampsEnTeteEquipement;
 };

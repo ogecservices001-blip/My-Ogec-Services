@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { FilAjouter } from "@/components/fil-extra-context";
-import type { Equipement, TypeEquipement, ChampListeLigne } from "@/lib/gmao/types";
+import { CLES_CHAMPS_FIXES_EQUIPEMENT, type Equipement, type TypeEquipement, type ChampListeLigne } from "@/lib/gmao/types";
 import { concatTypeEquipement, analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { calculerHeuresVisite, heuresCumulAnnee } from "@/lib/gmao/calcul-heures-visite";
 import { freqCouranteCalculee } from "@/lib/gmao/releve-service";
@@ -71,9 +71,10 @@ export default async function VisualiserEquipementPage({
       : null;
 
   const champsRenseignes = type.champs_en_tete_supplementaires
-    // freqEntretienAnnuelle est déjà affichée juste au-dessus (à côté de
-    // Cumul annuel/Prochaine visite) — éviter de la montrer deux fois.
-    .filter((champ) => champ.cle !== "freqEntretienAnnuelle")
+    // Les champs fixes (nom technicien, dates, fréquence) sont déjà
+    // affichés juste au-dessus — éviter de les montrer une deuxième
+    // fois si une famille définit par ailleurs un champ de même clé.
+    .filter((champ) => !CLES_CHAMPS_FIXES_EQUIPEMENT.includes(champ.cle as (typeof CLES_CHAMPS_FIXES_EQUIPEMENT)[number]))
     .filter((champ) => typeof c[champ.cle] === "string" && (c[champ.cle] as string).trim().length > 0)
     .map((champ) => [champ.unite ? `${champ.label} (${champ.unite})` : champ.label, c[champ.cle] as string] as const);
 

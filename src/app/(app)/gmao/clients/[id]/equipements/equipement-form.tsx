@@ -71,7 +71,7 @@ export function EquipementForm({
         <ChampTexte
           label="Groupe (ex: Split Système)"
           name="groupe"
-          defaultValue={groupesExistants?.[0]}
+          defaultValue={groupesExistants?.length === 1 ? groupesExistants[0] : undefined}
           list="groupes-existants"
           options={groupesExistants}
         />

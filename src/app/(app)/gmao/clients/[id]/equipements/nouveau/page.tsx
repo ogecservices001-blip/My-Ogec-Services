@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import type { TypeEquipement, ReferenceHoraire } from "@/lib/gmao/types";
+import { suggererNumeroEquipement } from "@/lib/gmao/numero-equipement";
 import { EquipementForm } from "../equipement-form";
 
 export default async function NouvelEquipementPage({
@@ -15,12 +16,18 @@ export default async function NouvelEquipementPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: site }, { data: types }, { data: references }] = await Promise.all([
-    supabase.from("sites").select("id, nom, site").eq("id", id).single(),
+  const [{ data: site }, { data: types }, { data: references }, { data: equipementsSite }] = await Promise.all([
+    supabase.from("sites").select("id, nom, site, n_affaire").eq("id", id).single(),
     supabase.from("types_equipement").select("*").order("nom"),
     supabase.from("references_horaires").select("*"),
+    supabase.from("equipements").select("numero_equipement").eq("site_id", id),
   ]);
   if (!site) notFound();
+
+  const numeroSuggere = suggererNumeroEquipement(
+    site.n_affaire ?? "",
+    (equipementsSite ?? []).map((e) => e.numero_equipement),
+  );
 
   return (
     <div>
@@ -47,6 +54,7 @@ export default async function NouvelEquipementPage({
           siteId={id}
           types={(types ?? []) as TypeEquipement[]}
           references={(references ?? []) as ReferenceHoraire[]}
+          numeroSuggere={numeroSuggere}
         />
       )}
     </div>

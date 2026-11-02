@@ -183,9 +183,11 @@ function Fil({ isAdmin }: { isAdmin: boolean }) {
 
 export function AppShell({
   isAdmin,
+  equipementsAValider = 0,
   children,
 }: {
   isAdmin: boolean;
+  equipementsAValider?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -200,7 +202,7 @@ export function AppShell({
 
   return (
     <div className="flex">
-      <Sidebar isAdmin={isAdmin} />
+      <Sidebar isAdmin={isAdmin} equipementsAValider={equipementsAValider} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Suspense fallback={null}>
           <Fil isAdmin={isAdmin} />

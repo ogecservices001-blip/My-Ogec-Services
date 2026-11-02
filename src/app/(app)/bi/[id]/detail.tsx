@@ -21,6 +21,7 @@ import {
 } from "@/lib/bi/format";
 import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, classerBI, type CorrectionInput } from "./actions";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
+import { suggererNumeroEquipement } from "@/lib/gmao/numero-equipement";
 
 const STATUTS_AVEC_PDF = new Set<string>([Statuts.valide, Statuts.pdfGenere, Statuts.pretEnvoi, Statuts.envoye]);
 
@@ -607,17 +608,6 @@ function PhotoVignette({ photo }: { photo: { type: string; storage_path: string;
 /// Suggère le prochain numéro libre (3ème partie, ex: "405-02-13")
 /// pour un équipement installé via BI — Numéro Client-Numéro Site
 /// toujours dérivé du site, jamais saisi.
-function suggererNumeroEquipement(prefixe: string, numerosExistants: string[]): string {
-  if (!prefixe) return "";
-  let max = 0;
-  for (const n of numerosExistants) {
-    if (!n.startsWith(`${prefixe}-`)) continue;
-    const suffixe = parseInt(n.slice(prefixe.length + 1), 10);
-    if (Number.isFinite(suffixe) && suffixe > max) max = suffixe;
-  }
-  return `${prefixe}-${String(max + 1).padStart(2, "0")}`;
-}
-
 function VueCorrection({
   bon,
   techniciensDisponibles,

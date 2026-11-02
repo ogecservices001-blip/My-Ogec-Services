@@ -807,6 +807,7 @@ export type Database = {
       }
       equipements: {
         Row: {
+          a_valider: boolean
           champs_en_tete: Json
           code_qr: string
           created_at: string
@@ -825,6 +826,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          a_valider?: boolean
           champs_en_tete?: Json
           code_qr?: string
           created_at?: string
@@ -843,6 +845,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          a_valider?: boolean
           champs_en_tete?: Json
           code_qr?: string
           created_at?: string

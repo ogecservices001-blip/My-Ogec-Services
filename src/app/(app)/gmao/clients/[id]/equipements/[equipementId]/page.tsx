@@ -12,6 +12,8 @@ import { LABEL_STATUT_DEVIS, TEINTE_STATUT_DEVIS } from "@/app/(app)/devis/statu
 import { chargerBonsInterventionParEquipement } from "@/lib/bi/bons-par-equipement";
 import { ETATS_EQUIPEMENT } from "@/lib/bi/format";
 import { StatutBadge } from "@/components/bi/statut-badge";
+import { getCurrentProfile } from "@/lib/profile";
+import { ValiderBouton } from "./valider-bouton";
 
 export default async function VisualiserEquipementPage({
   params,
@@ -20,6 +22,8 @@ export default async function VisualiserEquipementPage({
 }) {
   const { id, equipementId } = await params;
   const supabase = await createClient();
+  const profile = await getCurrentProfile();
+  const isAdmin = profile?.role === "admin";
 
   const [{ data: site }, { data: eqData }, { data: references }] = await Promise.all([
     supabase.from("sites_view").select("id, nom, site, hors_contrat").eq("id", id).single(),
@@ -79,6 +83,14 @@ export default async function VisualiserEquipementPage({
           { nom: eq.nom },
         ]}
       />
+      {eq.a_valider && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-semibold text-amber-800">
+            Équipement ajouté sur le terrain, pas encore validé par le bureau.
+          </p>
+          {isAdmin && <ValiderBouton id={equipementId} siteId={id} />}
+        </div>
+      )}
       <div className="mb-4 flex items-center justify-end">
         <Link
           href={`/gmao/clients/${id}/equipements/${equipementId}/releves`}

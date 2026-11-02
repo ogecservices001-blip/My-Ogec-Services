@@ -11,10 +11,12 @@ export function EquipementForm({
   siteId,
   types,
   references,
+  numeroSuggere,
 }: {
   siteId: string;
   types: TypeEquipement[];
   references: ReferenceHoraire[];
+  numeroSuggere?: string;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(creerEquipement, null);
@@ -62,7 +64,7 @@ export function EquipementForm({
         </div>
 
         <ChampTexte label="Nom (ex: UI VRV 04-06)" name="nom" required />
-        <ChampTexte label="Numéro équipement (ex: 462-01-31)" name="numero_equipement" />
+        <ChampTexte label="Numéro équipement (ex: 462-01-31)" name="numero_equipement" defaultValue={numeroSuggere} />
         <ChampTexte label="Localisation" name="localisation" />
         <ChampTexte label="Groupe (ex: Split Système)" name="groupe" />
         <ChampTexteLong label="Informations internes (jamais visible du client)" name="informations_internes" />
@@ -118,7 +120,17 @@ export function EquipementForm({
   );
 }
 
-function ChampTexte({ label, name, required }: { label: string; name: string; required?: boolean }) {
+function ChampTexte({
+  label,
+  name,
+  required,
+  defaultValue,
+}: {
+  label: string;
+  name: string;
+  required?: boolean;
+  defaultValue?: string;
+}) {
   return (
     <div>
       <label htmlFor={name} className="mb-1 block text-xs font-medium text-slate-600">
@@ -128,6 +140,7 @@ function ChampTexte({ label, name, required }: { label: string; name: string; re
         id={name}
         name={name}
         required={required}
+        defaultValue={defaultValue}
         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
       />
     </div>

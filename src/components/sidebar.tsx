@@ -25,7 +25,7 @@ function moduleActif(m: Module, pathname: string, cheminActuel: string): boolean
   return m.sousMenus.some((s) => s.href && correspond(s.href, pathname, cheminActuel));
 }
 
-function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
+function DesktopSidebar({ isAdmin, equipementsAValider }: { isAdmin: boolean; equipementsAValider: number }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const cheminActuel = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "");
@@ -71,6 +71,7 @@ function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
             const Icon = m.icone;
             const actif = moduleActif(m, pathname, cheminActuel);
             const ouvert = activeNav === m.nom;
+            const badge = m.nom === "GMAO" ? equipementsAValider : 0;
             return (
               <button
                 key={m.nom}
@@ -78,7 +79,7 @@ function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
                 onMouseEnter={() => survolModule(m)}
                 disabled={!m.actif}
                 title={!expanded ? m.nom : undefined}
-                className="flex w-full items-center overflow-hidden rounded-md transition-colors"
+                className="relative flex w-full items-center overflow-hidden rounded-md transition-colors"
                 style={{
                   gap: expanded ? 10 : 0,
                   height: 38,
@@ -90,7 +91,17 @@ function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
                   cursor: m.actif ? "pointer" : "default",
                 }}
               >
-                <Icon className="h-4.5 w-4.5 shrink-0" strokeWidth={2} />
+                <span className="relative shrink-0">
+                  <Icon className="h-4.5 w-4.5" strokeWidth={2} />
+                  {!expanded && badge > 0 && (
+                    <span
+                      className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                      style={{ backgroundColor: "#dc2626" }}
+                    >
+                      {badge > 9 ? "9+" : badge}
+                    </span>
+                  )}
+                </span>
                 <span
                   className="truncate text-sm"
                   style={{ opacity: expanded ? 1 : 0, width: expanded ? "auto" : 0, whiteSpace: "nowrap", transition: "opacity 0.15s ease" }}
@@ -102,7 +113,15 @@ function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
                     Bientôt
                   </span>
                 )}
-                {expanded && m.actif && m.sousMenus.length > 0 && (
+                {expanded && badge > 0 && (
+                  <span
+                    className="ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white"
+                    style={{ backgroundColor: "#dc2626" }}
+                  >
+                    {badge} à valider
+                  </span>
+                )}
+                {expanded && m.actif && m.sousMenus.length > 0 && badge === 0 && (
                   <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0" style={{ color: "#505050" }} />
                 )}
               </button>
@@ -167,7 +186,15 @@ function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-function MobileSidebarContenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate: () => void }) {
+function MobileSidebarContenu({
+  isAdmin,
+  equipementsAValider,
+  onNavigate,
+}: {
+  isAdmin: boolean;
+  equipementsAValider: number;
+  onNavigate: () => void;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const cheminActuel = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "");
@@ -193,6 +220,7 @@ function MobileSidebarContenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNav
         const Icon = m.icone;
         const deplie = deplies.has(m.nom);
         const peutDeplier = m.actif && m.sousMenus.length > 0;
+        const badge = m.nom === "GMAO" ? equipementsAValider : 0;
         return (
           <div key={m.nom}>
             <button
@@ -207,6 +235,11 @@ function MobileSidebarContenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNav
                 {!m.actif && (
                   <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
                     Bientôt
+                  </span>
+                )}
+                {badge > 0 && (
+                  <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white" style={{ backgroundColor: "#dc2626" }}>
+                    {badge} à valider
                   </span>
                 )}
               </span>
@@ -254,14 +287,14 @@ function MobileSidebarContenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNav
   );
 }
 
-export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
+export function Sidebar({ isAdmin, equipementsAValider = 0 }: { isAdmin: boolean; equipementsAValider?: number }) {
   const { ouvert, fermer } = useSidebar();
 
   return (
     <>
       {/* Desktop : rail qui s'élargit au survol + volet de sous-menus */}
       <Suspense fallback={<div className="hidden shrink-0 lg:block" style={{ width: COLLAPSED, backgroundColor: "var(--shell-bg)" }} />}>
-        <DesktopSidebar isAdmin={isAdmin} />
+        <DesktopSidebar isAdmin={isAdmin} equipementsAValider={equipementsAValider} />
       </Suspense>
 
       {/* Mobile : tiroir qui glisse depuis la gauche */}
@@ -282,7 +315,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
               </button>
             </div>
             <Suspense fallback={null}>
-              <MobileSidebarContenu isAdmin={isAdmin} onNavigate={fermer} />
+              <MobileSidebarContenu isAdmin={isAdmin} equipementsAValider={equipementsAValider} onNavigate={fermer} />
             </Suspense>
           </div>
         </div>

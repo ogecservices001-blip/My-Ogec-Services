@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { FilAjouter } from "@/components/fil-extra-context";
-import { CLES_CHAMPS_FIXES_EQUIPEMENT, type Equipement, type TypeEquipement, type ChampListeLigne } from "@/lib/gmao/types";
+import type { Equipement, TypeEquipement, ChampListeLigne } from "@/lib/gmao/types";
 import { concatTypeEquipement, analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { calculerHeuresVisite, heuresCumulAnnee } from "@/lib/gmao/calcul-heures-visite";
 import { freqCouranteCalculee } from "@/lib/gmao/releve-service";
@@ -45,9 +45,6 @@ export default async function VisualiserEquipementPage({
   const typeConcat = concatTypeEquipement(c);
   const freqEntretienAnnuelle = typeof c.freqEntretienAnnuelle === "string" ? c.freqEntretienAnnuelle : "";
   const freqAnnuelleNum = parseInt(freqEntretienAnnuelle, 10);
-  const nomTechnicien = typeof c.nomTechnicien === "string" ? c.nomTechnicien : "";
-  const dateMES = typeof c.dateMES === "string" ? c.dateMES : "";
-  const dateIntervPrevue = typeof c.dateIntervPrevue === "string" ? c.dateIntervPrevue : "";
 
   const resultatReference = analyserReference(c, references ?? []);
   const freqCourante = await freqCouranteCalculee(supabase, equipementId);
@@ -71,10 +68,9 @@ export default async function VisualiserEquipementPage({
       : null;
 
   const champsRenseignes = type.champs_en_tete_supplementaires
-    // Les champs fixes (nom technicien, dates, fréquence) sont déjà
-    // affichés juste au-dessus — éviter de les montrer une deuxième
-    // fois si une famille définit par ailleurs un champ de même clé.
-    .filter((champ) => !CLES_CHAMPS_FIXES_EQUIPEMENT.includes(champ.cle as (typeof CLES_CHAMPS_FIXES_EQUIPEMENT)[number]))
+    // freqEntretienAnnuelle est déjà affichée juste au-dessus (à côté de
+    // Cumul annuel/Prochaine visite) — éviter de la montrer deux fois.
+    .filter((champ) => champ.cle !== "freqEntretienAnnuelle")
     .filter((champ) => typeof c[champ.cle] === "string" && (c[champ.cle] as string).trim().length > 0)
     .map((champ) => [champ.unite ? `${champ.label} (${champ.unite})` : champ.label, c[champ.cle] as string] as const);
 
@@ -157,32 +153,14 @@ export default async function VisualiserEquipementPage({
       )}
 
       <div className="border-t border-slate-100 pt-1">
-        {champsRenseignes.length === 0 && !freqEntretienAnnuelle && !nomTechnicien && !dateMES && !dateIntervPrevue ? (
+        {champsRenseignes.length === 0 && !freqEntretienAnnuelle ? (
           <p className="px-4 py-4 text-sm text-slate-400">Aucune information renseignée</p>
         ) : (
           <dl>
-            {nomTechnicien && (
-              <div className="flex items-baseline gap-2 px-4 py-2.5">
-                <dt className="w-60 shrink-0 text-[13px] text-slate-500">Nom technicien</dt>
-                <dd className="text-sm font-semibold text-slate-900">{nomTechnicien}</dd>
-              </div>
-            )}
-            {dateMES && (
-              <div className="flex items-baseline gap-2 border-t border-slate-50 px-4 py-2.5">
-                <dt className="w-60 shrink-0 text-[13px] text-slate-500">Date M.E.S.</dt>
-                <dd className="text-sm font-semibold text-slate-900">{dateMES}</dd>
-              </div>
-            )}
             {freqEntretienAnnuelle && (
-              <div className="flex items-baseline gap-2 border-t border-slate-50 px-4 py-2.5">
+              <div className="flex items-baseline gap-2 border-b border-slate-50 px-4 py-2.5">
                 <dt className="w-60 shrink-0 text-[13px] text-slate-500">Fréquence entretien annuelle</dt>
                 <dd className="text-sm font-semibold text-slate-900">{freqEntretienAnnuelle}</dd>
-              </div>
-            )}
-            {dateIntervPrevue && (
-              <div className="flex items-baseline gap-2 border-t border-slate-50 px-4 py-2.5">
-                <dt className="w-60 shrink-0 text-[13px] text-slate-500">Date interv. prévue</dt>
-                <dd className="text-sm font-semibold text-slate-900">{dateIntervPrevue}</dd>
               </div>
             )}
             {cumul && (

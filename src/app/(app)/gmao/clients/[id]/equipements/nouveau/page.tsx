@@ -20,7 +20,7 @@ export default async function NouvelEquipementPage({
     supabase.from("sites").select("id, nom, site, n_affaire").eq("id", id).single(),
     supabase.from("types_equipement").select("*").order("nom"),
     supabase.from("references_horaires").select("*"),
-    supabase.from("equipements").select("numero_equipement").eq("site_id", id),
+    supabase.from("equipements").select("numero_equipement, groupe").eq("site_id", id),
   ]);
   if (!site) notFound();
 
@@ -28,6 +28,9 @@ export default async function NouvelEquipementPage({
     site.n_affaire ?? "",
     (equipementsSite ?? []).map((e) => e.numero_equipement),
   );
+  const groupesExistants = [
+    ...new Set((equipementsSite ?? []).map((e) => e.groupe).filter((g) => g.trim().length > 0)),
+  ].sort((a, b) => a.localeCompare(b, "fr"));
 
   return (
     <div>
@@ -55,6 +58,7 @@ export default async function NouvelEquipementPage({
           types={(types ?? []) as TypeEquipement[]}
           references={(references ?? []) as ReferenceHoraire[]}
           numeroSuggere={numeroSuggere}
+          groupesExistants={groupesExistants}
         />
       )}
     </div>

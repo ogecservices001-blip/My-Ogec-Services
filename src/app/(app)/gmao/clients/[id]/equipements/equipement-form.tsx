@@ -12,11 +12,13 @@ export function EquipementForm({
   types,
   references,
   numeroSuggere,
+  groupesExistants,
 }: {
   siteId: string;
   types: TypeEquipement[];
   references: ReferenceHoraire[];
   numeroSuggere?: string;
+  groupesExistants?: string[];
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(creerEquipement, null);
@@ -66,7 +68,13 @@ export function EquipementForm({
         <ChampTexte label="Nom (ex: UI VRV 04-06)" name="nom" required />
         <ChampTexte label="Numéro équipement (ex: 462-01-31)" name="numero_equipement" defaultValue={numeroSuggere} />
         <ChampTexte label="Localisation" name="localisation" />
-        <ChampTexte label="Groupe (ex: Split Système)" name="groupe" />
+        <ChampTexte
+          label="Groupe (ex: Split Système)"
+          name="groupe"
+          defaultValue={groupesExistants?.[0]}
+          list="groupes-existants"
+          options={groupesExistants}
+        />
         <ChampTexteLong label="Informations internes (jamais visible du client)" name="informations_internes" />
 
         {type && type.type_equipement1_fixe && (
@@ -125,11 +133,15 @@ function ChampTexte({
   name,
   required,
   defaultValue,
+  list,
+  options,
 }: {
   label: string;
   name: string;
   required?: boolean;
   defaultValue?: string;
+  list?: string;
+  options?: string[];
 }) {
   return (
     <div>
@@ -141,8 +153,16 @@ function ChampTexte({
         name={name}
         required={required}
         defaultValue={defaultValue}
+        list={list}
         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
       />
+      {list && options && options.length > 0 && (
+        <datalist id={list}>
+          {options.map((o) => (
+            <option key={o} value={o} />
+          ))}
+        </datalist>
+      )}
     </div>
   );
 }

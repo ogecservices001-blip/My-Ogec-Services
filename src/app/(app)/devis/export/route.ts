@@ -81,8 +81,8 @@ export async function GET(request: Request) {
     const affaire = site ? numeroAffaireDuSite(site.n_affaire) : null;
     feuille.addRow([
       d.numero,
-      affaire ? affaire.client : "",
-      affaire ? affaire.site : "",
+      affaire ? String(affaire.client).padStart(3, "0") : "",
+      affaire ? String(affaire.site).padStart(2, "0") : "",
       site?.nom ?? "",
       site?.site ?? "",
       equipement

@@ -50,6 +50,7 @@ export type DevisDuSite = {
   date_devis: string;
   nature: string;
   equipement_id: string | null;
+  localisation: string;
 };
 
 /// Devis commandés (= Affaires) d'un site — un devis pas encore
@@ -60,7 +61,7 @@ export async function chargerDevisDuSite(siteId: string, natureFiltre?: string):
   const supabase = await createClient();
   let requete = supabase
     .from("devis")
-    .select("id, numero, libelle, reference_client, date_commande_client, date_devis, nature, equipement_id")
+    .select("id, numero, libelle, reference_client, date_commande_client, date_devis, nature, equipement_id, localisation")
     .eq("site_id", siteId)
     .neq("date_commande_client", "")
     .eq("annule", false)
@@ -70,31 +71,38 @@ export async function chargerDevisDuSite(siteId: string, natureFiltre?: string):
   return data ?? [];
 }
 
-export type InfosNouvelEquipement = { nom: string };
+export type InfosNouvelEquipement = { nom: string; localisation: string };
 
-/// Pré-remplissage "Nom de l'équipement" (pôle Installation neuve) à
-/// partir de l'équipement existant lié au devis (ex: "SPLIT 06
-/// (405-02-06) — Médecin Conseil") : le nouvel équipement remplace ou
-/// rejoint celui-ci, le technicien sait tout de suite de quoi il s'agit.
+/// Pré-remplissage "Nom de l'équipement" et "Localisation" (pôle
+/// Installation neuve) à partir du devis : soit de l'équipement
+/// existant qu'il remplace/rejoint (ex: "SPLIT 06 (405-02-06) —
+/// Médecin Conseil"), soit directement de `devis.localisation` quand
+/// l'équipement n'existe pas encore dans le parc GMAO — le technicien
+/// sait tout de suite où intervenir.
 export async function chargerInfosNouvelEquipement(devisId: string): Promise<InfosNouvelEquipement | null> {
   await requireProfile();
   const supabase = await createClient();
 
-  const { data: devis } = await supabase.from("devis").select("equipement_id").eq("id", devisId).single();
-  if (!devis?.equipement_id) return null;
+  const { data: devis } = await supabase.from("devis").select("equipement_id, localisation").eq("id", devisId).single();
+  if (!devis) return null;
+
+  if (!devis.equipement_id) {
+    return devis.localisation ? { nom: "", localisation: devis.localisation } : null;
+  }
 
   const { data: equipement } = await supabase
     .from("equipements")
     .select("nom, numero_equipement, localisation")
     .eq("id", devis.equipement_id)
     .single();
-  if (!equipement) return null;
+  if (!equipement) return devis.localisation ? { nom: "", localisation: devis.localisation } : null;
 
   const identite = [equipement.nom, equipement.numero_equipement ? `(${equipement.numero_equipement})` : ""]
     .filter(Boolean)
     .join(" ");
   const nom = [identite, equipement.localisation].filter(Boolean).join(" — ");
-  return nom ? { nom } : null;
+  const localisation = devis.localisation || equipement.localisation;
+  return nom || localisation ? { nom, localisation } : null;
 }
 
 export type DevisARealiser = {
@@ -106,6 +114,7 @@ export type DevisARealiser = {
   nature: string;
   libelle: string;
   equipement_id: string | null;
+  localisation: string;
 };
 
 const STATUTS_REALISE = new Set(["valide", "pdf", "prete", "envoye"]);
@@ -120,7 +129,7 @@ export async function chargerDevisARealiser(): Promise<DevisARealiser[]> {
   const [{ data: devis }, { data: bons }, { data: sites }] = await Promise.all([
     supabase
       .from("devis")
-      .select("id, numero, site_id, nature, libelle, bi_reference_historique, equipement_id")
+      .select("id, numero, site_id, nature, libelle, bi_reference_historique, equipement_id, localisation")
       .neq("date_commande_client", "")
       .neq("nature", "")
       .eq("annule", false)
@@ -145,6 +154,7 @@ export async function chargerDevisARealiser(): Promise<DevisARealiser[]> {
       nature: d.nature,
       libelle: d.libelle,
       equipement_id: d.equipement_id,
+      localisation: d.localisation,
     }));
 }
 

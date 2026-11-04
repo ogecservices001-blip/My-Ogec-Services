@@ -103,12 +103,28 @@ export async function previsualiserImportDevis(formData: FormData): Promise<Resu
   const col = (titre: string) => colonnes.get(titre) ?? 0;
 
   const supabase = await createClient();
-  const [{ data: sites, error: errSites }, { data: devisExistants, error: errDevis }] = await Promise.all([
-    supabase.from("sites").select("id, nom, site, n_affaire, courriel_responsable"),
-    supabase.from("devis").select("id, numero"),
-  ]);
+  const [{ data: sites, error: errSites }, { data: devisExistants, error: errDevis }, { data: equipements, error: errEquipements }] =
+    await Promise.all([
+      supabase.from("sites").select("id, nom, site, n_affaire, courriel_responsable"),
+      supabase.from("devis").select("id, numero"),
+      supabase.from("equipements").select("id, site_id, numero_equipement"),
+    ]);
   if (errSites) return { ok: false, erreur: errSites.message };
   if (errDevis) return { ok: false, erreur: errDevis.message };
+  if (errEquipements) return { ok: false, erreur: errEquipements.message };
+
+  // "Équipement concerné" n'est qu'un texte à l'export ("Nom (numéro)")
+  // — on retrouve le vrai équipement du site à partir du numéro entre
+  // parenthèses, seule partie stable et unique dans le parc GMAO.
+  const equipementParCle = new Map<string, string>();
+  for (const e of equipements ?? []) {
+    if (e.numero_equipement) equipementParCle.set(`${e.site_id}|${e.numero_equipement}`, e.id);
+  }
+  function resoudreEquipementId(siteId: string, equipementConcerne: string): string | null {
+    const m = equipementConcerne.match(/\(([^()]+)\)\s*$/);
+    if (!m) return null;
+    return equipementParCle.get(`${siteId}|${m[1].trim()}`) ?? null;
+  }
 
   type SiteResume = { id: string; nom: string; site: string; courriel_responsable: string };
   const siteParCle = new Map<string, SiteResume>();
@@ -168,6 +184,8 @@ export async function previsualiserImportDevis(formData: FormData): Promise<Resu
     // "279" dans "D-26-279-BG-405-01-30").
     const item = numero.split("-")[2] ?? "";
 
+    const equipementConcerne = cell(row, col("Équipement concerné"));
+
     lignes.push({
       donnees: {
         numero,
@@ -176,6 +194,8 @@ export async function previsualiserImportDevis(formData: FormData): Promise<Resu
         nature,
         date_devis: cell(row, col("Date devis")),
         libelle,
+        equipement_id: equipementConcerne ? resoudreEquipementId(site.id, equipementConcerne) : null,
+        localisation: cell(row, col("Localisation")),
         montant: nombreCell(row, col("Montant")),
         date_commande_client: cell(row, col("Date commande client")),
         reference_client: cell(row, col("Référence client")),

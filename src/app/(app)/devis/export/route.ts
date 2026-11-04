@@ -90,7 +90,7 @@ export async function GET(request: Request) {
             .filter(Boolean)
             .join(" ")
         : "",
-      equipement?.localisation ?? "",
+      d.localisation || equipement?.localisation || "",
       d.redacteur,
       d.nature ? labelNatureDevis(d.nature) : "",
       d.date_devis,

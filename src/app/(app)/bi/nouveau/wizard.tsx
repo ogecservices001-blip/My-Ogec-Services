@@ -286,8 +286,9 @@ export function BiWizard({
   useEffect(() => {
     if (!avecNouvelEquipement(pole) || !devisId) return;
     chargerInfosNouvelEquipement(devisId).then((infos) => {
-      if (!infos || !infos.nom) return;
-      if (!installationNom.trim()) setInstallationNom(infos.nom);
+      if (!infos) return;
+      if (infos.nom && !installationNom.trim()) setInstallationNom(infos.nom);
+      if (infos.localisation && !installationLocalisation.trim()) setInstallationLocalisation(infos.localisation);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pré-remplissage ponctuel au choix du devis, pas une synchro continue
   }, [devisId, pole]);
@@ -329,6 +330,7 @@ export function BiWizard({
     setDevisId(d.id);
     setClientNom(d.client_nom);
     setSiteId(d.site_id);
+    if (!avecNouvelEquipement(d.nature) && !avecEquipementLibre(d.nature)) setEquipementId(d.equipement_id ?? "");
     setEtape(1);
   }
 

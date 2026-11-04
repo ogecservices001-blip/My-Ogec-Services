@@ -19,7 +19,7 @@ import {
 
 type Option = { valeur: string; label: string };
 type SiteOption = { id: string; nom: string; site: string; horsContrat: boolean };
-type Equipement = { id: string; libelle: string };
+type Equipement = { id: string; libelle: string; localisation: string };
 
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
 const CHAMP_SM = "w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
@@ -52,6 +52,7 @@ type Brouillon = {
   clientNom: string;
   type: "sous" | "hors";
   equipementId: string;
+  localisation: string;
   libelle: string;
   nature: string;
   lignes: LigneDevis[];
@@ -85,12 +86,30 @@ export function NouveauDevisForm({
   const [siteId, setSiteId] = useState(brouillon?.siteId ?? prefill?.siteId ?? "");
   const [equipements, setEquipements] = useState<Equipement[]>([]);
   const [equipementId, setEquipementId] = useState(brouillon?.equipementId ?? prefill?.equipementId ?? "");
+  const [localisation, setLocalisation] = useState(brouillon?.localisation ?? "");
+
+  function changerEquipement(id: string) {
+    setEquipementId(id);
+    // Toujours connue quand l'équipement l'est — reste modifiable
+    // ensuite (notamment quand l'équipement n'existe pas encore,
+    // ex. Installation neuve).
+    const eq = equipements.find((e) => e.id === id);
+    if (eq) setLocalisation(eq.localisation);
+  }
 
   useEffect(() => {
     const siteADeterminer = brouillon?.siteId ?? prefill?.siteId;
     if (!siteADeterminer) return;
     startTransition(async () => {
-      setEquipements(await listerEquipementsDuSite(siteADeterminer));
+      const liste = await listerEquipementsDuSite(siteADeterminer);
+      setEquipements(liste);
+      // "Devis à établir" fournit un equipementId mais pas sa
+      // localisation (contrairement à un brouillon repris, qui a déjà
+      // la sienne) — on la déduit une fois la liste chargée.
+      if (prefill?.equipementId && !brouillon) {
+        const eq = liste.find((e) => e.id === prefill.equipementId);
+        if (eq) setLocalisation(eq.localisation);
+      }
     });
     // Pré-remplissage ponctuel au chargement (brouillon repris, ou
     // "Devis à établir"), pas une synchro continue — pas de dépendances
@@ -154,6 +173,7 @@ export function NouveauDevisForm({
         libelle,
         nature,
         equipementId: equipementId || null,
+        localisation,
         lignes: lignesValides,
         coutRevient,
         brouillonId: brouillonId ?? undefined,
@@ -177,6 +197,7 @@ export function NouveauDevisForm({
         libelle,
         nature,
         equipementId: equipementId || null,
+        localisation,
         lignes: lignesValides,
         coutRevient,
       });
@@ -240,7 +261,7 @@ export function NouveauDevisForm({
           <label className={ETIQUETTE}>Équipement concerné (facultatif)</label>
           <select
             value={equipementId}
-            onChange={(e) => setEquipementId(e.target.value)}
+            onChange={(e) => changerEquipement(e.target.value)}
             disabled={!siteId || equipements.length === 0}
             className={`${CHAMP} disabled:bg-slate-50`}
           >
@@ -251,6 +272,16 @@ export function NouveauDevisForm({
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className={ETIQUETTE}>Localisation</label>
+          <input
+            value={localisation}
+            onChange={(e) => setLocalisation(e.target.value)}
+            placeholder="Ex : Bureau 43"
+            className={CHAMP}
+          />
         </div>
 
         <div>

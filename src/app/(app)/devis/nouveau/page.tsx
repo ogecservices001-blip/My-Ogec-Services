@@ -44,6 +44,7 @@ async function chargerBrouillon(supabase: Awaited<ReturnType<typeof createClient
     clientNom: site.nom,
     type: (site.hors_contrat ? "hors" : "sous") as "hors" | "sous",
     equipementId: devis.equipement_id ?? "",
+    localisation: devis.localisation,
     libelle: devis.libelle,
     nature: devis.nature,
     lignes: (devis.lignes ?? []) as unknown as LigneDevis[],

@@ -18,6 +18,10 @@ export type NouveauDevisInput = {
   libelle: string;
   nature: string;
   equipementId: string | null;
+  /// Texte libre, indépendant de l'équipement du parc GMAO — utile
+  /// notamment pour une Installation neuve (l'équipement n'existe pas
+  /// encore). Pré-remplie depuis l'équipement choisi, mais modifiable.
+  localisation: string;
   lignes: LigneDevis[];
   coutRevient: CoutRevient;
   /// Brouillon existant ("Devis en cours") qu'on finalise — le numéro
@@ -29,7 +33,9 @@ export type NouveauDevisInput = {
 const ERREUR_DOUBLON = "23505";
 const ESSAIS_NUMERO = 5;
 
-export async function listerEquipementsDuSite(siteId: string): Promise<{ id: string; libelle: string }[]> {
+export async function listerEquipementsDuSite(
+  siteId: string,
+): Promise<{ id: string; libelle: string; localisation: string }[]> {
   await requireAdmin();
   const supabase = await createClient();
   const { data } = await supabase
@@ -42,6 +48,7 @@ export async function listerEquipementsDuSite(siteId: string): Promise<{ id: str
     return {
       id: e.id,
       libelle: [typeEquipement1, e.numero_equipement, e.localisation].filter(Boolean).join(" — "),
+      localisation: e.localisation,
     };
   });
 }
@@ -99,6 +106,7 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
       lignes: lignesValides,
       cout_revient: input.coutRevient,
       equipement_id: input.equipementId,
+      localisation: input.localisation.trim(),
       date_devis: dateDevis,
       redacteur: profil.name,
       annule: false,
@@ -125,6 +133,7 @@ export type BrouillonDevisInput = {
   libelle: string;
   nature: string;
   equipementId: string | null;
+  localisation: string;
   lignes: LigneDevis[];
   coutRevient: CoutRevient;
 };
@@ -153,6 +162,7 @@ export async function enregistrerBrouillonDevis(input: BrouillonDevisInput): Pro
     lignes: lignesValides,
     cout_revient: input.coutRevient,
     equipement_id: input.equipementId,
+    localisation: input.localisation.trim(),
     date_devis: new Date().toLocaleDateString("fr-FR"),
     redacteur: profil.name,
     annule: false,
@@ -193,6 +203,8 @@ export type DevisInput = {
   heures_prevues: number | null;
   email_responsable_contrat: string;
   annule: boolean;
+  equipement_id?: string | null;
+  localisation?: string;
 };
 
 /// Correction d'un devis existant (importé ou créé depuis l'appli).

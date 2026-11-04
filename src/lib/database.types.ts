@@ -724,6 +724,7 @@ export type Database = {
           legacy_id: string | null
           libelle: string
           lignes: Json
+          localisation: string
           mois_facturation: string
           montant: number | null
           nature: string
@@ -752,6 +753,7 @@ export type Database = {
           legacy_id?: string | null
           libelle?: string
           lignes?: Json
+          localisation?: string
           mois_facturation?: string
           montant?: number | null
           nature?: string
@@ -780,6 +782,7 @@ export type Database = {
           legacy_id?: string | null
           libelle?: string
           lignes?: Json
+          localisation?: string
           mois_facturation?: string
           montant?: number | null
           nature?: string

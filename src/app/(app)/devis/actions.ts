@@ -47,7 +47,7 @@ export async function listerEquipementsDuSite(
     const typeEquipement1 = typeof e.champs_en_tete.typeEquipement1 === "string" ? e.champs_en_tete.typeEquipement1 : "";
     return {
       id: e.id,
-      libelle: [typeEquipement1, e.numero_equipement, e.localisation].filter(Boolean).join(" — "),
+      libelle: [typeEquipement1, e.numero_equipement].filter(Boolean).join(" — "),
       localisation: e.localisation,
     };
   });

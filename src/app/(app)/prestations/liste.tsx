@@ -147,13 +147,23 @@ export function PrestationsListe({
                 </span>
               )}
               {vue === "a_realiser" && !isAdmin && avecAffaire(l.nature) && (
-                <Link
-                  href={`/bi/nouveau?devisId=${l.id}`}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700"
-                >
-                  <Wrench className="h-3.5 w-3.5" strokeWidth={2} />
-                  Créer le BI
-                </Link>
+                l.biId && !l.realisee ? (
+                  <Link
+                    href={`/bi/nouveau?brouillonId=${l.biId}`}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-orange-600"
+                  >
+                    <Wrench className="h-3.5 w-3.5" strokeWidth={2} />
+                    Reprendre le BI
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/bi/nouveau?devisId=${l.id}`}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700"
+                  >
+                    <Wrench className="h-3.5 w-3.5" strokeWidth={2} />
+                    Créer le BI
+                  </Link>
+                )
               )}
             </li>
           ))}

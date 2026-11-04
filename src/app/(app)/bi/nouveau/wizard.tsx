@@ -39,6 +39,7 @@ import {
   type PrestaInput,
   type DepannageEnCours,
   type InterventionSupplementaireInput,
+  type BrouillonBI,
 } from "./actions";
 
 type SiteOption = {
@@ -89,6 +90,7 @@ export function BiWizard({
   nomUtilisateur,
   depannagesEnCours,
   devisARealiser,
+  brouillon,
 }: {
   sites: SiteOption[];
   techniciensDisponibles: string[];
@@ -97,6 +99,7 @@ export function BiWizard({
   nomUtilisateur: string;
   depannagesEnCours: DepannageEnCours[];
   devisARealiser: DevisARealiser[];
+  brouillon: BrouillonBI | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -114,6 +117,19 @@ export function BiWizard({
     const devisIdParam = searchParams.get("devisId");
     const depannageIdParam = searchParams.get("depannageId");
 
+    if (brouillon) {
+      const s = sites.find((site) => site.id === brouillon.site_id);
+      return {
+        etape: 1,
+        pole: brouillon.pole,
+        devisId: brouillon.devis_id ?? "",
+        depannageId: null as string | null,
+        clientNom: s?.nom ?? "",
+        siteId: brouillon.site_id,
+        equipementId: brouillon.equipement_id ?? "",
+        compteRendu: brouillon.compte_rendu,
+      };
+    }
     if (devisIdParam) {
       const d = devisARealiser.find((x) => x.id === devisIdParam);
       if (d) {
@@ -163,6 +179,12 @@ export function BiWizard({
   const [enregistrement, startEnregistrement] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
+  // Brouillon repris (voir /prestations "Reprendre le BI") : les
+  // sauvegardes suivantes mettent à jour cette même ligne, jamais une
+  // nouvelle — évite exactement le bug "3 clics = 3 BI différents".
+  const [brouillonId, setBrouillonId] = useState<string | null>(brouillon?.id ?? null);
+  const [brouillonConfirme, setBrouillonConfirme] = useState(false);
+
   const [depannageId, setDepannageId] = useState<string | null>(etatInitial.depannageId);
 
   // ---------- Étape 1 : Client ----------
@@ -174,17 +196,24 @@ export function BiWizard({
   const [equipementId, setEquipementId] = useState(etatInitial.equipementId);
   const [chargementSite, startChargementSite] = useTransition();
 
-  const [typeActifId, setTypeActifId] = useState("");
-  const [materielChamps, setMaterielChamps] = useState<Record<string, string>>({});
+  const [typeActifId, setTypeActifId] = useState(brouillon?.materiel_type_equipement_id ?? "");
+  const [materielChamps, setMaterielChamps] = useState<Record<string, string>>(
+    brouillon?.materiel_champs_en_tete ?? {},
+  );
   // Type Equipement 2/3 ne sont jamais des listes (ChampListeLigne[]) côté
   // BI — seul le formulaire GMAO complet gère les champs_listes — d'où ce
   // recast pour réutiliser TypeEquipementSelects sans dupliquer son état.
   const setMaterielChampsTypeEquipement = setMaterielChamps as unknown as Dispatch<SetStateAction<ChampsEnTeteEquipement>>;
-  const [installationNom, setInstallationNom] = useState("");
-  const [installationLocalisation, setInstallationLocalisation] = useState("");
-  const [installationGroupe, setInstallationGroupe] = useState("");
-  const [equipementLibre, setEquipementLibre] = useState("");
-  const [groupesSelectionnes, setGroupesSelectionnes] = useState<Set<string>>(new Set());
+  const brouillonNouvelEquipement = brouillon && !brouillon.equipement_id ? brouillon : null;
+  const [installationNom, setInstallationNom] = useState(brouillonNouvelEquipement?.equipement_nom ?? "");
+  const [installationLocalisation, setInstallationLocalisation] = useState(
+    brouillonNouvelEquipement?.equipement_localisation ?? "",
+  );
+  const [installationGroupe, setInstallationGroupe] = useState(brouillonNouvelEquipement?.equipement_groupe ?? "");
+  const [equipementLibre, setEquipementLibre] = useState(brouillonNouvelEquipement?.equipement_nom ?? "");
+  const [groupesSelectionnes, setGroupesSelectionnes] = useState<Set<string>>(
+    new Set(brouillon?.entretien_groupes ?? []),
+  );
   const [nonDesservisIds, setNonDesservisIds] = useState<Set<string>>(new Set());
   const [motifsNonDesservi, setMotifsNonDesservi] = useState<Record<string, string>>({});
 
@@ -225,8 +254,15 @@ export function BiWizard({
     // sinon obsolète.
   }, [siteId, pole]);
 
+  const premierSiteEffectRef = useRef(true);
   useEffect(() => {
+    const premier = premierSiteEffectRef.current;
+    premierSiteEffectRef.current = false;
     if (!site) return;
+    // Un brouillon repris a déjà ses propres coordonnées saisies (ou
+    // volontairement laissées vides) — ne pas les écraser avec celles
+    // du site au premier rendu.
+    if (premier && brouillon) return;
     setSignataire(site.interlocuteur_site);
     setSignataireTelPortable(site.portable_interlocuteur_site);
     setSignataireTelFixe(site.tel_fixe_interlocuteur_site);
@@ -351,10 +387,14 @@ export function BiWizard({
   const [compteRendu, setCompteRendu] = useState(etatInitial.compteRendu);
   const compteRenduRef = useRef("");
   compteRenduRef.current = compteRendu;
-  const [obsTech, setObsTech] = useState("");
-  const [obsClient, setObsClient] = useState("");
-  const [photos, setPhotos] = useState<(PhotoInput & { preview: string; enCours: boolean })[]>([]);
-  const [fourniture, setFourniture] = useState<PrestaInput[]>([{ designation: "", quantite: "" }]);
+  const [obsTech, setObsTech] = useState(brouillon?.obs_tech ?? "");
+  const [obsClient, setObsClient] = useState(brouillon?.obs_client ?? "");
+  const [photos, setPhotos] = useState<(PhotoInput & { preview: string; enCours: boolean })[]>(
+    brouillon?.photos.map((p) => ({ ...p, enCours: false })) ?? [],
+  );
+  const [fourniture, setFourniture] = useState<PrestaInput[]>(
+    brouillon && brouillon.prestas.length > 0 ? brouillon.prestas : [{ designation: "", quantite: "" }],
+  );
 
   // Pôle Dépannage uniquement : remplace "Observation technicien" (texte
   // libre, par visite) par un état par équipement. Coché seul ou avec
@@ -383,7 +423,9 @@ export function BiWizard({
   // l'intervention en cours (équipement/compte rendu/fourniture) ici et
   // ramène à l'étape équipement pour la suivante ; obs/photos restent
   // communes à la visite entière.
-  const [interventionsSupplementaires, setInterventionsSupplementaires] = useState<InterventionSupplementaireInput[]>([]);
+  const [interventionsSupplementaires, setInterventionsSupplementaires] = useState<InterventionSupplementaireInput[]>(
+    brouillon?.interventions_supplementaires ?? [],
+  );
 
   function ajouterAutreEquipement() {
     const nom = avecNouvelEquipement(pole) ? "" : equipement ? equipement.nom : equipementLibre.trim();
@@ -417,10 +459,15 @@ export function BiWizard({
   // consultés en direct à chaque changement de pôle, jamais mis en
   // cache au-delà de cette session de l'assistant.
   const [modele, setModele] = useState<ModeleBI | null>(null);
-  const [modeleChamps, setModeleChamps] = useState<Record<string, string>>({});
-  const [checklistValues, setChecklistValues] = useState<Record<string, boolean | string>>({});
+  const [modeleChamps, setModeleChamps] = useState<Record<string, string>>(brouillon?.modele_champs ?? {});
+  const [checklistValues, setChecklistValues] = useState<Record<string, boolean | string>>(
+    brouillon?.checklist_values ?? {},
+  );
 
+  const premierModeleEffectRef = useRef(true);
   useEffect(() => {
+    const premier = premierModeleEffectRef.current;
+    premierModeleEffectRef.current = false;
     if (!pole) {
       setModele(null);
       return;
@@ -429,13 +476,18 @@ export function BiWizard({
     chargerModeleBI(pole).then((m) => {
       if (annule) return;
       setModele(m);
-      setModeleChamps({});
-      setChecklistValues({});
+      // Un brouillon repris a déjà ses champs guidés/checklist restaurés
+      // (voir useState plus haut) — ne pas les effacer au premier rendu.
+      if (!(premier && brouillon)) {
+        setModeleChamps({});
+        setChecklistValues({});
+      }
       if (m?.texte_type && !compteRenduRef.current.trim()) setCompteRendu(m.texte_type);
     });
     return () => {
       annule = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `brouillon` ne change jamais après montage (voir `key` du wizard)
   }, [pole]);
 
   async function redimensionner(fichier: File, maxDim = 1600): Promise<Blob> {
@@ -470,21 +522,25 @@ export function BiWizard({
   }
 
   // ---------- Étape 3 : Techniciens + Dates + Signatures ----------
-  const [techniciens, setTechniciens] = useState<string[]>(nomUtilisateur ? [nomUtilisateur] : []);
-  const [dateDebut, setDateDebut] = useState(today());
-  const [dateFin, setDateFin] = useState(today());
-  const [dateIntervention, setDateIntervention] = useState(today());
-  const [tempsPasse, setTempsPasse] = useState("");
-  const [tempsManuel, setTempsManuel] = useState(false);
-  const [signataire, setSignataire] = useState("");
-  const [signataireTelPortable, setSignataireTelPortable] = useState("");
-  const [signataireTelFixe, setSignataireTelFixe] = useState("");
-  const [email, setEmail] = useState("");
+  const [techniciens, setTechniciens] = useState<string[]>(
+    brouillon && brouillon.techniciens.length > 0 ? brouillon.techniciens : nomUtilisateur ? [nomUtilisateur] : [],
+  );
+  const [dateDebut, setDateDebut] = useState(brouillon?.date_debut || today());
+  const [dateFin, setDateFin] = useState(brouillon?.date_fin || today());
+  const [dateIntervention, setDateIntervention] = useState(brouillon?.date_intervention || today());
+  const [tempsPasse, setTempsPasse] = useState(brouillon?.temps_passe ?? "");
+  // Si un temps était déjà saisi sur le brouillon, ne pas le laisser
+  // recalculer/écraser par l'effet de temps standard ci-dessous.
+  const [tempsManuel, setTempsManuel] = useState(Boolean(brouillon?.temps_passe));
+  const [signataire, setSignataire] = useState(brouillon?.signataire ?? "");
+  const [signataireTelPortable, setSignataireTelPortable] = useState(brouillon?.signataire_tel_portable ?? "");
+  const [signataireTelFixe, setSignataireTelFixe] = useState(brouillon?.signataire_tel_fixe ?? "");
+  const [email, setEmail] = useState(brouillon?.email ?? "");
   const sigTechRef = useRef<SignaturePadHandle>(null);
   const sigClientRef = useRef<SignaturePadHandle>(null);
   const [sigTechVide, setSigTechVide] = useState(true);
   const [sigClientVide, setSigClientVide] = useState(true);
-  const [nombreDeplacements, setNombreDeplacements] = useState<number | "">("");
+  const [nombreDeplacements, setNombreDeplacements] = useState<number | "">(brouillon?.nombre_deplacements ?? "");
   const [alerteHeures, setAlerteHeures] = useState(false);
   const [alerteDeplacements, setAlerteDeplacements] = useState(false);
   const [alerteTechnicien, setAlerteTechnicien] = useState(false);
@@ -686,10 +742,21 @@ export function BiWizard({
       return;
     }
     setErreur(null);
+    setBrouillonConfirme(false);
     startEnregistrement(async () => {
-      const res = await enregistrerBI(construireInput(), statut);
+      const res = await enregistrerBI(construireInput(), statut, brouillonId ?? undefined);
       if (!res.ok) {
         setErreur(res.erreur);
+        return;
+      }
+      if (statut === "brouillon") {
+        // Reste sur l'assistant : le technicien est encore sur le
+        // chantier, "Enregistrer brouillon" n'est qu'une sauvegarde de
+        // ce qu'il a déjà saisi, pas une sortie de l'assistant. Les
+        // clics suivants mettent à jour ce même brouillon (jamais une
+        // nouvelle ligne).
+        setBrouillonId(res.id ?? null);
+        setBrouillonConfirme(true);
         return;
       }
       router.push("/");
@@ -803,6 +870,12 @@ export function BiWizard({
               {labelPole(pole)}
             </p>
           </div>
+
+          {brouillon && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5">
+              <p className="text-sm font-semibold text-amber-800">Brouillon repris — rien n&apos;a été perdu.</p>
+            </div>
+          )}
 
           {pole === Poles.depannage && depannageId && (
             <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
@@ -1373,7 +1446,6 @@ export function BiWizard({
               <p className="text-sm font-bold text-slate-900">
                 {[equipement.nom, equipement.localisation].filter(Boolean).join(" – ")}
               </p>
-              <p className="text-sm text-slate-700">{labelPole(pole)}</p>
               {compteRendu.trim() && <p className="mt-1 text-sm text-slate-700">{compteRendu.trim()}</p>}
             </div>
           )}
@@ -1524,6 +1596,13 @@ export function BiWizard({
             <SignaturePad ref={sigClientRef} titre="Signature client" onChange={setSigClientVide} />
           </div>
         </div>
+      )}
+
+      {brouillonConfirme && (
+        <p className="mb-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-brand-green-dark">
+          Brouillon enregistré — retrouvable dans &quot;Prestation sur commande&quot;, bouton &quot;Reprendre le
+          BI&quot;.
+        </p>
       )}
 
       <div className="sticky bottom-0 mt-6 -mx-4 flex gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:mx-0 sm:rounded-2xl sm:border">

@@ -256,22 +256,121 @@ export type BiInput = {
   nombre_deplacements: number;
 };
 
-/// Crée le bon d'intervention — un seul enregistrement terminal par
-/// passage dans l'assistant (contrairement à la version Flutter, qui
-/// permet de reprendre un brouillon local plus tard sur le même
-/// appareil hors-ligne : ici, pas de couche de synchronisation locale,
-/// donc un brouillon web reste consultable en lecture seule côté
-/// bureau tant qu'il n'est pas repris et retransmis depuis un nouvel
-/// assistant). Le chrono n'est alloué qu'ici, jamais avant.
-export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averif"): Promise<ActionResult> {
+export type BrouillonBI = {
+  id: string;
+  pole: string;
+  site_id: string;
+  equipement_id: string | null;
+  equipement_nom: string;
+  equipement_groupe: string;
+  equipement_localisation: string;
+  devis_id: string | null;
+  materiel_type_equipement_id: string | null;
+  materiel_champs_en_tete: Record<string, string>;
+  entretien_groupes: string[];
+  entretien_non_desservis: NonDesserviInput[];
+  date_debut: string;
+  date_fin: string;
+  date_intervention: string;
+  temps_passe: string;
+  techniciens: string[];
+  compte_rendu: string;
+  obs_tech: string;
+  obs_client: string;
+  modele_champs: Record<string, string>;
+  checklist_values: Record<string, boolean | string>;
+  prestas: PrestaInput[];
+  etat_equipement: string[];
+  interventions_supplementaires: InterventionSupplementaireInput[];
+  photos: (PhotoInput & { preview: string })[];
+  signataire: string;
+  signataire_tel_portable: string;
+  signataire_tel_fixe: string;
+  email: string;
+  nombre_deplacements: number;
+};
+
+/// Charge un brouillon BI pour le reprendre dans l'assistant (voir
+/// "Reprendre le BI" sur /prestations) — tout ce qui a déjà été saisi
+/// doit revenir tel quel, le technicien ne doit rien ressaisir. Les
+/// photos déjà envoyées sont dans un bucket privé : on génère une URL
+/// signée pour pouvoir les réafficher (le chemin seul ne suffit pas).
+/// Ne récupère jamais un BI déjà transmis (statut différent de
+/// "brouillon") — cet écran ne sert qu'à reprendre un brouillon.
+export async function chargerBrouillonBI(id: string): Promise<BrouillonBI | null> {
+  await requireProfile();
+  const supabase = await createClient();
+  const { data } = await supabase.from("bons_intervention").select("*").eq("id", id).eq("statut", "brouillon").single();
+  if (!data) return null;
+
+  const photosBrutes = data.photos as unknown as PhotoInput[];
+  const photos = await Promise.all(
+    photosBrutes.map(async (p) => {
+      const { data: signee } = await supabase.storage.from("bi-photos").createSignedUrl(p.storage_path, 3600);
+      return { ...p, preview: signee?.signedUrl ?? "" };
+    }),
+  );
+
+  return {
+    id: data.id,
+    pole: data.pole,
+    site_id: data.site_id ?? "",
+    equipement_id: data.equipement_id,
+    equipement_nom: data.equipement_nom,
+    equipement_groupe: data.equipement_groupe,
+    equipement_localisation: data.equipement_localisation,
+    devis_id: data.devis_id,
+    materiel_type_equipement_id: data.materiel_type_equipement_id,
+    materiel_champs_en_tete: data.materiel_champs_en_tete as unknown as Record<string, string>,
+    entretien_groupes: data.entretien_groupes,
+    entretien_non_desservis: data.entretien_non_desservis as unknown as NonDesserviInput[],
+    date_debut: data.date_debut,
+    date_fin: data.date_fin,
+    date_intervention: data.date_intervention,
+    temps_passe: data.temps_passe,
+    techniciens: data.techniciens,
+    compte_rendu: data.compte_rendu,
+    obs_tech: data.obs_tech,
+    obs_client: data.obs_client,
+    modele_champs: data.modele_champs as unknown as Record<string, string>,
+    checklist_values: data.checklist_values as unknown as Record<string, boolean | string>,
+    prestas: data.prestas as unknown as PrestaInput[],
+    etat_equipement: data.etat_equipement as unknown as string[],
+    interventions_supplementaires: data.interventions_supplementaires as unknown as InterventionSupplementaireInput[],
+    photos,
+    signataire: data.signataire,
+    signataire_tel_portable: data.signataire_tel_portable,
+    signataire_tel_fixe: data.signataire_tel_fixe,
+    email: data.email,
+    nombre_deplacements: data.nombre_deplacements,
+  };
+}
+
+/// Crée ou met à jour le bon d'intervention. `brouillonId` : reprise
+/// d'un brouillon déjà enregistré (voir /prestations "Reprendre le
+/// BI") — met à jour la même ligne plutôt que d'en créer une nouvelle,
+/// pour qu'un technicien puisse enregistrer plusieurs fois de suite
+/// sans multiplier les BI. Le numéro officiel n'est attribué qu'à la
+/// transmission réelle au bureau (statut "averif", signé par le
+/// client) — jamais sur un brouillon, qui n'en a pas besoin et ne doit
+/// surtout pas en consommer un à chaque sauvegarde intermédiaire.
+export async function enregistrerBI(
+  input: BiInput,
+  statut: "brouillon" | "averif",
+  brouillonId?: string,
+): Promise<ActionResult & { id?: string }> {
   const profile = await requireProfile();
   const supabase = await createClient();
 
-  const annee = currentYear();
-  const chrono = await prochainChronoBI(supabase, annee);
-  const numero = numeroBI(input.pole, annee, chrono);
+  let chrono = 0;
+  let numero = "";
+  if (statut === "averif") {
+    const annee = currentYear();
+    chrono = await prochainChronoBI(supabase, annee);
+    numero = numeroBI(input.pole, annee, chrono);
+  }
 
-  const { data: bi, error } = await supabase.from("bons_intervention").insert({
+  const donnees = {
     pole: input.pole,
     chrono,
     numero,
@@ -322,7 +421,11 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
       statut === "averif"
         ? [{ user: profile.name, date: now(), event: "Signé client · transmis au bureau pour vérification" }]
         : [],
-  }).select("id").single();
+  };
+
+  const { data: bi, error } = brouillonId
+    ? await supabase.from("bons_intervention").update(donnees).eq("id", brouillonId).select("id").single()
+    : await supabase.from("bons_intervention").insert(donnees).select("id").single();
   if (error || !bi) return { ok: false, erreur: error?.message ?? "Échec de l'enregistrement." };
 
   // Le dépannage ne passe "traitée" qu'à la transmission réelle au
@@ -338,7 +441,7 @@ export async function enregistrerBI(input: BiInput, statut: "brouillon" | "averi
 
   revalidatePath("/bi");
   revalidatePath("/prestations");
-  return { ok: true };
+  return { ok: true, id: bi.id };
 }
 
 /// `prochain_chrono` est générique (clé + année) — même mécanisme que

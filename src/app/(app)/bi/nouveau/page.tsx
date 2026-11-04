@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { TypeEquipement, ReferenceHoraire } from "@/lib/gmao/types";
-import { chargerDepannagesEnCours, chargerDevisARealiser } from "./actions";
+import { chargerDepannagesEnCours, chargerDevisARealiser, chargerBrouillonBI } from "./actions";
 import { BiWizard } from "./wizard";
 
 /// Le bureau (admin) ne crée jamais de BI lui-même — il ne fait que
@@ -10,14 +10,14 @@ import { BiWizard } from "./wizard";
 export default async function NouveauBiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ pole?: string; devisId?: string; depannageId?: string; horsContrat?: string }>;
+  searchParams: Promise<{ pole?: string; devisId?: string; depannageId?: string; horsContrat?: string; brouillonId?: string }>;
 }) {
   const profile = await requireProfile();
   if (profile.role === "admin") redirect("/");
-  const { pole, devisId, depannageId, horsContrat } = await searchParams;
+  const { pole, devisId, depannageId, horsContrat, brouillonId } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: sites }, { data: techniciens }, { data: typesEquipement }, { data: references }, depannagesEnCours, devisARealiser] =
+  const [{ data: sites }, { data: techniciens }, { data: typesEquipement }, { data: references }, depannagesEnCours, devisARealiser, brouillon] =
     await Promise.all([
       supabase
         .from("sites_view")
@@ -30,11 +30,12 @@ export default async function NouveauBiPage({
       supabase.from("references_horaires").select("*"),
       chargerDepannagesEnCours(),
       chargerDevisARealiser(),
+      brouillonId ? chargerBrouillonBI(brouillonId) : Promise.resolve(null),
     ]);
 
   return (
     <BiWizard
-      key={`${pole ?? ""}|${devisId ?? ""}|${depannageId ?? ""}|${horsContrat ?? ""}`}
+      key={`${pole ?? ""}|${devisId ?? ""}|${depannageId ?? ""}|${horsContrat ?? ""}|${brouillonId ?? ""}`}
       sites={sites ?? []}
       techniciensDisponibles={(techniciens ?? []).map((t) => t.name)}
       typesEquipement={(typesEquipement ?? []) as TypeEquipement[]}
@@ -42,6 +43,7 @@ export default async function NouveauBiPage({
       nomUtilisateur={profile.name}
       depannagesEnCours={depannagesEnCours}
       devisARealiser={devisARealiser}
+      brouillon={brouillon}
     />
   );
 }

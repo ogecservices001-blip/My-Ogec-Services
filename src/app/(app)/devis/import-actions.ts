@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
+import { NATURE_DEVIS } from "@/lib/devis/constants";
 import type { DevisInput } from "./actions";
+
+const CODE_PAR_LABEL_NATURE = new Map(Object.entries(NATURE_DEVIS).map(([code, label]) => [label, code]));
 
 export type LigneDevisImport = {
   donnees: DevisInput;
@@ -34,6 +37,7 @@ function texteCell(v: ExcelJS.CellValue): string {
 }
 
 function cell(row: ExcelJS.Row, index: number): string {
+  if (index <= 0) return ""; // colonne absente du fichier (en-tête non trouvé)
   return texteCell(row.getCell(index).value);
 }
 
@@ -51,10 +55,26 @@ function nombreCell(row: ExcelJS.Row, index: number): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
-/// Lit la feuille "Suivi Devis" du classeur "Chono Devis OGS 2026.xlsm"
-/// — colonnes fixes lues par position (voir migration 0019 pour le
-/// mapping complet), classeur distinct du "Base clients" (celui-ci ne
-/// fait que reprendre la référence devis déjà générée ici).
+/// Colonnes attendues, par en-tête (ligne 1) — même format que notre
+/// propre export (/devis/export), pour pouvoir exporter, corriger dans
+/// Excel puis réimporter. Lu par nom plutôt que par position : un
+/// classeur réimporté après avoir été retouché (colonnes réordonnées,
+/// certaines supprimées) reste exploitable tant que les en-têtes
+/// voulus sont présents.
+const COLONNE_REFERENCE = "Référence devis";
+const COLONNE_NUM_CLIENT = "Numéro Client";
+const COLONNE_NUM_SITE = "N° Site";
+
+function entetesColonnes(feuille: ExcelJS.Worksheet): Map<string, number> {
+  const entetes = new Map<string, number>();
+  const ligneEntete = feuille.getRow(1);
+  ligneEntete.eachCell((cellule, index) => {
+    const texte = texteCell(cellule.value);
+    if (texte) entetes.set(texte, index);
+  });
+  return entetes;
+}
+
 export async function previsualiserImportDevis(formData: FormData): Promise<ResultatPreviewDevis> {
   await requireAdmin();
 
@@ -70,10 +90,17 @@ export async function previsualiserImportDevis(formData: FormData): Promise<Resu
     return { ok: false, erreur: "Fichier illisible — un .xlsx/.xlsm est attendu." };
   }
 
-  const feuille = workbook.getWorksheet("Suivi Devis") ?? workbook.worksheets[0];
+  const feuille = workbook.worksheets[0];
   if (!feuille || feuille.rowCount === 0) {
     return { ok: false, erreur: "Feuille introuvable ou vide dans ce classeur." };
   }
+
+  const colonnes = entetesColonnes(feuille);
+  const manquantes = [COLONNE_REFERENCE, COLONNE_NUM_CLIENT, COLONNE_NUM_SITE].filter((c) => !colonnes.has(c));
+  if (manquantes.length > 0) {
+    return { ok: false, erreur: `Colonne(s) manquante(s) : ${manquantes.join(", ")} — même format que l'export Devis attendu.` };
+  }
+  const col = (titre: string) => colonnes.get(titre) ?? 0;
 
   const supabase = await createClient();
   const [{ data: sites, error: errSites }, { data: devisExistants, error: errDevis }] = await Promise.all([
@@ -104,14 +131,15 @@ export async function previsualiserImportDevis(formData: FormData): Promise<Resu
 
   feuille.eachRow((row, numeroLigne) => {
     if (numeroLigne === 1) return; // en-tête
-    const item = cell(row, 1);
-    if (!item) return;
 
-    const numero = cell(row, 7);
-    const numClient = entierCell(row, 3);
-    const numSite = entierCell(row, 4);
+    const numero = cell(row, col(COLONNE_REFERENCE));
+    const numClient = entierCell(row, col(COLONNE_NUM_CLIENT));
+    const numSite = entierCell(row, col(COLONNE_NUM_SITE));
+    const libelle = cell(row, col("Libellé"));
+    if (!numero && !numClient && !numSite && !libelle) return; // ligne vide
+
     if (numClient === null || numSite === null) {
-      avertissements.push(`Ligne ${numeroLigne} (item "${item}") ignorée : N° Client/Site illisible.`);
+      avertissements.push(`Ligne ${numeroLigne} ignorée : Numéro Client/N° Site illisible.`);
       return;
     }
 
@@ -125,36 +153,44 @@ export async function previsualiserImportDevis(formData: FormData): Promise<Resu
       }
     }
     if (!site) {
-      avertissements.push(`Client ${numClient}-${numSite} introuvable dans le Répertoire (item "${item}") — ligne ignorée.`);
+      avertissements.push(`Client ${numClient}-${numSite} introuvable dans le Répertoire (ligne ${numeroLigne}) — ligne ignorée.`);
       return;
     }
 
-    const natureBrute = cell(row, 5);
-    const nature = /^\d+$/.test(natureBrute) ? natureBrute : "";
+    // Le code nature n'est pas réexportable tel quel (l'export écrit le
+    // libellé, ex. "Réparation d'un équipement") — on le retrouve par
+    // correspondance inverse plutôt que de dépendre d'un code brut.
+    const natureBrute = cell(row, col("Nature"));
+    const nature = CODE_PAR_LABEL_NATURE.get(natureBrute) ?? (/^\d+$/.test(natureBrute) ? natureBrute : "");
+
+    // "Item" (compteur chrono) n'est plus une colonne à part : il se
+    // retrouve directement dans la référence devis (3e segment, ex.
+    // "279" dans "D-26-279-BG-405-01-30").
+    const item = numero.split("-")[2] ?? "";
 
     lignes.push({
       donnees: {
         numero,
         item,
-        redacteur: cell(row, 2),
+        redacteur: cell(row, col("Rédacteur")),
         nature,
-        date_devis: cell(row, 6),
-        libelle: cell(row, 10),
-        montant: nombreCell(row, 11),
-        date_commande_client: cell(row, 12),
-        reference_client: cell(row, 13),
-        statut_commande_fournisseur: cell(row, 14),
-        date_mise_a_disposition_fourniture: cell(row, 15),
-        bi_reference_historique: cell(row, 16),
-        mois_facturation: cell(row, 17),
-        remarques: cell(row, 18),
-        debours_materiel_prevu: nombreCell(row, 19),
-        heures_prevues: nombreCell(row, 20),
+        date_devis: cell(row, col("Date devis")),
+        libelle,
+        montant: nombreCell(row, col("Montant")),
+        date_commande_client: cell(row, col("Date commande client")),
+        reference_client: cell(row, col("Référence client")),
+        statut_commande_fournisseur: cell(row, col("Statut commande fournisseur")),
+        date_mise_a_disposition_fourniture: cell(row, col("Date mise à disposition fourniture")),
+        bi_reference_historique: cell(row, col("Réf. BI historique")),
+        mois_facturation: cell(row, col("Mois facturation")),
+        remarques: cell(row, col("Remarques")),
+        debours_materiel_prevu: nombreCell(row, col("Débours matériel prévu")),
+        heures_prevues: nombreCell(row, col("Heures prévues")),
         email_responsable_contrat: site.courriel_responsable,
-        // Jamais déduit du fichier (aucune colonne "Annulé" côté
-        // Suivi Devis) — toujours posé à la main par le bureau après
-        // import. Une mise à jour d'un devis déjà annulé garde son
-        // statut (voir appliquerImportDevis).
+        // Jamais déduit du fichier (le statut est calculé, pas une
+        // colonne écrite depuis les champs bruts) — toujours posé à la
+        // main par le bureau après import. Une mise à jour d'un devis
+        // déjà annulé garde son statut (voir appliquerImportDevis).
         annule: false,
       },
       siteId: site.id,

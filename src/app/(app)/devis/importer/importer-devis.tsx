@@ -60,8 +60,9 @@ export function ImporterDevisClient() {
       </Link>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Importer des devis</h1>
       <p className="mb-5 text-sm text-slate-500">
-        Classeur Excel (.xlsx/.xlsm) avec une feuille &quot;Suivi Devis&quot; — même format que le classeur
-        &quot;Chono Devis&quot;. Rapprochement par N° Client-N° Site.
+        Même format que l&apos;export Devis (colonnes &quot;Référence devis&quot;, &quot;Numéro Client&quot;,
+        &quot;N° Site&quot;...) — exporte, corrige dans Excel si besoin, puis réimporte. Rapprochement par
+        Numéro Client / N° Site.
       </p>
 
       {resultat && (

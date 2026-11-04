@@ -75,6 +75,7 @@ export function DepannagesListe({
   isAdmin,
   vue,
   devisEnCours,
+  brouillonBiParDepannageId = {},
 }: {
   demandes: Tables<"demandes_depannage">[];
   techniciensParId: TechniciensParId;
@@ -82,6 +83,7 @@ export function DepannagesListe({
   isAdmin: boolean;
   vue: "en_cours" | "traitees";
   devisEnCours: Record<string, DevisEnCours[]>;
+  brouillonBiParDepannageId?: Record<string, string>;
 }) {
   const enCours = demandes.filter((d) => d.statut !== "traitee");
   const traitees = demandes.filter((d) => d.statut === "traitee");
@@ -214,13 +216,23 @@ export function DepannagesListe({
                   </button>
                 )}
                 {d.statut !== "traitee" && !isAdmin && (
-                  <Link
-                    href={`/bi/nouveau?depannageId=${d.id}`}
-                    title="Créer le BI"
-                    className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white transition hover:bg-violet-700"
-                  >
-                    <Wrench className="h-3.5 w-3.5" strokeWidth={2} />
-                  </Link>
+                  brouillonBiParDepannageId[d.id] ? (
+                    <Link
+                      href={`/bi/nouveau?brouillonId=${brouillonBiParDepannageId[d.id]}`}
+                      title="Reprendre le BI"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500 text-white transition hover:bg-orange-600"
+                    >
+                      <Wrench className="h-3.5 w-3.5" strokeWidth={2} />
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/bi/nouveau?depannageId=${d.id}`}
+                      title="Créer le BI"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white transition hover:bg-violet-700"
+                    >
+                      <Wrench className="h-3.5 w-3.5" strokeWidth={2} />
+                    </Link>
+                  )
                 )}
               </div>,
             ];

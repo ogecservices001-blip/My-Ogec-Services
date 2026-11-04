@@ -6,12 +6,19 @@ import { chargerDevisEnCoursParEquipement } from "@/lib/devis/en-cours";
 
 export default async function DepannagesPage() {
   const supabase = await createClient();
-  const [{ data }, { data: techniciens }, profile, devisEnCours] = await Promise.all([
+  const [{ data }, { data: techniciens }, profile, devisEnCours, { data: brouillonsBi }] = await Promise.all([
     supabase.from("demandes_depannage").select("*").order("date_creation", { ascending: false }),
     supabase.from("profiles").select("id, name, portable"),
     getCurrentProfile(),
     chargerDevisEnCoursParEquipement(),
+    // Brouillons BI déjà enregistrés pour un dépannage — pour proposer
+    // "Reprendre le BI" plutôt que d'en recréer un (voir wizard.tsx).
+    supabase.from("bons_intervention").select("id, depannage_id").eq("statut", "brouillon").not("depannage_id", "is", null),
   ]);
+  const brouillonBiParDepannageId: Record<string, string> = {};
+  for (const b of brouillonsBi ?? []) {
+    if (b.depannage_id) brouillonBiParDepannageId[b.depannage_id] = b.id;
+  }
 
   const techniciensParId: Record<string, { name: string; portable: string }> = {};
   for (const t of techniciens ?? []) techniciensParId[t.id] = { name: t.name, portable: t.portable };
@@ -37,6 +44,7 @@ export default async function DepannagesPage() {
       isAdmin={profile?.role === "admin"}
       vue="en_cours"
       devisEnCours={devisEnCours}
+      brouillonBiParDepannageId={brouillonBiParDepannageId}
     />
   );
 }

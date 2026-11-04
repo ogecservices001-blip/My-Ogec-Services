@@ -140,6 +140,7 @@ export type Database = {
           date_fin: string
           date_intervention: string
           date_signature: string
+          depannage_id: string | null
           devis_date_commande_client: string
           devis_date_devis: string
           devis_id: string | null
@@ -203,6 +204,7 @@ export type Database = {
           date_fin?: string
           date_intervention?: string
           date_signature?: string
+          depannage_id?: string | null
           devis_date_commande_client?: string
           devis_date_devis?: string
           devis_id?: string | null
@@ -266,6 +268,7 @@ export type Database = {
           date_fin?: string
           date_intervention?: string
           date_signature?: string
+          depannage_id?: string | null
           devis_date_commande_client?: string
           devis_date_devis?: string
           devis_id?: string | null
@@ -317,6 +320,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bons_intervention_depannage_id_fkey"
+            columns: ["depannage_id"]
+            isOneToOne: false
+            referencedRelation: "demandes_depannage"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bons_intervention_devis_id_fkey"
             columns: ["devis_id"]

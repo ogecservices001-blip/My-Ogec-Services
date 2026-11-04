@@ -123,7 +123,7 @@ export function BiWizard({
         etape: 1,
         pole: brouillon.pole,
         devisId: brouillon.devis_id ?? "",
-        depannageId: null as string | null,
+        depannageId: brouillon.depannage_id,
         clientNom: s?.nom ?? "",
         siteId: brouillon.site_id,
         equipementId: brouillon.equipement_id ?? "",

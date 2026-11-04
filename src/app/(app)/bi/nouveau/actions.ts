@@ -260,6 +260,7 @@ export type BrouillonBI = {
   id: string;
   pole: string;
   site_id: string;
+  depannage_id: string | null;
   equipement_id: string | null;
   equipement_nom: string;
   equipement_groupe: string;
@@ -315,6 +316,7 @@ export async function chargerBrouillonBI(id: string): Promise<BrouillonBI | null
     id: data.id,
     pole: data.pole,
     site_id: data.site_id ?? "",
+    depannage_id: data.depannage_id,
     equipement_id: data.equipement_id,
     equipement_nom: data.equipement_nom,
     equipement_groupe: data.equipement_groupe,
@@ -376,6 +378,7 @@ export async function enregistrerBI(
     numero,
     statut,
     site_id: input.site_id,
+    depannage_id: input.depannage_id,
     client_nom: input.client_nom,
     site: input.site,
     adresse: input.adresse,

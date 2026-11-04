@@ -53,3 +53,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# claude code — préférences personnelles, pas partagées dans le dépôt
+.claude/settings.local.json

@@ -20,6 +20,10 @@ export type NouveauDevisInput = {
   equipementId: string | null;
   lignes: LigneDevis[];
   coutRevient: CoutRevient;
+  /// Brouillon existant ("Devis en cours") qu'on finalise — le numéro
+  /// officiel lui est alors attribué par mise à jour, pas par insertion
+  /// d'une nouvelle ligne.
+  brouillonId?: string;
 };
 
 const ERREUR_DOUBLON = "23505";
@@ -83,7 +87,7 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
       nature: input.nature,
     });
 
-    const { error } = await supabase.from("devis").insert({
+    const donnees = {
       numero,
       item: String(chrono),
       site_id: input.siteId,
@@ -98,14 +102,75 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
       date_devis: dateDevis,
       redacteur: profil.name,
       annule: false,
-    });
+    };
+    // Finalisation d'un brouillon ("Devis en cours") : on met à jour la
+    // ligne existante plutôt que d'en créer une nouvelle, pour que le
+    // numéro officiel lui soit attribué sans dupliquer le devis.
+    const { error } = input.brouillonId
+      ? await supabase.from("devis").update(donnees).eq("id", input.brouillonId)
+      : await supabase.from("devis").insert(donnees);
     if (!error) {
       revalidatePath("/devis");
+      revalidatePath("/devis/en-cours");
       return { ok: true, numero };
     }
     if (error.code !== ERREUR_DOUBLON) return { ok: false, erreur: error.message };
   }
   return { ok: false, erreur: "Impossible d'attribuer un numéro, réessaie." };
+}
+
+export type BrouillonDevisInput = {
+  id?: string;
+  siteId: string;
+  libelle: string;
+  nature: string;
+  equipementId: string | null;
+  lignes: LigneDevis[];
+  coutRevient: CoutRevient;
+};
+
+/// Enregistre un devis incomplet ("Devis en cours") pour le reprendre
+/// plus tard — contrairement à `creerDevis`, aucun numéro officiel
+/// n'est attribué ici (voir `devis_numero_key`, qui autorise plusieurs
+/// lignes à numéro vide) : seul site_id est exigé, tout le reste peut
+/// manquer.
+export async function enregistrerBrouillonDevis(input: BrouillonDevisInput): Promise<ActionResult & { id?: string }> {
+  const profil = await requireAdmin();
+  if (!input.siteId) return { ok: false, erreur: "Choisis un site avant d'enregistrer." };
+
+  const lignesValides = input.lignes.filter((l) => l.designation.trim());
+  const prixRevient = calculerPrixRevient(lignesValides, input.coutRevient);
+  const montant = lignesValides.length > 0 ? totalHTLignes(lignesValides, prixRevient.coefficientVente, prixRevient.tauxHoraire) : null;
+
+  const supabase = await createClient();
+  const donnees = {
+    site_id: input.siteId,
+    libelle: input.libelle.trim(),
+    nature: input.nature,
+    montant,
+    heures_prevues: prixRevient.heuresMO,
+    debours_materiel_prevu: prixRevient.materiel,
+    lignes: lignesValides,
+    cout_revient: input.coutRevient,
+    equipement_id: input.equipementId,
+    date_devis: new Date().toLocaleDateString("fr-FR"),
+    redacteur: profil.name,
+    annule: false,
+  };
+
+  if (input.id) {
+    const { error } = await supabase.from("devis").update(donnees).eq("id", input.id);
+    if (error) return { ok: false, erreur: error.message };
+    revalidatePath("/devis");
+    revalidatePath("/devis/en-cours");
+    return { ok: true, id: input.id };
+  }
+
+  const { data, error } = await supabase.from("devis").insert(donnees).select("id").single();
+  if (error) return { ok: false, erreur: error.message };
+  revalidatePath("/devis");
+  revalidatePath("/devis/en-cours");
+  return { ok: true, id: data.id };
 }
 
 

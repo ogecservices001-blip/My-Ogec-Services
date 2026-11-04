@@ -19,6 +19,11 @@ export type Module = {
   sousMenus: SousMenu[];
   icone: LucideIcon;
   couleur: string;
+  /// Si renseigné, cliquer sur le titre du module (pas un sous-menu)
+  /// navigue directement ici plutôt que de se contenter d'ouvrir/fermer
+  /// le volet — uniquement quand une vraie page d'accueil existe pour
+  /// le module (sinon 404), donc opt-in module par module.
+  href?: string;
 };
 
 /// Menu technicien volontairement minimal : créer un BI se fait depuis
@@ -140,9 +145,11 @@ export function construireModules(isAdmin: boolean): Module[] {
             actif: true,
             icone: FileSignature,
             couleur: "bg-amber-100 text-amber-600",
+            href: "/devis",
             sousMenus: [
-              { nom: "Liste des devis", href: "/devis" },
               { nom: "Nouveau devis", href: "/devis/nouveau" },
+              { nom: "Liste des devis", href: "/devis" },
+              { nom: "Devis en cours", href: "/devis/en-cours" },
               { nom: "Devis à établir", href: "/devis/a-etablir" },
             ],
           },

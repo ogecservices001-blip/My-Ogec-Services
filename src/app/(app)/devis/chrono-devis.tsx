@@ -117,6 +117,7 @@ export function ChronoDevis({
           className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
         >
           <option value="">Tous les statuts</option>
+          <option value="en_cours">Devis en cours</option>
           <option value="attente">En attente</option>
           <option value="commande">Commandé</option>
           <option value="realise">Réalisé</option>

@@ -28,6 +28,7 @@ export async function chargerDevisEnCoursParEquipement(): Promise<Record<string,
     // Facturable = déjà finalisé, ne doit plus apparaître comme "en cours".
     if (!d.equipement_id || dejaRealises.has(d.id) || d.bi_reference_historique || d.mois_facturation) continue;
     const statut = calculerStatutDevis({
+      numero: d.numero,
       annule: d.annule,
       commande: Boolean(d.date_commande_client),
       realise: false,

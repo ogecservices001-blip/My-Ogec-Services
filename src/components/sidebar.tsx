@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { X, ChevronRight, ChevronDown } from "lucide-react";
 import { useSidebar } from "@/components/sidebar-context";
 import { construireModules, type Module } from "@/lib/menus";
@@ -28,6 +28,7 @@ function moduleActif(m: Module, pathname: string, cheminActuel: string): boolean
 function DesktopSidebar({ isAdmin, equipementsAValider }: { isAdmin: boolean; equipementsAValider: number }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const cheminActuel = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "");
   const modules = construireModules(isAdmin);
 
@@ -42,6 +43,11 @@ function DesktopSidebar({ isAdmin, equipementsAValider }: { isAdmin: boolean; eq
 
   function clicModule(m: Module) {
     if (!m.actif || m.sousMenus.length === 0) return;
+    if (m.href) {
+      setActiveNav(m.nom);
+      router.push(m.href);
+      return;
+    }
     setActiveNav((prev) => (prev === m.nom ? null : m.nom));
   }
 
@@ -205,7 +211,7 @@ function MobileSidebarContenu({
     return new Set(initial ? [initial.nom] : []);
   });
 
-  function basculer(nom: string) {
+  function toggleDeplie(nom: string) {
     setDeplies((prev) => {
       const next = new Set(prev);
       if (next.has(nom)) next.delete(nom);
@@ -221,35 +227,50 @@ function MobileSidebarContenu({
         const deplie = deplies.has(m.nom);
         const peutDeplier = m.actif && m.sousMenus.length > 0;
         const badge = m.nom === "GMAO" ? equipementsAValider : 0;
+        const etiquette = (
+          <span className="flex flex-1 items-center gap-2.5">
+            <Icon className="h-4.5 w-4.5 shrink-0" strokeWidth={2} />
+            {m.nom}
+            {!m.actif && (
+              <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                Bientôt
+              </span>
+            )}
+            {badge > 0 && (
+              <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white" style={{ backgroundColor: "#dc2626" }}>
+                {badge} à valider
+              </span>
+            )}
+          </span>
+        );
         return (
           <div key={m.nom}>
-            <button
-              onClick={() => peutDeplier && basculer(m.nom)}
-              disabled={!peutDeplier}
+            <div
               className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors"
               style={{ color: !m.actif ? "#4b4b4b" : "#d4d4d4" }}
             >
-              <span className="flex items-center gap-2.5">
-                <Icon className="h-4.5 w-4.5 shrink-0" strokeWidth={2} />
-                {m.nom}
-                {!m.actif && (
-                  <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-                    Bientôt
-                  </span>
-                )}
-                {badge > 0 && (
-                  <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white" style={{ backgroundColor: "#dc2626" }}>
-                    {badge} à valider
-                  </span>
-                )}
-              </span>
-              {peutDeplier && (
-                <ChevronDown
-                  className="h-4 w-4 shrink-0 transition-transform"
-                  style={{ color: "#505050", transform: deplie ? "rotate(180deg)" : "none" }}
-                />
+              {m.href ? (
+                <Link href={m.href} onClick={onNavigate} className="flex flex-1 items-center">
+                  {etiquette}
+                </Link>
+              ) : (
+                <button
+                  onClick={() => peutDeplier && toggleDeplie(m.nom)}
+                  disabled={!peutDeplier}
+                  className="flex flex-1 items-center"
+                >
+                  {etiquette}
+                </button>
               )}
-            </button>
+              {peutDeplier && (
+                <button onClick={() => toggleDeplie(m.nom)} className="shrink-0 p-1" aria-label={deplie ? "Replier" : "Déplier"}>
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 transition-transform"
+                    style={{ color: "#505050", transform: deplie ? "rotate(180deg)" : "none" }}
+                  />
+                </button>
+              )}
+            </div>
             {peutDeplier && deplie && (
               <ul className="mb-1 mt-0.5 space-y-0.5 pl-9">
                 {m.sousMenus.map((s) => {

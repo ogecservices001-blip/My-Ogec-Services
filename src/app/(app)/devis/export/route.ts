@@ -70,6 +70,7 @@ export async function GET(request: Request) {
     const site = siteParId.get(d.site_id);
     const equipement = d.equipement_id ? equipementParId.get(d.equipement_id) : undefined;
     const statut = calculerStatutDevis({
+      numero: d.numero,
       annule: d.annule,
       commande: Boolean(d.date_commande_client),
       realise: devisRealises.has(d.id) || Boolean(d.bi_reference_historique),

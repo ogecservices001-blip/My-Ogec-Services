@@ -25,6 +25,7 @@ export default async function CreerCommandePage() {
 
   const valides = (devis ?? []).filter((d) => {
     const statut = calculerStatutDevis({
+      numero: d.numero,
       annule: d.annule,
       commande: Boolean(d.date_commande_client),
       realise: realises.has(d.id) || Boolean(d.bi_reference_historique),

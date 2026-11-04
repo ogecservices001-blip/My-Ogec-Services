@@ -38,6 +38,7 @@ export default async function DevisChronoPage() {
         numero: d.numero,
         clientNom: site?.nom ?? "",
         clientSite: site?.site ?? "",
+        redacteur: d.redacteur,
         libelle: d.libelle,
         nature: d.nature,
         montant: d.montant,

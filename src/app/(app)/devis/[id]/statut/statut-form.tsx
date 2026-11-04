@@ -76,6 +76,7 @@ export function StatutDevisForm({
 
   const statutActuel = LABEL_STATUT_DEVIS[
     calculerStatutDevis({
+      numero: devis.numero,
       annule: devis.annule,
       commande: Boolean(devis.date_commande_client),
       realise,

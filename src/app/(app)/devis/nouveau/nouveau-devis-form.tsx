@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
-import { creerDevis, listerEquipementsDuSite } from "../actions";
+import { creerDevis, enregistrerBrouillonDevis, listerEquipementsDuSite } from "../actions";
 import {
   ligneDevisVide,
   coutRevientDefaut,
@@ -46,43 +46,64 @@ type Prefill = {
   compteRendu: string;
 } | null;
 
+type Brouillon = {
+  id: string;
+  siteId: string;
+  clientNom: string;
+  type: "sous" | "hors";
+  equipementId: string;
+  libelle: string;
+  nature: string;
+  lignes: LigneDevis[];
+  coutRevient: CoutRevient;
+} | null;
+
 export function NouveauDevisForm({
   sites,
   natures,
   prefill,
+  brouillon,
 }: {
   sites: SiteOption[];
   natures: Option[];
   prefill: Prefill;
+  brouillon?: Brouillon;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [enregistrementBrouillon, startEnregistrementBrouillon] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+  const [brouillonId, setBrouillonId] = useState(brouillon?.id ?? null);
+  const [brouillonConfirme, setBrouillonConfirme] = useState(false);
 
-  const [type, setType] = useState<"" | "sous" | "hors">(prefill?.type ?? "");
-  const [clientNom, setClientNom] = useState(prefill?.clientNom ?? "");
+  const [type, setType] = useState<"" | "sous" | "hors">(brouillon?.type ?? prefill?.type ?? "");
+  const [clientNom, setClientNom] = useState(brouillon?.clientNom ?? prefill?.clientNom ?? "");
   const sitesDuType = type ? sites.filter((s) => s.horsContrat === (type === "hors")) : [];
   const clients = [...new Set(sitesDuType.map((s) => s.nom))].filter(Boolean).sort((a, b) => a.localeCompare(b));
   const sitesDuClient = clientNom ? sitesDuType.filter((s) => s.nom === clientNom) : [];
 
-  const [siteId, setSiteId] = useState(prefill?.siteId ?? "");
+  const [siteId, setSiteId] = useState(brouillon?.siteId ?? prefill?.siteId ?? "");
   const [equipements, setEquipements] = useState<Equipement[]>([]);
-  const [equipementId, setEquipementId] = useState(prefill?.equipementId ?? "");
+  const [equipementId, setEquipementId] = useState(brouillon?.equipementId ?? prefill?.equipementId ?? "");
 
   useEffect(() => {
-    if (!prefill) return;
+    const siteADeterminer = brouillon?.siteId ?? prefill?.siteId;
+    if (!siteADeterminer) return;
     startTransition(async () => {
-      setEquipements(await listerEquipementsDuSite(prefill.siteId));
+      setEquipements(await listerEquipementsDuSite(siteADeterminer));
     });
-    // Pré-remplissage ponctuel au chargement (depuis "Devis à établir"),
-    // pas une synchro continue — pas de dépendances à surveiller.
+    // Pré-remplissage ponctuel au chargement (brouillon repris, ou
+    // "Devis à établir"), pas une synchro continue — pas de dépendances
+    // à surveiller.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const [libelle, setLibelle] = useState(prefill?.compteRendu ?? "");
-  const [nature, setNature] = useState("");
+  const [libelle, setLibelle] = useState(brouillon?.libelle ?? prefill?.compteRendu ?? "");
+  const [nature, setNature] = useState(brouillon?.nature ?? "");
 
-  const [lignes, setLignes] = useState<LigneDevis[]>([ligneDevisVide()]);
-  const [coutRevient, setCoutRevient] = useState<CoutRevient>(coutRevientDefaut());
+  const [lignes, setLignes] = useState<LigneDevis[]>(
+    brouillon && brouillon.lignes.length > 0 ? brouillon.lignes : [ligneDevisVide()],
+  );
+  const [coutRevient, setCoutRevient] = useState<CoutRevient>(brouillon?.coutRevient ?? coutRevientDefaut());
   const [feuilleDeVenteOuverte, setFeuilleDeVenteOuverte] = useState(true);
 
   function changerType(valeur: "" | "sous" | "hors") {
@@ -125,10 +146,33 @@ export function NouveauDevisForm({
 
   const complet = Boolean(siteId && libelle.trim() && nature && lignesValides.length > 0);
 
-  function enregistrer() {
+  function finaliser() {
     setErreur(null);
     startTransition(async () => {
       const res = await creerDevis({
+        siteId,
+        libelle,
+        nature,
+        equipementId: equipementId || null,
+        lignes: lignesValides,
+        coutRevient,
+        brouillonId: brouillonId ?? undefined,
+      });
+      if (!res.ok) {
+        setErreur(res.erreur);
+        return;
+      }
+      router.push("/devis");
+      router.refresh();
+    });
+  }
+
+  function enregistrerBrouillon() {
+    setErreur(null);
+    setBrouillonConfirme(false);
+    startEnregistrementBrouillon(async () => {
+      const res = await enregistrerBrouillonDevis({
+        id: brouillonId ?? undefined,
         siteId,
         libelle,
         nature,
@@ -140,8 +184,8 @@ export function NouveauDevisForm({
         setErreur(res.erreur);
         return;
       }
-      router.push("/devis");
-      router.refresh();
+      setBrouillonId(res.id ?? null);
+      setBrouillonConfirme(true);
     });
   }
 
@@ -150,6 +194,11 @@ export function NouveauDevisForm({
       {prefill && (
         <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
           Pré-rempli depuis &quot;Devis à établir&quot;
+        </p>
+      )}
+      {brouillon && (
+        <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+          Devis en cours repris — pas encore de numéro officiel tant qu&apos;il n&apos;est pas finalisé.
         </p>
       )}
 
@@ -381,13 +430,26 @@ export function NouveauDevisForm({
       </div>
 
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}
+      {brouillonConfirme && (
+        <p className="mb-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-brand-green-dark">
+          Brouillon enregistré — retrouvable dans &quot;Devis en cours&quot;.
+        </p>
+      )}
 
-      <div className="flex justify-end gap-2 pb-8">
+      <div className="flex flex-wrap justify-end gap-2 pb-8">
         <Link href="/devis" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
           Annuler
         </Link>
         <button
-          onClick={enregistrer}
+          onClick={enregistrerBrouillon}
+          disabled={!siteId || enregistrementBrouillon}
+          title="Enregistre même si des informations manquent, pour reprendre plus tard"
+          className="rounded-xl border border-amber-300 bg-white px-5 py-2 text-sm font-semibold text-amber-700 shadow-sm transition hover:bg-amber-50 disabled:opacity-60"
+        >
+          {enregistrementBrouillon ? "Enregistrement..." : "Enregistrer"}
+        </button>
+        <button
+          onClick={finaliser}
           disabled={!complet || pending}
           className="rounded-xl bg-brand-green px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
         >

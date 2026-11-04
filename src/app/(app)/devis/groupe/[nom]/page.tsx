@@ -50,6 +50,7 @@ export default async function DevisDuClientPage({
       numero: d.numero,
       clientNom: nomDecode,
       clientSite: site?.site ?? "",
+      redacteur: d.redacteur,
       libelle: d.libelle,
       nature: d.nature,
       montant: d.montant,

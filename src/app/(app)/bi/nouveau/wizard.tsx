@@ -76,6 +76,11 @@ function champsPertinents(type: TypeEquipement | null): TypeEquipement["champs_e
   return type.champs_en_tete_supplementaires.filter((c) => !CHAMPS_MATERIEL_EXCLUS_BI.has(c.cle));
 }
 
+function champTexte(champs: ChampsEnTeteEquipement, cle: string): string {
+  const v = champs[cle];
+  return typeof v === "string" ? v : "";
+}
+
 export function BiWizard({
   sites,
   techniciensDisponibles,
@@ -325,6 +330,22 @@ export function BiWizard({
     setCompteRendu(texte);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupesSelectionnes, equipementsSite]);
+
+  // Compte rendu auto-généré pour Remplacement à l'identique (nature du
+  // devis + équipement + localisation) — même principe : ne réécrit
+  // jamais un texte déjà modifié à la main.
+  const texteAutoRemplacementRef = useRef("");
+  useEffect(() => {
+    if (pole !== Poles.remplacementIdentique || !equipement) return;
+    const actuel = compteRenduRef.current.trim();
+    if (actuel && actuel !== texteAutoRemplacementRef.current.trim()) return;
+    const texte = [labelPole(pole), [equipement.nom, equipement.localisation].filter(Boolean).join(" – ")]
+      .filter(Boolean)
+      .join(" — ");
+    texteAutoRemplacementRef.current = texte;
+    setCompteRendu(texte);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pole, equipementId]);
 
   // ---------- Étape 2 : Compte rendu + photos ----------
   const [compteRendu, setCompteRendu] = useState(etatInitial.compteRendu);
@@ -930,7 +951,16 @@ export function BiWizard({
                     forceTypeId={equipement.type_equipement_id}
                     onChange={(id) => {
                       setTypeActifId(id);
-                      setMaterielChamps({ dateMES: today() });
+                      // Remplacement à l'identique : le nouveau matériel reprend
+                      // par défaut les caractéristiques de l'ancien équipement
+                      // (déjà connues), modifiables si le remplaçant diffère.
+                      setMaterielChamps({
+                        dateMES: today(),
+                        typeEquipement2: champTexte(equipement.champs_en_tete, "typeEquipement2"),
+                        typeEquipement3: champTexte(equipement.champs_en_tete, "typeEquipement3"),
+                        puissance: champTexte(equipement.champs_en_tete, "puissance"),
+                        tensionAlim: champTexte(equipement.champs_en_tete, "tensionAlim"),
+                      });
                     }}
                   />
                   {typeActif?.type_equipement1_fixe && (
@@ -1334,6 +1364,17 @@ export function BiWizard({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {pole === Poles.remplacementIdentique && equipement && (
+            <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-violet-700">Résumé de l&apos;intervention</p>
+              <p className="text-sm font-bold text-slate-900">
+                {[equipement.nom, equipement.localisation].filter(Boolean).join(" – ")}
+              </p>
+              <p className="text-sm text-slate-700">{labelPole(pole)}</p>
+              {compteRendu.trim() && <p className="mt-1 text-sm text-slate-700">{compteRendu.trim()}</p>}
             </div>
           )}
 

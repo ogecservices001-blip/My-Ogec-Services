@@ -72,6 +72,19 @@ const COULEURS_POLES: Record<string, string> = {
 
 const TOTAL_ETAPES = 4;
 
+/// Pôles avec compte rendu pré-rempli (étape 2/3) et résumé avant
+/// signature (étape 3/3) — Entretien sous contrat a son propre
+/// mécanisme dédié (une ligne par groupe coché, voir plus bas).
+const POLES_AVEC_RESUME = new Set<string>([
+  Poles.remplacementIdentique,
+  Poles.reparationEquipement,
+  Poles.reparationDiverse,
+  Poles.installationNeuve,
+  Poles.entretienHorsContrat,
+  Poles.miseADisposition,
+  Poles.livraisonMateriel,
+]);
+
 function champsPertinents(type: TypeEquipement | null): TypeEquipement["champs_en_tete_supplementaires"] {
   if (!type) return [];
   return type.champs_en_tete_supplementaires.filter((c) => !CHAMPS_MATERIEL_EXCLUS_BI.has(c.cle));
@@ -367,21 +380,45 @@ export function BiWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupesSelectionnes, equipementsSite]);
 
-  // Compte rendu auto-généré pour Remplacement à l'identique (nature du
-  // devis + équipement + localisation) — même principe : ne réécrit
-  // jamais un texte déjà modifié à la main.
-  const texteAutoRemplacementRef = useRef("");
+  // Compte rendu auto-généré pour les pôles à résumé (nature + ce qui
+  // est déjà connu de l'étape 1) — ne réécrit jamais un texte déjà
+  // modifié à la main, même principe que l'auto-texte Entretien sous
+  // contrat ci-dessus.
+  const texteAutoRef = useRef("");
   useEffect(() => {
-    if (pole !== Poles.remplacementIdentique || !equipement) return;
+    if (!POLES_AVEC_RESUME.has(pole)) return;
     const actuel = compteRenduRef.current.trim();
-    if (actuel && actuel !== texteAutoRemplacementRef.current.trim()) return;
-    const texte = [labelPole(pole), [equipement.nom, equipement.localisation].filter(Boolean).join(" – ")]
-      .filter(Boolean)
-      .join(" — ");
-    texteAutoRemplacementRef.current = texte;
+    if (actuel && actuel !== texteAutoRef.current.trim()) return;
+
+    let texte = labelPole(pole);
+    if (avecNouvelEquipement(pole)) {
+      const lignes = [
+        typeActif?.nom,
+        installationLocalisation && `Localisation : ${installationLocalisation}`,
+        installationGroupe && `Groupe : ${installationGroupe}`,
+        champTexte(materielChamps, "typeEquipement2") && `Type Equipement 2 : ${champTexte(materielChamps, "typeEquipement2")}`,
+        champTexte(materielChamps, "typeEquipement3") &&
+          `Type Equipement 3 (puissance) : ${champTexte(materielChamps, "typeEquipement3")}`,
+      ].filter((v): v is string => Boolean(v));
+      texte = [labelPole(pole), ...lignes].join("\n");
+    } else {
+      const nom = equipement ? equipement.nom : avecEquipementLibre(pole) ? equipementLibre.trim() : "";
+      const localisation = equipement?.localisation ?? "";
+      if (nom) texte = [labelPole(pole), [nom, localisation].filter(Boolean).join(" – ")].join(" — ");
+    }
+    texteAutoRef.current = texte;
     setCompteRendu(texte);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pole, equipementId, equipementsSite]);
+  }, [
+    pole,
+    equipementId,
+    equipementsSite,
+    equipementLibre,
+    typeActifId,
+    installationLocalisation,
+    installationGroupe,
+    materielChamps,
+  ]);
 
   // ---------- Étape 2 : Compte rendu + photos ----------
   const [compteRendu, setCompteRendu] = useState(etatInitial.compteRendu);
@@ -617,6 +654,16 @@ export function BiWizard({
           },
         ]
       : [];
+
+  // Titre de la tuile résumé (étape 3) pour les pôles de POLES_AVEC_RESUME
+  // — nom + localisation de l'équipement connu, famille posée pour une
+  // installation neuve, ou rien pour un pôle sans équipement (le texte
+  // du compte rendu suffit alors).
+  const titreResume = avecNouvelEquipement(pole)
+    ? [typeActif?.nom, installationLocalisation].filter(Boolean).join(" – ")
+    : [equipement ? equipement.nom : avecEquipementLibre(pole) ? equipementLibre.trim() : "", equipement?.localisation ?? ""]
+        .filter(Boolean)
+        .join(" – ");
 
   // ==================== Construction + envoi ====================
 
@@ -1440,13 +1487,13 @@ export function BiWizard({
             </div>
           )}
 
-          {pole === Poles.remplacementIdentique && equipement && (
+          {POLES_AVEC_RESUME.has(pole) && (titreResume || compteRendu.trim()) && (
             <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
               <p className="mb-2 text-xs font-bold uppercase tracking-wide text-violet-700">Résumé de l&apos;intervention</p>
-              <p className="text-sm font-bold text-slate-900">
-                {[equipement.nom, equipement.localisation].filter(Boolean).join(" – ")}
-              </p>
-              {compteRendu.trim() && <p className="mt-1 text-sm text-slate-700">{compteRendu.trim()}</p>}
+              {titreResume && <p className="text-sm font-bold text-slate-900">{titreResume}</p>}
+              {compteRendu.trim() && (
+                <p className={`text-sm text-slate-700 ${titreResume ? "mt-1" : ""}`}>{compteRendu.trim()}</p>
+              )}
             </div>
           )}
 

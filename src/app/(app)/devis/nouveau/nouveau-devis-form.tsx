@@ -83,7 +83,7 @@ export function NouveauDevisForm({
 
   const [lignes, setLignes] = useState<LigneDevis[]>([ligneDevisVide()]);
   const [coutRevient, setCoutRevient] = useState<CoutRevient>(coutRevientDefaut());
-  const [feuilleDeVenteOuverte, setFeuilleDeVenteOuverte] = useState(false);
+  const [feuilleDeVenteOuverte, setFeuilleDeVenteOuverte] = useState(true);
 
   function changerType(valeur: "" | "sous" | "hors") {
     setType(valeur);

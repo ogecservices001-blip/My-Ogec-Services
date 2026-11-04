@@ -41,6 +41,7 @@ const LARGEUR_PLEINE = [
   "/bi",
   "/bi/valides",
   "/depannages",
+  "/depannages/nouveau",
   "/depannages/traitees",
   "/depannages/statistiques",
   "/prestations/realisees",
@@ -61,7 +62,11 @@ const LARGEUR_PLEINE_SECTIONS = [
 /// préfixe sur "/bi" élargirait aussi "nouveau" (assistant technicien),
 /// qui doit rester en colonne centrée ; "/bi/{id}/pdf" ne matche pas
 /// (pas une page).
-const LARGEUR_PLEINE_PATTERNS = [/^\/depannages\/[0-9a-f-]{20,}$/i, /^\/bi\/[0-9a-f-]{20,}$/i];
+const LARGEUR_PLEINE_PATTERNS = [
+  /^\/depannages\/[0-9a-f-]{20,}$/i,
+  /^\/depannages\/[0-9a-f-]{20,}\/modifier$/i,
+  /^\/bi\/[0-9a-f-]{20,}$/i,
+];
 
 /// Écrans qui se passent entièrement de la sidebar (grille dense où
 /// chaque pixel compte) — la page elle-même doit alors fournir son

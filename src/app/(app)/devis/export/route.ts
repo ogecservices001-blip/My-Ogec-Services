@@ -4,15 +4,17 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
+import { numeroAffaireDuSite } from "@/lib/devis/numerotation";
 import { STATUTS_BI_REALISE, calculerStatutDevis, LABEL_STATUT_DEVIS } from "../statut";
 
 const COLONNES = [
   "Référence devis",
+  "Numéro Client",
+  "N° Site",
   "Client",
   "Site",
   "Équipement concerné",
   "Localisation",
-  "Item",
   "Rédacteur",
   "Nature",
   "Date devis",
@@ -37,7 +39,7 @@ export async function GET(request: Request) {
   const nom = searchParams.get("nom");
 
   const supabase = await createClient();
-  const { data: sites, error: errSites } = await supabase.from("sites").select("id, nom, site");
+  const { data: sites, error: errSites } = await supabase.from("sites").select("id, nom, site, n_affaire");
   if (errSites) return NextResponse.json({ erreur: errSites.message }, { status: 500 });
 
   const siteParId = new Map((sites ?? []).map((s) => [s.id, s]));
@@ -76,8 +78,11 @@ export async function GET(request: Request) {
       realise: devisRealises.has(d.id) || Boolean(d.bi_reference_historique),
       facturable: Boolean(d.mois_facturation),
     });
+    const affaire = site ? numeroAffaireDuSite(site.n_affaire) : null;
     feuille.addRow([
       d.numero,
+      affaire ? affaire.client : "",
+      affaire ? affaire.site : "",
       site?.nom ?? "",
       site?.site ?? "",
       equipement
@@ -86,7 +91,6 @@ export async function GET(request: Request) {
             .join(" ")
         : "",
       equipement?.localisation ?? "",
-      d.item,
       d.redacteur,
       d.nature ? labelNatureDevis(d.nature) : "",
       d.date_devis,

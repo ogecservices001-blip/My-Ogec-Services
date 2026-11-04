@@ -48,6 +48,7 @@ export function TableauRegistreDevis({ lignes, isAdmin }: { lignes: DevisRegistr
         { titre: "Site", largeur: "14%" },
         { titre: "Rédacteur", largeur: "10%" },
         { titre: "Date devis", largeur: "9%" },
+        { titre: "Pôle", largeur: "6%" },
         { titre: "Libellé", largeur: "19%" },
         ...(isAdmin ? [{ titre: "Montant", largeur: "10%", droite: true }] : []),
         { titre: "Statut", largeur: "10%" },
@@ -64,6 +65,7 @@ export function TableauRegistreDevis({ lignes, isAdmin }: { lignes: DevisRegistr
         d.clientSite,
         d.redacteur,
         d.dateDevis,
+        d.nature,
         d.libelle,
         ...(isAdmin ? [d.montant !== null ? eur(d.montant) : ""] : []),
         isAdmin ? (
@@ -80,7 +82,7 @@ export function TableauRegistreDevis({ lignes, isAdmin }: { lignes: DevisRegistr
           </span>
         ),
       ])}
-      pied={isAdmin ? ["Total", "", "", "", "", "", eur(totalMontant), ""] : undefined}
+      pied={isAdmin ? ["Total", "", "", "", "", "", "", eur(totalMontant), ""] : undefined}
       valeurs={lignes.map((d) => [d.numero || "(sans référence)", d.clientNom, d.clientSite])}
       vide="Aucun devis pour l'instant"
     />

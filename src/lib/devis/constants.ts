@@ -12,6 +12,7 @@ export const NATURE_DEVIS: Record<string, string> = {
   "35": "Réparation diverse",
   "40": "Mise à disposition d'équipement",
   "50": "Livraison de matériel",
+  "60": "Dépannage",
 };
 
 export function labelNatureDevis(code: string): string {

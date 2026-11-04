@@ -345,7 +345,7 @@ export function BiWizard({
     texteAutoRemplacementRef.current = texte;
     setCompteRendu(texte);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pole, equipementId]);
+  }, [pole, equipementId, equipementsSite]);
 
   // ---------- Étape 2 : Compte rendu + photos ----------
   const [compteRendu, setCompteRendu] = useState(etatInitial.compteRendu);

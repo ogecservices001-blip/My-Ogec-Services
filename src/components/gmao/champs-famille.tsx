@@ -100,11 +100,12 @@ export function TypeEquipementSelects({
   const type3Choisi = typeof champsEnTete.typeEquipement3 === "string" ? champsEnTete.typeEquipement3 : "";
   const cible1 = typeEquipement1Fixe.trim().toLowerCase();
 
-  // La valeur déjà enregistrée est toujours proposée même si elle ne
-  // figure pas exactement dans le Référentiel Heures (casse différente,
-  // ex. "2.5 Kw" sur l'équipement vs "2.5 kw" au référentiel) — sinon
-  // elle disparaît silencieusement du menu déroulant, cf. `optionsAvec`
-  // déjà appliqué sur les autres champs à choix (ChampEnTeteField).
+  // La valeur déjà enregistrée est toujours proposée telle quelle, même
+  // si le Référentiel Heures ne la contient pas au caractère près (ex.
+  // "2.5 Kw" sur l'équipement vs "2.5 kw" au référentiel) — un <select>
+  // HTML exige une correspondance EXACTE pour afficher la sélection,
+  // une variante proche de casse ne suffit pas, cf. `optionsAvec` déjà
+  // appliqué sur les autres champs à choix (ChampEnTeteField).
   const options2 = [
     ...new Set(
       references
@@ -113,7 +114,7 @@ export function TypeEquipementSelects({
         .filter((v) => v.trim().length > 0),
     ),
   ].sort((a, b) => a.localeCompare(b));
-  if (type2Choisi && !options2.some((v) => v.toLowerCase() === type2Choisi.toLowerCase())) options2.push(type2Choisi);
+  if (type2Choisi && !options2.includes(type2Choisi)) options2.push(type2Choisi);
 
   const options3 = type2Choisi
     ? [
@@ -129,7 +130,7 @@ export function TypeEquipementSelects({
         ),
       ].sort((a, b) => a.localeCompare(b))
     : [];
-  if (type3Choisi && !options3.some((v) => v.toLowerCase() === type3Choisi.toLowerCase())) options3.push(type3Choisi);
+  if (type3Choisi && !options3.includes(type3Choisi)) options3.push(type3Choisi);
 
   return (
     <div className="grid grid-cols-2 gap-2">

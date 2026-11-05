@@ -467,7 +467,7 @@ export function NouveauDevisForm({
                 <button
                   type="button"
                   onClick={calculerChampsR3R4}
-                  className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-200"
+                  className="rounded-lg bg-red-600 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-red-700"
                 >
                   Calcul
                 </button>

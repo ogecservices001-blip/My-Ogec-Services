@@ -21,6 +21,7 @@ export type EquipementDuSite = {
   nom: string;
   numero_equipement: string;
   localisation: string;
+  groupe: string;
 };
 
 export async function chargerEquipementsDuSite(siteId: string): Promise<EquipementDuSite[]> {
@@ -28,7 +29,7 @@ export async function chargerEquipementsDuSite(siteId: string): Promise<Equipeme
   const supabase = await createClient();
   const { data } = await supabase
     .from("equipements")
-    .select("id, nom, numero_equipement, localisation")
+    .select("id, nom, numero_equipement, localisation, groupe")
     .eq("site_id", siteId)
     .order("nom");
   return data ?? [];

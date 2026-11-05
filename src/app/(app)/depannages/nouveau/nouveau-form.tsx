@@ -74,19 +74,43 @@ export function NouveauDepannageForm({
   const [email, setEmail] = useState(initial?.email ?? "");
   const dernierAutoRempli = useRef("");
 
-  // Lieu de la panne pré-rempli avec la Localisation de l'équipement
-  // choisi (même logique de non-écrasement que l'email ci-dessus).
+  // La Localisation (enregistrée comme lieu de la panne) restreint la
+  // liste d'équipements et se remplit au choix d'un équipement, comme
+  // sur Nouveau devis. Le Groupe n'est qu'un filtre, jamais enregistré.
   const [equipementId, setEquipementId] = useState(initial?.equipementId ?? "");
   const [lieuPanne, setLieuPanne] = useState(initial?.lieuPanne ?? "");
+  const [groupeFiltre, setGroupeFiltre] = useState("");
   const dernierLieuAutoRempli = useRef("");
+
+  const groupesExistants = [...new Set(equipements.map((eq) => eq.groupe).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "fr"),
+  );
+  const equipementsDuGroupe = groupeFiltre ? equipements.filter((eq) => eq.groupe === groupeFiltre) : equipements;
+  const localisationsSuggerees = [...new Set(equipementsDuGroupe.map((eq) => eq.localisation).filter(Boolean))].sort(
+    (a, b) => a.localeCompare(b, "fr"),
+  );
+  // L'équipement choisi reste toujours dans la liste : absent du select,
+  // il serait envoyé vide à l'enregistrement et perdu.
+  const equipementsFiltres = equipements.filter(
+    (eq) =>
+      eq.id === equipementId ||
+      (equipementsDuGroupe.includes(eq) &&
+        (!lieuPanne.trim() || eq.localisation.toLowerCase().includes(lieuPanne.trim().toLowerCase()))),
+  );
 
   function changerEquipement(id: string) {
     setEquipementId(id);
     const localisation = equipements.find((eq) => eq.id === id)?.localisation ?? "";
-    setLieuPanne((valeurActuelle) =>
-      valeurActuelle === "" || valeurActuelle === dernierLieuAutoRempli.current ? localisation : valeurActuelle,
-    );
+    if (localisation) setLieuPanne(localisation);
+    else if (lieuPanne === dernierLieuAutoRempli.current) setLieuPanne("");
     dernierLieuAutoRempli.current = localisation;
+  }
+
+  function changerGroupeFiltre(groupe: string) {
+    setGroupeFiltre(groupe);
+    setEquipementId("");
+    if (lieuPanne === dernierLieuAutoRempli.current) setLieuPanne("");
+    dernierLieuAutoRempli.current = "";
   }
 
   useEffect(() => {
@@ -113,6 +137,9 @@ export function NouveauDepannageForm({
   function definirSiteId(id: string) {
     setSiteId(id);
     setEquipementId("");
+    setGroupeFiltre("");
+    setLieuPanne("");
+    dernierLieuAutoRempli.current = "";
   }
 
   function changerClient(nom: string) {
@@ -191,26 +218,60 @@ export function NouveauDepannageForm({
           )}
 
           {siteId && (
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">
-                Équipement (optionnel)
-              </label>
-              <select
-                name="equipement_id"
-                value={equipementId}
-                onChange={(e) => changerEquipement(e.target.value)}
-                disabled={chargementEquipements}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
-              >
-                <option value="">
-                  {chargementEquipements ? "Chargement..." : "— Non précisé —"}
-                </option>
-                {equipements.map((eq) => (
-                  <option key={eq.id} value={eq.id}>
-                    {[eq.nom, eq.numero_equipement, eq.localisation].filter(Boolean).join(" — ")}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Groupe</label>
+                <select
+                  value={groupeFiltre}
+                  onChange={(e) => changerGroupeFiltre(e.target.value)}
+                  disabled={groupesExistants.length === 0}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
+                >
+                  <option value="">— tous —</option>
+                  {groupesExistants.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Localisation</label>
+                <input
+                  name="lieu_panne"
+                  value={lieuPanne}
+                  onChange={(e) => setLieuPanne(e.target.value)}
+                  placeholder="Ex : Bureau 43"
+                  list="localisations-depannage"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                />
+                {localisationsSuggerees.length > 0 && (
+                  <datalist id="localisations-depannage">
+                    {localisationsSuggerees.map((l) => (
+                      <option key={l} value={l} />
+                    ))}
+                  </datalist>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Équipement (optionnel)</label>
+                <select
+                  name="equipement_id"
+                  value={equipementId}
+                  onChange={(e) => changerEquipement(e.target.value)}
+                  disabled={chargementEquipements}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
+                >
+                  <option value="">{chargementEquipements ? "Chargement..." : "— Non précisé —"}</option>
+                  {equipementsFiltres.map((eq) => (
+                    <option key={eq.id} value={eq.id}>
+                      {[eq.nom, eq.numero_equipement].filter(Boolean).join(" — ")}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
         </div>
@@ -225,16 +286,6 @@ export function NouveauDepannageForm({
               required
               defaultValue={initial?.message}
               placeholder="Décris la panne rencontrée"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Lieu de la panne</label>
-            <input
-              name="lieu_panne"
-              value={lieuPanne}
-              onChange={(e) => setLieuPanne(e.target.value)}
-              placeholder="Pré-rempli avec la localisation de l'équipement si choisi"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
           </div>

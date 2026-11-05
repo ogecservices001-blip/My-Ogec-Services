@@ -47,8 +47,11 @@ export function NouveauDepannageForm({
   const action = idDepannage ? modifierDepannage.bind(null, idDepannage) : creerDepannage;
   const [state, formAction, pending] = useActionState(action, null);
 
-  const [horsContrat, setHorsContrat] = useState(initial?.horsContrat ?? false);
-  const sitesDuPerimetre = useMemo(() => sites.filter((s) => s.hors_contrat === horsContrat), [sites, horsContrat]);
+  const [type, setType] = useState<"" | "sous" | "hors">(initial ? (initial.horsContrat ? "hors" : "sous") : "");
+  const sitesDuPerimetre = useMemo(
+    () => (type ? sites.filter((s) => s.hors_contrat === (type === "hors")) : []),
+    [sites, type],
+  );
   const nomsClients = useMemo(
     () => [...new Set(sitesDuPerimetre.map((s) => s.nom))].sort((a, b) => a.localeCompare(b)),
     [sitesDuPerimetre],
@@ -57,8 +60,8 @@ export function NouveauDepannageForm({
   const sitesDuClient = sitesDuPerimetre.filter((s) => s.nom === clientNom);
   const [siteId, setSiteId] = useState(initial?.siteId ?? "");
 
-  function changerPerimetre(valeur: boolean) {
-    setHorsContrat(valeur);
+  function changerType(valeur: "" | "sous" | "hors") {
+    setType(valeur);
     setClientNom("");
     definirSiteId("");
   }
@@ -144,7 +147,7 @@ export function NouveauDepannageForm({
 
   function changerClient(nom: string) {
     setClientNom(nom);
-    const sitesCorrespondants = sites.filter((s) => s.nom === nom);
+    const sitesCorrespondants = sitesDuPerimetre.filter((s) => s.nom === nom);
     definirSiteId(sitesCorrespondants.length === 1 ? sitesCorrespondants[0].id : "");
   }
 
@@ -155,7 +158,7 @@ export function NouveauDepannageForm({
         précisément lequel est concerné.
       </p>
 
-      <form action={formAction}>
+      <form action={formAction} className="rounded-2xl bg-white p-5 shadow-sm">
         <input type="hidden" name="site_id" value={siteId} />
 
         {state && !state.ok && (
@@ -163,117 +166,108 @@ export function NouveauDepannageForm({
         )}
 
         <div className="space-y-3">
-          <div className="flex gap-1.5 rounded-lg bg-slate-100 p-1">
-            <button
-              type="button"
-              onClick={() => changerPerimetre(false)}
-              className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold ${
-                !horsContrat ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Client sous contrat
-            </button>
-            <button
-              type="button"
-              onClick={() => changerPerimetre(true)}
-              className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold ${
-                horsContrat ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Client hors contrat
-            </button>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Client</label>
-            <select
-              value={clientNom}
-              onChange={(e) => changerClient(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-            >
-              <option value="">— Choisir un client —</option>
-              {nomsClients.map((nom) => (
-                <option key={nom} value={nom}>
-                  {nom}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {sitesDuClient.length > 1 && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Site</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Type de client *</label>
               <select
-                value={siteId}
-                onChange={(e) => definirSiteId(e.target.value)}
+                value={type}
+                onChange={(e) => changerType(e.target.value as "" | "sous" | "hors")}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
               >
-                <option value="">— Choisir un site —</option>
-                {sitesDuClient.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.site || "Site sans nom"} ({s.n_affaire})
+                <option value="">— Choisir —</option>
+                <option value="sous">Client sous contrat</option>
+                <option value="hors">Client hors contrat</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Client *</label>
+              <select
+                value={clientNom}
+                onChange={(e) => changerClient(e.target.value)}
+                disabled={!type}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
+              >
+                <option value="">— Choisir un client —</option>
+                {nomsClients.map((nom) => (
+                  <option key={nom} value={nom}>
+                    {nom}
                   </option>
                 ))}
               </select>
             </div>
-          )}
-
-          {siteId && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Groupe</label>
-                <select
-                  value={groupeFiltre}
-                  onChange={(e) => changerGroupeFiltre(e.target.value)}
-                  disabled={groupesExistants.length === 0}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
-                >
-                  <option value="">— tous —</option>
-                  {groupesExistants.map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Localisation</label>
-                <input
-                  name="lieu_panne"
-                  value={lieuPanne}
-                  onChange={(e) => setLieuPanne(e.target.value)}
-                  placeholder="Ex : Bureau 43"
-                  list="localisations-depannage"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-                />
-                {localisationsSuggerees.length > 0 && (
-                  <datalist id="localisations-depannage">
-                    {localisationsSuggerees.map((l) => (
-                      <option key={l} value={l} />
-                    ))}
-                  </datalist>
-                )}
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Équipement (optionnel)</label>
-                <select
-                  name="equipement_id"
-                  value={equipementId}
-                  onChange={(e) => changerEquipement(e.target.value)}
-                  disabled={chargementEquipements}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
-                >
-                  <option value="">{chargementEquipements ? "Chargement..." : "— Non précisé —"}</option>
-                  {equipementsFiltres.map((eq) => (
-                    <option key={eq.id} value={eq.id}>
-                      {[eq.nom, eq.numero_equipement].filter(Boolean).join(" — ")}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Site *</label>
+              <select
+                value={siteId}
+                onChange={(e) => definirSiteId(e.target.value)}
+                disabled={!clientNom}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
+              >
+                <option value="">— Choisir un site —</option>
+                {sitesDuClient.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.site || "(sans nom de site)"}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Groupe</label>
+              <select
+                value={groupeFiltre}
+                onChange={(e) => changerGroupeFiltre(e.target.value)}
+                disabled={!siteId || groupesExistants.length === 0}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
+              >
+                <option value="">— tous —</option>
+                {groupesExistants.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Localisation</label>
+              <input
+                name="lieu_panne"
+                value={lieuPanne}
+                onChange={(e) => setLieuPanne(e.target.value)}
+                placeholder="Ex : Bureau 43"
+                list="localisations-depannage"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+              />
+              {localisationsSuggerees.length > 0 && (
+                <datalist id="localisations-depannage">
+                  {localisationsSuggerees.map((l) => (
+                    <option key={l} value={l} />
+                  ))}
+                </datalist>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Équipement concerné (facultatif)</label>
+              <select
+                name="equipement_id"
+                value={equipementId}
+                onChange={(e) => changerEquipement(e.target.value)}
+                disabled={!siteId || chargementEquipements}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
+              >
+                <option value="">{chargementEquipements ? "Chargement..." : "— aucun —"}</option>
+                {equipementsFiltres.map((eq) => (
+                  <option key={eq.id} value={eq.id}>
+                    {[eq.nom, eq.numero_equipement].filter(Boolean).join(" — ")}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         <div className="mt-5 space-y-3 border-t border-slate-100 pt-4">

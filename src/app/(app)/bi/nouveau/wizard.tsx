@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition, type Dispatch, type SetStateAction } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Camera, X, Plus, Minus } from "lucide-react";
+import { ArrowLeft, Camera, Eye, X, Plus, Minus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ChampEnTeteField, TypeEquipementSelects } from "@/components/gmao/champs-famille";
 import { SignaturePad, type SignaturePadHandle } from "@/components/bi/signature-pad";
@@ -585,6 +585,8 @@ export function BiWizard({
   const [alerteTechnicien, setAlerteTechnicien] = useState(false);
   const [alerteSignature, setAlerteSignature] = useState(false);
   const [champEnEvidence, setChampEnEvidence] = useState<string | null>(null);
+  const [apercuEnCours, setApercuEnCours] = useState(false);
+  const [erreurApercu, setErreurApercu] = useState<string | null>(null);
   const tempsPasseRef = useRef<HTMLInputElement>(null);
   const nombreDeplacementsRef = useRef<HTMLInputElement>(null);
   const techniciensRef = useRef<HTMLDivElement>(null);
@@ -741,6 +743,40 @@ export function BiWizard({
       depannage_id: depannageId,
       nombre_deplacements: nombreDeplacements === "" ? 1 : nombreDeplacements,
     };
+  }
+
+  // L'onglet s'ouvre avant l'appel réseau, sinon les navigateurs le
+  // bloquent. Android n'affiche pas un PDF en mémoire dans un onglet :
+  // il est téléchargé puis ouvert depuis la notification.
+  async function ouvrirApercu() {
+    setErreurApercu(null);
+    setApercuEnCours(true);
+    const onglet = /android/i.test(navigator.userAgent) ? null : window.open("", "_blank");
+    try {
+      const reponse = await fetch("/bi/apercu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...construireInput(), sig_tech: "", sig_client: "", photos: [] }),
+      });
+      const estPdf = reponse.headers.get("Content-Type")?.includes("application/pdf");
+      if (!reponse.ok || !estPdf) throw new Error("apercu");
+
+      const url = URL.createObjectURL(await reponse.blob());
+      if (onglet) {
+        onglet.location.href = url;
+      } else {
+        const lien = document.createElement("a");
+        lien.href = url;
+        lien.download = "Apercu-BI.pdf";
+        lien.click();
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      onglet?.close();
+      setErreurApercu("Aperçu indisponible (connexion ?). La signature reste possible.");
+    } finally {
+      setApercuEnCours(false);
+    }
   }
 
   // Avant de passer de "Compte rendu" (étape 2) à l'étape suivante pour
@@ -1615,6 +1651,19 @@ export function BiWizard({
               placeholder="Email du signataire"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
             />
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={ouvrirApercu}
+              disabled={apercuEnCours}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-semibold text-violet-700 shadow-sm hover:bg-violet-50 disabled:opacity-60"
+            >
+              <Eye className="h-4 w-4" strokeWidth={2} />
+              {apercuEnCours ? "Préparation de l'aperçu..." : "Aperçu du BI"}
+            </button>
+            {erreurApercu && <p className="mt-2 text-sm text-red-600">{erreurApercu}</p>}
           </div>
 
           <div

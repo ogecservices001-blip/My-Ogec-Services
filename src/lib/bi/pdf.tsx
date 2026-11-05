@@ -7,6 +7,44 @@ import { equipementLabel, interventionsDuBon, type Presta } from "./format";
 
 type Bon = Tables<"bons_intervention">;
 
+export type BonPdf = Pick<
+  Bon,
+  | "numero"
+  | "pole"
+  | "client_nom"
+  | "site"
+  | "adresse"
+  | "hors_contrat"
+  | "techniciens"
+  | "technicien_signataire"
+  | "equipement_id"
+  | "equipement_nom"
+  | "equipement_groupe"
+  | "equipement_localisation"
+  | "etat_equipement"
+  | "entretien_groupes"
+  | "entretien_non_desservis"
+  | "date_debut"
+  | "date_fin"
+  | "date_intervention"
+  | "heure_debut"
+  | "heure_fin"
+  | "numero_devis"
+  | "devis_numero"
+  | "devis_date_devis"
+  | "devis_reference_client"
+  | "devis_date_commande_client"
+  | "compte_rendu"
+  | "prestas"
+  | "interventions_supplementaires"
+  | "obs_tech"
+  | "obs_client"
+  | "sig_tech"
+  | "sig_client"
+  | "signataire"
+  | "date_signature"
+>;
+
 const BLEU = "#1375D0";
 const ENCRE = "#14202E";
 const GRIS = "#697382";
@@ -54,6 +92,20 @@ const styles = StyleSheet.create({
   photoPageTitle: { fontSize: 12, fontFamily: "Helvetica-Bold", color: BLEU, marginBottom: 12 },
   photoImage: { height: 320, objectFit: "contain", marginBottom: 4 },
   photoLegende: { fontSize: 9, marginBottom: 16 },
+  apercuBandeau: { backgroundColor: "#B91C1C", paddingVertical: 4, marginBottom: 8 },
+  apercuBandeauTexte: { color: "white", fontSize: 10, fontFamily: "Helvetica-Bold", textAlign: "center" },
+  apercuFiligrane: {
+    position: "absolute",
+    top: 380,
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    fontSize: 70,
+    fontFamily: "Helvetica-Bold",
+    color: "#B91C1C",
+    opacity: 0.12,
+    transform: "rotate(-40deg)",
+  },
 });
 
 /// État après intervention (Dépannage uniquement) — toujours affiché
@@ -108,7 +160,7 @@ function descriptionEquipement(pole: string): string | null {
   }
 }
 
-function lignesDates(b: Bon): { label: string; valeur: string }[] {
+function lignesDates(b: BonPdf): { label: string; valeur: string }[] {
   if (avecPeriode(b.pole)) {
     if (b.date_debut && b.date_fin && b.date_debut !== b.date_fin) {
       return [{ label: "Période d'intervention", valeur: `du ${b.date_debut} au ${b.date_fin}` }];
@@ -167,7 +219,17 @@ function paires<T>(items: T[]): T[][] {
   return out;
 }
 
-function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; photos: PhotoAnnexe[] }) {
+function BiDocument({
+  bon,
+  logo,
+  photos,
+  apercu = false,
+}: {
+  bon: BonPdf;
+  logo: Buffer | null;
+  photos: PhotoAnnexe[];
+  apercu?: boolean;
+}) {
   const prestas = bon.prestas as unknown as Presta[];
   const nonDesservis = bon.entretien_non_desservis as unknown as { nom?: string; motif?: string }[];
   const avecPrestas = prestas.some((p) => p.designation.trim());
@@ -177,6 +239,16 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {apercu && (
+          <>
+            <Text style={styles.apercuFiligrane} fixed>
+              APERÇU
+            </Text>
+            <View style={styles.apercuBandeau} fixed>
+              <Text style={styles.apercuBandeauTexte}>APERÇU — non signé, sans valeur de bon d&apos;intervention</Text>
+            </View>
+          </>
+        )}
         <View style={styles.headerRow}>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer (rendu PDF), pas une balise HTML img */}
           {logo && <Image src={logo} style={styles.logo} />}
@@ -186,7 +258,7 @@ function BiDocument({ bon, logo, photos }: { bon: Bon; logo: Buffer | null; phot
             <Text style={styles.companySub}>Tél. 0262 26 00 86 · ogec.services@orange.fr</Text>
           </View>
           <View style={styles.numeroBox}>
-            <Text style={styles.numeroText}>{bon.numero}</Text>
+            <Text style={styles.numeroText}>{apercu ? "APERÇU" : bon.numero}</Text>
           </View>
         </View>
         <View style={styles.titleRow}>
@@ -332,4 +404,12 @@ async function chargerLogo(): Promise<Buffer | null> {
 export async function genererPdfBI(bon: Bon, photos: PhotoAnnexe[]): Promise<Buffer> {
   const logo = await chargerLogo();
   return renderToBuffer(<BiDocument bon={bon} logo={logo} photos={photos.slice(0, 4)} />);
+}
+
+/// Aperçu avant signature : même document que le BI final, sans photos
+/// ni signatures, à partir de la saisie en cours (rien n'est enregistré).
+export async function genererPdfApercuBI(bon: BonPdf): Promise<Buffer> {
+  const logo = await chargerLogo();
+  const sansSignature = { ...bon, numero: "", sig_tech: "", sig_client: "", date_signature: "" };
+  return renderToBuffer(<BiDocument bon={sansSignature} logo={logo} photos={[]} apercu />);
 }

@@ -50,7 +50,7 @@ export async function GET(request: Request) {
   const { data: devis, error } = await requete;
   if (error) return NextResponse.json({ erreur: error.message }, { status: 500 });
 
-  const idsEquipements = [...new Set((devis ?? []).map((d) => d.equipement_id).filter((id): id is string => Boolean(id)))];
+  const idsEquipements = [...new Set((devis ?? []).flatMap((d) => [d.equipement_id, ...d.equipements_supplementaires]).filter((id): id is string => Boolean(id)))];
   const [{ data: equipements, error: errEquipements }, { data: bons, error: errBons }] = await Promise.all([
     idsEquipements.length
       ? supabase.from("equipements").select("id, nom, numero_equipement, localisation").in("id", idsEquipements)
@@ -70,7 +70,10 @@ export async function GET(request: Request) {
 
   for (const d of devis ?? []) {
     const site = siteParId.get(d.site_id);
-    const equipement = d.equipement_id ? equipementParId.get(d.equipement_id) : undefined;
+    const equipementsDuDevis = [d.equipement_id, ...d.equipements_supplementaires]
+      .map((id) => (id ? equipementParId.get(id) : undefined))
+      .filter((e) => e !== undefined);
+    const equipement = equipementsDuDevis[0];
     const statut = calculerStatutDevis({
       numero: d.numero,
       annule: d.annule,
@@ -85,11 +88,9 @@ export async function GET(request: Request) {
       affaire ? String(affaire.site).padStart(2, "0") : "",
       site?.nom ?? "",
       site?.site ?? "",
-      equipement
-        ? [equipement.nom, equipement.numero_equipement ? `(${equipement.numero_equipement})` : ""]
-            .filter(Boolean)
-            .join(" ")
-        : "",
+      equipementsDuDevis
+        .map((e) => [e.nom, e.numero_equipement ? `(${e.numero_equipement})` : ""].filter(Boolean).join(" "))
+        .join(" ; "),
       d.localisation || equipement?.localisation || "",
       d.redacteur,
       d.nature ? labelNatureDevis(d.nature) : "",

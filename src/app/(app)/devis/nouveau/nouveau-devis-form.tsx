@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { creerDevis, enregistrerBrouillonDevis, listerEquipementsDuSite } from "../actions";
 import {
   ligneDevisVide,
@@ -41,7 +41,7 @@ const LABELS_TYPE: Record<TypeLigneDevis, string> = {
 const UNITES = ["U", "Ens", "Ft", "ml", "kg"];
 
 type Prefill = {
-  equipementId: string;
+  equipementIds: string[];
   siteId: string;
   clientNom: string;
   type: "sous" | "hors";
@@ -55,7 +55,7 @@ type Brouillon = {
   siteId: string;
   clientNom: string;
   type: "sous" | "hors";
-  equipementId: string;
+  equipementIds: string[];
   localisation: string;
   libelle: string;
   nature: string;
@@ -89,7 +89,7 @@ export function NouveauDevisForm({
 
   const [siteId, setSiteId] = useState(brouillon?.siteId ?? prefill?.siteId ?? "");
   const [equipements, setEquipements] = useState<Equipement[]>([]);
-  const [equipementId, setEquipementId] = useState(brouillon?.equipementId ?? prefill?.equipementId ?? "");
+  const [equipementIds, setEquipementIds] = useState<string[]>(brouillon?.equipementIds ?? prefill?.equipementIds ?? []);
   const [localisation, setLocalisation] = useState(brouillon?.localisation ?? "");
   // Filtre pur (pas enregistré sur le devis) pour retrouver l'équipement
   // plus vite sur un site qui en a beaucoup : Groupe restreint les
@@ -105,17 +105,26 @@ export function NouveauDevisForm({
   const localisationsSuggerees = [...new Set(equipementsDuGroupe.map((e) => e.localisation).filter(Boolean))].sort(
     (a, b) => a.localeCompare(b, "fr"),
   );
+  // La Localisation ne filtre que le premier choix : une fois remplie
+  // par un équipement, elle masquerait ceux des autres pièces.
   const equipementsFiltres = equipementsDuGroupe.filter(
-    (e) => !localisation.trim() || e.localisation.toLowerCase().includes(localisation.trim().toLowerCase()),
+    (e) =>
+      !equipementIds.includes(e.id) &&
+      (equipementIds.length > 0 ||
+        !localisation.trim() ||
+        e.localisation.toLowerCase().includes(localisation.trim().toLowerCase())),
   );
 
-  function changerEquipement(id: string) {
-    setEquipementId(id);
-    // Toujours connue quand l'équipement l'est — reste modifiable
-    // ensuite (notamment quand l'équipement n'existe pas encore,
-    // ex. Installation neuve).
-    const eq = equipements.find((e) => e.id === id);
-    if (eq) setLocalisation(eq.localisation);
+  function localisationsDe(ids: string[], liste: Equipement[]): string {
+    const lieux = ids.map((id) => liste.find((e) => e.id === id)?.localisation).filter(Boolean);
+    return [...new Set(lieux)].join(", ");
+  }
+
+  // Toujours connue quand l'équipement l'est — reste modifiable ensuite
+  // (notamment quand l'équipement n'existe pas encore, ex. Installation neuve).
+  function changerEquipements(ids: string[]) {
+    setEquipementIds(ids);
+    setLocalisation(localisationsDe(ids, equipements));
   }
 
   useEffect(() => {
@@ -127,9 +136,8 @@ export function NouveauDevisForm({
       // "Devis à établir" fournit un equipementId mais pas sa
       // localisation (contrairement à un brouillon repris, qui a déjà
       // la sienne) — on la déduit une fois la liste chargée.
-      if (prefill?.equipementId && !brouillon) {
-        const eq = liste.find((e) => e.id === prefill.equipementId);
-        if (eq) setLocalisation(eq.localisation);
+      if (prefill && prefill.equipementIds.length > 0 && !brouillon) {
+        setLocalisation(localisationsDe(prefill.equipementIds, liste));
       }
     });
     // Pré-remplissage ponctuel au chargement (brouillon repris, ou
@@ -161,7 +169,7 @@ export function NouveauDevisForm({
 
   function changerSite(id: string) {
     setSiteId(id);
-    setEquipementId("");
+    setEquipementIds([]);
     setEquipements([]);
     setGroupeFiltre("");
     setLocalisation("");
@@ -173,7 +181,6 @@ export function NouveauDevisForm({
 
   function changerGroupeFiltre(groupe: string) {
     setGroupeFiltre(groupe);
-    setEquipementId("");
   }
 
   function majLigne(i: number, champs: Partial<LigneDevis>) {
@@ -218,7 +225,7 @@ export function NouveauDevisForm({
         siteId,
         libelle,
         nature,
-        equipementId: equipementId || null,
+        equipementIds,
         localisation,
         lignes: lignesValides,
         coutRevient,
@@ -243,7 +250,7 @@ export function NouveauDevisForm({
         siteId,
         libelle,
         nature,
-        equipementId: equipementId || null,
+        equipementIds,
         localisation,
         lignes: lignesValides,
         coutRevient,
@@ -263,7 +270,7 @@ export function NouveauDevisForm({
       {prefill && (
         <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
           Pré-rempli depuis &quot;Devis à établir&quot;
-          {prefill.equipementSignale && ` — équipement signalé : ${prefill.equipementSignale}`}
+          {prefill.equipementSignale && ` — signalé sur : ${prefill.equipementSignale}`}
         </p>
       )}
       {brouillon && (
@@ -345,14 +352,16 @@ export function NouveauDevisForm({
           </div>
 
           <div>
-            <label className={ETIQUETTE}>Équipement concerné (facultatif)</label>
+            <label className={ETIQUETTE}>Équipements concernés (facultatif)</label>
             <select
-              value={equipementId}
-              onChange={(e) => changerEquipement(e.target.value)}
+              value=""
+              onChange={(e) => {
+                if (e.target.value) changerEquipements([...equipementIds, e.target.value]);
+              }}
               disabled={!siteId || equipementsFiltres.length === 0}
               className={`${CHAMP} disabled:bg-slate-50`}
             >
-              <option value="">— aucun —</option>
+              <option value="">— ajouter un équipement —</option>
               {equipementsFiltres.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.libelle}
@@ -361,6 +370,19 @@ export function NouveauDevisForm({
             </select>
           </div>
         </div>
+
+        {equipementIds.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {equipementIds.map((id) => (
+              <span key={id} className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-brand-green-dark">
+                {equipements.find((e) => e.id === id)?.libelle ?? "Chargement..."}
+                <button type="button" onClick={() => changerEquipements(equipementIds.filter((x) => x !== id))} title="Retirer">
+                  <X className="h-3 w-3" strokeWidth={2.5} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
 
         <div>
           <label className={ETIQUETTE}>Libellé du devis *</label>

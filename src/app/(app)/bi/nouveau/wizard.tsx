@@ -469,22 +469,64 @@ export function BiWizard({
     brouillon?.interventions_supplementaires ?? [],
   );
 
+  // Devis à plusieurs équipements : même mécanisme que le Dépannage, un
+  // seul BI, le prochain équipement du devis étant proposé d'office.
+  const devisCourant = devisDuSite.find((d) => d.id === devisId) ?? null;
+  const equipementsDuDevis = devisCourant
+    ? [devisCourant.equipement_id, ...devisCourant.equipements_supplementaires].filter((id): id is string => Boolean(id))
+    : [];
+  // Tous les équipements du devis doivent être faits avant de continuer,
+  // hors équipement supprimé du parc depuis (il bloquerait à vie). Pas de
+  // liste pour une Installation neuve : les équipements n'existent pas encore.
+  const equipementsRestants = avecNouvelEquipement(pole)
+    ? []
+    : equipementsDuDevis.filter(
+        (id) =>
+          id !== equipementId &&
+          equipementsSite.some((e) => e.id === id) &&
+          !interventionsSupplementaires.some((i) => i.equipement_id === id),
+      );
+  const resteAFaire = pole !== Poles.depannage && equipementsRestants.length > 0;
+  const plusieursEquipements =
+    pole === Poles.depannage ||
+    avecNouvelEquipement(pole) ||
+    equipementsDuDevis.length > 1 ||
+    interventionsSupplementaires.length > 0;
+  const autreEquipementPossible = pole === Poles.depannage || avecNouvelEquipement(pole) || resteAFaire;
+
   function ajouterAutreEquipement(etats: string[]) {
-    const nom = avecNouvelEquipement(pole) ? "" : equipement ? equipement.nom : equipementLibre.trim();
+    const nom = avecNouvelEquipement(pole)
+      ? installationNom.trim() || (typeActif?.nom ?? "")
+      : equipement
+        ? equipement.nom
+        : equipementLibre.trim();
     if (!nom) return;
     setInterventionsSupplementaires((prev) => [
       ...prev,
       {
         equipement_id: equipement?.id ?? null,
         equipement_nom: nom,
-        equipement_groupe: equipement?.groupe ?? "",
-        equipement_localisation: equipement?.localisation ?? "",
+        equipement_groupe: avecNouvelEquipement(pole) ? installationGroupe.trim() : (equipement?.groupe ?? ""),
+        equipement_localisation: avecNouvelEquipement(pole) ? installationLocalisation.trim() : (equipement?.localisation ?? ""),
         compte_rendu: compteRendu.trim(),
         prestas: fourniture.filter((p) => p.designation.trim()),
         etat_equipement: etatEquipementAEnregistrer(etats),
+        ...(pole === Poles.remplacementIdentique ? { materiel_champs_en_tete: materielChamps } : {}),
+        ...(avecNouvelEquipement(pole)
+          ? { materiel_champs_en_tete: materielChamps, materiel_type_equipement_id: typeActif?.id ?? null }
+          : {}),
       },
     ]);
-    setEquipementId("");
+    if (pole !== Poles.depannage) {
+      setTypeActifId("");
+      setMaterielChamps({});
+    }
+    if (avecNouvelEquipement(pole)) {
+      setInstallationNom("");
+      setInstallationLocalisation("");
+      setInstallationGroupe("");
+    }
+    setEquipementId(pole === Poles.depannage ? "" : (equipementsRestants[0] ?? ""));
     setEquipementLibre("");
     setCompteRendu("");
     setFourniture([{ designation: "", quantite: "" }]);
@@ -650,11 +692,15 @@ export function BiWizard({
   // voir ce qu'il signe, surtout quand plusieurs équipements ont été
   // traités dans la même visite.
   const recapInterventions =
-    pole === Poles.depannage
+    pole === Poles.depannage || interventionsSupplementaires.length > 0
       ? [
           ...interventionsSupplementaires,
           {
-            equipement_nom: equipement ? equipement.nom : equipementLibre.trim(),
+            equipement_nom: avecNouvelEquipement(pole)
+              ? installationNom.trim() || (typeActif?.nom ?? "")
+              : equipement
+                ? equipement.nom
+                : equipementLibre.trim(),
             compte_rendu: compteRendu.trim(),
             prestas: fourniture.filter((p) => p.designation.trim()),
             etat_equipement: etatEquipementAEnregistrer(etatEquipement),
@@ -812,6 +858,10 @@ export function BiWizard({
   }
 
   function soumettre(statut: "brouillon" | "averif") {
+    if (statut === "averif" && resteAFaire) {
+      setErreur("Ce devis couvre d'autres équipements : renseigne-les tous avant de transmettre le BI.");
+      return;
+    }
     if (statut === "averif" && !sansTempsPasse(pole) && tempsPasse.trim() === "") {
       setAlerteHeures(true);
       return;
@@ -1220,7 +1270,7 @@ export function BiWizard({
             </div>
           )}
 
-          {pole === Poles.depannage && interventionsSupplementaires.length > 0 && (
+          {plusieursEquipements && interventionsSupplementaires.length > 0 && (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <p className="mb-1.5 text-xs font-medium text-slate-600">Déjà renseignés sur cette visite</p>
               <div className="space-y-1.5">
@@ -1258,6 +1308,13 @@ export function BiWizard({
 
       {etape === 2 && (
         <div className="space-y-4">
+          {pole !== Poles.depannage && equipementsRestants.length > 0 && (
+            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+              Ce devis couvre aussi :{" "}
+              {equipementsRestants.map((id) => equipementsSite.find((e) => e.id === id)?.nom ?? "un équipement").join(", ")}.
+              Termine cet équipement, puis clique sur &quot;Autre équipement&quot; : tous doivent être faits sur ce BI.
+            </p>
+          )}
           {modele && modele.champs.length > 0 && (
             <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-slate-600">Champs guidés</p>
@@ -1441,7 +1498,7 @@ export function BiWizard({
             </div>
           )}
 
-          {pole === Poles.depannage && interventionsSupplementaires.length > 0 && (
+          {plusieursEquipements && interventionsSupplementaires.length > 0 && (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <p className="mb-1.5 text-xs font-medium text-slate-600">Déjà renseignés sur cette visite</p>
               <div className="space-y-1.5">
@@ -1491,7 +1548,7 @@ export function BiWizard({
             </div>
           )}
 
-          {POLES_AVEC_RESUME.has(pole) && (titreResume || compteRendu.trim()) && (
+          {recapInterventions.length === 0 && POLES_AVEC_RESUME.has(pole) && (titreResume || compteRendu.trim()) && (
             <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
               <p className="mb-2 text-xs font-bold uppercase tracking-wide text-violet-700">Résumé de l&apos;intervention</p>
               {titreResume && <p className="text-sm font-bold text-slate-900">{titreResume}</p>}
@@ -1679,11 +1736,11 @@ export function BiWizard({
             Précédent
           </button>
         )}
-        {etape === 2 && pole === Poles.depannage && (
+        {etape === 2 && autreEquipementPossible && (
           <button
             type="button"
-            onClick={() => poserQuestions("autre")}
-            disabled={!equipement && !equipementLibre.trim()}
+            onClick={() => (pole === Poles.depannage ? poserQuestions("autre") : ajouterAutreEquipement([]))}
+            disabled={!equipement && !equipementLibre.trim() && !avecNouvelEquipement(pole)}
             className="flex-1 rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-semibold text-violet-700 shadow-sm hover:bg-violet-50 disabled:opacity-40"
           >
             Autre équipement
@@ -1692,7 +1749,7 @@ export function BiWizard({
         {etape > 0 && etape < TOTAL_ETAPES - 1 && (
           <button
             onClick={avancerEtape}
-            disabled={etape === 1 && !peutAvancerEtapeClient}
+            disabled={(etape === 1 && !peutAvancerEtapeClient) || (etape === 2 && resteAFaire)}
             className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-40 ${ACCENT}`}
           >
             Suivant

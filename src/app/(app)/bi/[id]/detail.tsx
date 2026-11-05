@@ -642,16 +642,31 @@ function VueCorrection({
   const [equipementNumero, setEquipementNumero] = useState(
     () => bon.equipement_numero || suggererNumeroEquipement(numeroAffaireSite, numerosEquipementSite),
   );
-  const [interventions, setInterventions] = useState<InterventionEquipement[]>(() =>
-    interventionsDuBon(bon).map((inter) => ({ ...inter, prestas: inter.prestas.filter((p) => p.designation.trim()) })),
-  );
+  const [interventions, setInterventions] = useState<InterventionEquipement[]>(() => {
+    // Installation neuve à plusieurs équipements : un numéro libre suggéré
+    // pour chacun, sans jamais proposer deux fois le même.
+    const numerosPris = [...numerosEquipementSite, equipementNumero];
+    return interventionsDuBon(bon).map((inter, i) => {
+      const nettoyee = { ...inter, prestas: inter.prestas.filter((p) => p.designation.trim()) };
+      if (i === 0 || bon.pole !== Poles.installationNeuve) return nettoyee;
+      const numero = inter.equipement_numero || suggererNumeroEquipement(numeroAffaireSite, numerosPris);
+      numerosPris.push(numero);
+      return { ...nettoyee, equipement_numero: numero };
+    });
+  });
   const [noteInterne, setNoteInterne] = useState(bon.note_interne);
   const [email, setEmail] = useState(bon.email);
   const [erreur, setErreur] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const emailValide = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
-  const numeroEnDouble = numerosEquipementSite.includes(equipementNumero.trim());
+  const posesSupplementaires = pole === Poles.installationNeuve ? interventions.slice(1) : [];
+  const numerosPoses = [equipementNumero, ...posesSupplementaires.map((p) => p.equipement_numero ?? "")].map((n) => n.trim());
+  const numeroEnDouble = (numero: string) =>
+    numerosEquipementSite.includes(numero.trim()) || numerosPoses.filter((n) => n === numero.trim()).length > 1;
+  const posesCompletes = posesSupplementaires.every(
+    (p) => p.equipement_nom.trim() && (p.equipement_numero ?? "").trim() && !numeroEnDouble(p.equipement_numero ?? ""),
+  );
   const moisRenseigne = classementActuel !== "facturer" || /^\d{2}-\d{4}$/.test(moisActuel.trim());
   const peutValider =
     emailValide &&
@@ -660,7 +675,8 @@ function VueCorrection({
     (pole !== Poles.installationNeuve ||
       (equipementNom.trim() !== "" &&
         equipementNumero.trim() !== "" &&
-        !numeroEnDouble &&
+        !numeroEnDouble(equipementNumero) &&
+        posesCompletes &&
         bon.materiel_type_equipement_id !== null));
 
   function valider() {
@@ -767,7 +783,7 @@ function VueCorrection({
             <Champ label="Nom de l'équipement" valeur={equipementNom} onChange={setEquipementNom} />
             <div>
               <Champ label="Numéro d'équipement" valeur={equipementNumero} onChange={setEquipementNumero} />
-              {numeroEnDouble && (
+              {numeroEnDouble(equipementNumero) && (
                 <p className="mt-1 text-xs font-semibold text-red-600">
                   Ce numéro existe déjà sur ce site — choisis-en un autre.
                 </p>
@@ -791,6 +807,23 @@ function VueCorrection({
               <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
                 {label ? `Équipement : ${label}` : interventions.length > 1 ? `Intervention ${i + 1}` : "Compte rendu"}
               </p>
+              {i > 0 && pole === Poles.installationNeuve && (
+                <div className="mb-3 space-y-2">
+                  <Champ
+                    label="Nom de l'équipement"
+                    valeur={inter.equipement_nom}
+                    onChange={(v) => majIntervention({ equipement_nom: v })}
+                  />
+                  <Champ
+                    label="Numéro d'équipement"
+                    valeur={inter.equipement_numero ?? ""}
+                    onChange={(v) => majIntervention({ equipement_numero: v })}
+                  />
+                  {numeroEnDouble(inter.equipement_numero ?? "") && (
+                    <p className="text-xs font-semibold text-red-600">Ce numéro est déjà utilisé — choisis-en un autre.</p>
+                  )}
+                </div>
+              )}
               {inter.etat_equipement.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-1">
                   {inter.etat_equipement.map((e) => (

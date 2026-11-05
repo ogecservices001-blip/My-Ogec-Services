@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, requireProfile } from "@/lib/auth";
 import { Poles, Statuts, CHAMPS_MATERIEL_EXCLUS_BI } from "@/lib/bi/constants";
-import { now, type Presta, type InterventionEquipement } from "@/lib/bi/format";
+import { now, interventionsDuBon, type Presta, type InterventionEquipement } from "@/lib/bi/format";
 import { archiverBiSiBesoin, genererPdfAvecPhotos } from "@/lib/bi/archive";
 import { envoyerConfirmationBI } from "@/lib/bi/email";
 import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
@@ -47,9 +47,11 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
   switch (bi.pole) {
     case Poles.reparationEquipement:
     case Poles.entretienHorsContrat: {
-      if (!bi.equipement_id) return;
       const verbe = bi.pole === Poles.reparationEquipement ? "Réparé" : "Entretien effectué";
-      await ajouterRemarqueEquipement(supabase, bi.equipement_id, `${verbe} le ${date} via ${bi.numero} : ${bi.compte_rendu}`);
+      for (const inter of interventionsDuBon(bi)) {
+        if (!inter.equipement_id) continue;
+        await ajouterRemarqueEquipement(supabase, inter.equipement_id, `${verbe} le ${date} via ${bi.numero} : ${inter.compte_rendu}`);
+      }
       break;
     }
     case Poles.entretienSousContrat: {
@@ -68,74 +70,98 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
       break;
     }
     case Poles.remplacementIdentique: {
-      if (!bi.equipement_id) return;
-      await ajouterRemarqueEquipement(supabase, bi.equipement_id, `Remplacé le ${date} via ${bi.numero} : ${bi.compte_rendu}`);
-      const champs = bi.materiel_champs_en_tete as Record<string, string>;
-      const donnees = Object.fromEntries(
-        Object.entries(champs).filter(([cle, v]) => !CHAMPS_MATERIEL_EXCLUS_BI.has(cle) && v && String(v).trim()),
-      );
-      if (Object.keys(donnees).length > 0) {
-        const { data: eq } = await supabase.from("equipements").select("champs_en_tete").eq("id", bi.equipement_id).single();
-        await supabase
-          .from("equipements")
-          .update({ champs_en_tete: { ...(eq?.champs_en_tete ?? {}), ...donnees } })
-          .eq("id", bi.equipement_id);
+      for (const [i, inter] of interventionsDuBon(bi).entries()) {
+        if (!inter.equipement_id) continue;
+        await ajouterRemarqueEquipement(supabase, inter.equipement_id, `Remplacé le ${date} via ${bi.numero} : ${inter.compte_rendu}`);
+        const champs = (i === 0 ? bi.materiel_champs_en_tete : inter.materiel_champs_en_tete) as Record<string, string> | undefined;
+        const donnees = Object.fromEntries(
+          Object.entries(champs ?? {}).filter(([cle, v]) => !CHAMPS_MATERIEL_EXCLUS_BI.has(cle) && v && String(v).trim()),
+        );
+        if (Object.keys(donnees).length > 0) {
+          const { data: eq } = await supabase.from("equipements").select("champs_en_tete").eq("id", inter.equipement_id).single();
+          await supabase
+            .from("equipements")
+            .update({ champs_en_tete: { ...(eq?.champs_en_tete ?? {}), ...donnees } })
+            .eq("id", inter.equipement_id);
+        }
       }
       break;
     }
     case Poles.installationNeuve: {
-      if (!bi.equipement_nom.trim() || !bi.materiel_type_equipement_id) return;
-      const champs = bi.materiel_champs_en_tete as Record<string, string>;
-      const champsEnTete = Object.fromEntries(
-        Object.entries(champs).filter(([cle, v]) => !CHAMPS_MATERIEL_EXCLUS_BI.has(cle) && v && String(v).trim()),
-      );
-      // Même logique que creerEquipement (formulaire GMAO) : Type
-      // Equipement 1 vient toujours de la famille (jamais saisi), et la
-      // référence horaire matchée est stockée pour que les heures de
-      // maintenance du parc s'affichent sans ressaisie.
-      const { data: type } = await supabase
-        .from("types_equipement")
-        .select("type_equipement1_fixe")
-        .eq("id", bi.materiel_type_equipement_id)
-        .single();
-      if (type?.type_equipement1_fixe) {
-        champsEnTete.typeEquipement1 = type.type_equipement1_fixe;
-      }
-      // Fréquence d'entretien jamais saisie en BI (voir
-      // CHAMPS_MATERIEL_EXCLUS_BI) : le contrat fixe une fréquence
-      // uniforme pour tout le site, on reprend donc celle déjà en
-      // vigueur sur les autres équipements du site plutôt que de
-      // laisser le nouvel équipement sans heures prévues.
-      const { data: equipementsSite } = await supabase
-        .from("equipements")
-        .select("champs_en_tete")
-        .eq("site_id", bi.site_id);
-      const comptesFreq = new Map<string, number>();
-      for (const eq of equipementsSite ?? []) {
-        const f = eq.champs_en_tete?.freqEntretienAnnuelle;
-        if (typeof f === "string" && f.trim()) comptesFreq.set(f, (comptesFreq.get(f) ?? 0) + 1);
-      }
-      const freqSite = [...comptesFreq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-      if (freqSite) champsEnTete.freqEntretienAnnuelle = freqSite;
+      const poses = [
+        {
+          nom: bi.equipement_nom,
+          numero: bi.equipement_numero,
+          localisation: bi.equipement_localisation,
+          groupe: bi.equipement_groupe,
+          compteRendu: bi.compte_rendu,
+          typeId: bi.materiel_type_equipement_id,
+          champs: bi.materiel_champs_en_tete as Record<string, string>,
+        },
+        ...((bi.interventions_supplementaires as InterventionEquipement[] | null) ?? []).map((inter) => ({
+          nom: inter.equipement_nom,
+          numero: inter.equipement_numero ?? "",
+          localisation: inter.equipement_localisation,
+          groupe: inter.equipement_groupe,
+          compteRendu: inter.compte_rendu,
+          typeId: inter.materiel_type_equipement_id ?? null,
+          champs: inter.materiel_champs_en_tete ?? {},
+        })),
+      ];
+      for (const pose of poses) {
+        if (!pose.nom.trim() || !pose.typeId) continue;
+        const champs = pose.champs;
+        const champsEnTete = Object.fromEntries(
+          Object.entries(champs).filter(([cle, v]) => !CHAMPS_MATERIEL_EXCLUS_BI.has(cle) && v && String(v).trim()),
+        );
+        // Même logique que creerEquipement (formulaire GMAO) : Type
+        // Equipement 1 vient toujours de la famille (jamais saisi), et la
+        // référence horaire matchée est stockée pour que les heures de
+        // maintenance du parc s'affichent sans ressaisie.
+        const { data: type } = await supabase
+          .from("types_equipement")
+          .select("type_equipement1_fixe")
+          .eq("id", pose.typeId)
+          .single();
+        if (type?.type_equipement1_fixe) {
+          champsEnTete.typeEquipement1 = type.type_equipement1_fixe;
+        }
+        // Fréquence d'entretien jamais saisie en BI (voir
+        // CHAMPS_MATERIEL_EXCLUS_BI) : le contrat fixe une fréquence
+        // uniforme pour tout le site, on reprend donc celle déjà en
+        // vigueur sur les autres équipements du site plutôt que de
+        // laisser le nouvel équipement sans heures prévues.
+        const { data: equipementsSite } = await supabase
+          .from("equipements")
+          .select("champs_en_tete")
+          .eq("site_id", bi.site_id);
+        const comptesFreq = new Map<string, number>();
+        for (const eq of equipementsSite ?? []) {
+          const f = eq.champs_en_tete?.freqEntretienAnnuelle;
+          if (typeof f === "string" && f.trim()) comptesFreq.set(f, (comptesFreq.get(f) ?? 0) + 1);
+        }
+        const freqSite = [...comptesFreq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+        if (freqSite) champsEnTete.freqEntretienAnnuelle = freqSite;
 
-      const { data: references } = await supabase.from("references_horaires").select("*");
-      const { reference } = analyserReference(champsEnTete, references ?? []);
-      await supabase.from("equipements").insert({
-        site_id: bi.site_id,
-        type_equipement_id: bi.materiel_type_equipement_id,
-        nom: bi.equipement_nom,
-        numero_equipement: bi.equipement_numero,
-        localisation: bi.equipement_localisation,
-        groupe: bi.equipement_groupe,
-        // Toujours hors contrat à la création, même chez un client sous
-        // contrat : un équipement ajouté n'est jamais automatiquement
-        // couvert par le contrat existant, il faut un avenant. Chez un
-        // client déjà hors contrat, c'est trivial — rien à signaler.
-        hors_contrat: true,
-        champs_en_tete: champsEnTete,
-        reference_horaire_id: reference?.id ?? null,
-        remarque_technicien: `Installé le ${date} via ${bi.numero} : ${bi.compte_rendu}${bi.hors_contrat ? "" : " — Hors contrat, avenant à faire."}`,
-      });
+        const { data: references } = await supabase.from("references_horaires").select("*");
+        const { reference } = analyserReference(champsEnTete, references ?? []);
+        await supabase.from("equipements").insert({
+          site_id: bi.site_id,
+          type_equipement_id: pose.typeId,
+          nom: pose.nom,
+          numero_equipement: pose.numero,
+          localisation: pose.localisation,
+          groupe: pose.groupe,
+          // Toujours hors contrat à la création, même chez un client sous
+          // contrat : un équipement ajouté n'est jamais automatiquement
+          // couvert par le contrat existant, il faut un avenant. Chez un
+          // client déjà hors contrat, c'est trivial — rien à signaler.
+          hors_contrat: true,
+          champs_en_tete: champsEnTete,
+          reference_horaire_id: reference?.id ?? null,
+          remarque_technicien: `Installé le ${date} via ${bi.numero} : ${pose.compteRendu}${bi.hors_contrat ? "" : " — Hors contrat, avenant à faire."}`,
+        });
+      }
       break;
     }
   }

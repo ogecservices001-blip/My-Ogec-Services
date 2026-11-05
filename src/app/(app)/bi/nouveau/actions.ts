@@ -50,6 +50,7 @@ export type DevisDuSite = {
   date_devis: string;
   nature: string;
   equipement_id: string | null;
+  equipements_supplementaires: string[];
   localisation: string;
 };
 
@@ -61,7 +62,7 @@ export async function chargerDevisDuSite(siteId: string, natureFiltre?: string):
   const supabase = await createClient();
   let requete = supabase
     .from("devis")
-    .select("id, numero, libelle, reference_client, date_commande_client, date_devis, nature, equipement_id, localisation")
+    .select("id, numero, libelle, reference_client, date_commande_client, date_devis, nature, equipement_id, equipements_supplementaires, localisation")
     .eq("site_id", siteId)
     .neq("date_commande_client", "")
     .eq("annule", false)
@@ -200,6 +201,8 @@ export type InterventionSupplementaireInput = {
   compte_rendu: string;
   prestas: PrestaInput[];
   etat_equipement: string[];
+  materiel_champs_en_tete?: Record<string, string>;
+  materiel_type_equipement_id?: string | null;
 };
 
 export type BiInput = {

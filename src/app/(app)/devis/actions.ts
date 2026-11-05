@@ -19,7 +19,8 @@ export type NouveauDevisInput = {
   siteId: string;
   libelle: string;
   nature: string;
-  equipementId: string | null;
+  /// Premier = équipement principal (devis.equipement_id).
+  equipementIds: string[];
   /// Texte libre, indépendant de l'équipement du parc GMAO — utile
   /// notamment pour une Installation neuve (l'équipement n'existe pas
   /// encore). Pré-remplie depuis l'équipement choisi, mais modifiable.
@@ -110,7 +111,8 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
       debours_materiel_prevu: prixRevient.materiel,
       lignes: lignesValides,
       cout_revient: input.coutRevient,
-      equipement_id: input.equipementId,
+      equipement_id: input.equipementIds[0] ?? null,
+      equipements_supplementaires: input.equipementIds.slice(1),
       localisation: input.localisation.trim(),
       date_devis: dateDevis,
       redacteur: profil.name,
@@ -138,7 +140,7 @@ export type BrouillonDevisInput = {
   siteId: string;
   libelle: string;
   nature: string;
-  equipementId: string | null;
+  equipementIds: string[];
   localisation: string;
   lignes: LigneDevis[];
   coutRevient: CoutRevient;
@@ -168,7 +170,8 @@ export async function enregistrerBrouillonDevis(input: BrouillonDevisInput): Pro
     debours_materiel_prevu: prixRevient.materiel,
     lignes: lignesValides,
     cout_revient: input.coutRevient,
-    equipement_id: input.equipementId,
+    equipement_id: input.equipementIds[0] ?? null,
+    equipements_supplementaires: input.equipementIds.slice(1),
     localisation: input.localisation.trim(),
     date_devis: new Date().toLocaleDateString("fr-FR"),
     redacteur: profil.name,
@@ -212,6 +215,7 @@ export type DevisInput = {
   email_responsable_contrat: string;
   annule: boolean;
   equipement_id?: string | null;
+  equipements_supplementaires?: string[];
   localisation?: string;
 };
 
@@ -276,12 +280,16 @@ export async function changerStatutDevis(id: string, input: StatutDevisInput): P
   return { ok: true };
 }
 
-export async function lierEquipementDevis(id: string, equipementId: string | null): Promise<ActionResult> {
+export async function lierEquipementsDevis(id: string, equipementIds: string[]): Promise<ActionResult> {
   await requireAdmin();
   const supabase = await createClient();
   const { error } = await supabase
     .from("devis")
-    .update({ equipement_id: equipementId, updated_at: new Date().toISOString() })
+    .update({
+      equipement_id: equipementIds[0] ?? null,
+      equipements_supplementaires: equipementIds.slice(1),
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id);
   if (error) return { ok: false, erreur: error.message };
 

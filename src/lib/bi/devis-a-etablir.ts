@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { Poles } from "./constants";
 import type { InterventionEquipement } from "./format";
 
+/// Une ligne par BI : tous ses équipements signalés partent sur un seul devis.
 export type DevisAEtablir = {
-  equipementId: string | null;
+  equipementIds: string[];
   equipementNom: string;
   clientNom: string;
   site: string;
@@ -36,30 +37,23 @@ function entreesDuBon(b: {
   return [primaire, ...supplementaires];
 }
 
-function cleSignalement(biNumero: string, equipementNom: string): string {
-  return `${biNumero}|${equipementNom}`;
-}
-
-/// Écran de création du devis, pré-rempli depuis le signalement. Sans
-/// équipement connu (texte libre), le site et le signalement prennent
-/// le relais de l'équipement.
+/// Écran de création du devis, pré-rempli depuis le signalement.
 export function lienCreerDevis(a: DevisAEtablir): string {
-  const params = new URLSearchParams({ compteRendu: a.compteRendu });
-  if (a.equipementId) {
-    params.set("equipementId", a.equipementId);
-  } else {
-    if (a.siteId) params.set("siteId", a.siteId);
-    params.set("signalement", cleSignalement(a.biNumero, a.equipementNom));
-    params.set("equipementNom", a.equipementNom);
-  }
+  const params = new URLSearchParams({
+    compteRendu: a.compteRendu,
+    signalement: a.biNumero,
+    equipementNom: a.equipementNom,
+  });
+  if (a.siteId) params.set("siteId", a.siteId);
+  if (a.equipementIds.length > 0) params.set("equipementIds", a.equipementIds.join(","));
   return `/devis/nouveau?${params.toString()}`;
 }
 
 /// Équipements signalés "Devis à établir" par un BI Dépannage transmis,
-/// tant qu'aucun devis (non annulé) n'y répond : lié à l'équipement, ou
-/// créé depuis ce signalement pour un équipement en texte libre. La
-/// liste se vide toute seule à la création du devis. `siteIds` limite le
-/// résultat à ces sites (récap Répertoire) ; omis = tous les sites.
+/// regroupés par BI, tant qu'aucun devis (non annulé) n'y répond : créé
+/// depuis ce BI, ou déjà lié à l'équipement. La liste se vide toute seule
+/// à la création du devis. `siteIds` limite le résultat à ces sites (récap
+/// Répertoire) ; omis = tous les sites.
 export async function chargerDevisAEtablir(siteIds?: string[]): Promise<DevisAEtablir[]> {
   const supabase = await createClient();
   let requete = supabase
@@ -71,35 +65,43 @@ export async function chargerDevisAEtablir(siteIds?: string[]): Promise<DevisAEt
 
   const [{ data: bons }, { data: devisExistants }] = await Promise.all([
     requete,
-    supabase.from("devis").select("equipement_id, signalement_bi").eq("annule", false),
+    supabase.from("devis").select("equipement_id, equipements_supplementaires, signalement_bi").eq("annule", false),
   ]);
 
-  const equipementsAvecDevis = new Set((devisExistants ?? []).map((d) => d.equipement_id).filter(Boolean));
-  const signalementsAvecDevis = new Set((devisExistants ?? []).map((d) => d.signalement_bi).filter(Boolean));
-  const vus = new Set<string>();
+  const equipementsAvecDevis = new Set(
+    (devisExistants ?? []).flatMap((d) => [d.equipement_id, ...d.equipements_supplementaires]).filter(Boolean),
+  );
+  const bonsAvecDevis = new Set((devisExistants ?? []).map((d) => d.signalement_bi.split("|")[0]).filter(Boolean));
   const resultats: DevisAEtablir[] = [];
 
   for (const b of bons ?? []) {
-    for (const entree of entreesDuBon(b)) {
-      if (!entree.etat_equipement.includes("devis_a_etablir")) continue;
-      const equipementNom = entree.equipement_nom || "Équipement non précisé";
-      const dejaTraite = entree.equipement_id
-        ? equipementsAvecDevis.has(entree.equipement_id)
-        : signalementsAvecDevis.has(cleSignalement(b.numero, equipementNom));
-      if (dejaTraite) continue;
-      const cle = `${entree.equipement_id ?? equipementNom}-${b.numero}`;
-      if (vus.has(cle)) continue;
-      vus.add(cle);
-      resultats.push({
-        equipementId: entree.equipement_id,
-        equipementNom,
-        clientNom: b.client_nom,
-        site: b.site,
-        siteId: b.site_id,
-        biNumero: b.numero,
-        compteRendu: entree.compte_rendu,
+    if (bonsAvecDevis.has(b.numero)) continue;
+
+    const vus = new Set<string>();
+    const entrees = entreesDuBon(b)
+      .filter((e) => e.etat_equipement.includes("devis_a_etablir"))
+      .filter((e) => !e.equipement_id || !equipementsAvecDevis.has(e.equipement_id))
+      .map((e) => ({ ...e, equipement_nom: e.equipement_nom || "Équipement non précisé" }))
+      .filter((e) => {
+        const cle = e.equipement_id ?? e.equipement_nom;
+        if (vus.has(cle)) return false;
+        vus.add(cle);
+        return true;
       });
-    }
+    if (entrees.length === 0) continue;
+
+    resultats.push({
+      equipementIds: entrees.map((e) => e.equipement_id).filter((id): id is string => Boolean(id)),
+      equipementNom: entrees.map((e) => e.equipement_nom).join(", "),
+      clientNom: b.client_nom,
+      site: b.site,
+      siteId: b.site_id,
+      biNumero: b.numero,
+      compteRendu:
+        entrees.length === 1
+          ? entrees[0].compte_rendu
+          : entrees.map((e) => `${e.equipement_nom} : ${e.compte_rendu}`).join(" / "),
+    });
   }
 
   return resultats;

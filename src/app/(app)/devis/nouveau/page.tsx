@@ -9,7 +9,7 @@ export default async function NouveauDevisPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    equipementId?: string;
+    equipementIds?: string;
     compteRendu?: string;
     brouillonId?: string;
     siteId?: string;
@@ -18,16 +18,13 @@ export default async function NouveauDevisPage({
   }>;
 }) {
   await requireAdminOuAccueil();
-  const { equipementId, compteRendu, brouillonId, siteId, signalement, equipementNom } = await searchParams;
+  const { equipementIds, compteRendu, brouillonId, siteId, signalement, equipementNom } = await searchParams;
+  const idsEquipements = (equipementIds ?? "").split(",").filter(Boolean);
   const supabase = await createClient();
 
   const [{ data: sites }, prefillSite, brouillon] = await Promise.all([
     supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom"),
-    equipementId
-      ? chargerPrefill(supabase, equipementId)
-      : siteId
-        ? chargerPrefillSite(supabase, siteId, "")
-        : Promise.resolve(null),
+    siteId ? chargerPrefillSite(supabase, siteId, idsEquipements) : Promise.resolve(null),
     brouillonId ? chargerBrouillon(supabase, brouillonId) : Promise.resolve(null),
   ]);
   const prefill = prefillSite
@@ -61,7 +58,7 @@ async function chargerBrouillon(supabase: Awaited<ReturnType<typeof createClient
     siteId: devis.site_id,
     clientNom: site.nom,
     type: (site.hors_contrat ? "hors" : "sous") as "hors" | "sous",
-    equipementId: devis.equipement_id ?? "",
+    equipementIds: [devis.equipement_id, ...devis.equipements_supplementaires].filter((id): id is string => Boolean(id)),
     localisation: devis.localisation,
     libelle: devis.libelle,
     nature: devis.nature,
@@ -70,21 +67,15 @@ async function chargerBrouillon(supabase: Awaited<ReturnType<typeof createClient
   };
 }
 
-async function chargerPrefill(supabase: Awaited<ReturnType<typeof createClient>>, equipementId: string) {
-  const { data: eq } = await supabase.from("equipements").select("site_id").eq("id", equipementId).single();
-  if (!eq) return null;
-  return chargerPrefillSite(supabase, eq.site_id, equipementId);
-}
-
 async function chargerPrefillSite(
   supabase: Awaited<ReturnType<typeof createClient>>,
   siteId: string,
-  equipementId: string,
+  equipementIds: string[],
 ) {
   const { data: site } = await supabase.from("sites_view").select("id, nom, hors_contrat").eq("id", siteId).single();
   if (!site) return null;
   return {
-    equipementId,
+    equipementIds,
     siteId: site.id,
     clientNom: site.nom,
     type: (site.hors_contrat ? "hors" : "sous") as "hors" | "sous",

@@ -184,7 +184,10 @@ export async function previsualiserImportDevis(formData: FormData): Promise<Resu
     // "279" dans "D-26-279-BG-405-01-30").
     const item = numero.split("-")[2] ?? "";
 
-    const equipementConcerne = cell(row, col("Équipement concerné"));
+    const equipementIds = cell(row, col("Équipement concerné"))
+      .split(" ; ")
+      .map((texte) => resoudreEquipementId(site.id, texte))
+      .filter((id): id is string => Boolean(id));
 
     lignes.push({
       donnees: {
@@ -194,7 +197,8 @@ export async function previsualiserImportDevis(formData: FormData): Promise<Resu
         nature,
         date_devis: cell(row, col("Date devis")),
         libelle,
-        equipement_id: equipementConcerne ? resoudreEquipementId(site.id, equipementConcerne) : null,
+        equipement_id: equipementIds[0] ?? null,
+        equipements_supplementaires: equipementIds.slice(1),
         localisation: cell(row, col("Localisation")),
         montant: nombreCell(row, col("Montant")),
         date_commande_client: cell(row, col("Date commande client")),

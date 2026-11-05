@@ -211,6 +211,11 @@ export type InterventionEquipement = {
   compte_rendu: string;
   prestas: Presta[];
   etat_equipement: string[];
+  /// Remplacement à l'identique ou Installation neuve à plusieurs équipements.
+  materiel_champs_en_tete?: Record<string, string>;
+  materiel_type_equipement_id?: string | null;
+  /// Installation neuve : attribué par le bureau à la validation.
+  equipement_numero?: string;
 };
 
 /// États possibles d'un équipement sur une intervention Dépannage —

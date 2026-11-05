@@ -3,13 +3,14 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Send } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import {
   changerStatutDevis,
   lierEquipementDevis,
   modifierMoisFacturation,
+  envoyerDevisParEmail,
   type StatutDevisInput,
 } from "../../actions";
 import { calculerStatutDevis, LABEL_STATUT_DEVIS } from "../../statut";
@@ -47,8 +48,22 @@ export function StatutDevisForm({
   const [moisFacturation, setMoisFacturation] = useState(devis.mois_facturation);
   const [pending, startTransition] = useTransition();
   const [facturationPending, startFacturation] = useTransition();
+  const [envoi, startEnvoi] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
   const [erreurFacturation, setErreurFacturation] = useState<string | null>(null);
+  const [erreurEnvoi, setErreurEnvoi] = useState<string | null>(null);
+
+  function envoyer() {
+    setErreurEnvoi(null);
+    startEnvoi(async () => {
+      const res = await envoyerDevisParEmail(devis.id);
+      if (!res.ok) {
+        setErreurEnvoi(res.erreur);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   function enregistrerFacturation() {
     setErreurFacturation(null);
@@ -149,6 +164,31 @@ export function StatutDevisForm({
         </p>
         {devis.libelle && <p className="text-sm text-slate-500">{devis.libelle}</p>}
         <p className="mt-2 text-xs text-slate-400">Statut actuel : {statutActuel}</p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <a
+            href={`/devis/${devis.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <FileText className="h-4 w-4" strokeWidth={2} />
+            Imprimer
+          </a>
+          <button
+            onClick={envoyer}
+            disabled={envoi || !devis.email_responsable_contrat}
+            title={!devis.email_responsable_contrat ? "Aucun email connu pour ce client" : undefined}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
+          >
+            <Send className="h-4 w-4" strokeWidth={2} />
+            {envoi ? "Envoi..." : devis.envoyee_le ? "Renvoyer au client" : "Envoyer au client"}
+          </button>
+        </div>
+        {devis.envoyee_le && (
+          <p className="mt-2 text-xs text-brand-green-dark">Envoyé au client le {devis.envoyee_le}</p>
+        )}
+        {erreurEnvoi && <p className="mt-2 text-xs text-red-600">{erreurEnvoi}</p>}
       </div>
 
       <div className="mb-5 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">

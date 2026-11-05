@@ -12,6 +12,8 @@ import {
   prochainChrono,
 } from "@/lib/devis/numerotation";
 import { calculerPrixRevient, totalHTLignes, type LigneDevis, type CoutRevient } from "@/lib/devis/pricing";
+import { genererPdfDevis } from "@/lib/devis/pdf";
+import { envoyerDevis } from "@/lib/devis/email";
 
 export type NouveauDevisInput = {
   siteId: string;
@@ -291,5 +293,28 @@ export async function supprimerDevis(id: string): Promise<ActionResult> {
 
   revalidatePath("/devis");
   revalidatePath("/prestations");
+  return { ok: true };
+}
+
+export async function envoyerDevisParEmail(id: string): Promise<ActionResult> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: devis, error } = await supabase.from("devis").select("*").eq("id", id).single();
+  if (error || !devis) return { ok: false, erreur: "Devis introuvable." };
+  if (!devis.email_responsable_contrat) return { ok: false, erreur: "Aucun email connu pour ce client." };
+
+  const { data: site } = await supabase.from("sites").select("nom, site").eq("id", devis.site_id).single();
+
+  const pdfBytes = await genererPdfDevis({ devis, site: site ?? null });
+
+  try {
+    await envoyerDevis({ devis, site: site ?? null, destinataire: devis.email_responsable_contrat, pdfBytes });
+  } catch (e) {
+    return { ok: false, erreur: e instanceof Error ? e.message : "Échec de l'envoi." };
+  }
+
+  await supabase.from("devis").update({ envoyee_le: new Date().toLocaleDateString("fr-FR") }).eq("id", id);
+  revalidatePath(`/devis/${id}/statut`);
   return { ok: true };
 }

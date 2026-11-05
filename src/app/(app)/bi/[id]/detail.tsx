@@ -30,10 +30,7 @@ type TypeEquipementResume = { id: string; nom: string; champs_en_tete_supplement
 type ModeleResume = { champs: ChampEnTete[]; checklist: ChecklistItem[] } | null;
 type TauxSiteComplet = {
   taux_horaire_regie: string;
-  taux_horaire_revise: string;
-  taux_horaire_vendu: string;
   forfait_deplacement: string;
-  forfait_deplacement_revise: string;
 } | null;
 
 export function BiDetail({
@@ -440,14 +437,11 @@ function BlocMontantFacturation({ bon, tauxSite }: { bon: Bon; tauxSite: TauxSit
           <>
             <Ligne label="Taux horaire régie" valeur={tauxSite.taux_horaire_regie ? `${tauxSite.taux_horaire_regie} €/h` : "—"} />
             {montantHeures !== null && <Ligne label="→ Montant main d'œuvre" valeur={eur(montantHeures)} />}
-            <Ligne label="Taux horaire vendu" valeur={tauxSite.taux_horaire_vendu || "—"} />
-            <Ligne label="Taux horaire révisé" valeur={tauxSite.taux_horaire_revise || "—"} />
             <Ligne
               label="Forfait déplacement"
               valeur={tauxSite.forfait_deplacement ? `${tauxSite.forfait_deplacement} € × ${bon.nombre_deplacements}` : "—"}
             />
             {montantDepl !== null && <Ligne label="→ Montant déplacements" valeur={eur(montantDepl)} />}
-            <Ligne label="Forfait déplacement révisé" valeur={tauxSite.forfait_deplacement_revise || "—"} />
           </>
         ) : (
           <p className="text-sm text-slate-400">Aucun taux connu pour ce client (fiche site).</p>

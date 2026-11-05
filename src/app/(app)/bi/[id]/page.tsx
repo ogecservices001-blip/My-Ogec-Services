@@ -27,7 +27,7 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
       ? supabase
           .from("sites")
           .select(
-            "n_affaire, taux_horaire_regie, taux_horaire_revise, taux_horaire_vendu, forfait_deplacement, forfait_deplacement_revise",
+            "n_affaire, taux_horaire_regie, forfait_deplacement",
           )
           .eq("id", bon.site_id)
           .single()

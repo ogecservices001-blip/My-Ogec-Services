@@ -191,6 +191,22 @@ export function NouveauDevisForm({
   const tva = Math.round(totalHT * 0.085 * 100) / 100;
   const ttc = totalHT + tva;
 
+  // Déplacement/Encadrement/Garantie S.A.V. (R3) et Encadrement (R4) se
+  // calculent tous à partir de la même base (montant des heures +
+  // montant fourniture) — un seul bouton les remplit, toujours
+  // modifiables ensuite à la main.
+  function calculerChampsR3R4() {
+    const base = prixRevient.r2Total + prixRevient.materiel;
+    const arrondi = (pct: number) => String(Math.round(base * pct * 100) / 100);
+    setCoutRevient((prev) => ({
+      ...prev,
+      r3Deplacement: arrondi(0.018),
+      r3Encadrement: arrondi(0.025),
+      r3GarantieSav: arrondi(0.025),
+      r4Encadrement: arrondi(0.025),
+    }));
+  }
+
   const complet = Boolean(siteId && libelle.trim() && nature && lignesValides.length > 0);
 
   function finaliser() {
@@ -442,9 +458,21 @@ export function NouveauDevisForm({
             <BlocCout titre="R2 — Montage">
               <ChampLecture label="Heures (somme des lignes)" valeur={`${prixRevient.heuresMO} h`} />
               <ChampCout label="Taux horaire (€/h)" valeur={coutRevient.r2TauxHoraire} onChange={(v) => majCout("r2TauxHoraire", v)} />
+              <ChampLecture label="Synthèse (taux × heures)" valeur={eur(prixRevient.r2Total)} />
             </BlocCout>
 
-            <BlocCout titre="R3 — Chantier">
+            <BlocCout
+              titre="R3 — Chantier"
+              action={
+                <button
+                  type="button"
+                  onClick={calculerChampsR3R4}
+                  className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-200"
+                >
+                  Calcul
+                </button>
+              }
+            >
               <ChampCout label="Nacelle (€)" valeur={coutRevient.r3Nacelle} onChange={(v) => majCout("r3Nacelle", v)} />
               <ChampCout label="Déplacement (€)" valeur={coutRevient.r3Deplacement} onChange={(v) => majCout("r3Deplacement", v)} />
               <ChampCout label="Outillage (€)" valeur={coutRevient.r3Outillage} onChange={(v) => majCout("r3Outillage", v)} />
@@ -554,10 +582,21 @@ export function NouveauDevisForm({
   );
 }
 
-function BlocCout({ titre, children }: { titre: string; children: React.ReactNode }) {
+function BlocCout({
+  titre,
+  action,
+  children,
+}: {
+  titre: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{titre}</p>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{titre}</p>
+        {action}
+      </div>
       <div className="grid gap-3 sm:grid-cols-3">{children}</div>
     </div>
   );

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireAdminOuAccueil } from "@/lib/auth";
-import { chargerDevisAEtablir } from "@/lib/bi/devis-a-etablir";
+import { chargerDevisAEtablir, lienCreerDevis } from "@/lib/bi/devis-a-etablir";
 import { Tableur } from "@/components/tableur";
 import { DevisEntete } from "../entete";
 
@@ -30,7 +30,7 @@ export default async function DevisAEtablirPage() {
           l.biNumero,
           <Link
             key="creer"
-            href={`/devis/nouveau?equipementId=${l.equipementId}&compteRendu=${encodeURIComponent(l.compteRendu)}`}
+            href={lienCreerDevis(l)}
             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand-green-dark hover:bg-green-50"
             title="Créer le devis"
           >

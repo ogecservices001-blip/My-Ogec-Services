@@ -95,6 +95,14 @@ function champTexte(champs: ChampsEnTeteEquipement, cle: string): string {
   return typeof v === "string" ? v : "";
 }
 
+function etatsDepuisReponses(devisAEtablir: boolean | null, horsService: boolean | null): string[] {
+  const etats: string[] = [];
+  if (devisAEtablir) etats.push("devis_a_etablir");
+  if (horsService === true) etats.push("hors_service");
+  if (horsService === false) etats.push("operationnel");
+  return etats;
+}
+
 export function BiWizard({
   sites,
   techniciensDisponibles,
@@ -446,13 +454,8 @@ export function BiWizard({
   const [etatHorsService, setEtatHorsService] = useState<boolean | null>(null);
   const [popupDevis, setPopupDevis] = useState(false);
   const [popupEtat, setPopupEtat] = useState(false);
-  const etatEquipement = useMemo(() => {
-    const etats: string[] = [];
-    if (devisAEtablir) etats.push("devis_a_etablir");
-    if (etatHorsService === true) etats.push("hors_service");
-    if (etatHorsService === false) etats.push("operationnel");
-    return etats;
-  }, [devisAEtablir, etatHorsService]);
+  const [apresQuestions, setApresQuestions] = useState<"suivant" | "autre">("suivant");
+  const etatEquipement = etatsDepuisReponses(devisAEtablir, etatHorsService);
   function etatEquipementAEnregistrer(etats: string[]): string[] {
     return etats.includes("operationnel") ? [] : etats;
   }
@@ -466,7 +469,7 @@ export function BiWizard({
     brouillon?.interventions_supplementaires ?? [],
   );
 
-  function ajouterAutreEquipement() {
+  function ajouterAutreEquipement(etats: string[]) {
     const nom = avecNouvelEquipement(pole) ? "" : equipement ? equipement.nom : equipementLibre.trim();
     if (!nom) return;
     setInterventionsSupplementaires((prev) => [
@@ -478,7 +481,7 @@ export function BiWizard({
         equipement_localisation: equipement?.localisation ?? "",
         compte_rendu: compteRendu.trim(),
         prestas: fourniture.filter((p) => p.designation.trim()),
-        etat_equipement: etatEquipementAEnregistrer(etatEquipement),
+        etat_equipement: etatEquipementAEnregistrer(etats),
       },
     ]);
     setEquipementId("");
@@ -779,19 +782,18 @@ export function BiWizard({
     }
   }
 
-  // Avant de passer de "Compte rendu" (étape 2) à l'étape suivante pour
-  // un dépannage : forcer la réponse aux 2 popups état équipement
-  // plutôt que de laisser avancer avec des cases jamais remplies.
+  // Dépannage : les 2 questions d'état sont posées à chaque sortie de
+  // l'étape "Compte rendu" (Suivant ou Autre équipement), pour qu'aucun
+  // équipement ne parte sans réponse et qu'une réponse reste corrigeable.
+  function poserQuestions(apres: "suivant" | "autre") {
+    setApresQuestions(apres);
+    setPopupDevis(true);
+  }
+
   function avancerEtape() {
     if (etape === 2 && pole === Poles.depannage) {
-      if (devisAEtablir === null) {
-        setPopupDevis(true);
-        return;
-      }
-      if (etatHorsService === null) {
-        setPopupEtat(true);
-        return;
-      }
+      poserQuestions("suivant");
+      return;
     }
     setEtape(etape + 1);
   }
@@ -799,14 +801,14 @@ export function BiWizard({
   function repondreDevis(reponse: boolean) {
     setDevisAEtablir(reponse);
     setPopupDevis(false);
-    if (etatHorsService === null) setPopupEtat(true);
-    else setEtape(etape + 1);
+    setPopupEtat(true);
   }
 
   function repondreEtat(horsService: boolean) {
     setEtatHorsService(horsService);
     setPopupEtat(false);
-    setEtape(etape + 1);
+    if (apresQuestions === "autre") ajouterAutreEquipement(etatsDepuisReponses(devisAEtablir, horsService));
+    else setEtape(etape + 1);
   }
 
   function soumettre(statut: "brouillon" | "averif") {
@@ -1340,43 +1342,7 @@ export function BiWizard({
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
             />
           </div>
-          {pole === Poles.depannage ? (
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-              <p className="mb-2 text-xs font-medium text-slate-600">
-                État de l&apos;équipement
-                <span className="ml-1.5 font-normal text-slate-400">(rempli via les questions à &quot;Suivant&quot;)</span>
-              </p>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm text-slate-500">
-                  <input
-                    type="checkbox"
-                    checked={etatEquipement.includes("devis_a_etablir")}
-                    disabled
-                    className="h-4 w-4 accent-violet-600"
-                  />
-                  {ETATS_EQUIPEMENT.devis_a_etablir}
-                </label>
-                <label className="flex items-center gap-2 text-sm text-slate-500">
-                  <input
-                    type="checkbox"
-                    checked={etatEquipement.includes("operationnel")}
-                    disabled
-                    className="h-4 w-4 accent-violet-600"
-                  />
-                  Équipement opérationnel
-                </label>
-                <label className="flex items-center gap-2 text-sm text-slate-500">
-                  <input
-                    type="checkbox"
-                    checked={etatEquipement.includes("hors_service")}
-                    disabled
-                    className="h-4 w-4 accent-violet-600"
-                  />
-                  {ETATS_EQUIPEMENT.hors_service}
-                </label>
-              </div>
-            </div>
-          ) : (
+          {pole !== Poles.depannage && (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <label className="mb-1 block text-xs font-medium text-slate-600">Observation technicien</label>
               <textarea
@@ -1716,7 +1682,7 @@ export function BiWizard({
         {etape === 2 && pole === Poles.depannage && (
           <button
             type="button"
-            onClick={ajouterAutreEquipement}
+            onClick={() => poserQuestions("autre")}
             disabled={!equipement && !equipementLibre.trim()}
             className="flex-1 rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-semibold text-violet-700 shadow-sm hover:bg-violet-50 disabled:opacity-40"
           >

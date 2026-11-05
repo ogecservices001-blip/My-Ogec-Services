@@ -46,6 +46,8 @@ type Prefill = {
   clientNom: string;
   type: "sous" | "hors";
   compteRendu: string;
+  signalementBi: string;
+  equipementSignale: string;
 } | null;
 
 type Brouillon = {
@@ -221,6 +223,7 @@ export function NouveauDevisForm({
         lignes: lignesValides,
         coutRevient,
         brouillonId: brouillonId ?? undefined,
+        signalementBi: prefill?.signalementBi,
       });
       if (!res.ok) {
         setErreur(res.erreur);
@@ -244,6 +247,7 @@ export function NouveauDevisForm({
         localisation,
         lignes: lignesValides,
         coutRevient,
+        signalementBi: prefill?.signalementBi,
       });
       if (!res.ok) {
         setErreur(res.erreur);
@@ -259,6 +263,7 @@ export function NouveauDevisForm({
       {prefill && (
         <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
           Pré-rempli depuis &quot;Devis à établir&quot;
+          {prefill.equipementSignale && ` — équipement signalé : ${prefill.equipementSignale}`}
         </p>
       )}
       {brouillon && (

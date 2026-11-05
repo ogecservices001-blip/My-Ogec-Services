@@ -30,6 +30,9 @@ export type NouveauDevisInput = {
   /// officiel lui est alors attribué par mise à jour, pas par insertion
   /// d'une nouvelle ligne.
   brouillonId?: string;
+  /// Signalement "Devis à établir" à l'origine du devis (équipement en
+  /// texte libre), voir @/lib/bi/devis-a-etablir.
+  signalementBi?: string;
 };
 
 const ERREUR_DOUBLON = "23505";
@@ -112,6 +115,7 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
       date_devis: dateDevis,
       redacteur: profil.name,
       annule: false,
+      ...(input.signalementBi ? { signalement_bi: input.signalementBi } : {}),
     };
     // Finalisation d'un brouillon ("Devis en cours") : on met à jour la
     // ligne existante plutôt que d'en créer une nouvelle, pour que le
@@ -138,6 +142,7 @@ export type BrouillonDevisInput = {
   localisation: string;
   lignes: LigneDevis[];
   coutRevient: CoutRevient;
+  signalementBi?: string;
 };
 
 /// Enregistre un devis incomplet ("Devis en cours") pour le reprendre
@@ -168,6 +173,7 @@ export async function enregistrerBrouillonDevis(input: BrouillonDevisInput): Pro
     date_devis: new Date().toLocaleDateString("fr-FR"),
     redacteur: profil.name,
     annule: false,
+    ...(input.signalementBi ? { signalement_bi: input.signalementBi } : {}),
   };
 
   if (input.id) {

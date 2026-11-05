@@ -6,7 +6,7 @@ import { Statuts } from "@/lib/bi/constants";
 import { eur } from "@/lib/bi/format";
 import { formaterDate } from "@/lib/format";
 import { labelNatureDevis } from "@/lib/devis/constants";
-import { chargerDevisAEtablir } from "@/lib/bi/devis-a-etablir";
+import { chargerDevisAEtablir, lienCreerDevis } from "@/lib/bi/devis-a-etablir";
 import type { Site } from "@/lib/types";
 
 const COLONNES: ColonneTableur[] = [
@@ -107,7 +107,7 @@ export default async function DevisGroupeClientPage({
       montant: null,
       dateCommande: "",
       moisFacturation: "",
-      href: `/devis/nouveau?equipementId=${a.equipementId}&compteRendu=${encodeURIComponent(a.compteRendu)}`,
+      href: lienCreerDevis(a),
     });
   }
 

@@ -733,6 +733,7 @@ export type Database = {
           redacteur: string
           reference_client: string
           remarques: string
+          signalement_bi: string
           site_id: string
           statut_commande_fournisseur: string
           updated_at: string
@@ -763,6 +764,7 @@ export type Database = {
           redacteur?: string
           reference_client?: string
           remarques?: string
+          signalement_bi?: string
           site_id: string
           statut_commande_fournisseur?: string
           updated_at?: string
@@ -793,6 +795,7 @@ export type Database = {
           redacteur?: string
           reference_client?: string
           remarques?: string
+          signalement_bi?: string
           site_id?: string
           statut_commande_fournisseur?: string
           updated_at?: string

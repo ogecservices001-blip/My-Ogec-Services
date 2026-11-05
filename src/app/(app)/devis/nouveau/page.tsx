@@ -8,18 +8,36 @@ import { NouveauDevisForm } from "./nouveau-devis-form";
 export default async function NouveauDevisPage({
   searchParams,
 }: {
-  searchParams: Promise<{ equipementId?: string; compteRendu?: string; brouillonId?: string }>;
+  searchParams: Promise<{
+    equipementId?: string;
+    compteRendu?: string;
+    brouillonId?: string;
+    siteId?: string;
+    signalement?: string;
+    equipementNom?: string;
+  }>;
 }) {
   await requireAdminOuAccueil();
-  const { equipementId, compteRendu, brouillonId } = await searchParams;
+  const { equipementId, compteRendu, brouillonId, siteId, signalement, equipementNom } = await searchParams;
   const supabase = await createClient();
 
   const [{ data: sites }, prefillSite, brouillon] = await Promise.all([
     supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom"),
-    equipementId ? chargerPrefill(supabase, equipementId) : Promise.resolve(null),
+    equipementId
+      ? chargerPrefill(supabase, equipementId)
+      : siteId
+        ? chargerPrefillSite(supabase, siteId, "")
+        : Promise.resolve(null),
     brouillonId ? chargerBrouillon(supabase, brouillonId) : Promise.resolve(null),
   ]);
-  const prefill = prefillSite ? { ...prefillSite, compteRendu: compteRendu ?? "" } : null;
+  const prefill = prefillSite
+    ? {
+        ...prefillSite,
+        compteRendu: compteRendu ?? "",
+        signalementBi: signalement ?? "",
+        equipementSignale: equipementNom ?? "",
+      }
+    : null;
 
   return (
     <ModalEcran titre={brouillon ? "Reprendre le devis en cours" : "Nouveau devis"} hrefFermer="/devis" large>
@@ -55,7 +73,15 @@ async function chargerBrouillon(supabase: Awaited<ReturnType<typeof createClient
 async function chargerPrefill(supabase: Awaited<ReturnType<typeof createClient>>, equipementId: string) {
   const { data: eq } = await supabase.from("equipements").select("site_id").eq("id", equipementId).single();
   if (!eq) return null;
-  const { data: site } = await supabase.from("sites_view").select("id, nom, hors_contrat").eq("id", eq.site_id).single();
+  return chargerPrefillSite(supabase, eq.site_id, equipementId);
+}
+
+async function chargerPrefillSite(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  siteId: string,
+  equipementId: string,
+) {
+  const { data: site } = await supabase.from("sites_view").select("id, nom, hors_contrat").eq("id", siteId).single();
   if (!site) return null;
   return {
     equipementId,

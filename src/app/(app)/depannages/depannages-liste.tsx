@@ -137,9 +137,15 @@ export function DepannagesListe({
         <Tableur
           colonnes={COLONNES_TRAITEES}
           lignes={filtrees.map((d) => [
-            <Link key="numero" href={`/depannages/${d.id}`} className="font-bold text-slate-900 hover:underline">
-              {d.numero}
-            </Link>,
+            isAdmin ? (
+              <Link key="numero" href={`/depannages/${d.id}`} className="font-bold text-slate-900 hover:underline">
+                {d.numero}
+              </Link>
+            ) : (
+              <span key="numero" className="font-bold text-slate-900">
+                {d.numero}
+              </span>
+            ),
             [d.client_nom, d.client_site].filter(Boolean).join(" — "),
             d.equipement_nom,
             d.message,
@@ -165,9 +171,15 @@ export function DepannagesListe({
               <span key="statut" className={!intervenant ? "font-bold text-red-700" : "font-semibold text-green-700"}>
                 {libelleStatut}
               </span>,
+              isAdmin ? (
               <Link key="numero" href={`/depannages/${d.id}`} className="font-bold text-slate-900 hover:underline">
                 {d.numero}
-              </Link>,
+              </Link>
+            ) : (
+              <span key="numero" className="font-bold text-slate-900">
+                {d.numero}
+              </span>
+            ),
               [d.client_nom, d.client_site].filter(Boolean).join(" — "),
               [d.equipement_nom, d.lieu_panne].filter(Boolean).join(" — "),
               d.message,

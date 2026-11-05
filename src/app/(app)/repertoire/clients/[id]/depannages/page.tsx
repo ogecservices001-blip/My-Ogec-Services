@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/profile";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { FilAjouter } from "@/components/fil-extra-context";
 import { formaterDate } from "@/lib/format";
@@ -20,6 +21,7 @@ const COLONNES: ColonneTableur[] = [
 export default async function DepannagesClientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const isAdmin = (await getCurrentProfile())?.role === "admin";
   const [{ data: site }, { data: demandes }] = await Promise.all([
     supabase.from("sites_view").select("id, nom, site, hors_contrat").eq("id", id).single(),
     supabase
@@ -60,9 +62,15 @@ export default async function DepannagesClientPage({ params }: { params: Promise
           d.message,
           d.lieu_panne,
           d.intervenant_id ? (nomParIntervenant.get(d.intervenant_id) ?? "") : "",
-          <Link key="numero" href={`/depannages/${d.id}`} className="font-bold text-slate-900 hover:underline">
-            {d.numero || "(sans numéro)"}
-          </Link>,
+          isAdmin ? (
+            <Link key="numero" href={`/depannages/${d.id}`} className="font-bold text-slate-900 hover:underline">
+              {d.numero || "(sans numéro)"}
+            </Link>
+          ) : (
+            <span key="numero" className="font-bold text-slate-900">
+              {d.numero || "(sans numéro)"}
+            </span>
+          ),
           d.date_traitement ? formaterDate(d.date_traitement) : "",
         ])}
         valeurs={lignes.map((d) => [

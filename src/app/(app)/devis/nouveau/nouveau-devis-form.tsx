@@ -19,7 +19,7 @@ import {
 
 type Option = { valeur: string; label: string };
 type SiteOption = { id: string; nom: string; site: string; horsContrat: boolean };
-type Equipement = { id: string; libelle: string; localisation: string };
+type Equipement = { id: string; libelle: string; localisation: string; groupe: string };
 
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
 const CHAMP_SM = "w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
@@ -87,6 +87,23 @@ export function NouveauDevisForm({
   const [equipements, setEquipements] = useState<Equipement[]>([]);
   const [equipementId, setEquipementId] = useState(brouillon?.equipementId ?? prefill?.equipementId ?? "");
   const [localisation, setLocalisation] = useState(brouillon?.localisation ?? "");
+  // Filtre pur (pas enregistré sur le devis) pour retrouver l'équipement
+  // plus vite sur un site qui en a beaucoup : Groupe restreint les
+  // suggestions de Localisation, qui elle-même restreint la liste
+  // d'équipements proposée.
+  const [groupeFiltre, setGroupeFiltre] = useState("");
+
+  const groupesExistants = useMemo(
+    () => [...new Set(equipements.map((e) => e.groupe).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr")),
+    [equipements],
+  );
+  const equipementsDuGroupe = groupeFiltre ? equipements.filter((e) => e.groupe === groupeFiltre) : equipements;
+  const localisationsSuggerees = [...new Set(equipementsDuGroupe.map((e) => e.localisation).filter(Boolean))].sort(
+    (a, b) => a.localeCompare(b, "fr"),
+  );
+  const equipementsFiltres = equipementsDuGroupe.filter(
+    (e) => !localisation.trim() || e.localisation.toLowerCase().includes(localisation.trim().toLowerCase()),
+  );
 
   function changerEquipement(id: string) {
     setEquipementId(id);
@@ -140,10 +157,17 @@ export function NouveauDevisForm({
     setSiteId(id);
     setEquipementId("");
     setEquipements([]);
+    setGroupeFiltre("");
+    setLocalisation("");
     if (!id) return;
     startTransition(async () => {
       setEquipements(await listerEquipementsDuSite(id));
     });
+  }
+
+  function changerGroupeFiltre(groupe: string) {
+    setGroupeFiltre(groupe);
+    setEquipementId("");
   }
 
   function majLigne(i: number, champs: Partial<LigneDevis>) {
@@ -224,64 +248,93 @@ export function NouveauDevisForm({
       )}
 
       <div className="mb-4 space-y-4 rounded-2xl bg-white p-5 shadow-sm">
-        <div>
-          <label className={ETIQUETTE}>Type de client *</label>
-          <select value={type} onChange={(e) => changerType(e.target.value as "" | "sous" | "hors")} className={CHAMP}>
-            <option value="">— Choisir —</option>
-            <option value="sous">Client sous contrat</option>
-            <option value="hors">Client hors contrat</option>
-          </select>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <label className={ETIQUETTE}>Type de client *</label>
+            <select value={type} onChange={(e) => changerType(e.target.value as "" | "sous" | "hors")} className={CHAMP}>
+              <option value="">— Choisir —</option>
+              <option value="sous">Client sous contrat</option>
+              <option value="hors">Client hors contrat</option>
+            </select>
+          </div>
+
+          <div>
+            <label className={ETIQUETTE}>Client *</label>
+            <select value={clientNom} onChange={(e) => changerClient(e.target.value)} disabled={!type} className={`${CHAMP} disabled:bg-slate-50`}>
+              <option value="">— Choisir un client —</option>
+              {clients.map((nom) => (
+                <option key={nom} value={nom}>
+                  {nom}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={ETIQUETTE}>Site *</label>
+            <select value={siteId} onChange={(e) => changerSite(e.target.value)} disabled={!clientNom} className={`${CHAMP} disabled:bg-slate-50`}>
+              <option value="">— Choisir un site —</option>
+              {sitesDuClient.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.site || "(sans nom de site)"}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div>
-          <label className={ETIQUETTE}>Client *</label>
-          <select value={clientNom} onChange={(e) => changerClient(e.target.value)} disabled={!type} className={`${CHAMP} disabled:bg-slate-50`}>
-            <option value="">— Choisir un client —</option>
-            {clients.map((nom) => (
-              <option key={nom} value={nom}>
-                {nom}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <label className={ETIQUETTE}>Groupe</label>
+            <select
+              value={groupeFiltre}
+              onChange={(e) => changerGroupeFiltre(e.target.value)}
+              disabled={!siteId || groupesExistants.length === 0}
+              className={`${CHAMP} disabled:bg-slate-50`}
+            >
+              <option value="">— tous —</option>
+              {groupesExistants.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div>
-          <label className={ETIQUETTE}>Site *</label>
-          <select value={siteId} onChange={(e) => changerSite(e.target.value)} disabled={!clientNom} className={`${CHAMP} disabled:bg-slate-50`}>
-            <option value="">— Choisir un site —</option>
-            {sitesDuClient.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.site || "(sans nom de site)"}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div>
+            <label className={ETIQUETTE}>Localisation</label>
+            <input
+              value={localisation}
+              onChange={(e) => setLocalisation(e.target.value)}
+              placeholder="Ex : Bureau 43"
+              list="localisations-suggerees"
+              className={CHAMP}
+            />
+            {localisationsSuggerees.length > 0 && (
+              <datalist id="localisations-suggerees">
+                {localisationsSuggerees.map((l) => (
+                  <option key={l} value={l} />
+                ))}
+              </datalist>
+            )}
+          </div>
 
-        <div>
-          <label className={ETIQUETTE}>Équipement concerné (facultatif)</label>
-          <select
-            value={equipementId}
-            onChange={(e) => changerEquipement(e.target.value)}
-            disabled={!siteId || equipements.length === 0}
-            className={`${CHAMP} disabled:bg-slate-50`}
-          >
-            <option value="">— aucun —</option>
-            {equipements.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.libelle}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className={ETIQUETTE}>Localisation</label>
-          <input
-            value={localisation}
-            onChange={(e) => setLocalisation(e.target.value)}
-            placeholder="Ex : Bureau 43"
-            className={CHAMP}
-          />
+          <div>
+            <label className={ETIQUETTE}>Équipement concerné (facultatif)</label>
+            <select
+              value={equipementId}
+              onChange={(e) => changerEquipement(e.target.value)}
+              disabled={!siteId || equipementsFiltres.length === 0}
+              className={`${CHAMP} disabled:bg-slate-50`}
+            >
+              <option value="">— aucun —</option>
+              {equipementsFiltres.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.libelle}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>

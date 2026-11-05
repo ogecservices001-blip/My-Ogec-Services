@@ -35,12 +35,12 @@ const ESSAIS_NUMERO = 5;
 
 export async function listerEquipementsDuSite(
   siteId: string,
-): Promise<{ id: string; libelle: string; localisation: string }[]> {
+): Promise<{ id: string; libelle: string; localisation: string; groupe: string }[]> {
   await requireAdmin();
   const supabase = await createClient();
   const { data } = await supabase
     .from("equipements")
-    .select("id, numero_equipement, localisation, champs_en_tete")
+    .select("id, numero_equipement, localisation, groupe, champs_en_tete")
     .eq("site_id", siteId)
     .order("nom");
   return (data ?? []).map((e) => {
@@ -49,6 +49,7 @@ export async function listerEquipementsDuSite(
       id: e.id,
       libelle: [typeEquipement1, e.numero_equipement].filter(Boolean).join(" — "),
       localisation: e.localisation,
+      groupe: e.groupe,
     };
   });
 }

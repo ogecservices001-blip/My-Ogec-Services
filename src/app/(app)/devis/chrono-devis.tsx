@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
 import { DevisEntete } from "./entete";
 import { TableauRegistreDevis, eur, type DevisRegistreLigne } from "./registre-liste";
 
@@ -26,15 +25,6 @@ export function ChronoDevis({
   return (
     <div>
       <DevisEntete isAdmin={isAdmin} />
-
-      <div className="mb-5">
-        <Link
-          href="/devis/par-client"
-          className="inline-flex rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
-        >
-          Par client
-        </Link>
-      </div>
 
       <div className="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <div className="rounded-xl bg-white p-3 shadow-sm">

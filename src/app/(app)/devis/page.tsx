@@ -6,9 +6,7 @@ import { ChronoDevis } from "./chrono-devis";
 import type { DevisRegistreLigne } from "./registre-liste";
 import { STATUTS_BI_REALISE } from "./statut";
 
-/// Tous les devis, tous clients confondus (sous ET hors contrat) —
-/// contrairement à /devis/par-client, Chrono Devis n'a pas de filtre
-/// contrat : c'est le registre complet, point.
+/// Tous les devis, tous clients confondus (sous ET hors contrat).
 export default async function DevisChronoPage() {
   await requireAdminOuAccueil();
   const supabase = await createClient();

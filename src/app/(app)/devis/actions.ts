@@ -40,14 +40,13 @@ export async function listerEquipementsDuSite(
   const supabase = await createClient();
   const { data } = await supabase
     .from("equipements")
-    .select("id, numero_equipement, localisation, groupe, champs_en_tete")
+    .select("id, nom, numero_equipement, localisation, groupe")
     .eq("site_id", siteId)
     .order("nom");
   return (data ?? []).map((e) => {
-    const typeEquipement1 = typeof e.champs_en_tete.typeEquipement1 === "string" ? e.champs_en_tete.typeEquipement1 : "";
     return {
       id: e.id,
-      libelle: [typeEquipement1, e.numero_equipement].filter(Boolean).join(" — "),
+      libelle: [e.nom, e.numero_equipement].filter(Boolean).join(" — "),
       localisation: e.localisation,
       groupe: e.groupe,
     };

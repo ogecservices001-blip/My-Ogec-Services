@@ -338,7 +338,7 @@ export function NouveauDevisForm({
         </div>
 
         <div>
-          <label className={ETIQUETTE}>Libellé *</label>
+          <label className={ETIQUETTE}>Libellé du devis *</label>
           <textarea value={libelle} onChange={(e) => setLibelle(e.target.value)} rows={2} className={CHAMP} />
         </div>
 

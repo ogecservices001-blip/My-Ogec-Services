@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, FileText, Send } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Pencil, Send } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import {
@@ -17,6 +17,7 @@ import { calculerStatutDevis, LABEL_STATUT_DEVIS } from "../../statut";
 import { eur } from "../../registre-liste";
 import { formaterDate, dateFrVersIso } from "@/lib/format";
 import { StatutBadge } from "@/components/bi/statut-badge";
+import { ModaleDevis } from "./modale-devis";
 
 type Devis = Tables<"devis">;
 type Mode = "choix" | "commander";
@@ -30,6 +31,8 @@ export function StatutDevisForm({
   bonsIntervention,
   dateExecution,
   heuresExecutees,
+  isAdmin,
+  nbCreneaux,
 }: {
   devis: Devis;
   site: { nom: string; site: string } | null;
@@ -39,8 +42,11 @@ export function StatutDevisForm({
   bonsIntervention: { id: string; numero: string; statut: string }[];
   dateExecution: string;
   heuresExecutees: string;
+  isAdmin: boolean;
+  nbCreneaux: number;
 }) {
   const router = useRouter();
+  const [modification, setModification] = useState(false);
   const [mode, setMode] = useState<Mode>("choix");
   const [dateCommande, setDateCommande] = useState(devis.date_commande_client);
   const [reference, setReference] = useState(devis.reference_client || "BPA par mail");
@@ -149,6 +155,17 @@ export function StatutDevisForm({
 
   return (
     <div>
+      {modification && (
+        <ModaleDevis
+          devis={devis}
+          liens={{
+            nbCommandes: commandesFournisseur.length,
+            nbBons: bonsIntervention.length,
+            nbCreneaux,
+          }}
+          onClose={() => setModification(false)}
+        />
+      )}
       <Link
         href="/devis"
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
@@ -184,6 +201,15 @@ export function StatutDevisForm({
             <Send className="h-4 w-4" strokeWidth={2} />
             {envoi ? "Envoi..." : devis.envoyee_le ? "Renvoyer au client" : "Envoyer au client"}
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => setModification(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              <Pencil className="h-4 w-4" strokeWidth={2} />
+              Modifier / Supprimer
+            </button>
+          )}
         </div>
         {devis.envoyee_le && (
           <p className="mt-2 text-xs text-brand-green-dark">Envoyé au client le {devis.envoyee_le}</p>

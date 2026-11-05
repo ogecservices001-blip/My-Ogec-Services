@@ -214,7 +214,7 @@ function DevisDocument({
               </View>
               <View style={styles.piedLigne}>
                 <Text style={styles.piedLabel}>Validité de l&apos;offre :</Text>
-                <Text style={styles.piedValidite}>2 mois</Text>
+                <Text style={styles.piedValidite}>1 mois</Text>
               </View>
               <View style={styles.piedLigne}>
                 <Text style={styles.piedLabel}>Travaux non compris :</Text>

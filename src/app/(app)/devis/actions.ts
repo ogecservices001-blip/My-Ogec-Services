@@ -288,6 +288,14 @@ export async function lierEquipementDevis(id: string, equipementId: string | nul
 export async function supprimerDevis(id: string): Promise<ActionResult> {
   await requireAdmin();
   const supabase = await createClient();
+  const { count } = await supabase
+    .from("commandes_fournisseur")
+    .select("id", { count: "exact", head: true })
+    .eq("devis_id", id);
+  if (count) {
+    return { ok: false, erreur: "Suppression impossible : des commandes fournisseur sont liées à ce devis." };
+  }
+
   const { error } = await supabase.from("devis").delete().eq("id", id);
   if (error) return { ok: false, erreur: error.message };
 

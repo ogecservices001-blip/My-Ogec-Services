@@ -2,103 +2,44 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Pencil, Trash2, X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import type { Tables } from "@/lib/types";
-import type { Site } from "@/lib/types";
-import { Tableur } from "@/components/tableur";
-import { FiltreSelect } from "@/components/filtre-select";
-import { NATURES_DEVIS_SELECTIONNABLES, labelNatureDevis } from "@/lib/devis/constants";
+import { NATURES_DEVIS_SELECTIONNABLES } from "@/lib/devis/constants";
 import { modifierDevis, supprimerDevis, type DevisInput } from "../../actions";
-import { eur } from "../../registre-liste";
 
 type Devis = Tables<"devis">;
 
-export function DevisDuSite({ site, devis, isAdmin }: { site: Site; devis: Devis[]; isAdmin: boolean }) {
-  const [modifie, setModifie] = useState<Devis | null>(null);
-  const [statut, setStatut] = useState("");
-  const filtres = devis.filter((d) => {
-    const s = d.annule ? "annule" : d.date_commande_client ? "commande" : "attente";
-    return !statut || s === statut;
-  });
+export type LiensDevis = { nbCommandes: number; nbBons: number; nbCreneaux: number };
 
-  return (
-    <div>
-      <Link
-        href="/devis"
-        className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-        Retour
-      </Link>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
-        {[site.nom, site.site].filter(Boolean).join(" — ")}
-      </h1>
-      <p className="mb-5 text-sm text-slate-500">{devis.length} devis</p>
-
-      <div className="mb-3 flex justify-end">
-        <FiltreSelect
-          valeur={statut}
-          onChange={setStatut}
-          toutes="Tous les statuts"
-          options={[
-            { valeur: "commande", label: "Commandé" },
-            { valeur: "attente", label: "En attente" },
-            { valeur: "annule", label: "Annulée" },
-          ]}
-        />
-      </div>
-      <Tableur
-        colonnes={[
-          { titre: "N°", largeur: "11%" },
-          { titre: "Libellé", largeur: "28%" },
-          { titre: "Nature", largeur: "8%" },
-          { titre: "Date devis", largeur: "9%" },
-          { titre: "Commandé le", largeur: "10%" },
-          { titre: "H. prévues", largeur: "8%", droite: true },
-          { titre: "Montant", largeur: "10%", droite: true },
-          { titre: "Statut", largeur: "10%" },
-          ...(isAdmin ? [{ titre: "", largeur: "6%" }] : []),
-        ]}
-        lignes={filtres.map((d) => [
-          d.numero ? (
-            <Link key="numero" href={`/devis/${d.id}/statut`} className="font-semibold text-slate-900 hover:underline">
-              {d.numero}
-            </Link>
-          ) : (
-            "(sans référence)"
-          ),
-          d.libelle,
-          labelNatureDevis(d.nature) || "—",
-          d.date_devis,
-          d.date_commande_client,
-          d.heures_prevues !== null ? String(d.heures_prevues) : "",
-          isAdmin && d.montant !== null ? eur(d.montant) : "",
-          d.annule ? "Annulée" : d.date_commande_client ? "Commandé" : "En attente",
-          ...(isAdmin
-            ? [
-                <button
-                  key="modifier"
-                  onClick={() => setModifie(d)}
-                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
-                  title="Modifier"
-                >
-                  <Pencil className="h-4 w-4" strokeWidth={2} />
-                </button>,
-              ]
-            : []),
-        ])}
-        valeurs={filtres.map((d) => [d.numero || "(sans référence)"])}
-        vide="Aucun devis pour ce site pour l'instant"
-      />
-
-      {modifie && <ModaleDevis devis={modifie} onClose={() => setModifie(null)} />}
-    </div>
-  );
+function nombreVersTexte(valeur: number | null): string {
+  return valeur === null ? "" : String(valeur).replace(".", ",");
 }
 
-function ModaleDevis({ devis, onClose }: { devis: Devis; onClose: () => void }) {
+/// null = champ vide, undefined = saisie invalide.
+function texteVersNombre(texte: string): number | null | undefined {
+  const propre = texte.replace(/\s/g, "").replace(",", ".");
+  if (!propre) return null;
+  const valeur = Number(propre);
+  return Number.isFinite(valeur) ? valeur : undefined;
+}
+
+export function ModaleDevis({
+  devis,
+  liens,
+  onClose,
+}: {
+  devis: Devis;
+  liens: LiensDevis;
+  onClose: () => void;
+}) {
   const router = useRouter();
+  const [montantTexte, setMontantTexte] = useState(nombreVersTexte(devis.montant));
+  const [heuresTexte, setHeuresTexte] = useState(nombreVersTexte(devis.heures_prevues));
+  const suppressionBloquee = liens.nbCommandes > 0;
+  const liensPerdus = [
+    liens.nbBons > 0 ? `Bons d'intervention liés : ${liens.nbBons}` : "",
+    liens.nbCreneaux > 0 ? `Créneaux de planning liés : ${liens.nbCreneaux}` : "",
+  ].filter(Boolean);
   const [pending, startTransition] = useTransition();
   const [suppression, startSuppression] = useTransition();
   const [confirmerSuppression, setConfirmerSuppression] = useState(false);
@@ -179,8 +120,9 @@ function ModaleDevis({ devis, onClose }: { devis: Devis; onClose: () => void }) 
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Montant (€)</label>
               <input
-                value={input.montant ?? ""}
-                onChange={(e) => champ("montant", e.target.value ? parseFloat(e.target.value) : null)}
+                value={montantTexte}
+                onChange={(e) => setMontantTexte(e.target.value)}
+                inputMode="decimal"
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
               />
             </div>
@@ -217,8 +159,9 @@ function ModaleDevis({ devis, onClose }: { devis: Devis; onClose: () => void }) 
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Heures prévues</label>
               <input
-                value={input.heures_prevues ?? ""}
-                onChange={(e) => champ("heures_prevues", e.target.value ? parseFloat(e.target.value) : null)}
+                value={heuresTexte}
+                onChange={(e) => setHeuresTexte(e.target.value)}
+                inputMode="decimal"
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
               />
             </div>
@@ -252,10 +195,25 @@ function ModaleDevis({ devis, onClose }: { devis: Devis; onClose: () => void }) 
         </div>
 
         {erreur && <p className="mt-3 text-sm text-red-600">{erreur}</p>}
+        {suppressionBloquee && (
+          <p className="mt-3 text-sm text-slate-500">
+            Suppression impossible : commandes fournisseur liées à ce devis ({liens.nbCommandes}).
+          </p>
+        )}
 
         {confirmerSuppression ? (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3">
             <p className="mb-2 text-sm text-red-800">Supprimer définitivement le devis &quot;{devis.numero}&quot; ?</p>
+            {liensPerdus.length > 0 && (
+              <div className="mb-2 text-sm font-semibold text-red-800">
+                <p>Ces éléments seront conservés, mais ne seront plus rattachés à ce devis :</p>
+                <ul className="mt-1 list-disc pl-5">
+                  {liensPerdus.map((lien) => (
+                    <li key={lien}>{lien}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmerSuppression(false)}
@@ -273,7 +231,7 @@ function ModaleDevis({ devis, onClose }: { devis: Devis; onClose: () => void }) 
                       setErreur(res.erreur);
                       return;
                     }
-                    onClose();
+                    router.push("/devis");
                     router.refresh();
                   })
                 }
@@ -287,7 +245,8 @@ function ModaleDevis({ devis, onClose }: { devis: Devis; onClose: () => void }) 
           <div className="mt-4 flex items-center justify-between gap-2">
             <button
               onClick={() => setConfirmerSuppression(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+              disabled={suppressionBloquee}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Trash2 className="h-4 w-4" strokeWidth={2} />
               Supprimer
@@ -303,7 +262,13 @@ function ModaleDevis({ devis, onClose }: { devis: Devis; onClose: () => void }) 
               <button
                 onClick={() =>
                   startTransition(async () => {
-                    const res = await modifierDevis(devis.id, input);
+                    const montant = texteVersNombre(montantTexte);
+                    const heures = texteVersNombre(heuresTexte);
+                    if (montant === undefined || heures === undefined) {
+                      setErreur("Montant et heures prévues doivent être des nombres (ex : 12,50).");
+                      return;
+                    }
+                    const res = await modifierDevis(devis.id, { ...input, montant, heures_prevues: heures });
                     if (!res.ok) {
                       setErreur(res.erreur);
                       return;

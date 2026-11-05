@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireAdminOuAccueil } from "@/lib/auth";
+import { getCurrentProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import type { Site, Tables } from "@/lib/types";
 import { sommeDurees } from "@/lib/bi/format";
@@ -11,6 +12,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
   await requireAdminOuAccueil();
   const { id } = await params;
 
+  const profile = await getCurrentProfile();
   const supabase = await createClient();
   const { data: devis } = await supabase.from("devis").select("*").eq("id", id).single();
   if (!devis) notFound();
@@ -28,6 +30,10 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
       .eq("devis_id", id)
       .order("created_at", { ascending: false }),
   ]);
+  const { count: nbCreneaux } = await supabase
+    .from("creneaux_planning")
+    .select("id", { count: "exact", head: true })
+    .eq("devis_id", id);
   const bonsRealises = (bons ?? []).filter((b) => STATUTS_BI_REALISE.has(b.statut));
   const realise = bonsRealises.length > 0 || Boolean(devis.bi_reference_historique);
 
@@ -64,6 +70,8 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
       bonsIntervention={(bons ?? []).map((b) => ({ id: b.id, numero: b.numero, statut: b.statut }))}
       dateExecution={dateExecution}
       heuresExecutees={heuresExecutees}
+      isAdmin={profile?.role === "admin"}
+      nbCreneaux={nbCreneaux ?? 0}
     />
   );
 }

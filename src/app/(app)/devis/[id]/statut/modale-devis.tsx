@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trash2, X } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { NATURES_DEVIS_SELECTIONNABLES } from "@/lib/devis/constants";
+import { pavesDuDevis } from "@/lib/devis/paves";
 import { modifierDevis, supprimerDevis, type DevisInput } from "../../actions";
 
 type Devis = Tables<"devis">;
@@ -33,6 +34,7 @@ export function ModaleDevis({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const verrouPaves = pavesDuDevis(devis).length > 1;
   const [montantTexte, setMontantTexte] = useState(nombreVersTexte(devis.montant));
   const [heuresTexte, setHeuresTexte] = useState(nombreVersTexte(devis.heures_prevues));
   const suppressionBloquee = liens.nbCommandes > 0;
@@ -97,6 +99,8 @@ export function ModaleDevis({
             <textarea
               value={input.libelle}
               onChange={(e) => champ("libelle", e.target.value)}
+              disabled={verrouPaves}
+              title={verrouPaves ? "Ce devis a plusieurs pavés, chacun avec son libellé" : undefined}
               rows={2}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
@@ -107,9 +111,11 @@ export function ModaleDevis({
               <select
                 value={input.nature}
                 onChange={(e) => champ("nature", e.target.value)}
+                disabled={verrouPaves}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
               >
                 <option value="">— Non précisée —</option>
+                {verrouPaves && <option value={input.nature}>Plusieurs natures</option>}
                 {Object.entries(NATURES_DEVIS_SELECTIONNABLES).map(([code, label]) => (
                   <option key={code} value={code}>
                     {label}

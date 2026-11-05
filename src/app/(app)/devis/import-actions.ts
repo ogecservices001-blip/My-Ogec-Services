@@ -245,9 +245,14 @@ export async function appliquerImportDevis(
     const { annule: _annule, ...champsFichier } = ligne.donnees;
     const donnees = { ...champsFichier, site_id: ligne.siteId };
     if (ligne.devisExistantId) {
+      // Un devis à pavés garde ses pavés : le fichier n'en porte qu'une vue à plat.
+      const { data: existant } = await supabase.from("devis").select("paves").eq("id", ligne.devisExistantId).single();
+      const aDesPaves = ((existant?.paves as unknown[] | null) ?? []).length > 0;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { libelle: _l, nature: _n, localisation: _lo, equipement_id: _e, equipements_supplementaires: _s, ...horsPaves } = donnees;
       const { error } = await supabase
         .from("devis")
-        .update({ ...donnees, updated_at: new Date().toISOString() })
+        .update({ ...(aDesPaves ? horsPaves : donnees), updated_at: new Date().toISOString() })
         .eq("id", ligne.devisExistantId);
       if (error) return { ok: false, erreur: error.message, crees, misesAJour };
       misesAJour++;

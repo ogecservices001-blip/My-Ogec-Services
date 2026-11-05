@@ -2,38 +2,40 @@ import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { NATURES_DEVIS_SELECTIONNABLES } from "@/lib/devis/constants";
 import { ModalEcran } from "@/components/modal-ecran";
-import { coutRevientDefaut, type CoutRevient, type LigneDevis } from "@/lib/devis/pricing";
+import { coutRevientDefaut, type CoutRevient } from "@/lib/devis/pricing";
+import { chargerDevisAEtablir } from "@/lib/bi/devis-a-etablir";
+import { pavesDuDevis, type PaveDevis } from "@/lib/devis/paves";
 import { NouveauDevisForm } from "./nouveau-devis-form";
 
 export default async function NouveauDevisPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    equipementIds?: string;
-    compteRendu?: string;
     brouillonId?: string;
     siteId?: string;
     signalement?: string;
-    equipementNom?: string;
   }>;
 }) {
   await requireAdminOuAccueil();
-  const { equipementIds, compteRendu, brouillonId, siteId, signalement, equipementNom } = await searchParams;
-  const idsEquipements = (equipementIds ?? "").split(",").filter(Boolean);
+  const { brouillonId, siteId, signalement } = await searchParams;
   const supabase = await createClient();
 
   const [{ data: sites }, prefillSite, brouillon] = await Promise.all([
     supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom"),
-    siteId ? chargerPrefillSite(supabase, siteId, idsEquipements) : Promise.resolve(null),
+    siteId ? chargerPrefillSite(supabase, siteId) : Promise.resolve(null),
     brouillonId ? chargerBrouillon(supabase, brouillonId) : Promise.resolve(null),
   ]);
+  const aEtablir = signalement && siteId ? (await chargerDevisAEtablir([siteId])).find((a) => a.biNumero === signalement) : undefined;
+  const pavesSignales: PaveDevis[] = (aEtablir?.entrees ?? []).map((e) => ({
+    equipementId: e.equipementId,
+    equipementNom: e.equipementNom,
+    localisation: e.localisation,
+    libelle: e.compteRendu,
+    nature: "",
+    lignes: [],
+  }));
   const prefill = prefillSite
-    ? {
-        ...prefillSite,
-        compteRendu: compteRendu ?? "",
-        signalementBi: signalement ?? "",
-        equipementSignale: equipementNom ?? "",
-      }
+    ? { ...prefillSite, paves: pavesSignales, signalementBi: signalement ?? "", equipementSignale: aEtablir?.equipementNom ?? "" }
     : null;
 
   return (
@@ -58,11 +60,7 @@ async function chargerBrouillon(supabase: Awaited<ReturnType<typeof createClient
     siteId: devis.site_id,
     clientNom: site.nom,
     type: (site.hors_contrat ? "hors" : "sous") as "hors" | "sous",
-    equipementIds: [devis.equipement_id, ...devis.equipements_supplementaires].filter((id): id is string => Boolean(id)),
-    localisation: devis.localisation,
-    libelle: devis.libelle,
-    nature: devis.nature,
-    lignes: (devis.lignes ?? []) as unknown as LigneDevis[],
+    paves: pavesDuDevis(devis),
     coutRevient: (devis.cout_revient as unknown as CoutRevient) ?? coutRevientDefaut(),
   };
 }
@@ -70,12 +68,10 @@ async function chargerBrouillon(supabase: Awaited<ReturnType<typeof createClient
 async function chargerPrefillSite(
   supabase: Awaited<ReturnType<typeof createClient>>,
   siteId: string,
-  equipementIds: string[],
 ) {
   const { data: site } = await supabase.from("sites_view").select("id, nom, hors_contrat").eq("id", siteId).single();
   if (!site) return null;
   return {
-    equipementIds,
     siteId: site.id,
     clientNom: site.nom,
     type: (site.hors_contrat ? "hors" : "sous") as "hors" | "sous",

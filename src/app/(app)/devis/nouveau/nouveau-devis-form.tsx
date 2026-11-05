@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { creerDevis, enregistrerBrouillonDevis, listerEquipementsDuSite } from "../actions";
 import {
   ligneDevisVide,
@@ -16,6 +16,7 @@ import {
   type TypeLigneDevis,
   type CoutRevient,
 } from "@/lib/devis/pricing";
+import type { PaveDevis } from "@/lib/devis/paves";
 
 type Option = { valeur: string; label: string };
 type SiteOption = { id: string; nom: string; site: string; horsContrat: boolean };
@@ -41,11 +42,10 @@ const LABELS_TYPE: Record<TypeLigneDevis, string> = {
 const UNITES = ["U", "Ens", "Ft", "ml", "kg"];
 
 type Prefill = {
-  equipementIds: string[];
   siteId: string;
   clientNom: string;
   type: "sous" | "hors";
-  compteRendu: string;
+  paves: PaveDevis[];
   signalementBi: string;
   equipementSignale: string;
 } | null;
@@ -55,13 +55,30 @@ type Brouillon = {
   siteId: string;
   clientNom: string;
   type: "sous" | "hors";
-  equipementIds: string[];
-  localisation: string;
-  libelle: string;
-  nature: string;
-  lignes: LigneDevis[];
+  paves: PaveDevis[];
   coutRevient: CoutRevient;
 } | null;
+
+/// Pavé en cours de saisie. `cle` et `groupeFiltre` ne sont jamais enregistrés.
+type PaveSaisie = Omit<PaveDevis, "equipementId"> & { cle: number; equipementId: string; groupeFiltre: string };
+
+function lignesVides(): LigneDevis[] {
+  return [ligneDevisVide(), ligneDevisVide(), ligneDevisVide(), ligneDevisVide(), ligneDevisVide()];
+}
+
+function versSaisie(pave: PaveDevis, cle: number): PaveSaisie {
+  return {
+    ...pave,
+    cle,
+    equipementId: pave.equipementId ?? "",
+    groupeFiltre: "",
+    lignes: pave.lignes.length > 0 ? pave.lignes : lignesVides(),
+  };
+}
+
+function paveVide(cle: number): PaveSaisie {
+  return versSaisie({ equipementId: null, equipementNom: "", localisation: "", libelle: "", nature: "", lignes: [] }, cle);
+}
 
 export function NouveauDevisForm({
   sites,
@@ -89,70 +106,25 @@ export function NouveauDevisForm({
 
   const [siteId, setSiteId] = useState(brouillon?.siteId ?? prefill?.siteId ?? "");
   const [equipements, setEquipements] = useState<Equipement[]>([]);
-  const [equipementIds, setEquipementIds] = useState<string[]>(brouillon?.equipementIds ?? prefill?.equipementIds ?? []);
-  const [localisation, setLocalisation] = useState(brouillon?.localisation ?? "");
-  // Filtre pur (pas enregistré sur le devis) pour retrouver l'équipement
-  // plus vite sur un site qui en a beaucoup : Groupe restreint les
-  // suggestions de Localisation, qui elle-même restreint la liste
-  // d'équipements proposée.
-  const [groupeFiltre, setGroupeFiltre] = useState("");
 
-  const groupesExistants = useMemo(
-    () => [...new Set(equipements.map((e) => e.groupe).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr")),
-    [equipements],
+  const pavesInitiaux = brouillon?.paves ?? prefill?.paves ?? [];
+  const [paves, setPaves] = useState<PaveSaisie[]>(
+    pavesInitiaux.length > 0 ? pavesInitiaux.map(versSaisie) : [paveVide(0)],
   );
-  const equipementsDuGroupe = groupeFiltre ? equipements.filter((e) => e.groupe === groupeFiltre) : equipements;
-  const localisationsSuggerees = [...new Set(equipementsDuGroupe.map((e) => e.localisation).filter(Boolean))].sort(
-    (a, b) => a.localeCompare(b, "fr"),
-  );
-  // La Localisation ne filtre que le premier choix : une fois remplie
-  // par un équipement, elle masquerait ceux des autres pièces.
-  const equipementsFiltres = equipementsDuGroupe.filter(
-    (e) =>
-      !equipementIds.includes(e.id) &&
-      (equipementIds.length > 0 ||
-        !localisation.trim() ||
-        e.localisation.toLowerCase().includes(localisation.trim().toLowerCase())),
-  );
-
-  function localisationsDe(ids: string[], liste: Equipement[]): string {
-    const lieux = ids.map((id) => liste.find((e) => e.id === id)?.localisation).filter(Boolean);
-    return [...new Set(lieux)].join(", ");
-  }
-
-  // Toujours connue quand l'équipement l'est — reste modifiable ensuite
-  // (notamment quand l'équipement n'existe pas encore, ex. Installation neuve).
-  function changerEquipements(ids: string[]) {
-    setEquipementIds(ids);
-    setLocalisation(localisationsDe(ids, equipements));
-  }
+  const prochaineCle = useRef(pavesInitiaux.length + 1);
 
   useEffect(() => {
     const siteADeterminer = brouillon?.siteId ?? prefill?.siteId;
     if (!siteADeterminer) return;
     startTransition(async () => {
-      const liste = await listerEquipementsDuSite(siteADeterminer);
-      setEquipements(liste);
-      // "Devis à établir" fournit un equipementId mais pas sa
-      // localisation (contrairement à un brouillon repris, qui a déjà
-      // la sienne) — on la déduit une fois la liste chargée.
-      if (prefill && prefill.equipementIds.length > 0 && !brouillon) {
-        setLocalisation(localisationsDe(prefill.equipementIds, liste));
-      }
+      setEquipements(await listerEquipementsDuSite(siteADeterminer));
     });
     // Pré-remplissage ponctuel au chargement (brouillon repris, ou
     // "Devis à établir"), pas une synchro continue — pas de dépendances
     // à surveiller.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const [libelle, setLibelle] = useState(brouillon?.libelle ?? prefill?.compteRendu ?? "");
-  const [nature, setNature] = useState(brouillon?.nature ?? "");
 
-  const [lignes, setLignes] = useState<LigneDevis[]>(
-    brouillon && brouillon.lignes.length > 0
-      ? brouillon.lignes
-      : [ligneDevisVide(), ligneDevisVide(), ligneDevisVide(), ligneDevisVide(), ligneDevisVide()],
-  );
   const [coutRevient, setCoutRevient] = useState<CoutRevient>(brouillon?.coutRevient ?? coutRevientDefaut());
   const [feuilleDeVenteOuverte, setFeuilleDeVenteOuverte] = useState(true);
 
@@ -169,29 +141,31 @@ export function NouveauDevisForm({
 
   function changerSite(id: string) {
     setSiteId(id);
-    setEquipementIds([]);
     setEquipements([]);
-    setGroupeFiltre("");
-    setLocalisation("");
+    setPaves((prev) => prev.map((p) => ({ ...p, equipementId: "", equipementNom: "", groupeFiltre: "", localisation: "" })));
     if (!id) return;
     startTransition(async () => {
       setEquipements(await listerEquipementsDuSite(id));
     });
   }
 
-  function changerGroupeFiltre(groupe: string) {
-    setGroupeFiltre(groupe);
+  function majPave(i: number, champs: Partial<PaveSaisie>) {
+    setPaves((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...champs } : p)));
   }
 
-  function majLigne(i: number, champs: Partial<LigneDevis>) {
-    setLignes((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...champs } : l)));
+  function ajouterPave() {
+    const cle = prochaineCle.current;
+    prochaineCle.current += 1;
+    setPaves((prev) => [...prev, paveVide(cle)]);
   }
 
   function majCout(champ: keyof CoutRevient, valeur: string) {
     setCoutRevient((prev) => ({ ...prev, [champ]: valeur }));
   }
 
-  const lignesValides = useMemo(() => lignes.filter((l) => l.designation.trim()), [lignes]);
+  // Une seule Feuille de vente pour tout le devis : le coefficient se calcule
+  // sur les lignes de tous les pavés.
+  const lignesValides = useMemo(() => paves.flatMap((p) => p.lignes).filter((l) => l.designation.trim()), [paves]);
   const prixRevient = useMemo(() => calculerPrixRevient(lignesValides, coutRevient), [lignesValides, coutRevient]);
   const totalHT = useMemo(
     () => totalHTLignes(lignesValides, prixRevient.coefficientVente, prixRevient.tauxHoraire),
@@ -216,18 +190,27 @@ export function NouveauDevisForm({
     }));
   }
 
-  const complet = Boolean(siteId && libelle.trim() && nature && lignesValides.length > 0);
+  const complet = Boolean(
+    siteId && paves.every((p) => p.libelle.trim() && p.nature && p.lignes.some((l) => l.designation.trim())),
+  );
+
+  function pavesAEnregistrer(): PaveDevis[] {
+    return paves.map((p) => ({
+      equipementId: p.equipementId || null,
+      equipementNom: p.equipementNom,
+      localisation: p.localisation,
+      libelle: p.libelle,
+      nature: p.nature,
+      lignes: p.lignes,
+    }));
+  }
 
   function finaliser() {
     setErreur(null);
     startTransition(async () => {
       const res = await creerDevis({
         siteId,
-        libelle,
-        nature,
-        equipementIds,
-        localisation,
-        lignes: lignesValides,
+        paves: pavesAEnregistrer(),
         coutRevient,
         brouillonId: brouillonId ?? undefined,
         signalementBi: prefill?.signalementBi,
@@ -248,11 +231,7 @@ export function NouveauDevisForm({
       const res = await enregistrerBrouillonDevis({
         id: brouillonId ?? undefined,
         siteId,
-        libelle,
-        nature,
-        equipementIds,
-        localisation,
-        lignes: lignesValides,
+        paves: pavesAEnregistrer(),
         coutRevient,
         signalementBi: prefill?.signalementBi,
       });
@@ -267,7 +246,7 @@ export function NouveauDevisForm({
 
   return (
     <div>
-      {prefill && (
+      {prefill?.signalementBi && (
         <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
           Pré-rempli depuis &quot;Devis à établir&quot;
           {prefill.equipementSignale && ` — signalé sur : ${prefill.equipementSignale}`}
@@ -279,7 +258,7 @@ export function NouveauDevisForm({
         </p>
       )}
 
-      <div className="mb-4 space-y-4 rounded-2xl bg-white p-5 shadow-sm">
+      <div className="mb-4 rounded-2xl bg-white p-5 shadow-sm">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <label className={ETIQUETTE}>Type de client *</label>
@@ -314,159 +293,33 @@ export function NouveauDevisForm({
             </select>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div>
-            <label className={ETIQUETTE}>Groupe</label>
-            <select
-              value={groupeFiltre}
-              onChange={(e) => changerGroupeFiltre(e.target.value)}
-              disabled={!siteId || groupesExistants.length === 0}
-              className={`${CHAMP} disabled:bg-slate-50`}
-            >
-              <option value="">— tous —</option>
-              {groupesExistants.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className={ETIQUETTE}>Localisation</label>
-            <input
-              value={localisation}
-              onChange={(e) => setLocalisation(e.target.value)}
-              placeholder="Ex : Bureau 43"
-              list="localisations-suggerees"
-              className={CHAMP}
-            />
-            {localisationsSuggerees.length > 0 && (
-              <datalist id="localisations-suggerees">
-                {localisationsSuggerees.map((l) => (
-                  <option key={l} value={l} />
-                ))}
-              </datalist>
-            )}
-          </div>
-
-          <div>
-            <label className={ETIQUETTE}>Équipements concernés (facultatif)</label>
-            <select
-              value=""
-              onChange={(e) => {
-                if (e.target.value) changerEquipements([...equipementIds, e.target.value]);
-              }}
-              disabled={!siteId || equipementsFiltres.length === 0}
-              className={`${CHAMP} disabled:bg-slate-50`}
-            >
-              <option value="">— ajouter un équipement —</option>
-              {equipementsFiltres.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.libelle}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {equipementIds.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {equipementIds.map((id) => (
-              <span key={id} className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-brand-green-dark">
-                {equipements.find((e) => e.id === id)?.libelle ?? "Chargement..."}
-                <button type="button" onClick={() => changerEquipements(equipementIds.filter((x) => x !== id))} title="Retirer">
-                  <X className="h-3 w-3" strokeWidth={2.5} />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div>
-          <label className={ETIQUETTE}>Libellé du devis *</label>
-          <textarea value={libelle} onChange={(e) => setLibelle(e.target.value)} rows={2} className={CHAMP} />
-        </div>
-
-        <div>
-          <label className={ETIQUETTE}>Nature *</label>
-          <select value={nature} onChange={(e) => setNature(e.target.value)} className={CHAMP}>
-            <option value="">— Choisir —</option>
-            {natures.map((n) => (
-              <option key={n.valeur} value={n.valeur}>
-                {n.label}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
-      <div className="mb-4 rounded-2xl bg-white p-5 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-slate-900">Lignes d&apos;articles</h2>
-          {lignes.length < MAX_LIGNES && (
-            <button
-              type="button"
-              onClick={() => setLignes((prev) => [...prev, ligneDevisVide()])}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
-            >
-              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-              Ligne
-            </button>
-          )}
-        </div>
+      {paves.map((pave, i) => (
+        <BlocPave
+          key={pave.cle}
+          pave={pave}
+          numero={i + 1}
+          nombrePaves={paves.length}
+          siteId={siteId}
+          equipements={equipements}
+          equipementsPris={paves.filter((_, idx) => idx !== i).map((p) => p.equipementId)}
+          natures={natures}
+          coefficient={prixRevient.coefficientVente}
+          tauxHoraire={prixRevient.tauxHoraire}
+          onChange={(champs) => majPave(i, champs)}
+          onRetirer={() => setPaves((prev) => prev.filter((_, idx) => idx !== i))}
+        />
+      ))}
 
-        <div className="space-y-2">
-          <div className="hidden grid-cols-[2fr_0.7fr_0.6fr_0.8fr_0.7fr_1.2fr_0.9fr_0.9fr_auto] gap-1.5 px-1 text-[11px] font-semibold text-slate-400 sm:grid">
-            <span>Désignation</span>
-            <span>Unité</span>
-            <span>Qté</span>
-            <span>Déboursé fourniture €</span>
-            <span>MO (h)</span>
-            <span>Type</span>
-            <span className="text-right">PU calculé</span>
-            <span className="text-right">Montant</span>
-            <span />
-          </div>
-          {lignes.map((l, i) => {
-            const pu = prixUniteLigne(l, prixRevient.coefficientVente, prixRevient.tauxHoraire);
-            const montant = montantLigneDevis(l, prixRevient.coefficientVente, prixRevient.tauxHoraire);
-            return (
-              <div key={i} className="grid grid-cols-[2fr_0.7fr_0.6fr_0.8fr_0.7fr_1.2fr_0.9fr_0.9fr_auto] items-center gap-1.5">
-                <input value={l.designation} onChange={(e) => majLigne(i, { designation: e.target.value })} placeholder="Désignation" className={CHAMP_SM} />
-                <select value={l.unite} onChange={(e) => majLigne(i, { unite: e.target.value })} className={CHAMP_SM}>
-                  {UNITES.map((u) => (
-                    <option key={u} value={u}>
-                      {u}
-                    </option>
-                  ))}
-                </select>
-                <input value={l.quantite} onChange={(e) => majLigne(i, { quantite: e.target.value })} placeholder="Qté" className={CHAMP_SM} />
-                <input value={l.matiere} onChange={(e) => majLigne(i, { matiere: e.target.value })} placeholder="0" className={CHAMP_SM} />
-                <input value={l.moHeures} onChange={(e) => majLigne(i, { moHeures: e.target.value })} placeholder="0" className={CHAMP_SM} />
-                <select value={l.type} onChange={(e) => majLigne(i, { type: e.target.value as TypeLigneDevis })} className={CHAMP_SM}>
-                  {(Object.entries(LABELS_TYPE) as [TypeLigneDevis, string][]).map(([v, label]) => (
-                    <option key={v} value={v}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                <p className="truncate text-right text-sm text-slate-600">{pu !== null ? eur(pu) : ""}</p>
-                <p className="truncate text-right text-sm font-medium text-slate-900">{montant !== null ? eur(montant) : ""}</p>
-                <button
-                  type="button"
-                  onClick={() => setLignes((prev) => prev.filter((_, idx) => idx !== i))}
-                  disabled={lignes.length === 1}
-                  className="text-red-500 transition hover:text-red-700 disabled:opacity-30"
-                >
-                  <Trash2 className="h-4 w-4" strokeWidth={2} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={ajouterPave}
+        className="mb-4 inline-flex items-center gap-1.5 rounded-xl border border-brand-green/40 bg-white px-4 py-2 text-sm font-semibold text-brand-green-dark shadow-sm transition hover:bg-green-50"
+      >
+        <Plus className="h-4 w-4" strokeWidth={2.5} />
+        Ajouter un équipement
+      </button>
 
       <div className="mb-4 rounded-2xl bg-white p-5 shadow-sm">
         <button type="button" onClick={() => setFeuilleDeVenteOuverte((v) => !v)} className="flex w-full items-center justify-between text-left">
@@ -604,6 +457,216 @@ export function NouveauDevisForm({
         >
           {pending ? "Enregistrement..." : "Créer le devis"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function BlocPave({
+  pave,
+  numero,
+  nombrePaves,
+  siteId,
+  equipements,
+  equipementsPris,
+  natures,
+  coefficient,
+  tauxHoraire,
+  onChange,
+  onRetirer,
+}: {
+  pave: PaveSaisie;
+  numero: number;
+  nombrePaves: number;
+  siteId: string;
+  equipements: Equipement[];
+  equipementsPris: string[];
+  natures: Option[];
+  coefficient: number;
+  tauxHoraire: number;
+  onChange: (champs: Partial<PaveSaisie>) => void;
+  onRetirer: () => void;
+}) {
+  const { groupeFiltre, localisation, equipementId, lignes } = pave;
+  const groupesExistants = [...new Set(equipements.map((e) => e.groupe).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"));
+  const equipementsDuGroupe = groupeFiltre ? equipements.filter((e) => e.groupe === groupeFiltre) : equipements;
+  const localisationsSuggerees = [...new Set(equipementsDuGroupe.map((e) => e.localisation).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "fr"),
+  );
+  // L'équipement choisi reste dans la liste, quels que soient les filtres.
+  const equipementsFiltres = equipements.filter(
+    (e) =>
+      e.id === equipementId ||
+      (!equipementsPris.includes(e.id) &&
+        equipementsDuGroupe.includes(e) &&
+        (!localisation.trim() || e.localisation.toLowerCase().includes(localisation.trim().toLowerCase()))),
+  );
+  const idListe = `localisations-pave-${pave.cle}`;
+  const titreEquipement = equipements.find((e) => e.id === equipementId)?.libelle ?? pave.equipementNom;
+  const sousTotal = lignes.reduce((s, l) => (l.designation.trim() ? s + (montantLigneDevis(l, coefficient, tauxHoraire) ?? 0) : s), 0);
+
+  function changerEquipement(id: string) {
+    const eq = equipements.find((e) => e.id === id);
+    onChange({ equipementId: id, equipementNom: eq?.libelle ?? "", ...(eq ? { localisation: eq.localisation } : {}) });
+  }
+
+  function majLigne(i: number, champs: Partial<LigneDevis>) {
+    onChange({ lignes: lignes.map((l, idx) => (idx === i ? { ...l, ...champs } : l)) });
+  }
+
+  return (
+    <div className="mb-4 space-y-4 rounded-2xl bg-white p-5 shadow-sm">
+      {nombrePaves > 1 && (
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h2 className="text-sm font-bold text-slate-900">Équipement {numero}</h2>
+          <button type="button" onClick={onRetirer} className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800">
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+            Retirer ce pavé
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div>
+          <label className={ETIQUETTE}>Groupe</label>
+          <select
+            value={groupeFiltre}
+            onChange={(e) => onChange({ groupeFiltre: e.target.value })}
+            disabled={!siteId || groupesExistants.length === 0}
+            className={`${CHAMP} disabled:bg-slate-50`}
+          >
+            <option value="">— tous —</option>
+            {groupesExistants.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className={ETIQUETTE}>Localisation</label>
+          <input
+            value={localisation}
+            onChange={(e) => onChange({ localisation: e.target.value })}
+            placeholder="Ex : Bureau 43"
+            list={idListe}
+            className={CHAMP}
+          />
+          {localisationsSuggerees.length > 0 && (
+            <datalist id={idListe}>
+              {localisationsSuggerees.map((l) => (
+                <option key={l} value={l} />
+              ))}
+            </datalist>
+          )}
+        </div>
+
+        <div>
+          <label className={ETIQUETTE}>Équipement concerné (facultatif)</label>
+          <select
+            value={equipementId}
+            onChange={(e) => changerEquipement(e.target.value)}
+            disabled={!siteId || equipementsFiltres.length === 0}
+            className={`${CHAMP} disabled:bg-slate-50`}
+          >
+            <option value="">— aucun —</option>
+            {equipementsFiltres.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.libelle}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className={ETIQUETTE}>Libellé du devis *</label>
+        <textarea value={pave.libelle} onChange={(e) => onChange({ libelle: e.target.value })} rows={3} className={CHAMP} />
+      </div>
+
+      <div>
+        <label className={ETIQUETTE}>Nature *</label>
+        <select value={pave.nature} onChange={(e) => onChange({ nature: e.target.value })} className={CHAMP}>
+          <option value="">— Choisir —</option>
+          {natures.map((n) => (
+            <option key={n.valeur} value={n.valeur}>
+              {n.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-900">
+            Lignes d&apos;articles{titreEquipement ? ` — ${titreEquipement}` : ""}
+          </h3>
+          {lignes.length < MAX_LIGNES && (
+            <button
+              type="button"
+              onClick={() => onChange({ lignes: [...lignes, ligneDevisVide()] })}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Ligne
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="hidden grid-cols-[2fr_0.7fr_0.6fr_0.8fr_0.7fr_1.2fr_0.9fr_0.9fr_auto] gap-1.5 px-1 text-[11px] font-semibold text-slate-400 sm:grid">
+            <span>Désignation</span>
+            <span>Unité</span>
+            <span>Qté</span>
+            <span>Déboursé fourniture €</span>
+            <span>MO (h)</span>
+            <span>Type</span>
+            <span className="text-right">PU calculé</span>
+            <span className="text-right">Montant</span>
+            <span />
+          </div>
+          {lignes.map((l, i) => {
+            const pu = prixUniteLigne(l, coefficient, tauxHoraire);
+            const montant = montantLigneDevis(l, coefficient, tauxHoraire);
+            return (
+              <div key={i} className="grid grid-cols-[2fr_0.7fr_0.6fr_0.8fr_0.7fr_1.2fr_0.9fr_0.9fr_auto] items-center gap-1.5">
+                <input value={l.designation} onChange={(e) => majLigne(i, { designation: e.target.value })} placeholder="Désignation" className={CHAMP_SM} />
+                <select value={l.unite} onChange={(e) => majLigne(i, { unite: e.target.value })} className={CHAMP_SM}>
+                  {UNITES.map((u) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                </select>
+                <input value={l.quantite} onChange={(e) => majLigne(i, { quantite: e.target.value })} placeholder="Qté" className={CHAMP_SM} />
+                <input value={l.matiere} onChange={(e) => majLigne(i, { matiere: e.target.value })} placeholder="0" className={CHAMP_SM} />
+                <input value={l.moHeures} onChange={(e) => majLigne(i, { moHeures: e.target.value })} placeholder="0" className={CHAMP_SM} />
+                <select value={l.type} onChange={(e) => majLigne(i, { type: e.target.value as TypeLigneDevis })} className={CHAMP_SM}>
+                  {(Object.entries(LABELS_TYPE) as [TypeLigneDevis, string][]).map(([v, label]) => (
+                    <option key={v} value={v}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <p className="truncate text-right text-sm text-slate-600">{pu !== null ? eur(pu) : ""}</p>
+                <p className="truncate text-right text-sm font-medium text-slate-900">{montant !== null ? eur(montant) : ""}</p>
+                <button
+                  type="button"
+                  onClick={() => onChange({ lignes: lignes.filter((_, idx) => idx !== i) })}
+                  disabled={lignes.length === 1}
+                  className="text-red-500 transition hover:text-red-700 disabled:opacity-30"
+                >
+                  <Trash2 className="h-4 w-4" strokeWidth={2} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {nombrePaves > 1 && (
+          <p className="mt-3 text-right text-sm font-semibold text-slate-900">Sous-total HT : {eur(sousTotal)}</p>
+        )}
       </div>
     </div>
   );

@@ -732,6 +732,7 @@ export type Database = {
           nature: string
           numero: string
           redacteur: string
+          paves: Json
           reference_client: string
           remarques: string
           signalement_bi: string
@@ -764,6 +765,7 @@ export type Database = {
           nature?: string
           numero?: string
           redacteur?: string
+          paves?: Json
           reference_client?: string
           remarques?: string
           signalement_bi?: string
@@ -796,6 +798,7 @@ export type Database = {
           nature?: string
           numero?: string
           redacteur?: string
+          paves?: Json
           reference_client?: string
           remarques?: string
           signalement_bi?: string

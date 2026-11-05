@@ -13,6 +13,7 @@ export const NATURE_DEVIS: Record<string, string> = {
   "40": "Mise à disposition d'équipement",
   "50": "Livraison de matériel",
   "60": "Dépannage",
+  PN: "Plusieurs natures",
 };
 
 export function labelNatureDevis(code: string): string {
@@ -23,5 +24,5 @@ export function labelNatureDevis(code: string): string {
 /// sous contrat" (code 20) exclu : c'est déjà couvert par le contrat en
 /// cours, un devis n'a jamais de raison d'exister pour ça.
 export const NATURES_DEVIS_SELECTIONNABLES: Record<string, string> = Object.fromEntries(
-  Object.entries(NATURE_DEVIS).filter(([code]) => code !== "20"),
+  Object.entries(NATURE_DEVIS).filter(([code]) => code !== "20" && code !== "PN"),
 );

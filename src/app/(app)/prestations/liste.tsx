@@ -146,7 +146,7 @@ export function PrestationsListe({
                   {l.biNumero} (historique)
                 </span>
               )}
-              {vue === "a_realiser" && !isAdmin && avecAffaire(l.nature) && (
+              {vue === "a_realiser" && !isAdmin && avecAffaire(l.nature) && l.nature !== "PN" && (
                 l.biId && !l.realisee ? (
                   <Link
                     href={`/bi/nouveau?brouillonId=${l.biId}`}

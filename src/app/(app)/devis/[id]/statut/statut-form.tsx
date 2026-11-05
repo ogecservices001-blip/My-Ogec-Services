@@ -3,12 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, FileText, Pencil, Send, X } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Pencil, Send } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { labelNatureDevis } from "@/lib/devis/constants";
+import { pavesDuDevis } from "@/lib/devis/paves";
 import {
   changerStatutDevis,
-  lierEquipementsDevis,
+  lierEquipementsPaves,
   modifierMoisFacturation,
   envoyerDevisParEmail,
   type StatutDevisInput,
@@ -53,7 +54,9 @@ export function StatutDevisForm({
   const equipementsEnregistres = [devis.equipement_id, ...devis.equipements_supplementaires].filter(
     (id): id is string => Boolean(id),
   );
-  const [equipementIds, setEquipementIds] = useState(equipementsEnregistres);
+  const paves = pavesDuDevis(devis);
+  const choixEnregistres = paves.map((p) => p.equipementId ?? "");
+  const [equipementIds, setEquipementIds] = useState(choixEnregistres);
   const [moisFacturation, setMoisFacturation] = useState(devis.mois_facturation);
   const [pending, startTransition] = useTransition();
   const [facturationPending, startFacturation] = useTransition();
@@ -89,7 +92,7 @@ export function StatutDevisForm({
   function enregistrerEquipement() {
     setErreur(null);
     startTransition(async () => {
-      const res = await lierEquipementsDevis(devis.id, equipementIds);
+      const res = await lierEquipementsPaves(devis.id, equipementIds);
       if (!res.ok) {
         setErreur(res.erreur);
         return;
@@ -320,44 +323,32 @@ export function StatutDevisForm({
       )}
 
       <div className="rounded-2xl bg-white p-4 shadow-sm">
-        <label className="mb-1 block text-xs font-medium text-slate-600">Équipements concernés (facultatif)</label>
-        {equipementIds.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            {equipementIds.map((id) => {
-              const e = equipements.find((x) => x.id === id);
-              return (
-                <span key={id} className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-brand-green-dark">
-                  {e ? [e.nom, e.numero_equipement].filter(Boolean).join(" — ") : "Équipement supprimé"}
-                  <button type="button" onClick={() => setEquipementIds((ids) => ids.filter((x) => x !== id))} title="Retirer">
-                    <X className="h-3 w-3" strokeWidth={2.5} />
-                  </button>
-                </span>
-              );
-            })}
+        {paves.map((pave, i) => (
+          <div key={i} className="mb-3">
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Équipement concerné (facultatif){paves.length > 1 && pave.libelle ? ` — ${pave.libelle.slice(0, 50)}` : ""}
+            </label>
+            <select
+              value={equipementIds[i]}
+              onChange={(e) => setEquipementIds((ids) => ids.map((id, j) => (j === i ? e.target.value : id)))}
+              disabled={pending}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+            >
+              <option value="">— aucun —</option>
+              {equipements
+                .filter((e) => e.id === equipementIds[i] || !equipementIds.includes(e.id))
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nom}
+                    {e.numero_equipement ? ` (${e.numero_equipement})` : ""}
+                  </option>
+                ))}
+            </select>
           </div>
-        )}
-        <select
-          value=""
-          onChange={(e) => {
-            const id = e.target.value;
-            if (id) setEquipementIds((ids) => [...ids, id]);
-          }}
-          disabled={pending}
-          className="mb-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-        >
-          <option value="">— ajouter un équipement —</option>
-          {equipements
-            .filter((e) => !equipementIds.includes(e.id))
-            .map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.nom}
-                {e.numero_equipement ? ` (${e.numero_equipement})` : ""}
-              </option>
-            ))}
-        </select>
+        ))}
         <button
           onClick={enregistrerEquipement}
-          disabled={pending || equipementIds.join() === equipementsEnregistres.join()}
+          disabled={pending || equipementIds.join() === choixEnregistres.join()}
           className="w-full rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
         >
           Enregistrer l&apos;équipement

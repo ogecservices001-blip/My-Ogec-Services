@@ -5,6 +5,7 @@ import { PDFDocument } from "pdf-lib";
 import type { Tables } from "@/lib/types";
 import { OGEC, ATTESTATION_CAPACITE } from "../commandes-fournisseur/constants";
 import { calculerPrixRevient, prixUniteLigne, montantLigneDevis, type LigneDevis, type CoutRevient } from "./pricing";
+import { pavesDuDevis } from "./paves";
 
 type Devis = Tables<"devis">;
 
@@ -115,6 +116,21 @@ function Kv({ k, v }: { k: string; v: string }) {
   );
 }
 
+function LigneTexte({ texte, montant, droite, gras }: { texte: string; montant?: string; droite?: boolean; gras?: boolean }) {
+  return (
+    <View style={styles.tableRow} wrap={false}>
+      <Text style={styles.tdInd} />
+      <Text style={[styles.tdDesignation, ...(gras ? [styles.titreSection] : []), ...(droite ? [{ textAlign: "right" as const }] : [])]}>
+        {texte}
+      </Text>
+      <Text style={styles.tdUnite} />
+      <Text style={styles.tdQte} />
+      <Text style={styles.tdPu} />
+      <Text style={[styles.tdMontant, ...(gras ? [{ fontFamily: "Helvetica-Bold" }] : [])]}>{montant ?? ""}</Text>
+    </View>
+  );
+}
+
 function DevisDocument({
   devis,
   site,
@@ -124,19 +140,21 @@ function DevisDocument({
   site: { nom: string; site: string } | null;
   logo: Buffer | null;
 }) {
-  const lignes = (devis.lignes as unknown as LigneDevis[]) ?? [];
+  const paves = pavesDuDevis(devis).map((p) => ({ ...p, lignes: p.lignes.filter((l) => l.designation.trim()) }));
+  const plusieursPaves = paves.length > 1;
+  const lignesValides = paves.flatMap((p) => p.lignes);
   const coutRevient = devis.cout_revient as unknown as CoutRevient;
-  const prixRevient = calculerPrixRevient(lignes, coutRevient);
-  const lignesValides = lignes.filter((l) => l.designation.trim());
+  const prixRevient = calculerPrixRevient(lignesValides, coutRevient);
+  const montantDe = (l: LigneDevis) => montantLigneDevis(l, prixRevient.coefficientVente, prixRevient.tauxHoraire);
 
-  const totalHT = lignesValides.reduce(
-    (s, l) => s + (montantLigneDevis(l, prixRevient.coefficientVente, prixRevient.tauxHoraire) ?? 0),
-    0,
-  );
+  const totalHT = lignesValides.reduce((s, l) => s + (montantDe(l) ?? 0), 0);
   const tva = Math.round(totalHT * 0.085 * 100) / 100;
   const ttc = totalHT + tva;
 
-  const objet = [site?.site, devis.libelle].filter(Boolean).join(" - ");
+  const nomsEquipements = paves.map((p) => p.equipementNom).filter(Boolean).join(", ");
+  const libelleDevis = plusieursPaves ? nomsEquipements || "Plusieurs équipements" : devis.libelle;
+  const objet = [site?.site, libelleDevis].filter(Boolean).join(" - ");
+  const rangDesLignes = new Map(lignesValides.filter((l) => l.quantite.trim()).map((l, i) => [l, i + 1]));
 
   return (
     <Document>
@@ -157,7 +175,7 @@ function DevisDocument({
             <Kv k="Clients" v={site?.nom ?? ""} />
             <Kv k="Sites" v={site?.site ?? ""} />
             <Kv k="Rédacteur" v={devis.redacteur} />
-            <Kv k="Objet" v={devis.libelle} />
+            <Kv k="Objet" v={libelleDevis} />
           </View>
         </View>
 
@@ -176,24 +194,38 @@ function DevisDocument({
           <Text style={[styles.tdMontant, styles.thText]}>Prix Total H.T</Text>
         </View>
         <View style={styles.corps}>
-          {lignesValides.map((l, i) => {
-            const estTitre = !l.quantite.trim();
-            const numeroLigne = lignesValides.slice(0, i + 1).filter((x) => x.quantite.trim()).length;
-            const pu = prixUniteLigne(l, prixRevient.coefficientVente, prixRevient.tauxHoraire);
-            const montant = montantLigneDevis(l, prixRevient.coefficientVente, prixRevient.tauxHoraire);
-            return (
-              <View key={i} style={styles.tableRow} wrap={false}>
-                <Text style={styles.tdInd}>{estTitre ? "" : numeroLigne}</Text>
-                <Text style={estTitre ? [styles.tdDesignation, styles.titreSection] : styles.tdDesignation}>
-                  {l.designation}
-                </Text>
-                <Text style={styles.tdUnite}>{estTitre ? "" : l.unite}</Text>
-                <Text style={styles.tdQte}>{l.quantite}</Text>
-                <Text style={styles.tdPu}>{pu !== null ? eur(pu) : ""}</Text>
-                <Text style={styles.tdMontant}>{montant !== null ? eur(montant) : ""}</Text>
-              </View>
-            );
-          })}
+          {paves.map((pave, p) => (
+            <View key={p}>
+              {plusieursPaves && (
+                <LigneTexte texte={[pave.equipementNom, pave.libelle].filter(Boolean).join(" — ")} gras />
+              )}
+              {pave.lignes.map((l, i) => {
+                const estTitre = !l.quantite.trim();
+                const pu = prixUniteLigne(l, prixRevient.coefficientVente, prixRevient.tauxHoraire);
+                const montant = montantDe(l);
+                return (
+                  <View key={i} style={styles.tableRow} wrap={false}>
+                    <Text style={styles.tdInd}>{estTitre ? "" : rangDesLignes.get(l)}</Text>
+                    <Text style={estTitre ? [styles.tdDesignation, styles.titreSection] : styles.tdDesignation}>
+                      {l.designation}
+                    </Text>
+                    <Text style={styles.tdUnite}>{estTitre ? "" : l.unite}</Text>
+                    <Text style={styles.tdQte}>{l.quantite}</Text>
+                    <Text style={styles.tdPu}>{pu !== null ? eur(pu) : ""}</Text>
+                    <Text style={styles.tdMontant}>{montant !== null ? eur(montant) : ""}</Text>
+                  </View>
+                );
+              })}
+              {plusieursPaves && (
+                <LigneTexte
+                  texte="Sous-total H.T."
+                  montant={eur(pave.lignes.reduce((s, l) => s + (montantDe(l) ?? 0), 0))}
+                  droite
+                  gras
+                />
+              )}
+            </View>
+          ))}
           <View style={[styles.tableRow, styles.lignesVides]}>
             <View style={styles.tdInd} />
             <View style={styles.tdDesignation} />

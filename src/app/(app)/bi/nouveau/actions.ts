@@ -1,5 +1,6 @@
 "use server";
 
+import { NATURE_MULTIPLE } from "@/lib/devis/paves";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
@@ -133,6 +134,7 @@ export async function chargerDevisARealiser(): Promise<DevisARealiser[]> {
       .select("id, numero, site_id, nature, libelle, bi_reference_historique, equipement_id, localisation")
       .neq("date_commande_client", "")
       .neq("nature", "")
+      .neq("nature", NATURE_MULTIPLE)
       .eq("annule", false)
       .order("created_at", { ascending: false }),
     supabase.from("bons_intervention").select("devis_id, statut").not("devis_id", "is", null),

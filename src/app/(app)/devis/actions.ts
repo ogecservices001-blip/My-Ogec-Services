@@ -11,21 +11,16 @@ import {
   numeroAffaireDuSite,
   prochainChrono,
 } from "@/lib/devis/numerotation";
-import { calculerPrixRevient, totalHTLignes, type LigneDevis, type CoutRevient } from "@/lib/devis/pricing";
+import { calculerPrixRevient, totalHTLignes, type CoutRevient } from "@/lib/devis/pricing";
+import { aplatirPaves, pavesDuDevis, type PaveDevis } from "@/lib/devis/paves";
 import { genererPdfDevis } from "@/lib/devis/pdf";
 import { envoyerDevis } from "@/lib/devis/email";
 
 export type NouveauDevisInput = {
   siteId: string;
-  libelle: string;
-  nature: string;
-  /// Premier = équipement principal (devis.equipement_id).
-  equipementIds: string[];
-  /// Texte libre, indépendant de l'équipement du parc GMAO — utile
-  /// notamment pour une Installation neuve (l'équipement n'existe pas
-  /// encore). Pré-remplie depuis l'équipement choisi, mais modifiable.
-  localisation: string;
-  lignes: LigneDevis[];
+  /// Un pavé par équipement. La localisation reste un texte libre, utile
+  /// notamment pour une Installation neuve (l'équipement n'existe pas encore).
+  paves: PaveDevis[];
   coutRevient: CoutRevient;
   /// Brouillon existant ("Devis en cours") qu'on finalise — le numéro
   /// officiel lui est alors attribué par mise à jour, pas par insertion
@@ -37,6 +32,15 @@ export type NouveauDevisInput = {
 };
 
 const ERREUR_DOUBLON = "23505";
+
+function nettoyerPaves(paves: PaveDevis[]): PaveDevis[] {
+  return paves.map((p) => ({
+    ...p,
+    localisation: p.localisation.trim(),
+    libelle: p.libelle.trim(),
+    lignes: p.lignes.filter((l) => l.designation.trim()),
+  }));
+}
 const ESSAIS_NUMERO = 5;
 
 export async function listerEquipementsDuSite(
@@ -65,10 +69,15 @@ export async function listerEquipementsDuSite(
 export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult & { numero?: string }> {
   const profil = await requireAdmin();
   if (!input.siteId) return { ok: false, erreur: "Choisis un site." };
-  if (!input.libelle.trim()) return { ok: false, erreur: "Le libellé est obligatoire." };
-  if (!NATURES_DEVIS_SELECTIONNABLES[input.nature]) return { ok: false, erreur: "Choisis une nature." };
-  const lignesValides = input.lignes.filter((l) => l.designation.trim());
-  if (lignesValides.length === 0) return { ok: false, erreur: "Ajoute au moins une ligne d'article." };
+  const paves = nettoyerPaves(input.paves);
+  if (paves.length === 0) return { ok: false, erreur: "Ajoute au moins un équipement." };
+  for (const pave of paves) {
+    if (!pave.libelle) return { ok: false, erreur: "Le libellé est obligatoire sur chaque pavé." };
+    if (!NATURES_DEVIS_SELECTIONNABLES[pave.nature]) return { ok: false, erreur: "Choisis une nature sur chaque pavé." };
+    if (pave.lignes.length === 0) return { ok: false, erreur: "Ajoute au moins une ligne d'article sur chaque pavé." };
+  }
+  const champsPaves = aplatirPaves(paves);
+  const lignesValides = champsPaves.lignes;
 
   // Toujours recalculé côté serveur depuis lignes + cout_revient — jamais
   // de montant envoyé tel quel par le client.
@@ -97,23 +106,18 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
       initiales,
       client: affaire.client,
       site: affaire.site,
-      nature: input.nature,
+      nature: champsPaves.nature,
     });
 
     const donnees = {
       numero,
       item: String(chrono),
       site_id: input.siteId,
-      libelle: input.libelle.trim(),
-      nature: input.nature,
+      ...champsPaves,
       montant,
       heures_prevues: prixRevient.heuresMO,
       debours_materiel_prevu: prixRevient.materiel,
-      lignes: lignesValides,
       cout_revient: input.coutRevient,
-      equipement_id: input.equipementIds[0] ?? null,
-      equipements_supplementaires: input.equipementIds.slice(1),
-      localisation: input.localisation.trim(),
       date_devis: dateDevis,
       redacteur: profil.name,
       annule: false,
@@ -138,11 +142,7 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
 export type BrouillonDevisInput = {
   id?: string;
   siteId: string;
-  libelle: string;
-  nature: string;
-  equipementIds: string[];
-  localisation: string;
-  lignes: LigneDevis[];
+  paves: PaveDevis[];
   coutRevient: CoutRevient;
   signalementBi?: string;
 };
@@ -156,23 +156,19 @@ export async function enregistrerBrouillonDevis(input: BrouillonDevisInput): Pro
   const profil = await requireAdmin();
   if (!input.siteId) return { ok: false, erreur: "Choisis un site avant d'enregistrer." };
 
-  const lignesValides = input.lignes.filter((l) => l.designation.trim());
+  const champsPaves = aplatirPaves(nettoyerPaves(input.paves));
+  const lignesValides = champsPaves.lignes;
   const prixRevient = calculerPrixRevient(lignesValides, input.coutRevient);
   const montant = lignesValides.length > 0 ? totalHTLignes(lignesValides, prixRevient.coefficientVente, prixRevient.tauxHoraire) : null;
 
   const supabase = await createClient();
   const donnees = {
     site_id: input.siteId,
-    libelle: input.libelle.trim(),
-    nature: input.nature,
+    ...champsPaves,
     montant,
     heures_prevues: prixRevient.heuresMO,
     debours_materiel_prevu: prixRevient.materiel,
-    lignes: lignesValides,
     cout_revient: input.coutRevient,
-    equipement_id: input.equipementIds[0] ?? null,
-    equipements_supplementaires: input.equipementIds.slice(1),
-    localisation: input.localisation.trim(),
     date_devis: new Date().toLocaleDateString("fr-FR"),
     redacteur: profil.name,
     annule: false,
@@ -223,9 +219,24 @@ export type DevisInput = {
 export async function modifierDevis(id: string, input: DevisInput): Promise<ActionResult> {
   await requireAdmin();
   const supabase = await createClient();
+
+  // Le libellé et la nature vivent dans les pavés : un seul pavé suit la
+  // modification, plusieurs pavés gardent les leurs (champs verrouillés
+  // dans la fenêtre "Modifier").
+  const { data: existant } = await supabase.from("devis").select("paves").eq("id", id).single();
+  const paves = (existant?.paves as PaveDevis[] | null) ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { libelle: _libelle, nature: _nature, ...sansLibelleNature } = input;
+  const maj =
+    paves.length > 1
+      ? sansLibelleNature
+      : paves.length === 1
+        ? { ...input, paves: [{ ...paves[0], libelle: input.libelle, nature: input.nature }] }
+        : input;
+
   const { error } = await supabase
     .from("devis")
-    .update({ ...input, updated_at: new Date().toISOString() })
+    .update({ ...maj, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { ok: false, erreur: error.message };
 
@@ -280,16 +291,30 @@ export async function changerStatutDevis(id: string, input: StatutDevisInput): P
   return { ok: true };
 }
 
-export async function lierEquipementsDevis(id: string, equipementIds: string[]): Promise<ActionResult> {
+/// Équipement de chaque pavé, dans l'ordre des pavés ("" = aucun).
+export async function lierEquipementsPaves(id: string, equipementIds: string[]): Promise<ActionResult> {
   await requireAdmin();
   const supabase = await createClient();
+  const { data: devis } = await supabase.from("devis").select("*").eq("id", id).single();
+  if (!devis) return { ok: false, erreur: "Devis introuvable." };
+
+  const idsChoisis = equipementIds.filter(Boolean);
+  const { data: equipements } =
+    idsChoisis.length > 0
+      ? await supabase.from("equipements").select("id, nom, numero_equipement").in("id", idsChoisis)
+      : { data: [] };
+  const paves = pavesDuDevis(devis).map((pave, i) => {
+    const equipement = (equipements ?? []).find((e) => e.id === equipementIds[i]);
+    return {
+      ...pave,
+      equipementId: equipement?.id ?? null,
+      equipementNom: equipement ? [equipement.nom, equipement.numero_equipement].filter(Boolean).join(" — ") : "",
+    };
+  });
+
   const { error } = await supabase
     .from("devis")
-    .update({
-      equipement_id: equipementIds[0] ?? null,
-      equipements_supplementaires: equipementIds.slice(1),
-      updated_at: new Date().toISOString(),
-    })
+    .update({ ...aplatirPaves(paves), updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { ok: false, erreur: error.message };
 

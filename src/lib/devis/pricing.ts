@@ -120,9 +120,12 @@ const CLES_R5: (keyof CoutRevient)[] = [
 ];
 
 /// Port de la "RECAPITULATION PRIX DE REVIENT" (Feuille Vente!H27:H44).
+/// Matière/MO de chaque ligne comptent pour la quantité commandée —
+/// même principe que le Montant par ligne (voir montantLigneDevis),
+/// sinon R1 ne correspond plus à ce qui est réellement facturé.
 export function calculerPrixRevient(lignes: LigneDevis[], c: CoutRevient): CalculPrixRevient {
-  const materiel = lignes.reduce((s, l) => s + n(l.matiere), 0);
-  const heuresMO = lignes.reduce((s, l) => s + n(l.moHeures), 0);
+  const materiel = lignes.reduce((s, l) => s + n(l.matiere) * n(l.quantite), 0);
+  const heuresMO = lignes.reduce((s, l) => s + n(l.moHeures) * n(l.quantite), 0);
   const tauxHoraire = n(c.r2TauxHoraire);
 
   const r1Total = materiel + n(c.r1SousTraitance) + n(c.r1Divers);

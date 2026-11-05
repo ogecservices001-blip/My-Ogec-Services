@@ -38,6 +38,8 @@ const LABELS_TYPE: Record<TypeLigneDevis, string> = {
   code2: "Code N°2 ×1,15",
 };
 
+const UNITES = ["U", "Ens", "Ft", "ml", "kg"];
+
 type Prefill = {
   equipementId: string;
   siteId: string;
@@ -137,7 +139,9 @@ export function NouveauDevisForm({
   const [nature, setNature] = useState(brouillon?.nature ?? "");
 
   const [lignes, setLignes] = useState<LigneDevis[]>(
-    brouillon && brouillon.lignes.length > 0 ? brouillon.lignes : [ligneDevisVide()],
+    brouillon && brouillon.lignes.length > 0
+      ? brouillon.lignes
+      : [ligneDevisVide(), ligneDevisVide(), ligneDevisVide(), ligneDevisVide(), ligneDevisVide()],
   );
   const [coutRevient, setCoutRevient] = useState<CoutRevient>(brouillon?.coutRevient ?? coutRevientDefaut());
   const [feuilleDeVenteOuverte, setFeuilleDeVenteOuverte] = useState(true);
@@ -375,7 +379,7 @@ export function NouveauDevisForm({
             <span>Désignation</span>
             <span>Unité</span>
             <span>Qté</span>
-            <span>Matière €</span>
+            <span>Déboursé fourniture €</span>
             <span>MO (h)</span>
             <span>Type</span>
             <span className="text-right">PU calculé</span>
@@ -388,7 +392,13 @@ export function NouveauDevisForm({
             return (
               <div key={i} className="grid grid-cols-[2fr_0.7fr_0.6fr_0.8fr_0.7fr_1.2fr_0.9fr_0.9fr_auto] items-center gap-1.5">
                 <input value={l.designation} onChange={(e) => majLigne(i, { designation: e.target.value })} placeholder="Désignation" className={CHAMP_SM} />
-                <input value={l.unite} onChange={(e) => majLigne(i, { unite: e.target.value })} placeholder="U" className={CHAMP_SM} />
+                <select value={l.unite} onChange={(e) => majLigne(i, { unite: e.target.value })} className={CHAMP_SM}>
+                  {UNITES.map((u) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                </select>
                 <input value={l.quantite} onChange={(e) => majLigne(i, { quantite: e.target.value })} placeholder="Qté" className={CHAMP_SM} />
                 <input value={l.matiere} onChange={(e) => majLigne(i, { matiere: e.target.value })} placeholder="0" className={CHAMP_SM} />
                 <input value={l.moHeures} onChange={(e) => majLigne(i, { moHeures: e.target.value })} placeholder="0" className={CHAMP_SM} />

@@ -28,6 +28,7 @@ export type CorrectionInput = {
   interventions_supplementaires: InterventionEquipement[];
   equipement_nom: string;
   equipement_numero: string;
+  mois_facturation: string;
 };
 
 type Bon = Tables<"bons_intervention">;
@@ -150,7 +151,15 @@ async function ajouterRemarqueEquipement(supabase: any, equipementId: string, re
 
 export async function validerBI(id: string, original: Bon, input: CorrectionInput): Promise<ActionResult> {
   const profile = await requireAdmin();
+  if (input.mois_facturation && !FORMAT_MOIS_ANNEE.test(input.mois_facturation)) {
+    return { ok: false, erreur: "Mois de facturation : format attendu MM-AAAA (ex : 10-2026)." };
+  }
   const supabase = await createClient();
+
+  const { data: classementEnBase } = await supabase.from("bons_intervention").select("classement").eq("id", id).single();
+  if (classementEnBase?.classement === "facturer" && !input.mois_facturation) {
+    return { ok: false, erreur: "Le mois de facturation est obligatoire pour un BI à facturer." };
+  }
 
   const changes: { champ: string; avant: string; apres: string }[] = [];
   diff(changes, "Pôle", original.pole, input.pole);
@@ -164,6 +173,7 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
   diff(changes, "Remarque interne", original.note_interne, input.note_interne);
   diff(changes, "Nom de l'équipement", original.equipement_nom, input.equipement_nom);
   diff(changes, "Numéro d'équipement", original.equipement_numero, input.equipement_numero);
+  diff(changes, "Mois de facturation", original.mois_facturation, input.mois_facturation);
 
   const history = Array.isArray(original.history) ? original.history : [];
   const nouvelHistory =
@@ -189,6 +199,7 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
       equipement_nom: input.equipement_nom,
       equipement_numero: input.equipement_numero,
       interventions_supplementaires: input.interventions_supplementaires,
+      mois_facturation: input.mois_facturation,
       history: nouvelHistory,
     })
     .eq("id", id)

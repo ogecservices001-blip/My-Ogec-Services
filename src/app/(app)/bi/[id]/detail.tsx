@@ -456,7 +456,15 @@ function BlocMontantFacturation({ bon, tauxSite }: { bon: Bon; tauxSite: TauxSit
   );
 }
 
-function BlocClassement({ bon, onChange }: { bon: Bon; onChange?: (classement: string) => void }) {
+function BlocClassement({
+  bon,
+  onChange,
+  onMoisChange,
+}: {
+  bon: Bon;
+  onChange?: (classement: string) => void;
+  onMoisChange?: (mois: string) => void;
+}) {
   const router = useRouter();
   const [classement, setClassement] = useState(bon.classement);
   const [moisFacturation, setMoisFacturation] = useState(bon.mois_facturation);
@@ -513,7 +521,10 @@ function BlocClassement({ bon, onChange }: { bon: Bon; onChange?: (classement: s
             <label className="mb-1 block text-xs font-medium text-slate-600">Mois de facturation (MM-AAAA)</label>
             <input
               value={moisFacturation}
-              onChange={(e) => setMoisFacturation(e.target.value)}
+              onChange={(e) => {
+                setMoisFacturation(e.target.value);
+                onMoisChange?.(e.target.value);
+              }}
               placeholder="10-2026"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
             />
@@ -626,6 +637,7 @@ function VueCorrection({
   const [nombreDeplacements, setNombreDeplacements] = useState(bon.nombre_deplacements);
   const [obsTech, setObsTech] = useState(bon.obs_tech);
   const [classementActuel, setClassementActuel] = useState(bon.classement);
+  const [moisActuel, setMoisActuel] = useState(bon.mois_facturation);
   const [equipementNom, setEquipementNom] = useState(bon.equipement_nom);
   const [equipementNumero, setEquipementNumero] = useState(
     () => bon.equipement_numero || suggererNumeroEquipement(numeroAffaireSite, numerosEquipementSite),
@@ -640,9 +652,11 @@ function VueCorrection({
 
   const emailValide = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   const numeroEnDouble = numerosEquipementSite.includes(equipementNumero.trim());
+  const moisRenseigne = classementActuel !== "facturer" || /^\d{2}-\d{4}$/.test(moisActuel.trim());
   const peutValider =
     emailValide &&
     classementActuel !== "" &&
+    moisRenseigne &&
     (pole !== Poles.installationNeuve ||
       (equipementNom.trim() !== "" &&
         equipementNumero.trim() !== "" &&
@@ -668,6 +682,7 @@ function VueCorrection({
       interventions_supplementaires: interventions.slice(1),
       equipement_nom: pole === Poles.installationNeuve ? equipementNom.trim() : bon.equipement_nom,
       equipement_numero: pole === Poles.installationNeuve ? equipementNumero.trim() : bon.equipement_numero,
+      mois_facturation: classementActuel === "facturer" ? moisActuel.trim() : "",
     };
     startTransition(async () => {
       const res = await validerBI(bon.id, bon, input);
@@ -835,12 +850,17 @@ function VueCorrection({
           );
         })}
 
-        <BlocClassement bon={bon} onChange={setClassementActuel} />
+        <BlocClassement bon={bon} onChange={setClassementActuel} onMoisChange={setMoisActuel} />
         {classementActuel === "facturer" && !sansTempsPasse(pole) && (
           <BlocMainDoeuvreDeplacement tempsPasse={tempsPasse} nombreDeplacements={nombreDeplacements} tauxSite={tauxSite} />
         )}
         {classementActuel === "" && (
           <p className="text-xs font-medium text-amber-600">Choisis un classement ci-dessus avant de valider.</p>
+        )}
+        {!moisRenseigne && (
+          <p className="text-xs font-medium text-amber-600">
+            Saisis le mois de facturation au format MM-AAAA (ex : 10-2026) avant de valider.
+          </p>
         )}
 
         <div>

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, FileText, Pencil, Send, History } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Pencil, Send, History, Trash2 } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import { pavesDuDevis } from "@/lib/devis/paves";
@@ -18,7 +18,7 @@ import { calculerStatutDevis, LABEL_STATUT_DEVIS } from "../../statut";
 import { eur } from "../../registre-liste";
 import { formaterDate, dateFrVersIso } from "@/lib/format";
 import { StatutBadge } from "@/components/bi/statut-badge";
-import { ModaleDevis } from "./modale-devis";
+import { ModaleSuppressionDevis } from "./modale-devis";
 import { BlocCommandeClient, ChoixFichiersCommande, champsRetenus, ecartCommande, envoyerFichiersCommande } from "./commande-client";
 import { appliquerLectureCommande, confirmerEcartCommande, type LectureCommande } from "../../commande-client-actions";
 import { fichiersCommandeClient } from "@/lib/devis/commande-client";
@@ -233,7 +233,7 @@ export function StatutDevisForm({
   return (
     <div>
       {modification && (
-        <ModaleDevis
+        <ModaleSuppressionDevis
           devis={devis}
           liens={{
             nbCommandes: commandesFournisseur.length,
@@ -299,10 +299,10 @@ export function StatutDevisForm({
           {isAdmin && (
             <button
               onClick={() => setModification(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-600 shadow-sm transition hover:bg-red-50"
             >
-              <Pencil className="h-4 w-4" strokeWidth={2} />
-              Modifier / Supprimer
+              <Trash2 className="h-4 w-4" strokeWidth={2} />
+              Supprimer
             </button>
           )}
         </div>

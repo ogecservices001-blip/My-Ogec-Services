@@ -287,6 +287,7 @@ export async function reviserDevis(id: string, input: RevisionDevisInput): Promi
   return { ok: true, numero };
 }
 
+/// Une ligne de devis telle que lue par l'import Excel.
 export type DevisInput = {
   numero: string;
   item: string;
@@ -311,43 +312,10 @@ export type DevisInput = {
   localisation?: string;
 };
 
-/// Correction d'un devis existant (importé ou créé depuis l'appli).
-export async function modifierDevis(id: string, input: DevisInput): Promise<ActionResult> {
-  await requireAdmin();
-  const supabase = await createClient();
-
-  // Le libellé et la nature vivent dans les pavés : un seul pavé suit la
-  // modification, plusieurs pavés gardent les leurs (champs verrouillés
-  // dans la fenêtre "Modifier").
-  const { data: existant } = await supabase.from("devis").select("paves, mois_facturation").eq("id", id).single();
-  if (input.mois_facturation && !existant?.mois_facturation && (await ecartCommandeNonConfirme(supabase, id))) {
-    return { ok: false, erreur: "Le montant de la commande diffère du devis : confirme l'écart avant de passer en facturable." };
-  }
-  const paves = (existant?.paves as PaveDevis[] | null) ?? [];
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { libelle: _libelle, nature: _nature, ...sansLibelleNature } = input;
-  const maj =
-    paves.length > 1
-      ? sansLibelleNature
-      : paves.length === 1
-        ? { ...input, paves: [{ ...paves[0], libelle: input.libelle, nature: input.nature }] }
-        : input;
-
-  const { error } = await supabase
-    .from("devis")
-    .update({ ...maj, updated_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) return { ok: false, erreur: error.message };
-
-  revalidatePath("/devis");
-  revalidatePath("/prestations");
-  return { ok: true };
-}
-
 const FORMAT_MOIS_ANNEE = /^\d{2}-\d{4}$/;
 
 /// Mois de mise en facturation, format "MM-AAAA" imposé — séparé de
-/// modifierDevis pour rester accessible depuis la fiche devis (pas de
+/// Réviser pour rester accessible depuis la fiche devis (pas de
 /// gros formulaire modal à ouvrir juste pour ce champ).
 export async function modifierMoisFacturation(id: string, moisFacturation: string): Promise<ActionResult> {
   await requireAdmin();
@@ -377,7 +345,7 @@ export type StatutDevisInput = {
 };
 
 /// Changement de statut ciblé (commandé / annulé / remis en attente),
-/// sans passer par le formulaire complet modifierDevis — le badge de
+/// sans passer par le formulaire complet — le badge de
 /// statut sur Chrono Devis ouvre directement cette action.
 export async function changerStatutDevis(id: string, input: StatutDevisInput): Promise<ActionResult> {
   await requireAdmin();

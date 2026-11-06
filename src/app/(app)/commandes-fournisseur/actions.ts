@@ -39,6 +39,7 @@ export async function creerCommandeFournisseur(input: NouvelleCommandeInput): Pr
   if (!input.fournisseurId) return { ok: false, erreur: "Choisis un fournisseur." };
   const lignesValides = input.lignes.filter((l) => l.designation.trim());
   if (lignesValides.length === 0) return { ok: false, erreur: "Ajoute au moins une ligne d'article." };
+  if (!input.adresseLivraison.trim()) return { ok: false, erreur: "Renseigne l'adresse de livraison." };
 
   const supabase = await createClient();
   const { data: devis } = await supabase.from("devis").select("numero").eq("id", input.devisId).single();

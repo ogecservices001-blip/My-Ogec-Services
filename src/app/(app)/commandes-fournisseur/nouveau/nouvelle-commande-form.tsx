@@ -12,6 +12,24 @@ import { completerFicheFournisseurDepuisDevis } from "@/app/(app)/repertoire/fou
 
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
 const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
+const CHAMP_EN_EVIDENCE = CHAMP.replace("border-slate-200", "border-red-500 ring-2 ring-red-300");
+
+/// Même principe que les alertes du BI : le message, puis au clic sur OK le
+/// formulaire va sur le champ manquant et le met en évidence.
+function PopupAlerte({ titre, onFermer }: { titre: string; onFermer: () => void }) {
+  return (
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4" onClick={onFermer}>
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="mb-3 text-base font-bold text-slate-900">{titre}</h2>
+        <div className="flex justify-end">
+          <button onClick={onFermer} className="rounded-xl bg-brand-green px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-dark">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 const MAX_LIGNES = 20;
 
 /// Même personne quel que soit l'ordre nom/prénom, la casse ou les accents
@@ -32,9 +50,10 @@ function interlocuteursDe(f: Fournisseur | undefined): Interlocuteur[] {
 
 /// Le fournisseur connaît déjà ses propres conditions ? Pas la peine de
 /// les rechercher sur chaque devis scanné, on les reprend directement.
+/// Le mode de règlement a sa propre ligne sur le bon (fiche fournisseur) :
+/// les conditions ne reprennent que le délai, sans doublon.
 function conditionsConnuesDe(f: Fournisseur | undefined): string {
-  if (!f) return "";
-  return [f.delai_paiement, f.mode_reglement].filter(Boolean).join(" — ");
+  return f?.delai_paiement ?? "";
 }
 
 const AUTRE_ADRESSE = "__autre__";
@@ -88,6 +107,27 @@ export function NouvelleCommandeForm({
   const [erreurAnalyse, setErreurAnalyse] = useState<string | null>(null);
   const [lignesExtraites, setLignesExtraites] = useState(false);
   const fichierRef = useRef<HTMLInputElement>(null);
+  const fournisseurRef = useRef<HTMLSelectElement>(null);
+  const interlocuteurRef = useRef<HTMLSelectElement>(null);
+  const articlesRef = useRef<HTMLDivElement>(null);
+  const adresseRef = useRef<HTMLSelectElement>(null);
+  const adresseLibreRef = useRef<HTMLInputElement>(null);
+  const dateLivraisonRef = useRef<HTMLInputElement>(null);
+  const [alerte, setAlerte] = useState<{ titre: string; ref: { current: HTMLElement | null }; cle: string } | null>(null);
+  const [champEnEvidence, setChampEnEvidence] = useState<string | null>(null);
+  const classeChamp = (cle: string) => (champEnEvidence === cle ? CHAMP_EN_EVIDENCE : CHAMP);
+
+  function pointerVers(ref: { current: HTMLElement | null }, cle: string) {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    ref.current?.focus({ preventScroll: true });
+    setChampEnEvidence(cle);
+    setTimeout(() => setChampEnEvidence((v) => (v === cle ? null : v)), 2500);
+  }
+
+  function signaler(titre: string, ref: { current: HTMLElement | null }, cle: string) {
+    setErreur(null);
+    setAlerte({ titre, ref, cle });
+  }
 
   function trouverFournisseurPar(nom: string): Fournisseur | undefined {
     const cible = nom.trim().toLowerCase();
@@ -185,19 +225,27 @@ export function NouvelleCommandeForm({
 
   function soumettre() {
     if (!fournisseurId) {
-      setErreur("Choisis un fournisseur.");
+      signaler("Choisis un fournisseur", fournisseurRef, "fournisseur");
       return;
     }
     if (interlocuteurs.length > 0 && !interlocuteurs[interlocuteurIndex]) {
-      setErreur("Choisis un interlocuteur.");
+      signaler("Choisis un interlocuteur", interlocuteurRef, "interlocuteur");
       return;
     }
     if (!lignes.some((l) => l.designation.trim())) {
-      setErreur("Ajoute au moins une ligne d'article.");
+      signaler("Ajoute au moins une ligne d'article", articlesRef, "articles");
+      return;
+    }
+    if (!adresseLivraisonChoix) {
+      signaler("Choisis l'adresse de livraison", adresseRef, "adresse");
+      return;
+    }
+    if (adresseLivraisonChoix === AUTRE_ADRESSE && !adresseLivraisonLibre.trim()) {
+      signaler("Précise l'adresse de livraison", adresseLibreRef, "adresseLibre");
       return;
     }
     if (!dateLivraisonPrevue.trim()) {
-      setErreur("Renseigne la date de livraison prévue.");
+      signaler("Renseigne la date de livraison prévue", dateLivraisonRef, "dateLivraison");
       return;
     }
     setErreur(null);
@@ -241,7 +289,7 @@ export function NouvelleCommandeForm({
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className={ETIQUETTE}>Fournisseur</label>
-            <select value={fournisseurId} onChange={(e) => choisirFournisseur(e.target.value)} className={CHAMP}>
+            <select ref={fournisseurRef} value={fournisseurId} onChange={(e) => choisirFournisseur(e.target.value)} className={classeChamp("fournisseur")}>
               <option value="">— choisir —</option>
               {fournisseurs.map((f) => (
                 <option key={f.id} value={f.id}>
@@ -254,9 +302,10 @@ export function NouvelleCommandeForm({
             <div>
               <label className={ETIQUETTE}>Interlocuteur</label>
               <select
+                ref={interlocuteurRef}
                 value={interlocuteurIndex}
                 onChange={(e) => setInterlocuteurIndex(Number(e.target.value))}
-                className={CHAMP}
+                className={classeChamp("interlocuteur")}
               >
                 {interlocuteurs.map((it, i) => (
                   <option key={i} value={i}>
@@ -329,11 +378,12 @@ export function NouvelleCommandeForm({
         <h2 className="mb-3 text-sm font-bold text-slate-900">Livraison</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label className={ETIQUETTE}>Adresse de livraison</label>
+            <label className={ETIQUETTE}>Adresse de livraison *</label>
             <select
+              ref={adresseRef}
               value={adresseLivraisonChoix}
               onChange={(e) => setAdresseLivraisonChoix(e.target.value)}
-              className={CHAMP}
+              className={classeChamp("adresse")}
             >
               <option value="">— choisir —</option>
               {ADRESSES_LIVRAISON_PRESETS.map((a) => (
@@ -345,20 +395,22 @@ export function NouvelleCommandeForm({
             </select>
             {adresseLivraisonChoix === AUTRE_ADRESSE && (
               <input
+                ref={adresseLibreRef}
                 value={adresseLivraisonLibre}
                 onChange={(e) => setAdresseLivraisonLibre(e.target.value)}
                 placeholder="Adresse de livraison"
-                className={`${CHAMP} mt-2`}
+                className={`${classeChamp("adresseLibre")} mt-2`}
               />
             )}
           </div>
           <div>
             <label className={ETIQUETTE}>Date de livraison prévue *</label>
             <input
+              ref={dateLivraisonRef}
               type="date"
               value={dateLivraisonPrevue}
               onChange={(e) => setDateLivraisonPrevue(e.target.value)}
-              className={CHAMP}
+              className={classeChamp("dateLivraison")}
             />
           </div>
           {metropole && (
@@ -425,7 +477,11 @@ export function NouvelleCommandeForm({
           )}
         </div>
 
-        <div className="space-y-2">
+        <div
+          ref={articlesRef}
+          tabIndex={-1}
+          className={`space-y-2 rounded-lg outline-none ${champEnEvidence === "articles" ? "ring-2 ring-red-300" : ""}`}
+        >
           {lignes.map((l, i) => (
             <div key={i} className="grid grid-cols-[1fr_2fr_0.6fr_0.8fr_0.6fr_0.8fr_auto] items-center gap-1.5">
               <input value={l.code} onChange={(e) => majLigne(i, "code", e.target.value)} placeholder="Code" className={CHAMP} />
@@ -489,6 +545,17 @@ export function NouvelleCommandeForm({
           {pending ? "Enregistrement..." : "Créer la commande"}
         </button>
       </div>
+
+      {alerte && (
+        <PopupAlerte
+          titre={alerte.titre}
+          onFermer={() => {
+            const { ref, cle } = alerte;
+            setAlerte(null);
+            pointerVers(ref, cle);
+          }}
+        />
+      )}
     </div>
   );
 }

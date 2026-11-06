@@ -1,6 +1,7 @@
 "use server";
 
 import { NATURE_MULTIPLE } from "@/lib/devis/paves";
+import { interventionsDuBon } from "@/lib/bi/format";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
@@ -53,6 +54,7 @@ export type DevisDuSite = {
   equipement_id: string | null;
   equipements_supplementaires: string[];
   localisation: string;
+  paves: unknown;
 };
 
 /// Devis commandés (= Affaires) d'un site — un devis pas encore
@@ -63,12 +65,12 @@ export async function chargerDevisDuSite(siteId: string, natureFiltre?: string):
   const supabase = await createClient();
   let requete = supabase
     .from("devis")
-    .select("id, numero, libelle, reference_client, date_commande_client, date_devis, nature, equipement_id, equipements_supplementaires, localisation")
+    .select("id, numero, libelle, reference_client, date_commande_client, date_devis, nature, equipement_id, equipements_supplementaires, localisation, paves")
     .eq("site_id", siteId)
     .neq("date_commande_client", "")
     .eq("annule", false)
     .order("created_at", { ascending: false });
-  if (natureFiltre) requete = requete.eq("nature", natureFiltre);
+  if (natureFiltre) requete = requete.in("nature", [natureFiltre, NATURE_MULTIPLE]);
   const { data } = await requete;
   return data ?? [];
 }
@@ -117,6 +119,7 @@ export type DevisARealiser = {
   libelle: string;
   equipement_id: string | null;
   localisation: string;
+  paves: unknown;
 };
 
 const STATUTS_REALISE = new Set(["valide", "pdf", "prete", "envoye"]);
@@ -131,10 +134,9 @@ export async function chargerDevisARealiser(): Promise<DevisARealiser[]> {
   const [{ data: devis }, { data: bons }, { data: sites }] = await Promise.all([
     supabase
       .from("devis")
-      .select("id, numero, site_id, nature, libelle, bi_reference_historique, equipement_id, localisation")
+      .select("id, numero, site_id, nature, libelle, bi_reference_historique, equipement_id, localisation, paves")
       .neq("date_commande_client", "")
       .neq("nature", "")
-      .neq("nature", NATURE_MULTIPLE)
       .eq("annule", false)
       .order("created_at", { ascending: false }),
     supabase.from("bons_intervention").select("devis_id, statut").not("devis_id", "is", null),
@@ -158,6 +160,7 @@ export async function chargerDevisARealiser(): Promise<DevisARealiser[]> {
       libelle: d.libelle,
       equipement_id: d.equipement_id,
       localisation: d.localisation,
+      paves: d.paves,
     }));
 }
 
@@ -205,9 +208,14 @@ export type InterventionSupplementaireInput = {
   etat_equipement: string[];
   materiel_champs_en_tete?: Record<string, string>;
   materiel_type_equipement_id?: string | null;
+  pole?: string;
+  modele_champs?: Record<string, string>;
+  checklist_values?: Record<string, boolean | string>;
 };
 
 export type BiInput = {
+  /// Type de la première page d'un BI à plusieurs pages (pole = PN), sinon vide.
+  pole_principal: string;
   pole: string;
   site_id: string;
   client_nom: string;
@@ -319,6 +327,26 @@ export async function chargerBrouillonBI(id: string): Promise<BrouillonBI | null
   const { data } = await supabase.from("bons_intervention").select("*").eq("id", id).eq("statut", "brouillon").single();
   if (!data) return null;
 
+  // BI à plusieurs pages : l'assistant reprend sur la dernière page saisie,
+  // les précédentes redevenant des pages déjà faites.
+  const pages = data.pole === NATURE_MULTIPLE ? interventionsDuBon(data) : [];
+  const derniere = pages[pages.length - 1];
+  const reprisePage = derniere
+    ? {
+        pole: derniere.pole ?? "",
+        equipement_id: derniere.equipement_id,
+        equipement_nom: derniere.equipement_nom,
+        equipement_groupe: derniere.equipement_groupe,
+        equipement_localisation: derniere.equipement_localisation,
+        materiel_type_equipement_id: derniere.materiel_type_equipement_id ?? null,
+        materiel_champs_en_tete: derniere.materiel_champs_en_tete ?? {},
+        compte_rendu: derniere.compte_rendu,
+        modele_champs: derniere.modele_champs ?? {},
+        checklist_values: derniere.checklist_values ?? {},
+        interventions_supplementaires: pages.slice(0, -1) as InterventionSupplementaireInput[],
+      }
+    : {};
+
   const photosBrutes = data.photos as unknown as PhotoInput[];
   const photos = await Promise.all(
     photosBrutes.map(async (p) => {
@@ -360,6 +388,7 @@ export async function chargerBrouillonBI(id: string): Promise<BrouillonBI | null
     signataire_tel_fixe: data.signataire_tel_fixe,
     email: data.email,
     nombre_deplacements: data.nombre_deplacements,
+    ...reprisePage,
   };
 }
 
@@ -389,6 +418,7 @@ export async function enregistrerBI(
 
   const donnees = {
     pole: input.pole,
+    pole_principal: input.pole_principal,
     chrono,
     numero,
     statut,

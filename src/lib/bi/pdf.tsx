@@ -2,7 +2,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { Tables } from "@/lib/types";
-import { Poles, avecPeriode, avecAffaire, labelPole, PHOTO_TYPES } from "./constants";
+import { Poles, avecPeriode, avecAffaire, labelPole, PHOTO_TYPES, POLE_PLUSIEURS_TYPES } from "./constants";
 import { equipementLabel, interventionsDuBon, type Presta } from "./format";
 
 type Bon = Tables<"bons_intervention">;
@@ -11,6 +11,7 @@ export type BonPdf = Pick<
   Bon,
   | "numero"
   | "pole"
+  | "pole_principal"
   | "client_nom"
   | "site"
   | "adresse"
@@ -322,7 +323,11 @@ function BiDocument({
             const prestasInter = inter.prestas.filter((p) => p.designation.trim());
             return (
               <View key={i} style={styles.bloc}>
-                <Section titre={label ? `ÉQUIPEMENT : ${label.toUpperCase()}` : `INTERVENTION ${i + 1}`} />
+                <Section
+                  titre={`${bon.pole === POLE_PLUSIEURS_TYPES ? `${labelPole(inter.pole ?? "").toUpperCase()} — ` : ""}${
+                    label ? `ÉQUIPEMENT : ${label.toUpperCase()}` : `INTERVENTION ${i + 1}`
+                  }`}
+                />
                 {bon.pole === Poles.depannage && <EtatDepannage etats={inter.etat_equipement} />}
                 <Text style={{ fontSize: 9.5, marginBottom: prestasInter.length > 0 ? 4 : 0 }}>
                   {inter.compte_rendu || "—"}

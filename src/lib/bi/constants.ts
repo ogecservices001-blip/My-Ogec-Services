@@ -1,4 +1,8 @@
 import { NATURE_DEVIS, labelNatureDevis } from "@/lib/devis/constants";
+import { NATURE_MULTIPLE } from "@/lib/devis/paves";
+
+/// BI à plusieurs pages, une par type de travaux (devis à plusieurs natures).
+export const POLE_PLUSIEURS_TYPES = NATURE_MULTIPLE;
 
 /// Pôles métier OGEC — chaque pôle a son propre chrono annuel de
 /// numérotation. Réexporte directement les codes de Devis.nature : le

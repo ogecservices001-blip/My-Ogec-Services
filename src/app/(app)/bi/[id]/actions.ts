@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, requireProfile } from "@/lib/auth";
-import { Poles, Statuts, CHAMPS_MATERIEL_EXCLUS_BI } from "@/lib/bi/constants";
+import { Poles, Statuts, CHAMPS_MATERIEL_EXCLUS_BI, POLE_PLUSIEURS_TYPES } from "@/lib/bi/constants";
 import { now, interventionsDuBon, type Presta, type InterventionEquipement } from "@/lib/bi/format";
 import { archiverBiSiBesoin, genererPdfAvecPhotos } from "@/lib/bi/archive";
 import { envoyerConfirmationBI } from "@/lib/bi/email";
@@ -43,6 +43,26 @@ function diff(changes: { champ: string; avant: string; apres: string }[], label:
 /// try/catch silencieux).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function executerAutomatisationGmao(supabase: any, bi: Bon) {
+  // BI à plusieurs pages : chaque page est traitée comme un bon de son type.
+  if (bi.pole === POLE_PLUSIEURS_TYPES) {
+    for (const page of interventionsDuBon(bi)) {
+      await executerAutomatisationGmao(supabase, {
+        ...bi,
+        pole: page.pole ?? "",
+        pole_principal: "",
+        equipement_id: page.equipement_id,
+        equipement_nom: page.equipement_nom,
+        equipement_groupe: page.equipement_groupe,
+        equipement_localisation: page.equipement_localisation,
+        equipement_numero: page.equipement_numero ?? "",
+        compte_rendu: page.compte_rendu,
+        materiel_type_equipement_id: page.materiel_type_equipement_id ?? null,
+        materiel_champs_en_tete: page.materiel_champs_en_tete ?? {},
+        interventions_supplementaires: [],
+      });
+    }
+    return;
+  }
   const date = now();
   switch (bi.pole) {
     case Poles.reparationEquipement:

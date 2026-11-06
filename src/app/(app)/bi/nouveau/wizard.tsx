@@ -6,6 +6,7 @@ import { ArrowLeft, Camera, Eye, X, Plus, Minus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ChampEnTeteField, TypeEquipementSelects } from "@/components/gmao/champs-famille";
 import { SignaturePad, type SignaturePadHandle } from "@/components/bi/signature-pad";
+import { NATURE_MULTIPLE, type PaveDevis } from "@/lib/devis/paves";
 import type { TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement } from "@/lib/gmao/types";
 import {
   Poles,
@@ -95,6 +96,13 @@ function champTexte(champs: ChampsEnTeteEquipement, cle: string): string {
   return typeof v === "string" ? v : "";
 }
 
+/// Pages d'un devis à plusieurs natures, une par pavé ; null sinon.
+function pagesDuDevis(d: { nature: string; paves: unknown }): PaveDevis[] | null {
+  if (d.nature !== NATURE_MULTIPLE) return null;
+  const paves = (d.paves as PaveDevis[] | null) ?? [];
+  return paves.length > 0 ? paves : null;
+}
+
 function etatsDepuisReponses(devisAEtablir: boolean | null, horsService: boolean | null): string[] {
   const etats: string[] = [];
   if (devisAEtablir) etats.push("devis_a_etablir");
@@ -154,14 +162,15 @@ export function BiWizard({
     if (devisIdParam) {
       const d = devisARealiser.find((x) => x.id === devisIdParam);
       if (d) {
+        const pages = pagesDuDevis(d);
         return {
           etape: 1,
-          pole: d.nature,
+          pole: pages ? pages[0].nature : d.nature,
           devisId: d.id,
           depannageId: null as string | null,
           clientNom: d.client_nom,
           siteId: d.site_id,
-          equipementId: d.equipement_id ?? "",
+          equipementId: pages ? (pages[0].equipementId ?? "") : (d.equipement_id ?? ""),
           compteRendu: "",
         };
       }
@@ -334,11 +343,15 @@ export function BiWizard({
   );
 
   function choisirAffaireARealiser(d: DevisARealiser) {
-    setPole(d.nature);
+    const pages = pagesDuDevis(d);
+    const poleDevis = pages ? pages[0].nature : d.nature;
+    setPole(poleDevis);
     setDevisId(d.id);
     setClientNom(d.client_nom);
     setSiteId(d.site_id);
-    if (!avecNouvelEquipement(d.nature) && !avecEquipementLibre(d.nature)) setEquipementId(d.equipement_id ?? "");
+    if (!avecNouvelEquipement(poleDevis) && !avecEquipementLibre(poleDevis)) {
+      setEquipementId(pages ? (pages[0].equipementId ?? "") : (d.equipement_id ?? ""));
+    }
     setEtape(1);
   }
 
@@ -472,7 +485,12 @@ export function BiWizard({
   // Devis à plusieurs équipements : même mécanisme que le Dépannage, un
   // seul BI, le prochain équipement du devis étant proposé d'office.
   const devisCourant = devisDuSite.find((d) => d.id === devisId) ?? null;
-  const equipementsDuDevis = devisCourant
+  // Devis à plusieurs natures : une page par pavé, chacune avec son type.
+  const pagesDevis = devisCourant ? pagesDuDevis(devisCourant) : null;
+  const modePages = pagesDevis !== null;
+  const indexPage = interventionsSupplementaires.length;
+  const pageSuivante = pagesDevis?.[indexPage + 1] ?? null;
+  const equipementsDuDevis = devisCourant && !modePages
     ? [devisCourant.equipement_id, ...devisCourant.equipements_supplementaires].filter((id): id is string => Boolean(id))
     : [];
   // Tous les équipements du devis doivent être faits avant de continuer,
@@ -492,7 +510,50 @@ export function BiWizard({
     avecNouvelEquipement(pole) ||
     equipementsDuDevis.length > 1 ||
     interventionsSupplementaires.length > 0;
-  const autreEquipementPossible = pole === Poles.depannage || avecNouvelEquipement(pole) || resteAFaire;
+  const autreEquipementPossible = !modePages && (pole === Poles.depannage || avecNouvelEquipement(pole) || resteAFaire);
+
+  function pageActuelle(): InterventionSupplementaireInput {
+    const neuve = avecNouvelEquipement(pole);
+    return {
+      pole,
+      equipement_id: neuve ? null : (equipement?.id ?? null),
+      equipement_nom: neuve ? installationNom.trim() || (typeActif?.nom ?? "") : equipement ? equipement.nom : equipementLibre.trim(),
+      equipement_groupe: neuve ? installationGroupe.trim() : (equipement?.groupe ?? ""),
+      equipement_localisation: neuve ? installationLocalisation.trim() : (equipement?.localisation ?? ""),
+      compte_rendu: compteRendu.trim(),
+      prestas: [],
+      etat_equipement: [],
+      materiel_type_equipement_id: typeActif?.id ?? null,
+      materiel_champs_en_tete: materielChamps,
+      modele_champs: modeleChamps,
+      checklist_values: checklistValues,
+    };
+  }
+
+  function passerPageSuivante() {
+    if (!pageSuivante) return;
+    setInterventionsSupplementaires((prev) => [...prev, pageActuelle()]);
+    const neuve = avecNouvelEquipement(pageSuivante.nature);
+    setPole(pageSuivante.nature);
+    setEquipementId(pageSuivante.equipementId ?? "");
+    setEquipementLibre(!pageSuivante.equipementId && !neuve ? pageSuivante.equipementNom : "");
+    setTypeActifId("");
+    setMaterielChamps({});
+    setInstallationNom(neuve ? pageSuivante.equipementNom : "");
+    setInstallationLocalisation(neuve ? pageSuivante.localisation : "");
+    setInstallationGroupe("");
+    setCompteRendu("");
+    setModeleChamps({});
+    setChecklistValues({});
+    setEtape(1);
+  }
+
+  function retour() {
+    if (etape > etapeDepart) setEtape(etape - 1);
+    else if (modePages && indexPage > 0) {
+      setErreur("Les pages précédentes sont déjà validées : le bureau pourra les corriger à la vérification.");
+    } else router.push("/");
+  }
 
   function ajouterAutreEquipement(etats: string[]) {
     const nom = avecNouvelEquipement(pole)
@@ -696,6 +757,7 @@ export function BiWizard({
       ? [
           ...interventionsSupplementaires,
           {
+            pole,
             equipement_nom: avecNouvelEquipement(pole)
               ? installationNom.trim() || (typeActif?.nom ?? "")
               : equipement
@@ -742,7 +804,7 @@ export function BiWizard({
 
     const devis = devisDuSite.find((d) => d.id === devisId) ?? null;
 
-    return {
+    const input = {
       pole,
       site_id: siteId,
       client_nom: site?.nom ?? "",
@@ -791,6 +853,28 @@ export function BiWizard({
       signataire_tel_fixe: signataireTelFixe.trim(),
       depannage_id: depannageId,
       nombre_deplacements: nombreDeplacements === "" ? 1 : nombreDeplacements,
+    };
+    if (!modePages) return { ...input, pole_principal: "" };
+
+    // BI à plusieurs pages : la première page dans les champs du bon, les
+    // suivantes (chacune avec son type) dans interventions_supplementaires.
+    const [premiere, ...suivantes] = [...interventionsSupplementaires, pageActuelle()];
+    return {
+      ...input,
+      pole: NATURE_MULTIPLE,
+      pole_principal: premiere.pole ?? "",
+      equipement_id: premiere.equipement_id,
+      equipement_nom: premiere.equipement_nom,
+      equipement_groupe: premiere.equipement_groupe,
+      equipement_localisation: premiere.equipement_localisation,
+      materiel_type_equipement_id: premiere.materiel_type_equipement_id ?? null,
+      materiel_champs_en_tete: premiere.materiel_champs_en_tete ?? {},
+      modele_champs: premiere.modele_champs ?? {},
+      checklist_values: premiere.checklist_values ?? {},
+      compte_rendu: premiere.compte_rendu,
+      prestas: [],
+      etat_equipement: [],
+      interventions_supplementaires: suivantes,
     };
   }
 
@@ -858,7 +942,7 @@ export function BiWizard({
   }
 
   function soumettre(statut: "brouillon" | "averif") {
-    if (statut === "averif" && resteAFaire) {
+    if (statut === "averif" && (resteAFaire || pageSuivante)) {
       setErreur("Ce devis couvre d'autres équipements : renseigne-les tous avant de transmettre le BI.");
       return;
     }
@@ -907,7 +991,7 @@ export function BiWizard({
     <div className="mx-auto max-w-2xl">
       <div className="mb-4 flex items-center gap-3">
         <button
-          onClick={() => (etape > etapeDepart ? setEtape(etape - 1) : router.push("/"))}
+          onClick={retour}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm hover:bg-slate-50"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
@@ -916,6 +1000,11 @@ export function BiWizard({
           <p className="text-sm font-bold text-slate-900">
             Bon d&apos;intervention — Étape {etape - etapeDepart + 1}/{TOTAL_ETAPES - etapeDepart}
           </p>
+          {modePages && etape < TOTAL_ETAPES - 1 && (
+            <p className="text-xs font-semibold text-violet-700">
+              Page {indexPage + 1}/{pagesDevis?.length} · {labelPole(pole)}
+            </p>
+          )}
           <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-violet-100">
             <div
               className={`h-full ${ACCENT}`}
@@ -1071,8 +1160,14 @@ export function BiWizard({
                 onChange={(e) => {
                   const id = e.target.value;
                   setDevisId(id);
+                  const d = devisDuSite.find((x) => x.id === id);
+                  const pages = d ? pagesDuDevis(d) : null;
+                  if (pages) {
+                    setPole(pages[0].nature);
+                    setEquipementId(pages[0].equipementId ?? "");
+                    return;
+                  }
                   if (!avecNouvelEquipement(pole) && !avecEquipementLibre(pole) && !equipementId) {
-                    const d = devisDuSite.find((x) => x.id === id);
                     if (d?.equipement_id) setEquipementId(d.equipement_id);
                   }
                 }}
@@ -1277,9 +1372,11 @@ export function BiWizard({
                 {interventionsSupplementaires.map((inter, i) => (
                   <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
                     <span className="min-w-0 truncate font-medium text-slate-700">{inter.equipement_nom}</span>
-                    <button onClick={() => retirerAutreEquipement(i)} className="shrink-0 text-red-500">
-                      <X className="h-4 w-4" strokeWidth={2} />
-                    </button>
+                    {!modePages && (
+                      <button onClick={() => retirerAutreEquipement(i)} className="shrink-0 text-red-500">
+                        <X className="h-4 w-4" strokeWidth={2} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1308,6 +1405,12 @@ export function BiWizard({
 
       {etape === 2 && (
         <div className="space-y-4">
+          {modePages && pageSuivante && (
+            <p className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm text-violet-800">
+              Page suivante : {labelPole(pageSuivante.nature)}
+              {pageSuivante.equipementNom ? ` — ${pageSuivante.equipementNom}` : ""}.
+            </p>
+          )}
           {pole !== Poles.depannage && equipementsRestants.length > 0 && (
             <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
               Ce devis couvre aussi :{" "}
@@ -1505,9 +1608,11 @@ export function BiWizard({
                 {interventionsSupplementaires.map((inter, i) => (
                   <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
                     <span className="min-w-0 truncate font-medium text-slate-700">{inter.equipement_nom}</span>
-                    <button onClick={() => retirerAutreEquipement(i)} className="shrink-0 text-red-500">
-                      <X className="h-4 w-4" strokeWidth={2} />
-                    </button>
+                    {!modePages && (
+                      <button onClick={() => retirerAutreEquipement(i)} className="shrink-0 text-red-500">
+                        <X className="h-4 w-4" strokeWidth={2} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1526,7 +1631,10 @@ export function BiWizard({
               <div className="space-y-2.5">
                 {recapInterventions.map((r, i) => (
                   <div key={i} className={i > 0 ? "border-t border-violet-100 pt-2" : ""}>
-                    <p className="text-sm font-bold text-slate-900">{r.equipement_nom || "Équipement non précisé"}</p>
+                    <p className="text-sm font-bold text-slate-900">
+                      {modePages && r.pole ? `${labelPole(r.pole)} — ` : ""}
+                      {r.equipement_nom || "Équipement non précisé"}
+                    </p>
                     <p className="text-sm text-slate-700">{r.compte_rendu || "—"}</p>
                     {r.etat_equipement.length > 0 && (
                       <div className="mt-1 flex flex-wrap gap-1">
@@ -1729,7 +1837,7 @@ export function BiWizard({
       <div className="sticky bottom-0 mt-6 -mx-4 flex gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:mx-0 sm:rounded-2xl sm:border">
         {etape > 0 && (
           <button
-            onClick={() => (etape > etapeDepart ? setEtape(etape - 1) : router.push("/"))}
+            onClick={retour}
             disabled={enregistrement}
             className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
           >
@@ -1748,11 +1856,11 @@ export function BiWizard({
         )}
         {etape > 0 && etape < TOTAL_ETAPES - 1 && (
           <button
-            onClick={avancerEtape}
+            onClick={etape === 2 && pageSuivante ? passerPageSuivante : avancerEtape}
             disabled={(etape === 1 && !peutAvancerEtapeClient) || (etape === 2 && resteAFaire)}
             className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-40 ${ACCENT}`}
           >
-            Suivant
+            {etape === 2 && pageSuivante ? "Page suivante" : "Suivant"}
           </button>
         )}
         {etape === TOTAL_ETAPES - 1 && (

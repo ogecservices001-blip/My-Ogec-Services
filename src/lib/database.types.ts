@@ -177,6 +177,7 @@ export type Database = {
           pdf_storage_path: string
           photos: Json
           pole: string
+          pole_principal: string
           prestas: Json
           sig_client: string
           sig_tech: string
@@ -241,6 +242,7 @@ export type Database = {
           pdf_storage_path?: string
           photos?: Json
           pole?: string
+          pole_principal?: string
           prestas?: Json
           sig_client?: string
           sig_tech?: string
@@ -305,6 +307,7 @@ export type Database = {
           pdf_storage_path?: string
           photos?: Json
           pole?: string
+          pole_principal?: string
           prestas?: Json
           sig_client?: string
           sig_tech?: string

@@ -211,6 +211,10 @@ export type InterventionEquipement = {
   compte_rendu: string;
   prestas: Presta[];
   etat_equipement: string[];
+  /// Type de la page sur un BI à plusieurs pages (pôle PN).
+  pole?: string;
+  modele_champs?: Record<string, string>;
+  checklist_values?: Record<string, boolean | string>;
   /// Remplacement à l'identique ou Installation neuve à plusieurs équipements.
   materiel_champs_en_tete?: Record<string, string>;
   materiel_type_equipement_id?: string | null;
@@ -234,6 +238,13 @@ export const ETATS_EQUIPEMENT: Record<string, string> = {
 /// les pôles sauf Dépannage, et la plupart des Dépannages) ne renvoie
 /// toujours qu'un seul élément : rien ne change pour eux.
 export function interventionsDuBon(bon: {
+  pole?: string;
+  pole_principal?: string;
+  equipement_numero?: string;
+  materiel_type_equipement_id?: string | null;
+  materiel_champs_en_tete?: unknown;
+  modele_champs?: unknown;
+  checklist_values?: unknown;
   equipement_id: string | null;
   equipement_nom: string;
   equipement_groupe: string;
@@ -244,6 +255,12 @@ export function interventionsDuBon(bon: {
   interventions_supplementaires: unknown;
 }): InterventionEquipement[] {
   const primaire: InterventionEquipement = {
+    pole: bon.pole_principal || bon.pole,
+    equipement_numero: bon.equipement_numero,
+    materiel_type_equipement_id: bon.materiel_type_equipement_id,
+    materiel_champs_en_tete: bon.materiel_champs_en_tete as Record<string, string> | undefined,
+    modele_champs: bon.modele_champs as Record<string, string> | undefined,
+    checklist_values: bon.checklist_values as Record<string, boolean | string> | undefined,
     equipement_id: bon.equipement_id,
     equipement_nom: bon.equipement_nom,
     equipement_groupe: bon.equipement_groupe,

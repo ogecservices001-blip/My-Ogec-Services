@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Lock, X, FileText, ExternalLink, Mail } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { StatutBadge } from "@/components/bi/statut-badge";
-import { Poles, Statuts, avecPeriode, sansTempsPasse, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI, CLASSEMENT_LABELS } from "@/lib/bi/constants";
+import { Poles, Statuts, avecPeriode, sansTempsPasse, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI, CLASSEMENT_LABELS, POLE_PLUSIEURS_TYPES } from "@/lib/bi/constants";
 import {
   equipementLabel,
   eur,
@@ -349,7 +349,12 @@ function VueLectureSeule({
           const prestasInter = inter.prestas.filter((p) => p.designation.trim());
           const label = equipementLabel({ pole: bon.pole, ...inter });
           return (
-            <Section key={i} titre={label ? `Équipement : ${label}` : `Intervention ${i + 1}`}>
+            <Section
+              key={i}
+              titre={`${bon.pole === POLE_PLUSIEURS_TYPES ? `${labelPole(inter.pole ?? "")} — ` : ""}${
+                label ? `Équipement : ${label}` : `Intervention ${i + 1}`
+              }`}
+            >
               {inter.etat_equipement.length > 0 && (
                 <div className="mb-1.5 flex flex-wrap gap-1">
                   {inter.etat_equipement.map((e) => (
@@ -648,7 +653,7 @@ function VueCorrection({
     const numerosPris = [...numerosEquipementSite, equipementNumero];
     return interventionsDuBon(bon).map((inter, i) => {
       const nettoyee = { ...inter, prestas: inter.prestas.filter((p) => p.designation.trim()) };
-      if (i === 0 || bon.pole !== Poles.installationNeuve) return nettoyee;
+      if (i === 0 || (inter.pole ?? bon.pole) !== Poles.installationNeuve) return nettoyee;
       const numero = inter.equipement_numero || suggererNumeroEquipement(numeroAffaireSite, numerosPris);
       numerosPris.push(numero);
       return { ...nettoyee, equipement_numero: numero };
@@ -660,8 +665,13 @@ function VueCorrection({
   const [pending, startTransition] = useTransition();
 
   const emailValide = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
-  const posesSupplementaires = pole === Poles.installationNeuve ? interventions.slice(1) : [];
-  const numerosPoses = [equipementNumero, ...posesSupplementaires.map((p) => p.equipement_numero ?? "")].map((n) => n.trim());
+  // Sur un BI à plusieurs pages, chaque page a son propre type.
+  const poleDe = (i: number) => (pole === POLE_PLUSIEURS_TYPES ? (interventions[i]?.pole ?? "") : pole);
+  const posesSupplementaires = interventions.slice(1).filter((_, j) => poleDe(j + 1) === Poles.installationNeuve);
+  const numerosPoses = [
+    ...(poleDe(0) === Poles.installationNeuve ? [equipementNumero] : []),
+    ...posesSupplementaires.map((p) => p.equipement_numero ?? ""),
+  ].map((n) => n.trim());
   const numeroEnDouble = (numero: string) =>
     numerosEquipementSite.includes(numero.trim()) || numerosPoses.filter((n) => n === numero.trim()).length > 1;
   const posesCompletes = posesSupplementaires.every(
@@ -672,7 +682,7 @@ function VueCorrection({
     emailValide &&
     classementActuel !== "" &&
     moisRenseigne &&
-    (pole !== Poles.installationNeuve ||
+    (poleDe(0) !== Poles.installationNeuve ||
       (equipementNom.trim() !== "" &&
         equipementNumero.trim() !== "" &&
         !numeroEnDouble(equipementNumero) &&
@@ -696,8 +706,8 @@ function VueCorrection({
       prestas: interventions[0]?.prestas ?? [],
       etat_equipement: interventions[0]?.etat_equipement ?? [],
       interventions_supplementaires: interventions.slice(1),
-      equipement_nom: pole === Poles.installationNeuve ? equipementNom.trim() : bon.equipement_nom,
-      equipement_numero: pole === Poles.installationNeuve ? equipementNumero.trim() : bon.equipement_numero,
+      equipement_nom: poleDe(0) === Poles.installationNeuve ? equipementNom.trim() : bon.equipement_nom,
+      equipement_numero: poleDe(0) === Poles.installationNeuve ? equipementNumero.trim() : bon.equipement_numero,
       mois_facturation: classementActuel === "facturer" ? moisActuel.trim() : "",
     };
     startTransition(async () => {
@@ -715,17 +725,24 @@ function VueCorrection({
       <div className="space-y-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Pôle</label>
-          <select
-            value={pole}
-            onChange={(e) => setPole(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
-          >
-            {Object.values(Poles).map((code) => (
-              <option key={code} value={code}>
-                Pôle {code} · {labelPole(code)}
-              </option>
-            ))}
-          </select>
+          {pole === POLE_PLUSIEURS_TYPES ? (
+            <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              Plusieurs types — une page par type :{" "}
+              {interventions.map((inter) => labelPole(inter.pole ?? "")).join(", ")}
+            </p>
+          ) : (
+            <select
+              value={pole}
+              onChange={(e) => setPole(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+            >
+              {Object.values(Poles).map((code) => (
+                <option key={code} value={code}>
+                  Pôle {code} · {labelPole(code)}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div>
@@ -778,7 +795,7 @@ function VueCorrection({
           />
         )}
 
-        {pole === Poles.installationNeuve && (
+        {poleDe(0) === Poles.installationNeuve && (
           <>
             <Champ label="Nom de l'équipement" valeur={equipementNom} onChange={setEquipementNom} />
             <div>
@@ -807,7 +824,7 @@ function VueCorrection({
               <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
                 {label ? `Équipement : ${label}` : interventions.length > 1 ? `Intervention ${i + 1}` : "Compte rendu"}
               </p>
-              {i > 0 && pole === Poles.installationNeuve && (
+              {i > 0 && poleDe(i) === Poles.installationNeuve && (
                 <div className="mb-3 space-y-2">
                   <Champ
                     label="Nom de l'équipement"

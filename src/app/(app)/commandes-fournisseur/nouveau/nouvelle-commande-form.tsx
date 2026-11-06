@@ -14,6 +14,18 @@ const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outli
 const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
 const MAX_LIGNES = 20;
 
+/// Même personne quel que soit l'ordre nom/prénom, la casse ou les accents
+/// ("Christophe BOULESTIN" = "BOULESTIN Christophe").
+function memePersonne(a: string, b: string): boolean {
+  const mots = (v: string) =>
+    v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const ma = mots(a);
+  const mb = mots(b);
+  if (ma.length === 0 || mb.length === 0) return false;
+  const [court, long] = ma.length <= mb.length ? [ma, mb] : [mb, ma];
+  return court.every((m) => long.includes(m));
+}
+
 function interlocuteursDe(f: Fournisseur | undefined): Interlocuteur[] {
   return (f?.interlocuteurs as unknown as Interlocuteur[] | null) ?? [];
 }
@@ -47,6 +59,19 @@ export function NouvelleCommandeForm({
   const metropole = fournisseur?.localisation === "Métropole";
 
   const [tauxTva, setTauxTva] = useState(0);
+  // TVA applicable par défaut ; non applicable pour une commande hors taxes (Métropole).
+  const [tvaApplicable, setTvaApplicable] = useState(true);
+  const tauxEffectif = tvaApplicable ? tauxTva : 0;
+
+  function appliquerTauxPropose(taux: number) {
+    if (taux > 0) {
+      setTvaApplicable(true);
+      setTauxTva(taux);
+    } else {
+      setTvaApplicable(false);
+      setTauxTva(8.5);
+    }
+  }
   const [devisFournisseurNumero, setDevisFournisseurNumero] = useState("");
   const [devisFournisseurDate, setDevisFournisseurDate] = useState("");
   const [validiteOffre, setValiditeOffre] = useState("");
@@ -117,15 +142,12 @@ export function NouvelleCommandeForm({
       }
 
       const f = trouverFournisseurPar(r.nom_societe);
-      if (tauxDevis !== null) setTauxTva(tauxDevis);
-      else if (f) setTauxTva(tauxTvaDefaut(f.localisation));
+      if (tauxDevis !== null) appliquerTauxPropose(tauxDevis);
+      else if (f) appliquerTauxPropose(tauxTvaDefaut(f.localisation));
       if (f) {
         setFournisseurId(f.id);
         const contacts = interlocuteursDe(f);
-        const cibleContact = r.nom_contact.trim().toLowerCase();
-        const idxContact = cibleContact
-          ? contacts.findIndex((c) => c.nom.toLowerCase().includes(cibleContact) || cibleContact.includes(c.nom.toLowerCase()))
-          : -1;
+        const idxContact = r.nom_contact.trim() ? contacts.findIndex((c) => memePersonne(c.nom, r.nom_contact)) : -1;
         setInterlocuteurIndex(idxContact >= 0 ? idxContact : 0);
       }
       // Conditions déjà connues du fournisseur (fiche répertoire) en
@@ -150,7 +172,7 @@ export function NouvelleCommandeForm({
     setFournisseurId(id);
     const f = fournisseurs.find((x) => x.id === id);
     setInterlocuteurIndex(0);
-    setTauxTva(tauxTvaDefaut(f?.localisation ?? ""));
+    appliquerTauxPropose(tauxTvaDefaut(f?.localisation ?? ""));
     const connues = conditionsConnuesDe(f);
     if (connues) setConditionsPaiement(connues);
   }
@@ -159,7 +181,7 @@ export function NouvelleCommandeForm({
     setLignes((prev) => prev.map((l, idx) => (idx === i ? { ...l, [champ]: valeur } : l)));
   }
 
-  const totaux = useMemo(() => calculerTotaux(lignes, tauxTva), [lignes, tauxTva]);
+  const totaux = useMemo(() => calculerTotaux(lignes, tauxEffectif), [lignes, tauxEffectif]);
 
   function soumettre() {
     if (!fournisseurId) {
@@ -186,7 +208,8 @@ export function NouvelleCommandeForm({
         fournisseurId,
         interlocuteur: interlocuteurs[interlocuteurIndex] ?? { nom: "", tel: "", portable: "", email: "" },
         lignes,
-        tauxTva,
+        tauxTva: tauxEffectif,
+        tvaNonApplicable: !tvaApplicable,
         devisFournisseurNumero,
         devisFournisseurDate,
         validiteOffre,
@@ -260,14 +283,26 @@ export function NouvelleCommandeForm({
             />
           </div>
           <div>
-            <label className={ETIQUETTE}>Taux de TVA (%)</label>
-            <input
-              type="number"
-              step="0.1"
-              value={tauxTva}
-              onChange={(e) => setTauxTva(parseFloat(e.target.value) || 0)}
-              className={CHAMP}
-            />
+            <label className={ETIQUETTE}>TVA</label>
+            <div className="space-y-1.5 text-sm text-slate-700">
+              <label className="flex items-center gap-2">
+                <input type="radio" name="tva" checked={tvaApplicable} onChange={() => setTvaApplicable(true)} className="h-4 w-4 accent-brand-green" />
+                TVA applicable
+                <input
+                  type="number"
+                  step="0.1"
+                  value={tauxTva}
+                  onChange={(e) => setTauxTva(parseFloat(e.target.value) || 0)}
+                  disabled={!tvaApplicable}
+                  className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-green disabled:bg-slate-50 disabled:text-slate-400"
+                />
+                %
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="tva" checked={!tvaApplicable} onChange={() => setTvaApplicable(false)} className="h-4 w-4 accent-brand-green" />
+                TVA non applicable (commande hors taxes)
+              </label>
+            </div>
           </div>
           <div>
             <label className={ETIQUETTE}>Validité de l&apos;offre</label>
@@ -434,11 +469,11 @@ export function NouvelleCommandeForm({
             <span className="font-medium text-slate-900">{eur(totaux.ht)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">TVA ({tauxTva}%)</span>
-            <span className="font-medium text-slate-900">{eur(totaux.tva)}</span>
+            <span className="text-slate-500">{tvaApplicable ? `TVA (${tauxTva}%)` : "TVA non applicable"}</span>
+            <span className="font-medium text-slate-900">{tvaApplicable ? eur(totaux.tva) : "—"}</span>
           </div>
           <div className="flex justify-between border-t border-slate-100 pt-1">
-            <span className="font-bold text-slate-900">Total TTC</span>
+            <span className="font-bold text-slate-900">{tvaApplicable ? "Total TTC" : "Total net HT"}</span>
             <span className="font-bold text-slate-900">{eur(totaux.ttc)}</span>
           </div>
         </div>

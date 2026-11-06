@@ -35,4 +35,5 @@ export const INCOTERMS = ["EXW", "FCA", "FOB", "CFR", "CIF", "DAP", "DDP"];
 export const ADRESSES_LIVRAISON_PRESETS = [
   "À laisser à disposition dans vos locaux",
   `${OGEC.adresse}, ${OGEC.codePostalCommune}`,
+  "OUTRE MER FRET — Bât. 124G, Rue du Thé, 94394 Orly Aérogare — Tél. 01 49 75 50 07 — aerien@outremerfret.com",
 ];

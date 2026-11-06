@@ -21,6 +21,7 @@ export type NouvelleCommandeInput = {
   interlocuteur: Interlocuteur;
   lignes: LigneCommande[];
   tauxTva: number;
+  tvaNonApplicable: boolean;
   devisFournisseurNumero: string;
   devisFournisseurDate: string;
   validiteOffre: string;
@@ -80,7 +81,8 @@ export async function creerCommandeFournisseur(input: NouvelleCommandeInput): Pr
         redacteur: profil.name,
         date_commande: dateCommande,
         lignes: lignesValides,
-        taux_tva: input.tauxTva,
+        taux_tva: input.tvaNonApplicable ? 0 : input.tauxTva,
+        tva_non_applicable: input.tvaNonApplicable,
         devis_fournisseur_numero: input.devisFournisseurNumero,
         devis_fournisseur_date: input.devisFournisseurDate,
         validite_offre: input.validiteOffre,

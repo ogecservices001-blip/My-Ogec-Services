@@ -165,11 +165,11 @@ export function CommandeDetail({
             <span>{eur(totaux.ht)}</span>
           </div>
           <div className="flex justify-between text-slate-500">
-            <span>TVA ({commande.taux_tva}%)</span>
-            <span>{eur(totaux.tva)}</span>
+            <span>{commande.tva_non_applicable ? "TVA non applicable" : `TVA (${commande.taux_tva}%)`}</span>
+            <span>{commande.tva_non_applicable ? "—" : eur(totaux.tva)}</span>
           </div>
           <div className="flex justify-between font-bold text-slate-900">
-            <span>Total TTC</span>
+            <span>{commande.tva_non_applicable ? "Total net HT" : "Total TTC"}</span>
             <span>{eur(totaux.ttc)}</span>
           </div>
         </div>

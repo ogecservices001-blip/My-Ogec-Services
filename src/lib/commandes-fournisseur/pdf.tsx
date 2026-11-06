@@ -179,11 +179,11 @@ function CommandeDocument({
             <Text style={styles.totalValeur}>{eur(totaux.ht)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>TVA ({commande.taux_tva}%)</Text>
-            <Text style={styles.totalValeur}>{eur(totaux.tva)}</Text>
+            <Text style={styles.totalLabel}>{commande.tva_non_applicable ? "TVA non applicable" : `TVA (${commande.taux_tva}%)`}</Text>
+            <Text style={styles.totalValeur}>{commande.tva_non_applicable ? "—" : eur(totaux.tva)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalTtcLabel}>Total TTC</Text>
+            <Text style={styles.totalTtcLabel}>{commande.tva_non_applicable ? "Total net HT" : "Total TTC"}</Text>
             <Text style={styles.totalTtcValeur}>{eur(totaux.ttc)}</Text>
           </View>
         </View>

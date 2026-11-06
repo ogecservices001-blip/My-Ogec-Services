@@ -392,6 +392,7 @@ export type Database = {
           redacteur: string
           relance: string
           taux_tva: number
+          tva_non_applicable: boolean
           updated_at: string
           validite_offre: string
         }
@@ -419,6 +420,7 @@ export type Database = {
           redacteur?: string
           relance?: string
           taux_tva?: number
+          tva_non_applicable?: boolean
           updated_at?: string
           validite_offre?: string
         }
@@ -446,6 +448,7 @@ export type Database = {
           redacteur?: string
           relance?: string
           taux_tva?: number
+          tva_non_applicable?: boolean
           updated_at?: string
           validite_offre?: string
         }

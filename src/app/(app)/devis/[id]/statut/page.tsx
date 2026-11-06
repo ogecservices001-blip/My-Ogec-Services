@@ -21,7 +21,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
     supabase.from("sites").select("nom, site").eq("id", devis.site_id).single(),
     supabase
       .from("bons_intervention")
-      .select("id, numero, statut, date_intervention, date_debut, date_fin, temps_passe")
+      .select("id, numero, statut, date_intervention, date_debut, date_fin, temps_passe, nombre_deplacements")
       .eq("devis_id", id),
     supabase.from("equipements").select("id, nom, numero_equipement, localisation").eq("site_id", devis.site_id).order("nom"),
     supabase
@@ -46,6 +46,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
     .sort();
   const dateExecution = datesExecution[datesExecution.length - 1] ?? "";
   const heuresExecutees = sommeDurees(bonsRealises.map((b) => b.temps_passe));
+  const deplacementsExecutes = bonsRealises.reduce((n, b) => n + (b.nombre_deplacements ?? 0), 0);
 
   const fournisseurIds = [...new Set((commandes ?? []).map((c) => c.fournisseur_id))];
   const { data: fournisseurs } =
@@ -70,6 +71,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
       bonsIntervention={(bons ?? []).map((b) => ({ id: b.id, numero: b.numero, statut: b.statut }))}
       dateExecution={dateExecution}
       heuresExecutees={heuresExecutees}
+      deplacementsExecutes={deplacementsExecutes}
       isAdmin={profile?.role === "admin"}
       nbCreneaux={nbCreneaux ?? 0}
     />

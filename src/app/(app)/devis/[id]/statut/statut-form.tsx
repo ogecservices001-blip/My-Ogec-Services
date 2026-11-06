@@ -35,6 +35,7 @@ export function StatutDevisForm({
   bonsIntervention,
   dateExecution,
   heuresExecutees,
+  deplacementsExecutes,
   isAdmin,
   nbCreneaux,
 }: {
@@ -46,6 +47,7 @@ export function StatutDevisForm({
   bonsIntervention: { id: string; numero: string; statut: string }[];
   dateExecution: string;
   heuresExecutees: string;
+  deplacementsExecutes: number;
   isAdmin: boolean;
   nbCreneaux: number;
 }) {
@@ -461,6 +463,7 @@ export function StatutDevisForm({
           <dl className="space-y-0.5 text-sm text-slate-600">
             <p>Date d&apos;exécution : {dateExecution || "—"}</p>
             <p>Heures exécutées : {heuresExecutees || "—"}</p>
+            <p>Déplacements : {deplacementsExecutes || "—"}</p>
           </dl>
         </div>
       )}

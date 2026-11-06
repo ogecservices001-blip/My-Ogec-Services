@@ -33,6 +33,13 @@ export type NouveauDevisInput = {
 
 const ERREUR_DOUBLON = "23505";
 
+/// Commande lue d'un montant différent du devis, pas encore confirmée par le bureau.
+async function ecartCommandeNonConfirme(supabase: Awaited<ReturnType<typeof createClient>>, id: string): Promise<boolean> {
+  const { data } = await supabase.from("devis").select("montant, montant_commande, ecart_commande_confirme").eq("id", id).single();
+  if (!data || data.montant_commande === null || data.montant === null || data.ecart_commande_confirme) return false;
+  return Math.abs(data.montant_commande - data.montant) >= 0.01;
+}
+
 function nettoyerPaves(paves: PaveDevis[]): PaveDevis[] {
   return paves.map((p) => ({
     ...p,
@@ -223,7 +230,10 @@ export async function modifierDevis(id: string, input: DevisInput): Promise<Acti
   // Le libellé et la nature vivent dans les pavés : un seul pavé suit la
   // modification, plusieurs pavés gardent les leurs (champs verrouillés
   // dans la fenêtre "Modifier").
-  const { data: existant } = await supabase.from("devis").select("paves").eq("id", id).single();
+  const { data: existant } = await supabase.from("devis").select("paves, mois_facturation").eq("id", id).single();
+  if (input.mois_facturation && !existant?.mois_facturation && (await ecartCommandeNonConfirme(supabase, id))) {
+    return { ok: false, erreur: "Le montant de la commande diffère du devis : confirme l'écart avant de passer en facturable." };
+  }
   const paves = (existant?.paves as PaveDevis[] | null) ?? [];
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { libelle: _libelle, nature: _nature, ...sansLibelleNature } = input;
@@ -257,6 +267,9 @@ export async function modifierMoisFacturation(id: string, moisFacturation: strin
   }
 
   const supabase = await createClient();
+  if (moisFacturation && (await ecartCommandeNonConfirme(supabase, id))) {
+    return { ok: false, erreur: "Le montant de la commande diffère du devis : confirme l'écart avant de passer en facturable." };
+  }
   const { error } = await supabase
     .from("devis")
     .update({ mois_facturation: moisFacturation, updated_at: new Date().toISOString() })

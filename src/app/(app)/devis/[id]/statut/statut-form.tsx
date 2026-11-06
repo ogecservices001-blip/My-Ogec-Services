@@ -19,7 +19,8 @@ import { eur } from "../../registre-liste";
 import { formaterDate, dateFrVersIso } from "@/lib/format";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { ModaleDevis } from "./modale-devis";
-import { BlocCommandeClient, ChoixFichiersCommande, envoyerFichiersCommande } from "./commande-client";
+import { BlocCommandeClient, ChoixFichiersCommande, champsRetenus, ecartCommande, envoyerFichiersCommande } from "./commande-client";
+import { appliquerLectureCommande, confirmerEcartCommande, type LectureCommande } from "../../commande-client-actions";
 import { fichiersCommandeClient } from "@/lib/devis/commande-client";
 
 type Devis = Tables<"devis">;
@@ -54,6 +55,28 @@ export function StatutDevisForm({
   const [dateCommande, setDateCommande] = useState(devis.date_commande_client);
   const [reference, setReference] = useState(devis.reference_client || "BPA par mail");
   const [fichiersCommande, setFichiersCommande] = useState<File[]>([]);
+  const [lectureCommande, setLectureCommande] = useState<LectureCommande | null>(null);
+  const [confirmationEcart, startConfirmationEcart] = useTransition();
+  const ecart = ecartCommande(devis.montant_commande, devis.montant);
+  const ecartAConfirmer = ecart !== null && !devis.ecart_commande_confirme;
+
+  function recevoirLecture(lecture: LectureCommande | null) {
+    setLectureCommande(lecture);
+    if (!lecture) return;
+    if (lecture.extraction.date_commande) setDateCommande(lecture.extraction.date_commande);
+    if (lecture.reference) setReference(lecture.reference);
+  }
+
+  function confirmerEcart() {
+    startConfirmationEcart(async () => {
+      const res = await confirmerEcartCommande(devis.id);
+      if (!res.ok) {
+        setErreurFacturation(res.erreur);
+        return;
+      }
+      router.refresh();
+    });
+  }
   const equipementsEnregistres = [devis.equipement_id, ...devis.equipements_supplementaires].filter(
     (id): id is string => Boolean(id),
   );
@@ -177,6 +200,17 @@ export function StatutDevisForm({
       if (!res.ok) {
         setErreur(res.erreur);
         return;
+      }
+      if (lectureCommande) {
+        const enrichissement = await appliquerLectureCommande(devis.id, {
+          champs: champsRetenus(lectureCommande, new Set(lectureCommande.propositions.map((p) => p.cle))),
+          montantCommande: lectureCommande.extraction.montant_ht,
+        });
+        if (!enrichissement.ok) {
+          setErreur(`Commande enregistrée, mais la fiche client n'a pas pu être complétée : ${enrichissement.erreur}`);
+          router.refresh();
+          return;
+        }
       }
       router.push("/devis");
       router.refresh();
@@ -326,7 +360,7 @@ export function StatutDevisForm({
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
           </div>
-          <ChoixFichiersCommande onChange={setFichiersCommande} />
+          <ChoixFichiersCommande devisId={devis.id} onChange={setFichiersCommande} onLecture={recevoirLecture} />
           <div className="flex gap-2">
             <button
               onClick={() => setMode("choix")}
@@ -346,7 +380,11 @@ export function StatutDevisForm({
         </div>
       )}
 
-      <BlocCommandeClient devisId={devis.id} fichiers={fichiersCommandeClient(devis.commande_client)} />
+      <BlocCommandeClient
+        devisId={devis.id}
+        fichiers={fichiersCommandeClient(devis.commande_client)}
+        commandeEnregistree={Boolean(devis.date_commande_client)}
+      />
 
       <div className="rounded-2xl bg-white p-4 shadow-sm">
         {paves.map((pave, i) => (
@@ -429,6 +467,26 @@ export function StatutDevisForm({
 
       <div className="rounded-2xl bg-white p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-bold text-slate-900">Mise en facturation</h2>
+        {ecart !== null && (
+          <div className={`mb-3 rounded-lg px-3 py-2 text-sm ${ecartAConfirmer ? "bg-amber-100 text-amber-900" : "bg-slate-50 text-slate-600"}`}>
+            <p className="font-semibold">
+              Commande du client : {eur(devis.montant_commande ?? 0)} HT — devis : {eur(devis.montant ?? 0)} HT (écart{" "}
+              {ecart > 0 ? "+" : ""}
+              {eur(ecart)})
+            </p>
+            {ecartAConfirmer ? (
+              <button
+                onClick={confirmerEcart}
+                disabled={confirmationEcart}
+                className="mt-2 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+              >
+                {confirmationEcart ? "..." : "Je confirme l'écart"}
+              </button>
+            ) : (
+              <p className="mt-1 text-xs">Écart confirmé.</p>
+            )}
+          </div>
+        )}
         <label className="mb-1 block text-xs font-medium text-slate-600">Mois de facturation (MM-AAAA)</label>
         <div className="flex gap-2">
           <input
@@ -439,7 +497,7 @@ export function StatutDevisForm({
           />
           <button
             onClick={enregistrerFacturation}
-            disabled={facturationPending || moisFacturation === devis.mois_facturation}
+            disabled={facturationPending || moisFacturation === devis.mois_facturation || (ecartAConfirmer && Boolean(moisFacturation.trim()))}
             className="shrink-0 rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
           >
             {facturationPending ? "..." : "Enregistrer"}

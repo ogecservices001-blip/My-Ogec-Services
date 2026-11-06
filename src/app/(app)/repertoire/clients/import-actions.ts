@@ -70,6 +70,9 @@ const LABELS: Record<keyof SiteInput, string> = {
   portable_interlocuteur_facturation: "Portable interlocuteur facturation",
   courriel_interlocuteur_facturation: "Courriel interlocuteur facturation",
   freq_factu_annuelle: "Fréq. facturation annuelle",
+  siret: "SIRET",
+  tva_intracom: "N° TVA intracommunautaire",
+  conditions_paiement: "Conditions de paiement",
   date_revision: "Date de révision",
   formule_revision_entretien: "Formule révision entretien",
   formule_revision_depannage: "Formule révision dépannage",
@@ -197,10 +200,13 @@ export async function appliquerImportSites(
 
   for (const ligne of lignes) {
     if (ligne.statut !== "modification" || !ligne.siteExistantId) continue;
-    const { error } = await supabase
-      .from("sites")
-      .update(ligne.donnees)
-      .eq("id", ligne.siteExistantId);
+    // Champs ajoutés après le fichier maître (lecture des commandes) : un
+    // ancien fichier ne les contient pas, une cellule vide ne les efface pas.
+    const donnees: Partial<SiteInput> = { ...ligne.donnees };
+    for (const champ of ["siret", "tva_intracom", "conditions_paiement"] as const) {
+      if (!donnees[champ]) delete donnees[champ];
+    }
+    const { error } = await supabase.from("sites").update(donnees).eq("id", ligne.siteExistantId);
     if (error) return { ok: false, erreur: error.message };
     modifies++;
   }

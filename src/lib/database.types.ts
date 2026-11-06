@@ -723,6 +723,8 @@ export type Database = {
           email_responsable_contrat: string
           envoyee_le: string
           equipements_supplementaires: string[]
+          ecart_commande_confirme: boolean
+          montant_commande: number | null
           equipement_id: string | null
           heures_prevues: number | null
           id: string
@@ -757,6 +759,8 @@ export type Database = {
           email_responsable_contrat?: string
           envoyee_le?: string
           equipements_supplementaires?: string[]
+          ecart_commande_confirme?: boolean
+          montant_commande?: number | null
           equipement_id?: string | null
           heures_prevues?: number | null
           id?: string
@@ -791,6 +795,8 @@ export type Database = {
           email_responsable_contrat?: string
           envoyee_le?: string
           equipements_supplementaires?: string[]
+          ecart_commande_confirme?: boolean
+          montant_commande?: number | null
           equipement_id?: string | null
           heures_prevues?: number | null
           id?: string
@@ -1457,6 +1463,9 @@ export type Database = {
           adresse_facturation: string
           code_postal: string
           code_postal_facturation: string
+          conditions_paiement: string
+          siret: string
+          tva_intracom: string
           commune: string
           commune_facturation: string
           complement_adresse: string
@@ -1527,6 +1536,9 @@ export type Database = {
           adresse_facturation?: string
           code_postal?: string
           code_postal_facturation?: string
+          conditions_paiement?: string
+          siret?: string
+          tva_intracom?: string
           commune?: string
           commune_facturation?: string
           complement_adresse?: string
@@ -1597,6 +1609,9 @@ export type Database = {
           adresse_facturation?: string
           code_postal?: string
           code_postal_facturation?: string
+          conditions_paiement?: string
+          siret?: string
+          tva_intracom?: string
           commune?: string
           commune_facturation?: string
           complement_adresse?: string
@@ -1711,6 +1726,9 @@ export type Database = {
           adresse_facturation: string | null
           code_postal: string | null
           code_postal_facturation: string | null
+          conditions_paiement: string | null
+          siret: string | null
+          tva_intracom: string | null
           commune: string | null
           commune_facturation: string | null
           complement_adresse: string | null
@@ -1782,6 +1800,9 @@ export type Database = {
           adresse_facturation?: string | null
           code_postal?: string | null
           code_postal_facturation?: string | null
+          conditions_paiement?: string | null
+          siret?: string | null
+          tva_intracom?: string | null
           commune?: string | null
           commune_facturation?: string | null
           complement_adresse?: string | null
@@ -1853,6 +1874,9 @@ export type Database = {
           adresse_facturation?: string | null
           code_postal?: string | null
           code_postal_facturation?: string | null
+          conditions_paiement?: string | null
+          siret?: string | null
+          tva_intracom?: string | null
           commune?: string | null
           commune_facturation?: string | null
           complement_adresse?: string | null

@@ -262,6 +262,9 @@ export default async function SiteDetailPage({
                 ["Portable interlocuteur facturation", telInternational(site.portable_interlocuteur_facturation)],
                 ["Courriel interlocuteur facturation", site.courriel_interlocuteur_facturation],
                 ["Fréq. facturation annuelle", site.freq_factu_annuelle],
+                ["SIRET", site.siret],
+                ["N° TVA intracommunautaire", site.tva_intracom],
+                ["Conditions de paiement", site.conditions_paiement],
               ]}
             />
             <Section

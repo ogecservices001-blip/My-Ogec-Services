@@ -73,6 +73,9 @@ export const COLONNES_SITES: { index: number; champ: keyof SiteInput }[] = [
   { index: 64, champ: "forfait_deplacement_revise" },
   { index: 65, champ: "modif_ri_ou_bg" },
   { index: 66, champ: "remarques_libres" },
+  { index: 67, champ: "siret" },
+  { index: 68, champ: "tva_intracom" },
+  { index: 69, champ: "conditions_paiement" },
 ];
 
 export const ENTETES_SITES: Record<number, string> = {
@@ -143,9 +146,12 @@ export const ENTETES_SITES: Record<number, string> = {
   64: "Forfait Déplacement Révisé",
   65: "Modif RI ou BG",
   66: "Remarques Libres",
+  67: "SIRET",
+  68: "N° TVA intracommunautaire",
+  69: "Conditions de paiement",
 };
 
-export const NB_COLONNES_SITES = 67;
+export const NB_COLONNES_SITES = 70;
 
 /// Numéro Client / Numéro Site tels qu'affichés dans le fichier maître
 /// (ex: "265-01" → "265" / "01") — dérivés de n_affaire, jamais stockés

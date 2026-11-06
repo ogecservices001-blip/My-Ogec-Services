@@ -83,7 +83,12 @@ export function TableauRegistreDevis({ lignes, isAdmin }: { lignes: DevisRegistr
         ),
       ])}
       pied={isAdmin ? ["Total", "", "", "", "", "", "", eur(totalMontant), ""] : undefined}
-      valeurs={lignes.map((d) => [d.numero || "(sans référence)", d.clientNom, d.clientSite])}
+      valeurs={lignes.map((d) => {
+        // Statut affiché en pastille : son libellé sert de valeur de filtre.
+        const v: (string | undefined)[] = [d.numero || "(sans référence)", d.clientNom, d.clientSite];
+        v[isAdmin ? 8 : 7] = LABEL_STATUT(d);
+        return v;
+      })}
       vide="Aucun devis pour l'instant"
     />
   );

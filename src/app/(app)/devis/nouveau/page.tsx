@@ -2,7 +2,8 @@ import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { NATURES_DEVIS_SELECTIONNABLES } from "@/lib/devis/constants";
 import { ModalEcran } from "@/components/modal-ecran";
-import { coutRevientDefaut, type CoutRevient } from "@/lib/devis/pricing";
+import { coutRevientDefaut, remiseDuDevis, type CoutRevient } from "@/lib/devis/pricing";
+import { indiceSuivant } from "@/lib/devis/numerotation";
 import { chargerDevisAEtablir } from "@/lib/bi/devis-a-etablir";
 import { pavesDuDevis, type PaveDevis } from "@/lib/devis/paves";
 import { NouveauDevisForm } from "./nouveau-devis-form";
@@ -12,19 +13,34 @@ export default async function NouveauDevisPage({
 }: {
   searchParams: Promise<{
     brouillonId?: string;
+    reviserId?: string;
     siteId?: string;
     signalement?: string;
   }>;
 }) {
   await requireAdminOuAccueil();
-  const { brouillonId, siteId, signalement } = await searchParams;
+  const { brouillonId, reviserId, siteId, signalement } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: sites }, prefillSite, brouillon] = await Promise.all([
+  const [{ data: sites }, prefillSite, brouillon, revision] = await Promise.all([
     supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom"),
     siteId ? chargerPrefillSite(supabase, siteId) : Promise.resolve(null),
     brouillonId ? chargerBrouillon(supabase, brouillonId) : Promise.resolve(null),
+    reviserId ? chargerBrouillon(supabase, reviserId) : Promise.resolve(null),
   ]);
+  if (revision) {
+    return (
+      <ModalEcran titre={`Réviser le devis ${revision.numero}`} hrefFermer={`/devis/${revision.id}/statut`} large>
+        <NouveauDevisForm
+          sites={(sites ?? []).map((s) => ({ id: s.id, nom: s.nom, site: s.site, horsContrat: s.hors_contrat }))}
+          natures={Object.entries(NATURES_DEVIS_SELECTIONNABLES).map(([valeur, label]) => ({ valeur, label }))}
+          prefill={null}
+          brouillon={revision}
+          revision={{ indiceSuivant: indiceSuivant(revision.indiceRevision), commande: revision.commande }}
+        />
+      </ModalEcran>
+    );
+  }
   const aEtablir = signalement && siteId ? (await chargerDevisAEtablir([siteId])).find((a) => a.biNumero === signalement) : undefined;
   const pavesSignales: PaveDevis[] = (aEtablir?.entrees ?? []).map((e) => ({
     equipementId: e.equipementId,
@@ -57,11 +73,15 @@ async function chargerBrouillon(supabase: Awaited<ReturnType<typeof createClient
   if (!site) return null;
   return {
     id: devis.id,
+    numero: devis.numero,
+    indiceRevision: devis.indice_revision,
+    commande: Boolean(devis.date_commande_client) || devis.annule,
     siteId: devis.site_id,
     clientNom: site.nom,
     type: (site.hors_contrat ? "hors" : "sous") as "hors" | "sous",
     paves: pavesDuDevis(devis),
     coutRevient: (devis.cout_revient as unknown as CoutRevient) ?? coutRevientDefaut(),
+    remise: remiseDuDevis(devis),
   };
 }
 

@@ -30,6 +30,11 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
       .eq("devis_id", id)
       .order("created_at", { ascending: false }),
   ]);
+  const { data: revisions } = await supabase
+    .from("devis_revisions")
+    .select("id, numero, created_at, revise_par")
+    .eq("devis_id", id)
+    .order("created_at", { ascending: false });
   const { count: nbCreneaux } = await supabase
     .from("creneaux_planning")
     .select("id", { count: "exact", head: true })
@@ -74,6 +79,12 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
       deplacementsExecutes={deplacementsExecutes}
       isAdmin={profile?.role === "admin"}
       nbCreneaux={nbCreneaux ?? 0}
+      revisions={(revisions ?? []).map((r) => ({
+        id: r.id,
+        numero: r.numero,
+        date: new Date(r.created_at).toLocaleDateString("fr-FR"),
+        revisePar: r.revise_par,
+      }))}
     />
   );
 }

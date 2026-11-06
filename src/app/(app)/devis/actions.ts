@@ -7,11 +7,22 @@ import type { ActionResult } from "@/lib/action-result";
 import { NATURES_DEVIS_SELECTIONNABLES } from "@/lib/devis/constants";
 import {
   formaterNumeroDevis,
+  indiceSuivant,
   initialesDe,
   numeroAffaireDuSite,
+  numeroRevise,
   prochainChrono,
 } from "@/lib/devis/numerotation";
-import { calculerPrixRevient, totalHTLignes, type CoutRevient } from "@/lib/devis/pricing";
+import {
+  calculerPrixRevient,
+  colonnesRemise,
+  montantRemise,
+  remiseVide,
+  totalHTLignes,
+  type CoutRevient,
+  type LigneDevis,
+  type RemiseDevis,
+} from "@/lib/devis/pricing";
 import { aplatirPaves, pavesDuDevis, type PaveDevis } from "@/lib/devis/paves";
 import { genererPdfDevis } from "@/lib/devis/pdf";
 import { envoyerDevis } from "@/lib/devis/email";
@@ -22,6 +33,7 @@ export type NouveauDevisInput = {
   /// notamment pour une Installation neuve (l'équipement n'existe pas encore).
   paves: PaveDevis[];
   coutRevient: CoutRevient;
+  remise?: RemiseDevis;
   /// Brouillon existant ("Devis en cours") qu'on finalise — le numéro
   /// officiel lui est alors attribué par mise à jour, pas par insertion
   /// d'une nouvelle ligne.
@@ -50,6 +62,24 @@ function nettoyerPaves(paves: PaveDevis[]): PaveDevis[] {
 }
 const ESSAIS_NUMERO = 5;
 
+/// Montant enregistré du devis : total des lignes moins la remise
+/// commerciale exceptionnelle, toujours recalculé côté serveur.
+function montantNetDevis(lignes: LigneDevis[], coutRevient: CoutRevient, remise: RemiseDevis) {
+  const prixRevient = calculerPrixRevient(lignes, coutRevient);
+  const totalHT = totalHTLignes(lignes, prixRevient.coefficientVente, prixRevient.tauxHoraire);
+  return { prixRevient, montant: Math.round((totalHT - montantRemise(totalHT, remise)) * 100) / 100 };
+}
+
+function verifierPaves(paves: PaveDevis[]): string | null {
+  if (paves.length === 0) return "Ajoute au moins un équipement.";
+  for (const pave of paves) {
+    if (!pave.libelle) return "Le libellé est obligatoire sur chaque pavé.";
+    if (!NATURES_DEVIS_SELECTIONNABLES[pave.nature]) return "Choisis une nature sur chaque pavé.";
+    if (pave.lignes.length === 0) return "Ajoute au moins une ligne d'article sur chaque pavé.";
+  }
+  return null;
+}
+
 export async function listerEquipementsDuSite(
   siteId: string,
 ): Promise<{ id: string; libelle: string; localisation: string; groupe: string }[]> {
@@ -77,19 +107,11 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
   const profil = await requireAdmin();
   if (!input.siteId) return { ok: false, erreur: "Choisis un site." };
   const paves = nettoyerPaves(input.paves);
-  if (paves.length === 0) return { ok: false, erreur: "Ajoute au moins un équipement." };
-  for (const pave of paves) {
-    if (!pave.libelle) return { ok: false, erreur: "Le libellé est obligatoire sur chaque pavé." };
-    if (!NATURES_DEVIS_SELECTIONNABLES[pave.nature]) return { ok: false, erreur: "Choisis une nature sur chaque pavé." };
-    if (pave.lignes.length === 0) return { ok: false, erreur: "Ajoute au moins une ligne d'article sur chaque pavé." };
-  }
+  const erreurPaves = verifierPaves(paves);
+  if (erreurPaves) return { ok: false, erreur: erreurPaves };
   const champsPaves = aplatirPaves(paves);
-  const lignesValides = champsPaves.lignes;
-
-  // Toujours recalculé côté serveur depuis lignes + cout_revient — jamais
-  // de montant envoyé tel quel par le client.
-  const prixRevient = calculerPrixRevient(lignesValides, input.coutRevient);
-  const montant = totalHTLignes(lignesValides, prixRevient.coefficientVente, prixRevient.tauxHoraire);
+  const remise = input.remise ?? remiseVide();
+  const { prixRevient, montant } = montantNetDevis(champsPaves.lignes, input.coutRevient, remise);
 
   const supabase = await createClient();
   const { data: site } = await supabase.from("sites").select("n_affaire").eq("id", input.siteId).single();
@@ -122,6 +144,7 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
       site_id: input.siteId,
       ...champsPaves,
       montant,
+      ...colonnesRemise(remise),
       heures_prevues: prixRevient.heuresMO,
       debours_materiel_prevu: prixRevient.materiel,
       cout_revient: input.coutRevient,
@@ -151,6 +174,7 @@ export type BrouillonDevisInput = {
   siteId: string;
   paves: PaveDevis[];
   coutRevient: CoutRevient;
+  remise?: RemiseDevis;
   signalementBi?: string;
 };
 
@@ -165,14 +189,17 @@ export async function enregistrerBrouillonDevis(input: BrouillonDevisInput): Pro
 
   const champsPaves = aplatirPaves(nettoyerPaves(input.paves));
   const lignesValides = champsPaves.lignes;
-  const prixRevient = calculerPrixRevient(lignesValides, input.coutRevient);
-  const montant = lignesValides.length > 0 ? totalHTLignes(lignesValides, prixRevient.coefficientVente, prixRevient.tauxHoraire) : null;
+  const remise = input.remise ?? remiseVide();
+  const net = montantNetDevis(lignesValides, input.coutRevient, remise);
+  const prixRevient = net.prixRevient;
+  const montant = lignesValides.length > 0 ? net.montant : null;
 
   const supabase = await createClient();
   const donnees = {
     site_id: input.siteId,
     ...champsPaves,
     montant,
+    ...colonnesRemise(remise),
     heures_prevues: prixRevient.heuresMO,
     debours_materiel_prevu: prixRevient.materiel,
     cout_revient: input.coutRevient,
@@ -197,6 +224,68 @@ export async function enregistrerBrouillonDevis(input: BrouillonDevisInput): Pro
   return { ok: true, id: data.id };
 }
 
+export type RevisionDevisInput = {
+  paves: PaveDevis[];
+  coutRevient: CoutRevient;
+  remise: RemiseDevis;
+};
+
+/// Révision d'un devis pas encore commandé : la version actuelle est archivée
+/// telle quelle dans devis_revisions, puis le devis prend l'indice suivant.
+export async function reviserDevis(id: string, input: RevisionDevisInput): Promise<ActionResult & { numero?: string }> {
+  const profil = await requireAdmin();
+  const supabase = await createClient();
+  const { data: devis } = await supabase.from("devis").select("*").eq("id", id).single();
+  if (!devis) return { ok: false, erreur: "Devis introuvable." };
+  if (!devis.numero) return { ok: false, erreur: "Ce devis n'est pas encore créé : finalise-le d'abord." };
+  if (devis.annule) return { ok: false, erreur: "Un devis annulé ne se révise pas." };
+  if (devis.date_commande_client) {
+    return { ok: false, erreur: "Ce devis est commandé par le client : il ne peut plus être révisé." };
+  }
+
+  const paves = nettoyerPaves(input.paves);
+  const erreurPaves = verifierPaves(paves);
+  if (erreurPaves) return { ok: false, erreur: erreurPaves };
+  const champsPaves = aplatirPaves(paves);
+  const { prixRevient, montant } = montantNetDevis(champsPaves.lignes, input.coutRevient, input.remise);
+
+  const indice = indiceSuivant(devis.indice_revision);
+  const numero = numeroRevise(devis.numero, champsPaves.nature, indice);
+
+  const { error: errArchive } = await supabase.from("devis_revisions").insert({
+    devis_id: id,
+    indice: devis.indice_revision,
+    numero: devis.numero,
+    donnees: devis,
+    revise_par: profil.name,
+  });
+  if (errArchive) return { ok: false, erreur: errArchive.message };
+
+  const { error } = await supabase
+    .from("devis")
+    .update({
+      numero,
+      indice_revision: indice,
+      ...champsPaves,
+      montant,
+      ...colonnesRemise(input.remise),
+      heures_prevues: prixRevient.heuresMO,
+      debours_materiel_prevu: prixRevient.materiel,
+      cout_revient: input.coutRevient,
+      date_devis: new Date().toLocaleDateString("fr-FR"),
+      envoyee_le: "",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) {
+    return { ok: false, erreur: error.code === ERREUR_DOUBLON ? "Ce numéro de révision existe déjà." : error.message };
+  }
+
+  revalidatePath("/devis");
+  revalidatePath(`/devis/${id}/statut`);
+  revalidatePath("/prestations");
+  return { ok: true, numero };
+}
 
 export type DevisInput = {
   numero: string;

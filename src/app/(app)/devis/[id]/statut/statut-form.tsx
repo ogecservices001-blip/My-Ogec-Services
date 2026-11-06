@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, FileText, Pencil, Send } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Pencil, Send, History } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import { pavesDuDevis } from "@/lib/devis/paves";
@@ -22,6 +22,7 @@ import { ModaleDevis } from "./modale-devis";
 import { BlocCommandeClient, ChoixFichiersCommande, champsRetenus, ecartCommande, envoyerFichiersCommande } from "./commande-client";
 import { appliquerLectureCommande, confirmerEcartCommande, type LectureCommande } from "../../commande-client-actions";
 import { fichiersCommandeClient } from "@/lib/devis/commande-client";
+import { remiseActive, remiseDuDevis } from "@/lib/devis/pricing";
 
 type Devis = Tables<"devis">;
 type Mode = "choix" | "commander";
@@ -38,6 +39,7 @@ export function StatutDevisForm({
   deplacementsExecutes,
   isAdmin,
   nbCreneaux,
+  revisions,
 }: {
   devis: Devis;
   site: { nom: string; site: string } | null;
@@ -50,6 +52,7 @@ export function StatutDevisForm({
   deplacementsExecutes: number;
   isAdmin: boolean;
   nbCreneaux: number;
+  revisions: { id: string; numero: string; date: string; revisePar: string }[];
 }) {
   const router = useRouter();
   const [modification, setModification] = useState(false);
@@ -149,6 +152,14 @@ export function StatutDevisForm({
     ["Nature", devis.nature ? labelNatureDevis(devis.nature) : ""],
     ["Date devis", devis.date_devis],
     ["Montant", devis.montant !== null ? eur(devis.montant) : ""],
+    [
+      "Remise exceptionnelle",
+      !remiseActive(remiseDuDevis(devis))
+        ? ""
+        : devis.remise_type === "pct"
+          ? `${String(devis.remise_valeur).replace(".", ",")} %`
+          : eur(devis.remise_valeur ?? 0),
+    ],
     ["Heures prévues", devis.heures_prevues !== null ? String(devis.heures_prevues) : ""],
     ["Débours matériel prévu", devis.debours_materiel_prevu !== null ? eur(devis.debours_materiel_prevu) : ""],
     ["Date commande client", devis.date_commande_client],
@@ -267,6 +278,24 @@ export function StatutDevisForm({
             <Send className="h-4 w-4" strokeWidth={2} />
             {envoi ? "Envoi..." : devis.envoyee_le ? "Renvoyer au client" : "Envoyer au client"}
           </button>
+          {isAdmin && !devis.numero && (
+            <Link
+              href={`/devis/nouveau?brouillonId=${devis.id}`}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600"
+            >
+              <Pencil className="h-4 w-4" strokeWidth={2} />
+              Reprendre et créer le devis
+            </Link>
+          )}
+          {isAdmin && devis.numero && !devis.date_commande_client && !devis.annule && (
+            <Link
+              href={`/devis/nouveau?reviserId=${devis.id}`}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              <History className="h-4 w-4" strokeWidth={2} />
+              Réviser
+            </Link>
+          )}
           {isAdmin && (
             <button
               onClick={() => setModification(true)}
@@ -281,6 +310,30 @@ export function StatutDevisForm({
           <p className="mt-2 text-xs text-brand-green-dark">Envoyé au client le {devis.envoyee_le}</p>
         )}
         {erreurEnvoi && <p className="mt-2 text-xs text-red-600">{erreurEnvoi}</p>}
+        {revisions.length > 0 && (
+          <div className="mt-3 border-t border-slate-100 pt-2">
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Versions précédentes</p>
+            <ul className="space-y-0.5 text-sm">
+              {revisions.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-baseline gap-x-2">
+                  <a
+                    href={`/devis/${devis.id}/revisions/${r.id}/pdf`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-slate-700 hover:underline"
+                  >
+                    <FileText className="h-3.5 w-3.5" strokeWidth={2} />
+                    {r.numero}
+                  </a>
+                  <span className="text-xs text-slate-400">
+                    remplacée le {r.date}
+                    {r.revisePar ? ` par ${r.revisePar}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="mb-5 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">

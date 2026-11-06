@@ -52,3 +52,23 @@ export function prochainChrono(numerosExistants: string[], annee: string): numbe
   }
   return max + 1;
 }
+
+/// "" → "A", "A" → "B", ..., "Z" → "AA".
+export function indiceSuivant(indice: string): string {
+  if (!indice) return "A";
+  const lettres = indice.split("");
+  let i = lettres.length - 1;
+  while (i >= 0 && lettres[i] === "Z") {
+    lettres[i] = "A";
+    i--;
+  }
+  if (i < 0) return `A${lettres.join("")}`;
+  lettres[i] = String.fromCharCode(lettres[i].charCodeAt(0) + 1);
+  return lettres.join("");
+}
+
+/// Numéro d'une révision : on garde type, année, chrono, initiales et
+/// affaire, la nature suit les pavés révisés, l'indice vient en dernier.
+export function numeroRevise(numero: string, nature: string, indice: string): string {
+  return [...numero.split("-").slice(0, 6), nature, indice].join("-");
+}

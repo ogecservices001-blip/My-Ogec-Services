@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
-import { creerDevis, enregistrerBrouillonDevis, listerEquipementsDuSite } from "../actions";
+import { creerDevis, enregistrerBrouillonDevis, listerEquipementsDuSite, reviserDevis } from "../actions";
 import {
   ligneDevisVide,
   coutRevientDefaut,
@@ -12,9 +12,15 @@ import {
   prixUniteLigne,
   montantLigneDevis,
   totalHTLignes,
+  montantRemise,
+  remiseActive,
+  remiseVide,
+  libelleRemise,
   type LigneDevis,
   type TypeLigneDevis,
   type CoutRevient,
+  type RemiseDevis,
+  type TypeRemise,
 } from "@/lib/devis/pricing";
 import type { PaveDevis } from "@/lib/devis/paves";
 
@@ -57,7 +63,10 @@ type Brouillon = {
   type: "sous" | "hors";
   paves: PaveDevis[];
   coutRevient: CoutRevient;
+  remise?: RemiseDevis;
 } | null;
+
+type Revision = { indiceSuivant: string; commande: boolean };
 
 /// Pavé en cours de saisie. `cle` et `groupeFiltre` ne sont jamais enregistrés.
 type PaveSaisie = Omit<PaveDevis, "equipementId"> & { cle: number; equipementId: string; groupeFiltre: string };
@@ -85,11 +94,13 @@ export function NouveauDevisForm({
   natures,
   prefill,
   brouillon,
+  revision,
 }: {
   sites: SiteOption[];
   natures: Option[];
   prefill: Prefill;
   brouillon?: Brouillon;
+  revision?: Revision;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -127,6 +138,7 @@ export function NouveauDevisForm({
 
   const [coutRevient, setCoutRevient] = useState<CoutRevient>(brouillon?.coutRevient ?? coutRevientDefaut());
   const [feuilleDeVenteOuverte, setFeuilleDeVenteOuverte] = useState(true);
+  const [remise, setRemise] = useState<RemiseDevis>(brouillon?.remise ?? remiseVide());
 
   function changerType(valeur: "" | "sous" | "hors") {
     setType(valeur);
@@ -171,8 +183,10 @@ export function NouveauDevisForm({
     () => totalHTLignes(lignesValides, prixRevient.coefficientVente, prixRevient.tauxHoraire),
     [lignesValides, prixRevient],
   );
-  const tva = Math.round(totalHT * 0.085 * 100) / 100;
-  const ttc = totalHT + tva;
+  const remiseEuros = montantRemise(totalHT, remise);
+  const totalNet = totalHT - remiseEuros;
+  const tva = Math.round(totalNet * 0.085 * 100) / 100;
+  const ttc = totalNet + tva;
 
   // Déplacement/Encadrement/Garantie S.A.V. (R3) et Encadrement (R4) se
   // calculent tous à partir de la même base (montant des heures +
@@ -208,10 +222,21 @@ export function NouveauDevisForm({
   function finaliser() {
     setErreur(null);
     startTransition(async () => {
+      if (revision && brouillonId) {
+        const res = await reviserDevis(brouillonId, { paves: pavesAEnregistrer(), coutRevient, remise });
+        if (!res.ok) {
+          setErreur(res.erreur);
+          return;
+        }
+        router.push(`/devis/${brouillonId}/statut`);
+        router.refresh();
+        return;
+      }
       const res = await creerDevis({
         siteId,
         paves: pavesAEnregistrer(),
         coutRevient,
+        remise,
         brouillonId: brouillonId ?? undefined,
         signalementBi: prefill?.signalementBi,
       });
@@ -233,6 +258,7 @@ export function NouveauDevisForm({
         siteId,
         paves: pavesAEnregistrer(),
         coutRevient,
+        remise,
         signalementBi: prefill?.signalementBi,
       });
       if (!res.ok) {
@@ -252,10 +278,18 @@ export function NouveauDevisForm({
           {prefill.equipementSignale && ` — signalé sur : ${prefill.equipementSignale}`}
         </p>
       )}
-      {brouillon && (
+      {revision ? (
         <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-          Devis en cours repris — pas encore de numéro officiel tant qu&apos;il n&apos;est pas finalisé.
+          {revision.commande
+            ? "Ce devis est commandé ou annulé : il ne peut plus être révisé."
+            : `Révision du devis — à l'enregistrement il prend l'indice ${revision.indiceSuivant}, la version actuelle reste consultable sur sa fiche.`}
         </p>
+      ) : (
+        brouillon && (
+          <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+            Devis en cours repris — pas encore de numéro officiel tant qu&apos;il n&apos;est pas finalisé.
+          </p>
+        )
       )}
 
       <div className="mb-4 rounded-2xl bg-white p-5 shadow-sm">
@@ -311,6 +345,8 @@ export function NouveauDevisForm({
           onRetirer={() => setPaves((prev) => prev.filter((_, idx) => idx !== i))}
         />
       ))}
+
+      <BlocRemise remise={remise} montant={remiseEuros} onChange={setRemise} />
 
       <button
         type="button"
@@ -416,6 +452,18 @@ export function NouveauDevisForm({
             <span className="text-slate-500">Total HT (lignes)</span>
             <span className="font-medium text-slate-900">{eur(totalHT)}</span>
           </div>
+          {remiseActive(remise) && (
+            <>
+              <div className="flex justify-between">
+                <span className="text-slate-500">{libelleRemise(remise)}</span>
+                <span className="font-medium text-slate-900">{eur(-remiseEuros)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Total HT net</span>
+                <span className="font-medium text-slate-900">{eur(totalNet)}</span>
+              </div>
+            </>
+          )}
           <div className="flex justify-between">
             <span className="text-slate-500">TVA (8,5%)</span>
             <span className="font-medium text-slate-900">{eur(tva)}</span>
@@ -439,23 +487,28 @@ export function NouveauDevisForm({
       )}
 
       <div className="flex flex-wrap justify-end gap-2 pb-8">
-        <Link href="/devis" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+        <Link
+          href={revision && brouillonId ? `/devis/${brouillonId}/statut` : "/devis"}
+          className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+        >
           Annuler
         </Link>
-        <button
-          onClick={enregistrerBrouillon}
-          disabled={!siteId || enregistrementBrouillon}
-          title="Enregistre même si des informations manquent, pour reprendre plus tard"
-          className="rounded-xl border border-amber-300 bg-white px-5 py-2 text-sm font-semibold text-amber-700 shadow-sm transition hover:bg-amber-50 disabled:opacity-60"
-        >
-          {enregistrementBrouillon ? "Enregistrement..." : "Enregistrer"}
-        </button>
+        {!revision && (
+          <button
+            onClick={enregistrerBrouillon}
+            disabled={!siteId || enregistrementBrouillon}
+            title="Enregistre même si des informations manquent, pour reprendre plus tard"
+            className="rounded-xl border border-amber-300 bg-white px-5 py-2 text-sm font-semibold text-amber-700 shadow-sm transition hover:bg-amber-50 disabled:opacity-60"
+          >
+            {enregistrementBrouillon ? "Enregistrement..." : "Enregistrer"}
+          </button>
+        )}
         <button
           onClick={finaliser}
-          disabled={!complet || pending}
+          disabled={!complet || pending || Boolean(revision?.commande)}
           className="rounded-xl bg-brand-green px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
         >
-          {pending ? "Enregistrement..." : "Créer le devis"}
+          {pending ? "Enregistrement..." : revision ? `Enregistrer la révision ${revision.indiceSuivant}` : "Créer le devis"}
         </button>
       </div>
     </div>
@@ -668,6 +721,62 @@ function BlocPave({
           <p className="mt-3 text-right text-sm font-semibold text-slate-900">Sous-total HT : {eur(sousTotal)}</p>
         )}
       </div>
+    </div>
+  );
+}
+
+function BlocRemise({
+  remise,
+  montant,
+  onChange,
+}: {
+  remise: RemiseDevis;
+  montant: number;
+  onChange: (remise: RemiseDevis) => void;
+}) {
+  const activee = remise.type !== "";
+  return (
+    <div className="mb-4 rounded-2xl bg-white p-5 shadow-sm">
+      <label className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+        <input
+          type="checkbox"
+          checked={activee}
+          onChange={(e) => onChange(e.target.checked ? { type: "pct", valeur: "" } : remiseVide())}
+          className="h-4 w-4 accent-brand-green"
+        />
+        Remise commerciale exceptionnelle
+      </label>
+      {activee && (
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
+            {(["pct", "eur"] as TypeRemise[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => onChange({ type: t, valeur: "" })}
+                className={`rounded-md px-3 py-1 text-sm font-semibold transition ${
+                  remise.type === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {t === "pct" ? "En %" : "En €"}
+              </button>
+            ))}
+          </div>
+          <div className="w-36">
+            <label className={ETIQUETTE}>{remise.type === "pct" ? "Remise (%)" : "Remise (€ HT)"}</label>
+            <input
+              value={remise.valeur}
+              onChange={(e) => onChange({ ...remise, valeur: e.target.value })}
+              inputMode="decimal"
+              placeholder="0"
+              className={CHAMP_SM}
+            />
+          </div>
+          <p className="pb-1.5 text-sm text-slate-600">
+            Soit <span className="font-semibold text-slate-900">{eur(-montant)}</span> HT
+          </p>
+        </div>
+      )}
     </div>
   );
 }

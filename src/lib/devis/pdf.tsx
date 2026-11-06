@@ -4,7 +4,17 @@ import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@
 import { PDFDocument } from "pdf-lib";
 import type { Tables } from "@/lib/types";
 import { OGEC, ATTESTATION_CAPACITE } from "../commandes-fournisseur/constants";
-import { calculerPrixRevient, prixUniteLigne, montantLigneDevis, type LigneDevis, type CoutRevient } from "./pricing";
+import {
+  calculerPrixRevient,
+  prixUniteLigne,
+  montantLigneDevis,
+  remiseDuDevis,
+  remiseActive,
+  montantRemise,
+  libelleRemise,
+  type LigneDevis,
+  type CoutRevient,
+} from "./pricing";
 import { pavesDuDevis } from "./paves";
 
 type Devis = Tables<"devis">;
@@ -13,6 +23,7 @@ const NOIR = "#000000";
 const TRAIT_FIN = 0.5;
 const TRAIT_EPAIS = 1.2;
 const HAUTEUR_MIN_CORPS = 470;
+const HAUTEUR_LIGNE_TOTAL = 19;
 
 const MENTION_LEGALE =
   `La société OGEC SERVICES est titulaire de l'autorisation préfectorale n°${ATTESTATION_CAPACITE.numero}-R2, ` +
@@ -89,7 +100,7 @@ const styles = StyleSheet.create({
   piedDisponible: { fontSize: 8, fontFamily: "Times-Bold" },
   piedValidite: { fontSize: 10, fontFamily: "Times-Bold", textDecoration: "underline" },
   totauxBox: { width: 230 },
-  totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", minHeight: 19 },
+  totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", minHeight: HAUTEUR_LIGNE_TOTAL },
   totalLabel: { fontSize: 11, fontFamily: "Helvetica" },
   totalValeur: { fontSize: 10, fontFamily: "Helvetica-Bold", textAlign: "right" },
   mentionLegale: {
@@ -148,8 +159,12 @@ function DevisDocument({
   const montantDe = (l: LigneDevis) => montantLigneDevis(l, prixRevient.coefficientVente, prixRevient.tauxHoraire);
 
   const totalHT = lignesValides.reduce((s, l) => s + (montantDe(l) ?? 0), 0);
-  const tva = Math.round(totalHT * 0.085 * 100) / 100;
-  const ttc = totalHT + tva;
+  const remise = remiseDuDevis(devis);
+  const avecRemise = remiseActive(remise);
+  const remiseEuros = montantRemise(totalHT, remise);
+  const totalNet = totalHT - remiseEuros;
+  const tva = Math.round(totalNet * 0.085 * 100) / 100;
+  const ttc = totalNet + tva;
 
   const nomsEquipements = paves.map((p) => p.equipementNom).filter(Boolean).join(", ");
   const libelleDevis = plusieursPaves ? nomsEquipements || "Plusieurs équipements" : devis.libelle;
@@ -193,7 +208,7 @@ function DevisDocument({
           <Text style={[styles.tdPu, styles.thText]}>Prix U. H.T</Text>
           <Text style={[styles.tdMontant, styles.thText]}>Prix Total H.T</Text>
         </View>
-        <View style={styles.corps}>
+        <View style={avecRemise ? { minHeight: HAUTEUR_MIN_CORPS - 2 * HAUTEUR_LIGNE_TOTAL } : styles.corps}>
           {paves.map((pave, p) => (
             <View key={p}>
               {plusieursPaves && (
@@ -257,6 +272,18 @@ function DevisDocument({
                 <Text style={styles.totalLabel}>Travaux Total H.T.</Text>
                 <Text style={styles.totalValeur}>{eur(totalHT)}</Text>
               </View>
+              {avecRemise && (
+                <>
+                  <View style={styles.totalRow}>
+                    <Text style={[styles.totalLabel, { fontSize: 9 }]}>{libelleRemise(remise)}</Text>
+                    <Text style={styles.totalValeur}>-{eur(remiseEuros)}</Text>
+                  </View>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Total H.T. net</Text>
+                    <Text style={styles.totalValeur}>{eur(totalNet)}</Text>
+                  </View>
+                </>
+              )}
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Tva 8,5%</Text>
                 <Text style={styles.totalValeur}>{eur(tva)}</Text>

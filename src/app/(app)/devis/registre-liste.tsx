@@ -27,7 +27,15 @@ export function eur(v: number): string {
 /// coup d'œil, le reste (rédacteur, affaire, pôle) alourdit la colonne
 /// sans apporter d'info utile dans ce tableau.
 export function numeroCourt(numero: string): string {
-  return numero.split("-").slice(0, 3).join("-");
+  const parties = numero.split("-");
+  const indice = parties[7];
+  return parties.slice(0, 3).join("-") + (indice ? ` ind. ${indice}` : "");
+}
+
+/// Un brouillon (sans numéro) s'ouvre dans le formulaire de reprise, qui seul
+/// permet de le finaliser.
+function lienDevis(d: DevisRegistreLigne): string {
+  return d.numero ? `/devis/${d.id}/statut` : `/devis/nouveau?brouillonId=${d.id}`;
 }
 
 const TEINTE_STATUT = (d: DevisRegistreLigne) => TEINTE_STATUT_DEVIS[calculerStatutDevis(d)];
@@ -55,11 +63,13 @@ export function TableauRegistreDevis({ lignes, isAdmin }: { lignes: DevisRegistr
       ]}
       lignes={lignes.map((d) => [
         d.numero ? (
-          <Link key="numero" href={`/devis/${d.id}/statut`} className="font-semibold text-slate-900 hover:underline">
+          <Link key="numero" href={lienDevis(d)} className="font-semibold text-slate-900 hover:underline">
             {numeroCourt(d.numero)}
           </Link>
         ) : (
-          "—"
+          <Link key="numero" href={lienDevis(d)} className="font-semibold text-amber-700 hover:underline">
+            Reprendre
+          </Link>
         ),
         d.clientNom,
         d.clientSite,
@@ -71,7 +81,7 @@ export function TableauRegistreDevis({ lignes, isAdmin }: { lignes: DevisRegistr
         isAdmin ? (
           <Link
             key="statut"
-            href={`/devis/${d.id}/statut`}
+            href={lienDevis(d)}
             className={`rounded-full px-2 py-0.5 text-[11px] font-bold transition hover:opacity-75 ${TEINTE_STATUT(d)}`}
           >
             {LABEL_STATUT(d)}

@@ -199,3 +199,37 @@ export function montantLigneDevis(ligne: LigneDevis, coefficient: number, tauxHo
 export function totalHTLignes(lignes: LigneDevis[], coefficient: number, tauxHoraire: number): number {
   return lignes.reduce((s, l) => s + (montantLigneDevis(l, coefficient, tauxHoraire) ?? 0), 0);
 }
+
+/// Remise commerciale exceptionnelle sur le devis entier, appliquée après
+/// la Feuille de vente : "" = pas de remise.
+export type TypeRemise = "" | "pct" | "eur";
+export type RemiseDevis = { type: TypeRemise; valeur: string };
+
+export function remiseVide(): RemiseDevis {
+  return { type: "", valeur: "" };
+}
+
+export function remiseDuDevis(devis: { remise_type: string; remise_valeur: number | null }): RemiseDevis {
+  const type = devis.remise_type === "pct" || devis.remise_type === "eur" ? devis.remise_type : "";
+  return { type, valeur: type && devis.remise_valeur !== null ? String(devis.remise_valeur).replace(".", ",") : "" };
+}
+
+export function remiseActive(remise: RemiseDevis): boolean {
+  return remise.type !== "" && n(remise.valeur) > 0;
+}
+
+export function montantRemise(totalHT: number, remise: RemiseDevis): number {
+  if (!remiseActive(remise)) return 0;
+  const brut = remise.type === "pct" ? (totalHT * n(remise.valeur)) / 100 : n(remise.valeur);
+  return Math.round(Math.min(brut, totalHT) * 100) / 100;
+}
+
+export function libelleRemise(remise: RemiseDevis): string {
+  const valeur = n(remise.valeur).toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+  return remise.type === "pct" ? `Remise commerciale exceptionnelle (${valeur} %)` : "Remise commerciale exceptionnelle";
+}
+
+export function colonnesRemise(remise: RemiseDevis): { remise_type: TypeRemise; remise_valeur: number | null } {
+  return remiseActive(remise) ? { remise_type: remise.type, remise_valeur: n(remise.valeur) } : { remise_type: "", remise_valeur: null };
+}
+

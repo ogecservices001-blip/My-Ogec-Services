@@ -730,6 +730,7 @@ export type Database = {
           montant_commande: number | null
           equipement_id: string | null
           heures_prevues: number | null
+          indice_revision: string
           id: string
           item: string
           legacy_id: string | null
@@ -744,6 +745,8 @@ export type Database = {
           paves: Json
           reference_client: string
           remarques: string
+          remise_type: string
+          remise_valeur: number | null
           signalement_bi: string
           site_id: string
           statut_commande_fournisseur: string
@@ -766,6 +769,7 @@ export type Database = {
           montant_commande?: number | null
           equipement_id?: string | null
           heures_prevues?: number | null
+          indice_revision?: string
           id?: string
           item?: string
           legacy_id?: string | null
@@ -780,6 +784,8 @@ export type Database = {
           paves?: Json
           reference_client?: string
           remarques?: string
+          remise_type?: string
+          remise_valeur?: number | null
           signalement_bi?: string
           site_id: string
           statut_commande_fournisseur?: string
@@ -802,6 +808,7 @@ export type Database = {
           montant_commande?: number | null
           equipement_id?: string | null
           heures_prevues?: number | null
+          indice_revision?: string
           id?: string
           item?: string
           legacy_id?: string | null
@@ -816,6 +823,8 @@ export type Database = {
           paves?: Json
           reference_client?: string
           remarques?: string
+          remise_type?: string
+          remise_valeur?: number | null
           signalement_bi?: string
           site_id?: string
           statut_commande_fournisseur?: string
@@ -841,6 +850,44 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devis_revisions: {
+        Row: {
+          created_at: string
+          devis_id: string
+          donnees: Json
+          id: string
+          indice: string
+          numero: string
+          revise_par: string
+        }
+        Insert: {
+          created_at?: string
+          devis_id: string
+          donnees: Json
+          id?: string
+          indice?: string
+          numero: string
+          revise_par?: string
+        }
+        Update: {
+          created_at?: string
+          devis_id?: string
+          donnees?: Json
+          id?: string
+          indice?: string
+          numero?: string
+          revise_par?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_revisions_devis_id_fkey"
+            columns: ["devis_id"]
+            isOneToOne: false
+            referencedRelation: "devis"
             referencedColumns: ["id"]
           },
         ]

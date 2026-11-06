@@ -76,7 +76,7 @@ export function CommandeDetail({
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <Link
         href="/commandes-fournisseur"
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
@@ -121,7 +121,8 @@ export function CommandeDetail({
       )}
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}
 
-      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div className="mb-4 grid items-start gap-4 lg:grid-cols-2">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <p className="border-b border-slate-100 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-400">
           Fournisseur
         </p>
@@ -142,40 +143,7 @@ export function CommandeDetail({
         </div>
       </div>
 
-      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-        <p className="border-b border-slate-100 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-400">
-          Articles
-        </p>
-        <div className="divide-y divide-slate-50">
-          {lignes.map((l, i) => (
-            <div key={i} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
-              <span className="min-w-0 flex-1 truncate">{l.designation}</span>
-              <span className="shrink-0 text-slate-400">×{l.quantite}</span>
-              <span className="shrink-0 text-slate-500">{l.prix_unitaire ? `${l.prix_unitaire} €` : ""}</span>
-              {l.remise && <span className="shrink-0 text-slate-400">-{l.remise}%</span>}
-              <span className="shrink-0 font-medium text-slate-700">
-                {montantLigne(l) !== null ? eur(montantLigne(l)!) : ""}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="space-y-0.5 border-t border-slate-100 px-4 py-3 text-sm">
-          <div className="flex justify-between text-slate-500">
-            <span>Total HT</span>
-            <span>{eur(totaux.ht)}</span>
-          </div>
-          <div className="flex justify-between text-slate-500">
-            <span>{commande.tva_non_applicable ? "TVA non applicable" : `TVA (${commande.taux_tva}%)`}</span>
-            <span>{commande.tva_non_applicable ? "—" : eur(totaux.tva)}</span>
-          </div>
-          <div className="flex justify-between font-bold text-slate-900">
-            <span>{commande.tva_non_applicable ? "Total net HT" : "Total TTC"}</span>
-            <span>{eur(totaux.ttc)}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
         <h2 className="mb-3 text-sm font-bold text-slate-900">Suivi</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -224,6 +192,74 @@ export function CommandeDetail({
           >
             {pending ? "Enregistrement..." : "Enregistrer le suivi"}
           </button>
+        </div>
+      </div>
+      </div>
+
+      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <p className="border-b border-slate-100 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-400">
+          Articles
+        </p>
+        <div className="hidden md:block">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 text-left text-xs font-semibold text-slate-500">
+                <th className="w-[14%] px-4 py-2">Code</th>
+                <th className="px-4 py-2">Désignation</th>
+                <th className="w-[7%] px-4 py-2 text-right">Qté</th>
+                <th className="w-[11%] px-4 py-2 text-right">Prix unitaire</th>
+                <th className="w-[8%] px-4 py-2 text-right">Remise</th>
+                <th className="w-[11%] px-4 py-2 text-right">Montant</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {lignes.map((l, i) => (
+                <tr key={i} className="align-top">
+                  <td className="px-4 py-2 text-slate-500">{l.code}</td>
+                  <td className="px-4 py-2 text-slate-800">{l.designation}</td>
+                  <td className="px-4 py-2 text-right text-slate-600">{l.quantite}</td>
+                  <td className="px-4 py-2 text-right text-slate-600">{l.prix_unitaire ? `${l.prix_unitaire} €` : ""}</td>
+                  <td className="px-4 py-2 text-right text-slate-500">{l.remise ? `${l.remise} %` : ""}</td>
+                  <td className="px-4 py-2 text-right font-medium text-slate-700">
+                    {montantLigne(l) !== null ? eur(montantLigne(l)!) : ""}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="divide-y divide-slate-50 md:hidden">
+          {lignes.map((l, i) => (
+            <div key={i} className="px-4 py-2 text-sm">
+              <p className="text-slate-800">{l.code ? <span className="text-slate-400">{l.code} · </span> : null}{l.designation}</p>
+              <p className="mt-0.5 flex justify-end gap-3 text-slate-500">
+                <span>×{l.quantite}</span>
+                {l.prix_unitaire && <span>{l.prix_unitaire} €</span>}
+                {l.remise && <span>-{l.remise}%</span>}
+                <span className="font-medium text-slate-700">{montantLigne(l) !== null ? eur(montantLigne(l)!) : ""}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end border-t border-slate-100 px-4 py-3 text-sm">
+          <div className="w-full space-y-0.5 md:w-80">
+            <div className="flex justify-between text-slate-500">
+              <span>Total HT</span>
+              <span>{eur(totaux.ht)}</span>
+            </div>
+            <div className="flex justify-between text-slate-500">
+              <span>{commande.tva_non_applicable ? "TVA non applicable" : `TVA (${commande.taux_tva}%)`}</span>
+              <span>{commande.tva_non_applicable ? "—" : eur(totaux.tva)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-slate-900">
+              <span>{commande.tva_non_applicable ? "Total net HT" : "Total TTC"}</span>
+              <span>{eur(totaux.ttc)}</span>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-slate-100 px-4 py-3 text-sm">
+          <p className="mb-0.5 text-xs font-bold uppercase tracking-wide text-slate-400">Adresse de livraison</p>
+          <p className="text-slate-700">{commande.adresse_livraison || "—"}</p>
         </div>
       </div>
     </div>

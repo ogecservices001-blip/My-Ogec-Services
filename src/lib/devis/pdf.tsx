@@ -308,17 +308,36 @@ async function chargerCgv(): Promise<Buffer | null> {
 /// Devis généré par @react-pdf/renderer, puis les pages des CGV (PDF
 /// à part, voir public/cgv-devis.pdf) ajoutées à la suite via pdf-lib
 /// — @react-pdf ne sait pas inclure un PDF existant tel quel.
-export async function genererPdfDevis(params: { devis: Devis; site: { nom: string; site: string } | null }): Promise<Buffer> {
+/// Devis facturable : ses BI réalisés s'insèrent entre le devis et les CGV,
+/// et toutes leurs photos vont à la toute fin du document.
+export type AnnexeBi = { bi: Buffer; avecPhotos: Buffer | null };
+
+async function ajouterPages(document: PDFDocument, source: Buffer, aPartirDe = 0) {
+  const pdf = await PDFDocument.load(source);
+  const indices = pdf.getPageIndices().slice(aPartirDe);
+  for (const page of await document.copyPages(pdf, indices)) document.addPage(page);
+}
+
+export async function genererPdfDevis(params: {
+  devis: Devis;
+  site: { nom: string; site: string } | null;
+  bonsIntervention?: AnnexeBi[];
+}): Promise<Buffer> {
   const logo = await chargerLogo();
-  const devisBytes = await renderToBuffer(<DevisDocument {...params} logo={logo} />);
+  const devisBytes = await renderToBuffer(<DevisDocument devis={params.devis} site={params.site} logo={logo} />);
+  const bons = params.bonsIntervention ?? [];
 
   const cgvBytes = await chargerCgv();
-  if (!cgvBytes) return devisBytes;
+  if (!cgvBytes && bons.length === 0) return devisBytes;
 
   const document = await PDFDocument.load(devisBytes);
-  const cgv = await PDFDocument.load(cgvBytes);
-  const pagesCgv = await document.copyPages(cgv, cgv.getPageIndices());
-  for (const page of pagesCgv) document.addPage(page);
+  for (const b of bons) await ajouterPages(document, b.bi);
+  if (cgvBytes) await ajouterPages(document, cgvBytes);
+  for (const b of bons) {
+    if (!b.avecPhotos) continue;
+    const pagesBi = (await PDFDocument.load(b.bi)).getPageCount();
+    await ajouterPages(document, b.avecPhotos, pagesBi);
+  }
 
   return Buffer.from(await document.save());
 }

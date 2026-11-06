@@ -25,11 +25,8 @@ function dossierArchive(bon: Bon): string {
 /// rechercher les octets des photos dans le bucket `bi-photos` — même
 /// principe que l'original Flutter ("rien n'est stocké, tout est
 /// régénéré à la consultation").
-export async function genererPdfAvecPhotos(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: SupabaseClient<any>,
-  bon: Bon,
-): Promise<Buffer> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function chargerPhotos(supabase: SupabaseClient<any>, bon: Bon): Promise<PhotoAnnexe[]> {
   const photosBrutes = bon.photos as unknown as { type: string; storage_path: string; horodatage: string }[];
   const photos: PhotoAnnexe[] = [];
   for (const p of photosBrutes.slice(0, 4)) {
@@ -38,7 +35,27 @@ export async function genererPdfAvecPhotos(
     if (!data) continue;
     photos.push({ type: p.type, legende: "", horodatage: p.horodatage, bytes: Buffer.from(await data.arrayBuffer()) });
   }
-  return genererPdfBI(bon, photos);
+  return photos;
+}
+
+export async function genererPdfAvecPhotos(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any>,
+  bon: Bon,
+): Promise<Buffer> {
+  return genererPdfBI(bon, await chargerPhotos(supabase, bon));
+}
+
+/// Le BI seul et, à part, ses pages de photos : le PDF d'un devis
+/// facturable place toutes les photos à la fin du document.
+export async function genererPdfBiEtPhotos(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any>,
+  bon: Bon,
+): Promise<{ bi: Buffer; avecPhotos: Buffer | null }> {
+  const photos = await chargerPhotos(supabase, bon);
+  const bi = await genererPdfBI(bon, []);
+  return { bi, avecPhotos: photos.length > 0 ? await genererPdfBI(bon, photos) : null };
 }
 
 /// Génère le PDF et l'archive dans Storage si ce n'est pas déjà fait —

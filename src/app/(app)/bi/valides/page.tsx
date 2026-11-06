@@ -1,6 +1,6 @@
 import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Statuts, sansTempsPasse } from "@/lib/bi/constants";
+import { Statuts, prixDuDevis } from "@/lib/bi/constants";
 import { montantMainDoeuvre, montantDeplacements, totalHT, type Presta } from "@/lib/bi/format";
 import { BonsValidesTableau } from "./bons-valides";
 
@@ -27,13 +27,13 @@ export default async function BiValidesPage() {
 
   // Pôles sur forfait (prestations sur devis) : le montant est celui du
   // devis lié, pas un calcul à l'heure qui n'a pas de sens pour eux.
-  const devisIds = [...new Set((bons ?? []).filter((b) => sansTempsPasse(b.pole) && b.devis_id).map((b) => b.devis_id as string))];
+  const devisIds = [...new Set((bons ?? []).filter((b) => prixDuDevis(b.pole) && b.devis_id).map((b) => b.devis_id as string))];
   const { data: devisLies } = devisIds.length > 0 ? await supabase.from("devis").select("id, montant").in("id", devisIds) : { data: [] };
   const montantDevisParId = new Map((devisLies ?? []).map((d) => [d.id, d.montant ?? 0]));
 
   const lignes = (bons ?? []).map((b) => {
     const taux = b.site_id ? (tauxParSite.get(b.site_id) ?? null) : null;
-    const forfait = sansTempsPasse(b.pole);
+    const forfait = prixDuDevis(b.pole);
     const montantHeures = forfait ? 0 : (montantMainDoeuvre(b.temps_passe, taux) ?? 0);
     const montantDepl = forfait ? 0 : (montantDeplacements(b.nombre_deplacements, taux) ?? 0);
     const prestas = [

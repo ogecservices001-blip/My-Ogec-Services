@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { FilAjouter } from "@/components/fil-extra-context";
-import { Statuts, labelPole, sansTempsPasse } from "@/lib/bi/constants";
+import { Statuts, labelPole, prixDuDevis } from "@/lib/bi/constants";
 import { montantMainDoeuvre, montantDeplacements, totalHT, eur, type Presta, type TauxSite } from "@/lib/bi/format";
 import { formaterDate } from "@/lib/format";
 import type { Site } from "@/lib/types";
@@ -62,13 +62,13 @@ export default async function BonInterventionGroupeClientPage({
       : { data: [] };
   const lignes = bonsData ?? [];
 
-  const devisIds = [...new Set(lignes.filter((b) => sansTempsPasse(b.pole) && b.devis_id).map((b) => b.devis_id as string))];
+  const devisIds = [...new Set(lignes.filter((b) => prixDuDevis(b.pole) && b.devis_id).map((b) => b.devis_id as string))];
   const { data: devisLies } = devisIds.length > 0 ? await supabase.from("devis").select("id, montant").in("id", devisIds) : { data: [] };
   const montantDevisParId = new Map((devisLies ?? []).map((d) => [d.id, d.montant ?? 0]));
 
   function montant(b: (typeof lignes)[number]): number {
     const taux: TauxSite = b.site_id ? (siteParId.get(b.site_id) ?? null) : null;
-    const forfait = sansTempsPasse(b.pole);
+    const forfait = prixDuDevis(b.pole);
     const montantHeures = forfait ? 0 : (montantMainDoeuvre(b.temps_passe, taux) ?? 0);
     const montantDepl = forfait ? 0 : (montantDeplacements(b.nombre_deplacements, taux) ?? 0);
     const prestas = [

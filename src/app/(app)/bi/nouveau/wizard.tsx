@@ -20,7 +20,7 @@ import {
   avecEquipementLibre,
   avecNouvelEquipement,
   avecTempsLibre,
-  sansTempsPasse,
+  prixDuDevis,
   avecFournitureMateriel,
   CHAMPS_MATERIEL_EXCLUS_BI,
   CHAMPS_MATERIEL_FACULTATIFS_BI,
@@ -488,6 +488,7 @@ export function BiWizard({
   // Devis à plusieurs natures : une page par pavé, chacune avec son type.
   const pagesDevis = devisCourant ? pagesDuDevis(devisCourant) : null;
   const modePages = pagesDevis !== null;
+  const poleBi = modePages ? NATURE_MULTIPLE : pole;
   const indexPage = interventionsSupplementaires.length;
   const pageSuivante = pagesDevis?.[indexPage + 1] ?? null;
   const equipementsDuDevis = devisCourant && !modePages
@@ -830,11 +831,7 @@ export function BiWizard({
       date_debut: dateDebut,
       date_fin: dateFin,
       date_intervention: dateIntervention,
-      temps_passe: sansTempsPasse(pole)
-        ? ""
-        : avecTempsLibre(pole)
-          ? multiplierDuree(tempsPasse.trim(), techniciens.length)
-          : tempsPasse.trim(),
+      temps_passe: avecTempsLibre(pole) ? multiplierDuree(tempsPasse.trim(), techniciens.length) : tempsPasse.trim(),
       techniciens,
       technicien_signataire: nomUtilisateur,
       compte_rendu: compteRendu.trim(),
@@ -946,11 +943,11 @@ export function BiWizard({
       setErreur("Ce devis couvre d'autres équipements : renseigne-les tous avant de transmettre le BI.");
       return;
     }
-    if (statut === "averif" && !sansTempsPasse(pole) && tempsPasse.trim() === "") {
+    if (statut === "averif" && tempsPasse.trim() === "") {
       setAlerteHeures(true);
       return;
     }
-    if (statut === "averif" && !sansTempsPasse(pole) && nombreDeplacements === "") {
+    if (statut === "averif" && !prixDuDevis(poleBi) && nombreDeplacements === "") {
       setAlerteDeplacements(true);
       return;
     }
@@ -1709,7 +1706,7 @@ export function BiWizard({
             ) : (
               <>
                 <ChampDate label="Date d'intervention" valeur={dateIntervention} onChange={setDateIntervention} />
-                {!sansTempsPasse(pole) && (
+                {(
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-600">Temps passé</label>
@@ -1730,22 +1727,24 @@ export function BiWizard({
                         </p>
                       )}
                     </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-600">Nombre de déplacements</label>
-                      <input
-                        ref={nombreDeplacementsRef}
-                        type="number"
-                        min={1}
-                        value={nombreDeplacements}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setNombreDeplacements(v === "" ? "" : Math.max(1, parseInt(v, 10) || 1));
-                        }}
-                        className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-violet-600 ${
-                          champEnEvidence === "deplacements" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200"
-                        }`}
-                      />
-                    </div>
+                    {!prixDuDevis(poleBi) && (
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-slate-600">Nombre de déplacements</label>
+                        <input
+                          ref={nombreDeplacementsRef}
+                          type="number"
+                          min={1}
+                          value={nombreDeplacements}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setNombreDeplacements(v === "" ? "" : Math.max(1, parseInt(v, 10) || 1));
+                          }}
+                          className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-violet-600 ${
+                            champEnEvidence === "deplacements" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200"
+                          }`}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </>

@@ -81,15 +81,10 @@ export const avecNouvelEquipement = (code: string) => code === Poles.installatio
 export const avecTempsLibre = (code: string) =>
   code === Poles.reparationEquipement || code === Poles.reparationDiverse || code === Poles.depannage;
 
-/// Pôles liés à un devis où le temps passé n'a pas sa place dans le
-/// bon : déjà couvert par le devis.
-export const sansTempsPasse = (code: string) =>
-  code === Poles.installationNeuve ||
-  code === Poles.remplacementIdentique ||
-  code === Poles.reparationEquipement ||
-  code === Poles.reparationDiverse ||
-  code === Poles.miseADisposition ||
-  code === Poles.livraisonMateriel;
+/// Prestation sur devis (BI à plusieurs pages compris) : le prix est celui
+/// du devis, jamais un calcul en régie. Le temps passé reste saisi pour
+/// suivre les heures réelles, sans montant ni déplacements facturés.
+export const prixDuDevis = (code: string) => code === POLE_PLUSIEURS_TYPES || avecAffaire(code);
 
 /// Dépannage uniquement : fourniture de matériel posé/consommé sur
 /// place (désignation + quantité, jamais de prix).

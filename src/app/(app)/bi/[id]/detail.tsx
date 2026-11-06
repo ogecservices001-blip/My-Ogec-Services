@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Lock, X, FileText, ExternalLink, Mail } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { StatutBadge } from "@/components/bi/statut-badge";
-import { Poles, Statuts, avecPeriode, sansTempsPasse, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI, CLASSEMENT_LABELS, POLE_PLUSIEURS_TYPES } from "@/lib/bi/constants";
+import { Poles, Statuts, avecPeriode, prixDuDevis, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI, CLASSEMENT_LABELS, POLE_PLUSIEURS_TYPES } from "@/lib/bi/constants";
 import {
   equipementLabel,
   eur,
@@ -129,7 +129,7 @@ export function BiDetail({
           <VueLectureSeule bon={bon} typesEquipement={typesEquipement} modele={modele} />
           {isAdmin && (
             <>
-              {!sansTempsPasse(bon.pole) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
+              {!prixDuDevis(bon.pole) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
               <BlocClassement bon={bon} />
             </>
           )}
@@ -279,7 +279,7 @@ function VueLectureSeule({
         ) : (
           <>
             <Ligne label="Date d'intervention" valeur={bon.date_intervention || "—"} />
-            {!sansTempsPasse(bon.pole) && <Ligne label="Temps passé" valeur={bon.temps_passe || "—"} />}
+            <Ligne label="Temps passé" valeur={bon.temps_passe || "—"} />
           </>
         )}
         {bon.pole === Poles.depannage && <Ligne label="Nombre de déplacements" valeur={String(bon.nombre_deplacements)} />}
@@ -757,7 +757,7 @@ function VueCorrection({
               </span>
             ))}
           </div>
-          {!sansTempsPasse(pole) && (
+          {(
             <select
               value=""
               onChange={(e) => e.target.value && setTechniciens((prev) => [...prev, e.target.value])}
@@ -783,7 +783,7 @@ function VueCorrection({
         ) : (
           <div className="grid grid-cols-2 gap-2">
             <Champ label="Date d'intervention" valeur={dateIntervention} onChange={setDateIntervention} />
-            {!sansTempsPasse(pole) && <Champ label="Temps passé" valeur={tempsPasse} onChange={setTempsPasse} />}
+            <Champ label="Temps passé" valeur={tempsPasse} onChange={setTempsPasse} />
           </div>
         )}
 
@@ -901,7 +901,7 @@ function VueCorrection({
         })}
 
         <BlocClassement bon={bon} onChange={setClassementActuel} onMoisChange={setMoisActuel} />
-        {classementActuel === "facturer" && !sansTempsPasse(pole) && (
+        {classementActuel === "facturer" && !prixDuDevis(pole) && (
           <BlocMainDoeuvreDeplacement tempsPasse={tempsPasse} nombreDeplacements={nombreDeplacements} tauxSite={tauxSite} />
         )}
         {classementActuel === "" && (

@@ -32,7 +32,7 @@ export type Module = {
 /// encore enregistré en ticket, via "Dépannage" ici. Le bureau (admin)
 /// ne crée jamais de BI lui-même : "Dépannage" et "Entretien sous
 /// contrat" ne lui sont pas montrés, seul "Tous les bons" (vérification)
-/// et "Référentiel BI" (modèles par pôle) le sont.
+/// l'est.
 ///
 /// Même source utilisée par la sidebar et par le menu guidé du
 /// Signalement retour terrain (Niveaux 2/3) — pour que le choix
@@ -184,17 +184,6 @@ export function construireModules(isAdmin: boolean): Module[] {
               { nom: "Référentiel Heures", href: "/gmao/referentiel/heures" },
               { nom: "Référentiel Gammes de maintenance", href: "/gmao/referentiel/familles" },
             ],
-          },
-        ]
-      : []),
-    ...(isAdmin
-      ? [
-          {
-            nom: "Référentiel BI",
-            actif: true,
-            icone: ClipboardList,
-            couleur: "bg-violet-100 text-violet-600",
-            sousMenus: [{ nom: "Modèles par pôle", href: "/bi/referentiel" }],
           },
         ]
       : []),

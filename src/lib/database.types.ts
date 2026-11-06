@@ -713,6 +713,7 @@ export type Database = {
         Row: {
           annule: boolean
           bi_reference_historique: string
+          commande_client: Json
           cout_revient: Json
           created_at: string
           date_commande_client: string
@@ -746,6 +747,7 @@ export type Database = {
         Insert: {
           annule?: boolean
           bi_reference_historique?: string
+          commande_client?: Json
           cout_revient?: Json
           created_at?: string
           date_commande_client?: string
@@ -779,6 +781,7 @@ export type Database = {
         Update: {
           annule?: boolean
           bi_reference_historique?: string
+          commande_client?: Json
           cout_revient?: Json
           created_at?: string
           date_commande_client?: string

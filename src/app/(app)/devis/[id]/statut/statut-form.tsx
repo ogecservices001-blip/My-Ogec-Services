@@ -19,6 +19,8 @@ import { eur } from "../../registre-liste";
 import { formaterDate, dateFrVersIso } from "@/lib/format";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { ModaleDevis } from "./modale-devis";
+import { BlocCommandeClient, ChoixFichiersCommande, envoyerFichiersCommande } from "./commande-client";
+import { fichiersCommandeClient } from "@/lib/devis/commande-client";
 
 type Devis = Tables<"devis">;
 type Mode = "choix" | "commander";
@@ -51,6 +53,7 @@ export function StatutDevisForm({
   const [mode, setMode] = useState<Mode>("choix");
   const [dateCommande, setDateCommande] = useState(devis.date_commande_client);
   const [reference, setReference] = useState(devis.reference_client || "BPA par mail");
+  const [fichiersCommande, setFichiersCommande] = useState<File[]>([]);
   const equipementsEnregistres = [devis.equipement_id, ...devis.equipements_supplementaires].filter(
     (id): id is string => Boolean(id),
   );
@@ -149,6 +152,28 @@ export function StatutDevisForm({
     setErreur(null);
     startTransition(async () => {
       const res = await changerStatutDevis(devis.id, input);
+      if (!res.ok) {
+        setErreur(res.erreur);
+        return;
+      }
+      router.push("/devis");
+      router.refresh();
+    });
+  }
+
+  // La commande du client est envoyée d'abord : si l'envoi échoue, le devis
+  // ne passe pas en commandé et rien n'est perdu.
+  function validerCommande() {
+    setErreur(null);
+    startTransition(async () => {
+      if (fichiersCommande.length > 0) {
+        const envoi = await envoyerFichiersCommande(devis.id, fichiersCommande);
+        if (!envoi.ok) {
+          setErreur(envoi.erreur);
+          return;
+        }
+      }
+      const res = await changerStatutDevis(devis.id, { date_commande_client: dateCommande, reference_client: reference, annule: false });
       if (!res.ok) {
         setErreur(res.erreur);
         return;
@@ -301,6 +326,7 @@ export function StatutDevisForm({
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
           </div>
+          <ChoixFichiersCommande onChange={setFichiersCommande} />
           <div className="flex gap-2">
             <button
               onClick={() => setMode("choix")}
@@ -310,9 +336,7 @@ export function StatutDevisForm({
               Retour
             </button>
             <button
-              onClick={() =>
-                appliquer({ date_commande_client: dateCommande, reference_client: reference, annule: false })
-              }
+              onClick={validerCommande}
               disabled={pending || !dateCommande.trim()}
               className="flex-1 rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
             >
@@ -321,6 +345,8 @@ export function StatutDevisForm({
           </div>
         </div>
       )}
+
+      <BlocCommandeClient devisId={devis.id} fichiers={fichiersCommandeClient(devis.commande_client)} />
 
       <div className="rounded-2xl bg-white p-4 shadow-sm">
         {paves.map((pave, i) => (

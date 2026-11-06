@@ -318,19 +318,48 @@ async function ajouterPages(document: PDFDocument, source: Buffer, aPartirDe = 0
   for (const page of await document.copyPages(pdf, indices)) document.addPage(page);
 }
 
+/// Commande du client jointe au devis : un PDF garde ses pages, une photo
+/// ou un scan occupe une page A4 à lui seul.
+export type AnnexeCommande = { type: string; bytes: Buffer };
+
+async function ajouterCommande(document: PDFDocument, annexe: AnnexeCommande) {
+  if (annexe.type === "application/pdf") {
+    await ajouterPages(document, annexe.bytes);
+    return;
+  }
+  // Copie indispensable : pdf-lib lit l'image depuis le début de son bloc
+  // mémoire, faux pour un Buffer Node qui n'en occupe qu'une partie.
+  const octets = Uint8Array.from(annexe.bytes);
+  const image = annexe.type === "image/png" ? await document.embedPng(octets) : await document.embedJpg(octets);
+  const page = document.addPage([595.28, 841.89]);
+  const marge = 28;
+  const echelle = Math.min((page.getWidth() - 2 * marge) / image.width, (page.getHeight() - 2 * marge) / image.height, 1);
+  const largeur = image.width * echelle;
+  const hauteur = image.height * echelle;
+  page.drawImage(image, {
+    x: (page.getWidth() - largeur) / 2,
+    y: (page.getHeight() - hauteur) / 2,
+    width: largeur,
+    height: hauteur,
+  });
+}
+
 export async function genererPdfDevis(params: {
   devis: Devis;
   site: { nom: string; site: string } | null;
+  commandeClient?: AnnexeCommande[];
   bonsIntervention?: AnnexeBi[];
 }): Promise<Buffer> {
   const logo = await chargerLogo();
   const devisBytes = await renderToBuffer(<DevisDocument devis={params.devis} site={params.site} logo={logo} />);
   const bons = params.bonsIntervention ?? [];
+  const commande = params.commandeClient ?? [];
 
   const cgvBytes = await chargerCgv();
-  if (!cgvBytes && bons.length === 0) return devisBytes;
+  if (!cgvBytes && bons.length === 0 && commande.length === 0) return devisBytes;
 
   const document = await PDFDocument.load(devisBytes);
+  for (const c of commande) await ajouterCommande(document, c);
   for (const b of bons) await ajouterPages(document, b.bi);
   if (cgvBytes) await ajouterPages(document, cgvBytes);
   for (const b of bons) {

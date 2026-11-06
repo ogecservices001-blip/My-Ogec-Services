@@ -21,10 +21,11 @@ export default async function CommandesFournisseurPage() {
   const fournisseurParId = new Map((fournisseurs ?? []).map((f) => [f.id, f.nom]));
 
   const lignes: CommandeResume[] = (commandes ?? []).map((c) => {
-    const d = devisParId.get(c.devis_id);
+    const d = c.devis_id ? devisParId.get(c.devis_id) : undefined;
     const site = d ? siteParId.get(d.site_id) : null;
     return {
       id: c.id,
+      consommables: c.type_commande === "consommables",
       numero: c.numero,
       fournisseurNom: fournisseurParId.get(c.fournisseur_id) ?? "",
       devisNumero: d?.numero ?? "",

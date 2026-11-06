@@ -8,6 +8,7 @@ import { calculerTotaux, eur, type LigneCommande } from "@/lib/commandes-fournis
 
 export type CommandeResume = {
   id: string;
+  consommables: boolean;
   numero: string;
   fournisseurNom: string;
   devisNumero: string;
@@ -29,12 +30,17 @@ const COLONNES: ColonneTableur[] = [
   { titre: "Livré", largeur: "10%" },
 ];
 
+type FiltreType = "" | "affaire" | "consommables";
+
 export function CommandesFournisseurListe({ commandes }: { commandes: CommandeResume[] }) {
   const [recherche, setRecherche] = useState("");
+  const [type, setType] = useState<FiltreType>("");
 
   const filtres = useMemo(
     () =>
       commandes.filter((c) => {
+        if (type === "affaire" && c.consommables) return false;
+        if (type === "consommables" && !c.consommables) return false;
         const cible = recherche.toLowerCase();
         return (
           c.numero.toLowerCase().includes(cible) ||
@@ -42,13 +48,38 @@ export function CommandesFournisseurListe({ commandes }: { commandes: CommandeRe
           c.clientNom.toLowerCase().includes(cible)
         );
       }),
-    [commandes, recherche],
+    [commandes, recherche, type],
   );
+  const totalTtc = filtres.reduce((s, c) => s + calculerTotaux((c.lignes as LigneCommande[]) ?? [], c.tauxTva).ttc, 0);
 
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Commandes fournisseur</h1>
-      <p className="mb-5 text-sm text-slate-500">{filtres.length} commande(s)</p>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">
+          {filtres.length} commande(s) — <span className="font-semibold text-slate-700">{eur(totalTtc)} TTC</span>
+        </p>
+        <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
+          {(
+            [
+              ["", "Toutes"],
+              ["affaire", "Affaires"],
+              ["consommables", "Consommables"],
+            ] as [FiltreType, string][]
+          ).map(([v, l]) => (
+            <button
+              key={v || "toutes"}
+              type="button"
+              onClick={() => setType(v)}
+              className={`rounded-md px-3 py-1 text-sm font-semibold transition ${
+                type === v ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="relative mb-4">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -69,7 +100,7 @@ export function CommandesFournisseurListe({ commandes }: { commandes: CommandeRe
               {c.numero}
             </Link>,
             c.fournisseurNom,
-            [c.devisNumero, c.clientNom].filter(Boolean).join(" — "),
+            c.consommables ? "Consommables" : [c.devisNumero, c.clientNom].filter(Boolean).join(" — "),
             c.dateCommande,
             eur(totaux.ttc),
             c.envoyeeLe ? c.envoyeeLe : "—",

@@ -1,5 +1,6 @@
 "use client";
 
+import { DESTINATION_CONSOMMABLES } from "@/lib/commandes-fournisseur/constants";
 import { useChampManquant } from "@/components/champ-manquant";
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -96,7 +97,10 @@ export function CommandeDetail({
       </Link>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">{commande.numero}</h1>
       <p className="mb-4 text-sm text-slate-500">
-        {fournisseur?.nom} — {[devis?.numero, site?.nom, site?.site].filter(Boolean).join(" — ")}
+        {fournisseur?.nom} —{" "}
+        {commande.type_commande === "consommables"
+          ? `Consommables d'entretien — ${DESTINATION_CONSOMMABLES}`
+          : [devis?.numero, site?.nom, site?.site].filter(Boolean).join(" — ")}
       </p>
 
       <div className="mb-5 flex flex-wrap items-center gap-2">

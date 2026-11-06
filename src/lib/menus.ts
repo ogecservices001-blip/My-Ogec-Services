@@ -159,7 +159,8 @@ export function construireModules(isAdmin: boolean): Module[] {
             icone: ShoppingCart,
             couleur: "bg-orange-100 text-orange-600",
             sousMenus: [
-              { nom: "Créer Une Commande", href: "/commandes-fournisseur/creer" },
+              { nom: "Créer une commande affaire", href: "/commandes-fournisseur/creer" },
+              { nom: "Créer une commande consommables", href: "/commandes-fournisseur/consommables" },
               { nom: "Toutes les commandes", href: "/commandes-fournisseur" },
             ],
           },

@@ -4,7 +4,7 @@ import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@
 import type { Tables } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
 import { formaterDate, telInternational, indicatifTel } from "@/lib/format";
-import { OGEC, ATTESTATION_CAPACITE } from "./constants";
+import { OGEC, ATTESTATION_CAPACITE, DESTINATION_CONSOMMABLES } from "./constants";
 import { type LigneCommande, montantLigne, calculerTotaux, eur } from "./format";
 
 type Commande = Tables<"commandes_fournisseur">;
@@ -106,7 +106,7 @@ function CommandeDocument({
   logo,
 }: {
   commande: Commande;
-  devis: Devis;
+  devis: Devis | null;
   fournisseur: Fournisseur;
   logo: Buffer | null;
 }) {
@@ -130,7 +130,7 @@ function CommandeDocument({
             <Text style={styles.companySub}>Tél. 0262 26 00 86 · ogec.services@orange.fr</Text>
           </View>
           <View style={styles.numeroBox}>
-            <Text style={styles.numeroText}>{commande.numero}</Text>
+            <Text style={styles.numeroText}>{commande.numero.replace("-CONSO-", "-\nCONSO-")}</Text>
           </View>
         </View>
 
@@ -158,8 +158,17 @@ function CommandeDocument({
           <View style={styles.col}>
             <Section styles={styles} titre="COMMANDE" />
             <Kv styles={styles} k="Date" v={commande.date_commande} />
-            <Kv styles={styles} k="Référence devis" v={devis.numero} />
-            <Kv styles={styles} k="Désignation devis" v={devis.libelle} />
+            {devis ? (
+              <>
+                <Kv styles={styles} k="Référence devis" v={devis.numero} />
+                <Kv styles={styles} k="Désignation devis" v={devis.libelle} />
+              </>
+            ) : (
+              <>
+                <Kv styles={styles} k="Objet" v="Consommables d'entretien" />
+                <Kv styles={styles} k="Destination" v={DESTINATION_CONSOMMABLES} />
+              </>
+            )}
             <Kv styles={styles} k="Devis fournisseur n°" v={commande.devis_fournisseur_numero} />
             <Kv styles={styles} k="En date du" v={commande.devis_fournisseur_date} />
             <Kv styles={styles} k="Validité de l'offre" v={commande.validite_offre} />
@@ -239,7 +248,7 @@ async function chargerLogo(): Promise<Buffer | null> {
   return logoCache;
 }
 
-export async function genererPdfCommande(params: { commande: Commande; devis: Devis; fournisseur: Fournisseur }): Promise<Buffer> {
+export async function genererPdfCommande(params: { commande: Commande; devis: Devis | null; fournisseur: Fournisseur }): Promise<Buffer> {
   const logo = await chargerLogo();
   return renderToBuffer(<CommandeDocument {...params} logo={logo} />);
 }

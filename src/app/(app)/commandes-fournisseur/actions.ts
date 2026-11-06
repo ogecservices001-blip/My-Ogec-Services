@@ -6,7 +6,11 @@ import { requireAdmin } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
 import { initialesDe } from "@/lib/devis/numerotation";
-import { piecesDepuisNumeroDevis, formaterNumeroCommande } from "@/lib/commandes-fournisseur/numerotation";
+import {
+  piecesDepuisNumeroDevis,
+  formaterNumeroCommande,
+  formaterNumeroConsommables,
+} from "@/lib/commandes-fournisseur/numerotation";
 import type { LigneCommande } from "@/lib/commandes-fournisseur/format";
 import { genererPdfCommande } from "@/lib/commandes-fournisseur/pdf";
 import { envoyerCommandeFournisseur } from "@/lib/commandes-fournisseur/email";
@@ -16,7 +20,8 @@ const ERREUR_DOUBLON = "23505";
 const ESSAIS_NUMERO = 5;
 
 export type NouvelleCommandeInput = {
-  devisId: string;
+  /// null = commande de consommables pour le stock, sans affaire.
+  devisId: string | null;
   fournisseurId: string;
   interlocuteur: Interlocuteur;
   lignes: LigneCommande[];
@@ -42,10 +47,13 @@ export async function creerCommandeFournisseur(input: NouvelleCommandeInput): Pr
   if (!input.adresseLivraison.trim()) return { ok: false, erreur: "Renseigne l'adresse de livraison." };
 
   const supabase = await createClient();
-  const { data: devis } = await supabase.from("devis").select("numero").eq("id", input.devisId).single();
-  if (!devis) return { ok: false, erreur: "Devis introuvable." };
-  const pieces = piecesDepuisNumeroDevis(devis.numero);
-  if (!pieces) return { ok: false, erreur: "Ce devis n'a pas de numéro exploitable pour numéroter la commande." };
+  let pieces: ReturnType<typeof piecesDepuisNumeroDevis> = null;
+  if (input.devisId) {
+    const { data: devis } = await supabase.from("devis").select("numero").eq("id", input.devisId).single();
+    if (!devis) return { ok: false, erreur: "Devis introuvable." };
+    pieces = piecesDepuisNumeroDevis(devis.numero);
+    if (!pieces) return { ok: false, erreur: "Ce devis n'a pas de numéro exploitable pour numéroter la commande." };
+  }
 
   const { data: fournisseur } = await supabase.from("fournisseurs").select("nom").eq("id", input.fournisseurId).single();
   if (!fournisseur) return { ok: false, erreur: "Fournisseur introuvable." };
@@ -61,21 +69,29 @@ export async function creerCommandeFournisseur(input: NouvelleCommandeInput): Pr
       .order("chrono_fournisseur", { ascending: false })
       .limit(1);
     const chrono = (existantes?.[0]?.chrono_fournisseur ?? 0) + 1 + essai;
-    const numero = formaterNumeroCommande({
-      initiales,
-      annee: pieces.annee,
-      client: pieces.client,
-      site: pieces.site,
-      nature: pieces.nature,
-      initialesFournisseur,
-      chrono,
-    });
+    const numero = pieces
+      ? formaterNumeroCommande({
+          initiales,
+          annee: pieces.annee,
+          client: pieces.client,
+          site: pieces.site,
+          nature: pieces.nature,
+          initialesFournisseur,
+          chrono,
+        })
+      : formaterNumeroConsommables({
+          initiales,
+          annee: String(new Date().getFullYear()).slice(-2),
+          initialesFournisseur,
+          chrono,
+        });
 
     const { data, error } = await supabase
       .from("commandes_fournisseur")
       .insert({
         numero,
         devis_id: input.devisId,
+        type_commande: input.devisId ? "affaire" : "consommables",
         fournisseur_id: input.fournisseurId,
         interlocuteur: input.interlocuteur,
         chrono_fournisseur: chrono,
@@ -97,7 +113,7 @@ export async function creerCommandeFournisseur(input: NouvelleCommandeInput): Pr
       .single();
     if (!error && data) {
       revalidatePath("/commandes-fournisseur");
-      revalidatePath(`/devis/${input.devisId}/statut`);
+      if (input.devisId) revalidatePath(`/devis/${input.devisId}/statut`);
       return { ok: true, id: data.id };
     }
     if (error && error.code !== ERREUR_DOUBLON) return { ok: false, erreur: error.message };
@@ -171,10 +187,12 @@ export async function envoyerCommandeParEmail(id: string): Promise<ActionResult>
   if (!interlocuteur?.email) return { ok: false, erreur: "Aucun email connu pour l'interlocuteur choisi." };
 
   const [{ data: devis }, { data: fournisseur }] = await Promise.all([
-    supabase.from("devis").select("*").eq("id", commande.devis_id).single(),
+    commande.devis_id
+      ? supabase.from("devis").select("*").eq("id", commande.devis_id).single()
+      : Promise.resolve({ data: null }),
     supabase.from("fournisseurs").select("*").eq("id", commande.fournisseur_id).single(),
   ]);
-  if (!devis || !fournisseur) return { ok: false, erreur: "Devis ou fournisseur introuvable." };
+  if ((commande.devis_id && !devis) || !fournisseur) return { ok: false, erreur: "Devis ou fournisseur introuvable." };
 
   const pdfBytes = await genererPdfCommande({ commande, devis, fournisseur });
 

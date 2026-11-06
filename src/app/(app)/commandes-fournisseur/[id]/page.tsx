@@ -12,7 +12,9 @@ export default async function CommandeFournisseurDetailPage({ params }: { params
   if (!commande) notFound();
 
   const [{ data: devis }, { data: fournisseur }] = await Promise.all([
-    supabase.from("devis").select("*").eq("id", commande.devis_id).single(),
+    commande.devis_id
+      ? supabase.from("devis").select("*").eq("id", commande.devis_id).single()
+      : Promise.resolve({ data: null }),
     supabase.from("fournisseurs").select("*").eq("id", commande.fournisseur_id).single(),
   ]);
   const site = devis ? (await supabase.from("sites").select("nom, site").eq("id", devis.site_id).single()).data : null;

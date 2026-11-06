@@ -22,3 +22,9 @@ export function formaterNumeroCommande(p: {
 }): string {
   return `C-${p.initiales}-${p.annee}-OS ${p.client}-${p.site}-${p.nature}-${p.initialesFournisseur}-${String(p.chrono).padStart(3, "0")}`;
 }
+
+/// Commande de consommables pour le stock : pas d'affaire, "CONSO" à la place
+/// ("C-BG-26-CONSO-FRAN-002"), même compteur par fournisseur que les affaires.
+export function formaterNumeroConsommables(p: { initiales: string; annee: string; initialesFournisseur: string; chrono: number }): string {
+  return `C-${p.initiales}-${p.annee}-CONSO-${p.initialesFournisseur}-${String(p.chrono).padStart(3, "0")}`;
+}

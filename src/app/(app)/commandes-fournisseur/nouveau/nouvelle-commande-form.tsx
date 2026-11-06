@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, ScanLine } from "lucide-react";
 import type { Fournisseur } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
-import { INCOTERMS, ADRESSES_LIVRAISON_PRESETS, tauxTvaDefaut } from "@/lib/commandes-fournisseur/constants";
+import {
+  INCOTERMS,
+  ADRESSES_LIVRAISON_PRESETS,
+  ADRESSE_OGEC,
+  DESTINATION_CONSOMMABLES,
+  tauxTvaDefaut,
+} from "@/lib/commandes-fournisseur/constants";
 import { ligneVide, montantLigne, calculerTotaux, totalHT, eur, type LigneCommande } from "@/lib/commandes-fournisseur/format";
 import { creerCommandeFournisseur, analyserDevisFournisseur } from "../actions";
 import { completerFicheFournisseurDepuisDevis } from "@/app/(app)/repertoire/fournisseurs/actions";
@@ -63,7 +69,8 @@ export function NouvelleCommandeForm({
   site,
   fournisseurs,
 }: {
-  devis: { id: string; numero: string; libelle: string };
+  /// null = commande de consommables pour le stock, sans affaire.
+  devis: { id: string; numero: string; libelle: string } | null;
   site: { nom: string; site: string } | null;
   fournisseurs: Fournisseur[];
 }) {
@@ -95,7 +102,7 @@ export function NouvelleCommandeForm({
   const [devisFournisseurDate, setDevisFournisseurDate] = useState("");
   const [validiteOffre, setValiditeOffre] = useState("");
   const [conditionsPaiement, setConditionsPaiement] = useState("");
-  const [adresseLivraisonChoix, setAdresseLivraisonChoix] = useState("");
+  const [adresseLivraisonChoix, setAdresseLivraisonChoix] = useState(devis ? "" : ADRESSE_OGEC);
   const [adresseLivraisonLibre, setAdresseLivraisonLibre] = useState("");
   const adresseLivraison = adresseLivraisonChoix === AUTRE_ADRESSE ? adresseLivraisonLibre : adresseLivraisonChoix;
   const [dateLivraisonPrevue, setDateLivraisonPrevue] = useState("");
@@ -252,7 +259,7 @@ export function NouvelleCommandeForm({
 
     startTransition(async () => {
       const res = await creerCommandeFournisseur({
-        devisId: devis.id,
+        devisId: devis?.id ?? null,
         fournisseurId,
         interlocuteur: interlocuteurs[interlocuteurIndex] ?? { nom: "", tel: "", portable: "", email: "" },
         lignes,
@@ -278,9 +285,18 @@ export function NouvelleCommandeForm({
   return (
     <div>
       <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
-        <p className="font-bold text-slate-900">{devis.numero}</p>
-        <p className="text-sm font-semibold text-slate-700">{[site?.nom, site?.site].filter(Boolean).join(" — ")}</p>
-        {devis.libelle && <p className="text-sm text-slate-500">{devis.libelle}</p>}
+        {devis ? (
+          <>
+            <p className="font-bold text-slate-900">{devis.numero}</p>
+            <p className="text-sm font-semibold text-slate-700">{[site?.nom, site?.site].filter(Boolean).join(" — ")}</p>
+            {devis.libelle && <p className="text-sm text-slate-500">{devis.libelle}</p>}
+          </>
+        ) : (
+          <>
+            <p className="font-bold text-slate-900">Consommables d&apos;entretien</p>
+            <p className="text-sm font-semibold text-slate-700">Destination : {DESTINATION_CONSOMMABLES}</p>
+          </>
+        )}
       </div>
 
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}

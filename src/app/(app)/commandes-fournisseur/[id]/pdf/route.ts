@@ -12,10 +12,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (error || !commande) return NextResponse.json({ erreur: "Commande introuvable." }, { status: 404 });
 
   const [{ data: devis }, { data: fournisseur }] = await Promise.all([
-    supabase.from("devis").select("*").eq("id", commande.devis_id).single(),
+    commande.devis_id
+      ? supabase.from("devis").select("*").eq("id", commande.devis_id).single()
+      : Promise.resolve({ data: null }),
     supabase.from("fournisseurs").select("*").eq("id", commande.fournisseur_id).single(),
   ]);
-  if (!devis || !fournisseur) return NextResponse.json({ erreur: "Devis ou fournisseur introuvable." }, { status: 404 });
+  if ((commande.devis_id && !devis) || !fournisseur) return NextResponse.json({ erreur: "Devis ou fournisseur introuvable." }, { status: 404 });
 
   const pdfBytes = await genererPdfCommande({ commande, devis, fournisseur });
   return new NextResponse(new Uint8Array(pdfBytes), {

@@ -28,7 +28,7 @@ export function CreerCommandeListe({ devis }: { devis: DevisValide[] }) {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Créer une commande</h1>
+      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Créer une commande affaire</h1>
       <p className="mb-5 text-sm text-slate-500">Choisis le devis validé concerné — {filtres.length} devis</p>
 
       <div className="relative mb-4">

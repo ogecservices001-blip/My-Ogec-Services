@@ -378,7 +378,7 @@ export type Database = {
           date_livraison_prevue: string
           devis_fournisseur_date: string
           devis_fournisseur_numero: string
-          devis_id: string
+          devis_id: string | null
           envoyee_le: string
           fournisseur_id: string
           id: string
@@ -393,6 +393,7 @@ export type Database = {
           relance: string
           taux_tva: number
           tva_non_applicable: boolean
+          type_commande: string
           updated_at: string
           validite_offre: string
         }
@@ -406,7 +407,7 @@ export type Database = {
           date_livraison_prevue?: string
           devis_fournisseur_date?: string
           devis_fournisseur_numero?: string
-          devis_id: string
+          devis_id?: string | null
           envoyee_le?: string
           fournisseur_id: string
           id?: string
@@ -421,6 +422,7 @@ export type Database = {
           relance?: string
           taux_tva?: number
           tva_non_applicable?: boolean
+          type_commande?: string
           updated_at?: string
           validite_offre?: string
         }
@@ -434,7 +436,7 @@ export type Database = {
           date_livraison_prevue?: string
           devis_fournisseur_date?: string
           devis_fournisseur_numero?: string
-          devis_id?: string
+          devis_id?: string | null
           envoyee_le?: string
           fournisseur_id?: string
           id?: string
@@ -449,6 +451,7 @@ export type Database = {
           relance?: string
           taux_tva?: number
           tva_non_applicable?: boolean
+          type_commande?: string
           updated_at?: string
           validite_offre?: string
         }

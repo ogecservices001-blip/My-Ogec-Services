@@ -282,7 +282,7 @@ function VueLectureSeule({
             <Ligne label="Temps passé" valeur={bon.temps_passe || "—"} />
           </>
         )}
-        {bon.pole === Poles.depannage && <Ligne label="Nombre de déplacements" valeur={String(bon.nombre_deplacements)} />}
+        {!avecPeriode(bon.pole) && <Ligne label="Nombre de déplacements" valeur={String(bon.nombre_deplacements)} />}
       </Section>
 
       {(bon.materiel_champs_en_tete as Record<string, unknown>) &&
@@ -787,7 +787,7 @@ function VueCorrection({
           </div>
         )}
 
-        {pole === Poles.depannage && (
+        {!avecPeriode(pole) && (
           <Champ
             label="Nombre de déplacements"
             valeur={String(nombreDeplacements)}

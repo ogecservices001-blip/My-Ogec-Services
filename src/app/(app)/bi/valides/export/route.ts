@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
-import { labelPole, labelStatut, Statuts } from "@/lib/bi/constants";
+import { labelPole, labelStatut, Statuts, prixDuDevis } from "@/lib/bi/constants";
 import {
   dureeEnHeures,
   parsePu,
@@ -129,7 +129,7 @@ export async function GET() {
       prestasTexte,
       taux?.taux_horaire_regie ?? "",
       taux?.forfait_deplacement ?? "",
-      eur(montantTotal),
+      prixDuDevis(b.pole) ? "" : eur(montantTotal),
       b.obs_tech,
       b.obs_client,
       b.note_interne,

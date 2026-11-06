@@ -20,7 +20,6 @@ import {
   avecEquipementLibre,
   avecNouvelEquipement,
   avecTempsLibre,
-  prixDuDevis,
   avecFournitureMateriel,
   CHAMPS_MATERIEL_EXCLUS_BI,
   CHAMPS_MATERIEL_FACULTATIFS_BI,
@@ -488,7 +487,6 @@ export function BiWizard({
   // Devis à plusieurs natures : une page par pavé, chacune avec son type.
   const pagesDevis = devisCourant ? pagesDuDevis(devisCourant) : null;
   const modePages = pagesDevis !== null;
-  const poleBi = modePages ? NATURE_MULTIPLE : pole;
   const indexPage = interventionsSupplementaires.length;
   const pageSuivante = pagesDevis?.[indexPage + 1] ?? null;
   const equipementsDuDevis = devisCourant && !modePages
@@ -947,7 +945,7 @@ export function BiWizard({
       setAlerteHeures(true);
       return;
     }
-    if (statut === "averif" && !prixDuDevis(poleBi) && nombreDeplacements === "") {
+    if (statut === "averif" && nombreDeplacements === "") {
       setAlerteDeplacements(true);
       return;
     }
@@ -1727,7 +1725,7 @@ export function BiWizard({
                         </p>
                       )}
                     </div>
-                    {!prixDuDevis(poleBi) && (
+                    {(
                       <div>
                         <label className="mb-1 block text-xs font-medium text-slate-600">Nombre de déplacements</label>
                         <input

@@ -62,21 +62,17 @@ export default async function BonInterventionGroupeClientPage({
       : { data: [] };
   const lignes = bonsData ?? [];
 
-  const devisIds = [...new Set(lignes.filter((b) => prixDuDevis(b.pole) && b.devis_id).map((b) => b.devis_id as string))];
-  const { data: devisLies } = devisIds.length > 0 ? await supabase.from("devis").select("id, montant").in("id", devisIds) : { data: [] };
-  const montantDevisParId = new Map((devisLies ?? []).map((d) => [d.id, d.montant ?? 0]));
 
-  function montant(b: (typeof lignes)[number]): number {
+  function montant(b: (typeof lignes)[number]): number | null {
     const taux: TauxSite = b.site_id ? (siteParId.get(b.site_id) ?? null) : null;
-    const forfait = prixDuDevis(b.pole);
-    const montantHeures = forfait ? 0 : (montantMainDoeuvre(b.temps_passe, taux) ?? 0);
-    const montantDepl = forfait ? 0 : (montantDeplacements(b.nombre_deplacements, taux) ?? 0);
+    if (prixDuDevis(b.pole)) return null;
+    const montantHeures = montantMainDoeuvre(b.temps_passe, taux) ?? 0;
+    const montantDepl = montantDeplacements(b.nombre_deplacements, taux) ?? 0;
     const prestas = [
       ...(b.prestas as unknown as Presta[]),
       ...(b.interventions_supplementaires as unknown as { prestas: Presta[] }[]).flatMap((i) => i.prestas ?? []),
     ];
-    const montantDevis = forfait && b.devis_id ? (montantDevisParId.get(b.devis_id) ?? 0) : 0;
-    return montantDevis + montantHeures + montantDepl + totalHT(prestas);
+    return montantHeures + montantDepl + totalHT(prestas);
   }
 
   return (
@@ -99,7 +95,7 @@ export default async function BonInterventionGroupeClientPage({
           <Link key="numero" href={`/bi/${b.id}`} className="font-bold text-slate-900 hover:underline">
             {b.numero || "BI (brouillon)"}
           </Link>,
-          eur(montant(b)),
+          montant(b) === null ? "—" : eur(montant(b) ?? 0),
         ])}
         valeurs={lignes.map((b) => [
           LABEL_CLASSEMENT[b.classement ?? ""] ?? "À classer",

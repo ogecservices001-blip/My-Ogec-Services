@@ -19,7 +19,7 @@ type BonResume = {
   updated_at: string;
   classement: string;
   mois_facturation: string;
-  montantHt: number;
+  montantHt: number | null;
 };
 
 const COULEUR_CLASSEMENT: Record<string, string> = {
@@ -83,7 +83,7 @@ export function BonsValidesTableau({ bons }: { bons: BonResume[] }) {
             {labelClassement(b.classement)}
           </span>,
           b.mois_facturation || "",
-          eur(b.montantHt),
+          b.montantHt !== null ? eur(b.montantHt) : "—",
           <StatutBadge key="statut" statut={b.statut} />,
         ])}
         valeurs={bons.map((b) => [

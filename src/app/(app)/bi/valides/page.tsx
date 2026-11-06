@@ -25,24 +25,17 @@ export default async function BiValidesPage() {
       : { data: [] };
   const tauxParSite = new Map((sites ?? []).map((s) => [s.id, s]));
 
-  // Pôles sur forfait (prestations sur devis) : le montant est celui du
-  // devis lié, pas un calcul à l'heure qui n'a pas de sens pour eux.
-  const devisIds = [...new Set((bons ?? []).filter((b) => prixDuDevis(b.pole) && b.devis_id).map((b) => b.devis_id as string))];
-  const { data: devisLies } = devisIds.length > 0 ? await supabase.from("devis").select("id, montant").in("id", devisIds) : { data: [] };
-  const montantDevisParId = new Map((devisLies ?? []).map((d) => [d.id, d.montant ?? 0]));
-
+  // Prestation sur devis : aucun montant ici, le prix est celui du devis.
   const lignes = (bons ?? []).map((b) => {
+    if (prixDuDevis(b.pole)) return { ...b, montantHt: null };
     const taux = b.site_id ? (tauxParSite.get(b.site_id) ?? null) : null;
-    const forfait = prixDuDevis(b.pole);
-    const montantHeures = forfait ? 0 : (montantMainDoeuvre(b.temps_passe, taux) ?? 0);
-    const montantDepl = forfait ? 0 : (montantDeplacements(b.nombre_deplacements, taux) ?? 0);
+    const montantHeures = montantMainDoeuvre(b.temps_passe, taux) ?? 0;
+    const montantDepl = montantDeplacements(b.nombre_deplacements, taux) ?? 0;
     const prestas = [
       ...(b.prestas as unknown as Presta[]),
       ...(b.interventions_supplementaires as unknown as { prestas: Presta[] }[]).flatMap((i) => i.prestas ?? []),
     ];
-    const montantDevis = forfait && b.devis_id ? (montantDevisParId.get(b.devis_id) ?? 0) : 0;
-    const montantHt = montantDevis + montantHeures + montantDepl + totalHT(prestas);
-    return { ...b, montantHt };
+    return { ...b, montantHt: montantHeures + montantDepl + totalHT(prestas) };
   });
 
   return <BonsValidesTableau bons={lignes} />;

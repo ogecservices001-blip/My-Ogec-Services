@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Site } from "@/lib/types";
 import { extraireNumero } from "@/lib/gmao/equipement-import";
 import { dureeEnHeures } from "@/lib/bi/format";
-import { Statuts, Poles } from "@/lib/bi/constants";
+import { Statuts, Poles, POLE_PLUSIEURS_TYPES } from "@/lib/bi/constants";
 
 export type LigneHeuresParPole = {
   id: string;
@@ -30,6 +30,7 @@ export const POLES_HEURES_PAR_POLE = [
   Poles.miseADisposition,
   Poles.livraisonMateriel,
   Poles.depannage,
+  POLE_PLUSIEURS_TYPES,
 ] as const;
 
 /// Heures de BI validés par site et par pôle (hors Entretien sous

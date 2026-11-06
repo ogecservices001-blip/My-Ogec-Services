@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant } from "@/components/champ-manquant";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,6 +9,7 @@ import { labelNatureDevis } from "@/lib/devis/constants";
 import { previsualiserImportDevis, appliquerImportDevis, type LigneDevisImport } from "../import-actions";
 
 export function ImporterDevisClient() {
+  const { surChampInvalide, fenetre } = useChampManquant();
   const router = useRouter();
   const [analyse, startAnalyse] = useTransition();
   const [application, startApplication] = useTransition();
@@ -75,9 +77,11 @@ export function ImporterDevisClient() {
 
       {!lignes && (
         <form
+          onInvalidCapture={surChampInvalide}
           action={analyser}
           className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center"
         >
+          {fenetre}
           <FileSpreadsheet className="mx-auto mb-3 h-10 w-10 text-slate-300" />
           <input
             type="file"

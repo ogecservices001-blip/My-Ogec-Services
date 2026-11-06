@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Equipement, TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement, ChampListeLigne } from "@/lib/gmao/types";
@@ -29,6 +30,8 @@ export function EquipementForm({
   const router = useRouter();
   const action = equipementExistant ? modifierEquipement.bind(null, equipementExistant.id) : creerEquipement;
   const [state, formAction, pending] = useActionState(action, null);
+  const { signaler, surChampInvalide, fenetre } = useChampManquant();
+  useSignalerRefusServeur(state, signaler);
 
   const [typeId, setTypeId] = useState(equipementExistant?.type_equipement_id ?? types[0]?.id ?? "");
   const type = types.find((t) => t.id === typeId) ?? null;
@@ -66,7 +69,8 @@ export function EquipementForm({
   }
 
   return (
-    <form action={formAction}>
+    <form action={formAction} onInvalidCapture={surChampInvalide}>
+      {fenetre}
       <input type="hidden" name="site_id" value={siteId} />
       <input type="hidden" name="type_equipement_id" value={typeId} />
       <input type="hidden" name="champs_en_tete_json" value={JSON.stringify(champsEnTete)} />
@@ -79,6 +83,7 @@ export function EquipementForm({
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Famille d&apos;équipement</label>
           <select
+            id="equipement-famille"
             value={typeId}
             onChange={(e) => changerType(e.target.value)}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
@@ -152,7 +157,12 @@ export function EquipementForm({
       <div className="mt-6 flex justify-end">
         <button
           type="submit"
-          disabled={pending || !typeId}
+          onClick={(e) => {
+            if (typeId) return;
+            e.preventDefault();
+            signaler("Choisis la famille d'équipement", "equipement-famille");
+          }}
+          disabled={pending}
           className="rounded-xl bg-brand-green px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-brand-green-dark disabled:opacity-60"
         >
           {pending ? "Enregistrement..." : "Enregistrer"}

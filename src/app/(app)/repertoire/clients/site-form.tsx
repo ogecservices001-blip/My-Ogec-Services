@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { groupesChampsSite } from "@/lib/validation/site";
@@ -10,6 +11,8 @@ export function SiteForm({ site }: { site?: Site }) {
   const router = useRouter();
   const action = site ? modifierSite.bind(null, site.id) : creerSite;
   const [state, formAction, pending] = useActionState(action, null);
+  const { signaler, surChampInvalide, fenetre } = useChampManquant();
+  useSignalerRefusServeur(state, signaler);
 
   useEffect(() => {
     if (state?.ok) {
@@ -19,7 +22,8 @@ export function SiteForm({ site }: { site?: Site }) {
   }, [state, router, site]);
 
   return (
-    <form action={formAction}>
+    <form action={formAction} onInvalidCapture={surChampInvalide}>
+      {fenetre}
       {state && !state.ok && (
         <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.erreur}

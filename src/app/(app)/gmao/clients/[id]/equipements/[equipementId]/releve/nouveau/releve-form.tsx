@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -58,6 +59,8 @@ export function ReleveForm({
   const router = useRouter();
   const action = creerReleve.bind(null, equipement.id, siteId);
   const [state, formAction, pending] = useActionState(action, null);
+  const { signaler, surChampInvalide, fenetre } = useChampManquant();
+  useSignalerRefusServeur(state, signaler);
 
   const [champsEnTete, setChampsEnTete] = useState<ChampsEnTeteEquipement>(() => ({
     ...equipement.champs_en_tete,
@@ -156,7 +159,8 @@ export function ReleveForm({
         </div>
       )}
 
-      <form action={formAction}>
+      <form action={formAction} onInvalidCapture={surChampInvalide}>
+        {fenetre}
         <input type="hidden" name="champs_en_tete_json" value={JSON.stringify(champsEnTete)} />
         <input type="hidden" name="checklist_json" value={JSON.stringify(checklistValues)} />
         <input type="hidden" name="groupes_mesures_json" value={JSON.stringify(groupesMesures)} />

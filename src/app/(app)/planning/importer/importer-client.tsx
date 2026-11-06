@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant } from "@/components/champ-manquant";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,6 +10,7 @@ import { previsualiserImportPlanning, appliquerImportPlanning, type ResultatDiff
 type ResultatApplique = { ajoutes: number; modifies: number; echecs: string[] };
 
 export function ImporterPlanningClient() {
+  const { surChampInvalide, fenetre } = useChampManquant();
   const router = useRouter();
   const [analyse, startAnalyse] = useTransition();
   const [application, startApplication] = useTransition();
@@ -91,7 +93,8 @@ export function ImporterPlanningClient() {
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>}
 
       {!diff && (
-        <form action={analyser} className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+        <form onInvalidCapture={surChampInvalide} action={analyser} className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+          {fenetre}
           <FileSpreadsheet className="mx-auto mb-3 h-10 w-10 text-slate-300" />
           <input
             type="file"

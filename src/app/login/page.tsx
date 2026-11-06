@@ -1,11 +1,13 @@
 "use client";
 
+import { useChampManquant } from "@/components/champ-manquant";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  const { surChampInvalide, fenetre } = useChampManquant();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,9 +35,11 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
       <form
+        onInvalidCapture={surChampInvalide}
         onSubmit={seConnecter}
         className="w-full max-w-sm rounded-2xl border border-slate-200/80 bg-white p-8 shadow-sm"
       >
+        {fenetre}
         <div className="mb-6 flex flex-col items-center">
           <Image
             src="/logo.jpg"

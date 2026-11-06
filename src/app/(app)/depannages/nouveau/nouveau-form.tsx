@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { creerDepannage, modifierDepannage, chargerEquipementsDuSite, type EquipementDuSite } from "./actions";
@@ -145,6 +146,23 @@ export function NouveauDepannageForm({
     dernierLieuAutoRempli.current = "";
   }
 
+  const { signaler, surChampInvalide, fenetre } = useChampManquant();
+  useSignalerRefusServeur(state, signaler);
+
+  /// Au clic, avant les contrôles du navigateur : le site vient en premier.
+  function verifierSite(e: React.MouseEvent) {
+    const manque: [string, string] | null = !type
+      ? ["Choisis le type de client", "depannage-type"]
+      : !clientNom
+        ? ["Choisis le client", "depannage-client"]
+        : !siteId
+          ? ["Choisis le site", "depannage-site"]
+          : null;
+    if (!manque) return;
+    e.preventDefault();
+    signaler(manque[0], manque[1]);
+  }
+
   function changerClient(nom: string) {
     setClientNom(nom);
     const sitesCorrespondants = sitesDuPerimetre.filter((s) => s.nom === nom);
@@ -158,7 +176,8 @@ export function NouveauDepannageForm({
         précisément lequel est concerné.
       </p>
 
-      <form action={formAction} className="rounded-2xl bg-white p-5 shadow-sm">
+      {fenetre}
+      <form action={formAction} onInvalidCapture={surChampInvalide} className="rounded-2xl bg-white p-5 shadow-sm">
         <input type="hidden" name="site_id" value={siteId} />
 
         {state && !state.ok && (
@@ -170,6 +189,7 @@ export function NouveauDepannageForm({
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Type de client *</label>
               <select
+                id="depannage-type"
                 value={type}
                 onChange={(e) => changerType(e.target.value as "" | "sous" | "hors")}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
@@ -182,6 +202,7 @@ export function NouveauDepannageForm({
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Client *</label>
               <select
+                id="depannage-client"
                 value={clientNom}
                 onChange={(e) => changerClient(e.target.value)}
                 disabled={!type}
@@ -198,6 +219,7 @@ export function NouveauDepannageForm({
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Site *</label>
               <select
+                id="depannage-site"
                 value={siteId}
                 onChange={(e) => definirSiteId(e.target.value)}
                 disabled={!clientNom}
@@ -350,7 +372,8 @@ export function NouveauDepannageForm({
         <div className="mt-6 flex justify-end">
           <button
             type="submit"
-            disabled={pending || !siteId}
+            onClick={verifierSite}
+            disabled={pending}
             className="rounded-xl bg-red-700 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-red-800 disabled:opacity-60"
           >
             {idDepannage

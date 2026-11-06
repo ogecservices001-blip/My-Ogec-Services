@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant } from "@/components/champ-manquant";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, ScanLine } from "lucide-react";
@@ -78,9 +79,11 @@ export function FournisseurForm({ fournisseur }: { fournisseur?: Fournisseur }) 
     });
   }
 
+  const { signaler, fenetre } = useChampManquant();
+
   function soumettre() {
     if (!champs.nom?.trim()) {
-      setErreur("Le nom du fournisseur est obligatoire.");
+      signaler("Renseigne le nom du fournisseur", "nom");
       return;
     }
     setErreur(null);
@@ -103,6 +106,7 @@ export function FournisseurForm({ fournisseur }: { fournisseur?: Fournisseur }) 
 
   return (
     <div>
+      {fenetre}
       {erreur && (
         <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>
       )}

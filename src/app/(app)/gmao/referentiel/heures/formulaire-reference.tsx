@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
@@ -19,6 +20,8 @@ export function FormulaireReference({
     ? modifierReferenceHoraire.bind(null, existante.id)
     : creerReferenceHoraire;
   const [state, formAction, pending] = useActionState(action, null);
+  const { signaler, surChampInvalide, fenetre } = useChampManquant();
+  useSignalerRefusServeur(state, signaler);
 
   useEffect(() => {
     if (state?.ok) {
@@ -42,7 +45,8 @@ export function FormulaireReference({
           </button>
         </div>
 
-        <form action={formAction} className="space-y-3">
+        <form action={formAction} onInvalidCapture={surChampInvalide} className="space-y-3">
+          {fenetre}
           {state && !state.ok && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.erreur}</p>
           )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant } from "@/components/champ-manquant";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -63,8 +64,17 @@ export function CommandeDetail({
     });
   }
 
+  const { signaler, fenetre } = useChampManquant();
+
   function envoyer() {
     setErreur(null);
+    if (!interlocuteur?.email) {
+      signaler("Aucun email pour l'interlocuteur de cette commande", null, {
+        detail: "Ajoute son email sur la fiche du fournisseur, puis refais la commande avec cet interlocuteur.",
+        lien: fournisseur ? { href: `/repertoire/fournisseurs/${fournisseur.id}/modifier`, texte: "Ouvrir la fiche fournisseur" } : undefined,
+      });
+      return;
+    }
     startEnvoi(async () => {
       const res = await envoyerCommandeParEmail(commande.id);
       if (!res.ok) {
@@ -101,7 +111,7 @@ export function CommandeDetail({
         </a>
         <button
           onClick={envoyer}
-          disabled={envoi || !interlocuteur?.email}
+          disabled={envoi}
           className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
         >
           <Send className="h-4 w-4" strokeWidth={2} />
@@ -114,6 +124,7 @@ export function CommandeDetail({
         />
       </div>
 
+      {fenetre}
       {commande.envoyee_le && (
         <p className="mb-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-brand-green-dark">
           Envoyée au fournisseur le {commande.envoyee_le}

@@ -29,3 +29,11 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
+
+/* Champ désigné par la fenêtre "il manque..." (voir components/champ-manquant). */
+.champ-manquant {
+  outline: 2px solid #ef4444 !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgb(252 165 165 / 0.6) !important;
+  border-radius: 0.5rem;
+}

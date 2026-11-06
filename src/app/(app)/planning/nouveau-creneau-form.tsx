@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant } from "@/components/champ-manquant";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
@@ -138,27 +139,34 @@ export function NouveauCreneauForm({
     };
   }
 
+  const { signaler, fenetre } = useChampManquant();
+
   async function soumettre() {
     setErreur(null);
 
     if (typeCreneau === "intervention" && !siteId) {
-      setErreur("Le site est obligatoire pour une intervention.");
+      if (sourceClient === "prestation") signaler("Choisis l'affaire à réaliser", "planning-prestation");
+      else if (!clientNom) signaler("Choisis le client", "planning-client");
+      else signaler("Choisis le site", "planning-site");
       return;
     }
     if (typeCreneau === "hors_client" && !posteHorsClientId) {
-      setErreur("Le poste hors client est obligatoire.");
+      signaler("Choisis le poste hors client", "planning-poste");
       return;
     }
     if (technicienIds.size === 0) {
-      setErreur("Au moins un technicien est obligatoire.");
+      signaler("Choisis au moins un technicien", "planning-techniciens");
       return;
     }
     if (!date) {
-      setErreur("La date est obligatoire.");
+      signaler("Renseigne la date", "planning-date");
       return;
     }
     if (dateEstWeekEnd || dateEstJourFerie) {
-      setErreur("Impossible de planifier une intervention client un week-end ou un jour férié.");
+      signaler(
+        `Impossible de planifier une intervention client ${dateEstWeekEnd ? "un week-end" : "un jour férié"}`,
+        "planning-date",
+      );
       return;
     }
 
@@ -193,6 +201,7 @@ export function NouveauCreneauForm({
           </button>
         </div>
 
+        {fenetre}
         {erreur && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}
 
         {alertesQuota && confirmationQuota && (
@@ -246,6 +255,7 @@ export function NouveauCreneauForm({
                 <div>
                   <label className="mb-1 block text-xs font-medium text-slate-600">Affaire (devis à réaliser)</label>
                   <input
+                    id="planning-prestation"
                     value={recherchePrestation}
                     onChange={(e) => setRecherchePrestation(e.target.value)}
                     placeholder="Rechercher un client, site, devis..."
@@ -271,6 +281,7 @@ export function NouveauCreneauForm({
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-600">Client</label>
                     <select
+                      id="planning-client"
                       value={clientNom}
                       onChange={(e) => {
                         setClientNom(e.target.value);
@@ -289,6 +300,7 @@ export function NouveauCreneauForm({
                     </select>
                     {sitesDuClient.length > 1 && (
                       <select
+                        id="planning-site"
                         value={siteId}
                         onChange={(e) => setSiteId(e.target.value)}
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
@@ -327,6 +339,7 @@ export function NouveauCreneauForm({
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Poste hors client</label>
               <select
+                id="planning-poste"
                 value={posteHorsClientId}
                 onChange={(e) => setPosteHorsClientId(e.target.value)}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
@@ -343,7 +356,7 @@ export function NouveauCreneauForm({
 
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Technicien(s)</label>
-            <div className="flex flex-wrap gap-2">
+            <div id="planning-techniciens" className="flex flex-wrap gap-2">
               {techniciens.map((t) => (
                 <button
                   key={t.id}
@@ -363,6 +376,7 @@ export function NouveauCreneauForm({
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Date</label>
               <input
+                id="planning-date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}

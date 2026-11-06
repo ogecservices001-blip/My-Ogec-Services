@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant } from "@/components/champ-manquant";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -30,6 +31,7 @@ type Mode = "choix" | "commander";
 export function StatutDevisForm({
   devis,
   site,
+  emailClient,
   realise,
   equipements,
   commandesFournisseur,
@@ -43,6 +45,7 @@ export function StatutDevisForm({
 }: {
   devis: Devis;
   site: { nom: string; site: string } | null;
+  emailClient: string;
   realise: boolean;
   equipements: { id: string; nom: string; numero_equipement: string; localisation: string }[];
   commandesFournisseur: { id: string; numero: string; fournisseurNom: string; montantTtc: number }[];
@@ -96,8 +99,17 @@ export function StatutDevisForm({
   const [erreurFacturation, setErreurFacturation] = useState<string | null>(null);
   const [erreurEnvoi, setErreurEnvoi] = useState<string | null>(null);
 
+  const { signaler, fenetre } = useChampManquant();
+
   function envoyer() {
     setErreurEnvoi(null);
+    if (!emailClient) {
+      signaler("Aucun email du responsable pour ce client", null, {
+        detail: "Renseigne le « Courriel responsable » sur la fiche client, puis reviens envoyer le devis.",
+        lien: { href: `/repertoire/clients/${devis.site_id}/modifier#courriel_responsable`, texte: "Ouvrir la fiche client" },
+      });
+      return;
+    }
     startEnvoi(async () => {
       const res = await envoyerDevisParEmail(devis.id);
       if (!res.ok) {
@@ -110,6 +122,16 @@ export function StatutDevisForm({
 
   function enregistrerFacturation() {
     setErreurFacturation(null);
+    if (moisFacturation.trim() && !/^\d{2}-\d{4}$/.test(moisFacturation.trim())) {
+      signaler("Saisis le mois de facturation au format MM-AAAA (ex : 10-2026)", "devis-mois-facturation");
+      return;
+    }
+    if (ecartAConfirmer && moisFacturation.trim()) {
+      signaler("Le montant de la commande diffère du devis", "devis-confirmer-ecart", {
+        detail: "Confirme l'écart avant de passer le devis en facturable.",
+      });
+      return;
+    }
     startFacturation(async () => {
       const res = await modifierMoisFacturation(devis.id, moisFacturation.trim());
       if (!res.ok) {
@@ -167,7 +189,7 @@ export function StatutDevisForm({
     ["Statut commande fournisseur", devis.statut_commande_fournisseur],
     ["Date mise à disposition fourniture", devis.date_mise_a_disposition_fourniture],
     ["Mois de facturation", devis.mois_facturation],
-    ["Email responsable contrat", devis.email_responsable_contrat],
+    ["Email responsable contrat", emailClient],
     [
       equipementsLies.length > 1 ? "Équipements liés" : "Équipement lié",
       equipementsLies
@@ -201,6 +223,10 @@ export function StatutDevisForm({
   // ne passe pas en commandé et rien n'est perdu.
   function validerCommande() {
     setErreur(null);
+    if (!dateCommande.trim()) {
+      signaler("Renseigne la date de commande du client", "devis-date-commande");
+      return;
+    }
     startTransition(async () => {
       if (fichiersCommande.length > 0) {
         const envoi = await envoyerFichiersCommande(devis.id, fichiersCommande);
@@ -232,6 +258,7 @@ export function StatutDevisForm({
 
   return (
     <div>
+      {fenetre}
       {modification && (
         <ModaleSuppressionDevis
           devis={devis}
@@ -271,8 +298,7 @@ export function StatutDevisForm({
           </a>
           <button
             onClick={envoyer}
-            disabled={envoi || !devis.email_responsable_contrat}
-            title={!devis.email_responsable_contrat ? "Aucun email connu pour ce client" : undefined}
+            disabled={envoi}
             className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
           >
             <Send className="h-4 w-4" strokeWidth={2} />
@@ -401,6 +427,7 @@ export function StatutDevisForm({
           <div className="mb-3">
             <label className="mb-1 block text-xs font-medium text-slate-600">Date de commande client</label>
             <input
+              id="devis-date-commande"
               type="date"
               value={dateFrVersIso(dateCommande)}
               onChange={(e) => setDateCommande(formaterDate(e.target.value))}
@@ -426,7 +453,7 @@ export function StatutDevisForm({
             </button>
             <button
               onClick={validerCommande}
-              disabled={pending || !dateCommande.trim()}
+              disabled={pending}
               className="flex-1 rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
             >
               {pending ? "Enregistrement..." : "Valider la commande"}
@@ -532,6 +559,7 @@ export function StatutDevisForm({
             </p>
             {ecartAConfirmer ? (
               <button
+                id="devis-confirmer-ecart"
                 onClick={confirmerEcart}
                 disabled={confirmationEcart}
                 className="mt-2 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
@@ -546,6 +574,7 @@ export function StatutDevisForm({
         <label className="mb-1 block text-xs font-medium text-slate-600">Mois de facturation (MM-AAAA)</label>
         <div className="flex gap-2">
           <input
+            id="devis-mois-facturation"
             value={moisFacturation}
             onChange={(e) => setMoisFacturation(e.target.value)}
             placeholder="10-2026"
@@ -553,7 +582,7 @@ export function StatutDevisForm({
           />
           <button
             onClick={enregistrerFacturation}
-            disabled={facturationPending || moisFacturation === devis.mois_facturation || (ecartAConfirmer && Boolean(moisFacturation.trim()))}
+            disabled={facturationPending || moisFacturation === devis.mois_facturation}
             className="shrink-0 rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
           >
             {facturationPending ? "..." : "Enregistrer"}

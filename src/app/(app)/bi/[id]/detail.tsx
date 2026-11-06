@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant, type CibleChamp } from "@/components/champ-manquant";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -505,7 +506,7 @@ function BlocClassement({
 
   return (
     <Section titre="Classement">
-      <div className="flex flex-wrap gap-4">
+      <div id="bi-classement" className="flex flex-wrap gap-4">
         {Object.entries(CLASSEMENT_LABELS).map(([valeur, label]) => (
           <label key={valeur} className="flex items-center gap-2 text-sm font-medium text-slate-700">
             <input
@@ -525,6 +526,7 @@ function BlocClassement({
           <div className="flex-1">
             <label className="mb-1 block text-xs font-medium text-slate-600">Mois de facturation (MM-AAAA)</label>
             <input
+              id="bi-mois"
               value={moisFacturation}
               onChange={(e) => {
                 setMoisFacturation(e.target.value);
@@ -674,23 +676,35 @@ function VueCorrection({
   ].map((n) => n.trim());
   const numeroEnDouble = (numero: string) =>
     numerosEquipementSite.includes(numero.trim()) || numerosPoses.filter((n) => n === numero.trim()).length > 1;
-  const posesCompletes = posesSupplementaires.every(
-    (p) => p.equipement_nom.trim() && (p.equipement_numero ?? "").trim() && !numeroEnDouble(p.equipement_numero ?? ""),
-  );
   const moisRenseigne = classementActuel !== "facturer" || /^\d{2}-\d{4}$/.test(moisActuel.trim());
-  const peutValider =
-    emailValide &&
-    classementActuel !== "" &&
-    moisRenseigne &&
-    (poleDe(0) !== Poles.installationNeuve ||
-      (equipementNom.trim() !== "" &&
-        equipementNumero.trim() !== "" &&
-        !numeroEnDouble(equipementNumero) &&
-        posesCompletes &&
-        bon.materiel_type_equipement_id !== null));
+  const { signaler, fenetre } = useChampManquant();
+
+  function manquePourValider(): [string, CibleChamp] | null {
+    if (poleDe(0) === Poles.installationNeuve) {
+      if (bon.materiel_type_equipement_id === null) return ["Le type d'équipement posé n'est pas renseigné sur ce BI", null];
+      if (!equipementNom.trim()) return ["Renseigne le nom de l'équipement", "bi-eq-nom"];
+      if (!equipementNumero.trim()) return ["Renseigne le numéro d'équipement", "bi-eq-numero"];
+      if (numeroEnDouble(equipementNumero)) return ["Ce numéro d'équipement est déjà utilisé : choisis-en un autre", "bi-eq-numero"];
+    }
+    for (const [j, p] of interventions.entries()) {
+      if (j === 0 || poleDe(j) !== Poles.installationNeuve) continue;
+      if (!p.equipement_nom.trim()) return ["Renseigne le nom de l'équipement posé", `bi-eq-nom-${j}`];
+      if (!(p.equipement_numero ?? "").trim()) return ["Renseigne le numéro de l'équipement posé", `bi-eq-numero-${j}`];
+      if (numeroEnDouble(p.equipement_numero ?? "")) return ["Ce numéro d'équipement est déjà utilisé : choisis-en un autre", `bi-eq-numero-${j}`];
+    }
+    if (classementActuel === "") return ["Choisis un classement", "bi-classement"];
+    if (!moisRenseigne) return ["Saisis le mois de facturation au format MM-AAAA (ex : 10-2026)", "bi-mois"];
+    if (!emailValide) return [email.trim() ? "L'email du client n'est pas valide" : "Renseigne l'email du client", "bi-email"];
+    return null;
+  }
 
   function valider() {
     setErreur(null);
+    const manque = manquePourValider();
+    if (manque) {
+      signaler(manque[0], manque[1]);
+      return;
+    }
     const input: CorrectionInput = {
       pole,
       techniciens,
@@ -797,9 +811,9 @@ function VueCorrection({
 
         {poleDe(0) === Poles.installationNeuve && (
           <>
-            <Champ label="Nom de l'équipement" valeur={equipementNom} onChange={setEquipementNom} />
+            <Champ id="bi-eq-nom" label="Nom de l'équipement" valeur={equipementNom} onChange={setEquipementNom} />
             <div>
-              <Champ label="Numéro d'équipement" valeur={equipementNumero} onChange={setEquipementNumero} />
+              <Champ id="bi-eq-numero" label="Numéro d'équipement" valeur={equipementNumero} onChange={setEquipementNumero} />
               {numeroEnDouble(equipementNumero) && (
                 <p className="mt-1 text-xs font-semibold text-red-600">
                   Ce numéro existe déjà sur ce site — choisis-en un autre.
@@ -827,11 +841,13 @@ function VueCorrection({
               {i > 0 && poleDe(i) === Poles.installationNeuve && (
                 <div className="mb-3 space-y-2">
                   <Champ
+                    id={`bi-eq-nom-${i}`}
                     label="Nom de l'équipement"
                     valeur={inter.equipement_nom}
                     onChange={(v) => majIntervention({ equipement_nom: v })}
                   />
                   <Champ
+                    id={`bi-eq-numero-${i}`}
                     label="Numéro d'équipement"
                     valeur={inter.equipement_numero ?? ""}
                     onChange={(v) => majIntervention({ equipement_numero: v })}
@@ -934,6 +950,7 @@ function VueCorrection({
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Email du client</label>
           <input
+            id="bi-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -946,11 +963,12 @@ function VueCorrection({
 
       <button
         onClick={valider}
-        disabled={pending || !peutValider}
+        disabled={pending}
         className="mt-4 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-violet-700 disabled:opacity-50"
       >
         {pending ? "Validation..." : "✓ Valider"}
       </button>
+      {fenetre}
     </Section>
   );
 }
@@ -973,11 +991,12 @@ function Ligne({ label, valeur }: { label: string; valeur: string }) {
   );
 }
 
-function Champ({ label, valeur, onChange }: { label: string; valeur: string; onChange: (v: string) => void }) {
+function Champ({ id, label, valeur, onChange }: { id?: string; label: string; valeur: string; onChange: (v: string) => void }) {
   return (
     <div>
       <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
       <input
+        id={id}
         value={valeur}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"

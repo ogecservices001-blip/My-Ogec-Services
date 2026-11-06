@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant } from "@/components/champ-manquant";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,6 +12,7 @@ import {
 } from "../import-actions";
 
 export function ImporterCollaborateursClient() {
+  const { surChampInvalide, fenetre } = useChampManquant();
   const router = useRouter();
   const [analyse, startAnalyse] = useTransition();
   const [application, startApplication] = useTransition();
@@ -85,9 +87,11 @@ export function ImporterCollaborateursClient() {
 
       {!lignes && (
         <form
+          onInvalidCapture={surChampInvalide}
           action={analyser}
           className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center"
         >
+          {fenetre}
           <FileSpreadsheet className="mx-auto mb-3 h-10 w-10 text-slate-300" />
           <input
             type="file"

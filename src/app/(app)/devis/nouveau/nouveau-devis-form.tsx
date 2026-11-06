@@ -23,6 +23,7 @@ import {
   type TypeRemise,
 } from "@/lib/devis/pricing";
 import type { PaveDevis } from "@/lib/devis/paves";
+import { useChampManquant, type CibleChamp } from "@/components/champ-manquant";
 
 type Option = { valeur: string; label: string };
 type SiteOption = { id: string; nom: string; site: string; horsContrat: boolean };
@@ -204,9 +205,27 @@ export function NouveauDevisForm({
     }));
   }
 
-  const complet = Boolean(
-    siteId && paves.every((p) => p.libelle.trim() && p.nature && p.lignes.some((l) => l.designation.trim())),
-  );
+  const { signaler, fenetre } = useChampManquant();
+
+  function manqueSite(): [string, CibleChamp] | null {
+    if (!type) return ["Choisis le type de client", "devis-type"];
+    if (!clientNom) return ["Choisis le client", "devis-client"];
+    if (!siteId) return ["Choisis le site", "devis-site"];
+    return null;
+  }
+
+  function manquePourCreer(): [string, CibleChamp] | null {
+    const site = manqueSite();
+    if (site) return site;
+    for (const [i, p] of paves.entries()) {
+      const ou = paves.length > 1 ? ` (équipement ${i + 1})` : "";
+      if (!p.libelle.trim()) return [`Renseigne le libellé du devis${ou}`, `pave-${p.cle}-libelle`];
+      if (!p.nature) return [`Choisis la nature${ou}`, `pave-${p.cle}-nature`];
+      if (!p.lignes.some((l) => l.designation.trim())) return [`Ajoute au moins une ligne d'article${ou}`, `pave-${p.cle}-ligne-0`];
+    }
+    if (remise.type && !remiseActive(remise)) return ["Saisis la valeur de la remise, ou décoche la remise", "devis-remise-valeur"];
+    return null;
+  }
 
   function pavesAEnregistrer(): PaveDevis[] {
     return paves.map((p) => ({
@@ -221,6 +240,15 @@ export function NouveauDevisForm({
 
   function finaliser() {
     setErreur(null);
+    if (revision?.commande) {
+      signaler("Ce devis est commandé ou annulé : il ne peut plus être révisé");
+      return;
+    }
+    const manque = manquePourCreer();
+    if (manque) {
+      signaler(manque[0], manque[1]);
+      return;
+    }
     startTransition(async () => {
       if (revision && brouillonId) {
         const res = await reviserDevis(brouillonId, { paves: pavesAEnregistrer(), coutRevient, remise });
@@ -252,6 +280,11 @@ export function NouveauDevisForm({
   function enregistrerBrouillon() {
     setErreur(null);
     setBrouillonConfirme(false);
+    const manque = manqueSite();
+    if (manque) {
+      signaler(manque[0], manque[1], { detail: "Le site suffit pour enregistrer un devis en cours." });
+      return;
+    }
     startEnregistrementBrouillon(async () => {
       const res = await enregistrerBrouillonDevis({
         id: brouillonId ?? undefined,
@@ -296,7 +329,7 @@ export function NouveauDevisForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <label className={ETIQUETTE}>Type de client *</label>
-            <select value={type} onChange={(e) => changerType(e.target.value as "" | "sous" | "hors")} className={CHAMP}>
+            <select id="devis-type" value={type} onChange={(e) => changerType(e.target.value as "" | "sous" | "hors")} className={CHAMP}>
               <option value="">— Choisir —</option>
               <option value="sous">Client sous contrat</option>
               <option value="hors">Client hors contrat</option>
@@ -305,7 +338,7 @@ export function NouveauDevisForm({
 
           <div>
             <label className={ETIQUETTE}>Client *</label>
-            <select value={clientNom} onChange={(e) => changerClient(e.target.value)} disabled={!type} className={`${CHAMP} disabled:bg-slate-50`}>
+            <select id="devis-client" value={clientNom} onChange={(e) => changerClient(e.target.value)} disabled={!type} className={`${CHAMP} disabled:bg-slate-50`}>
               <option value="">— Choisir un client —</option>
               {clients.map((nom) => (
                 <option key={nom} value={nom}>
@@ -317,7 +350,7 @@ export function NouveauDevisForm({
 
           <div>
             <label className={ETIQUETTE}>Site *</label>
-            <select value={siteId} onChange={(e) => changerSite(e.target.value)} disabled={!clientNom} className={`${CHAMP} disabled:bg-slate-50`}>
+            <select id="devis-site" value={siteId} onChange={(e) => changerSite(e.target.value)} disabled={!clientNom} className={`${CHAMP} disabled:bg-slate-50`}>
               <option value="">— Choisir un site —</option>
               {sitesDuClient.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -496,7 +529,7 @@ export function NouveauDevisForm({
         {!revision && (
           <button
             onClick={enregistrerBrouillon}
-            disabled={!siteId || enregistrementBrouillon}
+            disabled={enregistrementBrouillon}
             title="Enregistre même si des informations manquent, pour reprendre plus tard"
             className="rounded-xl border border-amber-300 bg-white px-5 py-2 text-sm font-semibold text-amber-700 shadow-sm transition hover:bg-amber-50 disabled:opacity-60"
           >
@@ -505,12 +538,13 @@ export function NouveauDevisForm({
         )}
         <button
           onClick={finaliser}
-          disabled={!complet || pending || Boolean(revision?.commande)}
+          disabled={pending}
           className="rounded-xl bg-brand-green px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
         >
           {pending ? "Enregistrement..." : revision ? `Enregistrer la révision ${revision.indiceSuivant}` : "Créer le devis"}
         </button>
       </div>
+      {fenetre}
     </div>
   );
 }
@@ -635,12 +669,12 @@ function BlocPave({
 
       <div>
         <label className={ETIQUETTE}>Libellé du devis *</label>
-        <textarea value={pave.libelle} onChange={(e) => onChange({ libelle: e.target.value })} rows={3} className={CHAMP} />
+        <textarea id={`pave-${pave.cle}-libelle`} value={pave.libelle} onChange={(e) => onChange({ libelle: e.target.value })} rows={3} className={CHAMP} />
       </div>
 
       <div>
         <label className={ETIQUETTE}>Nature *</label>
-        <select value={pave.nature} onChange={(e) => onChange({ nature: e.target.value })} className={CHAMP}>
+        <select id={`pave-${pave.cle}-nature`} value={pave.nature} onChange={(e) => onChange({ nature: e.target.value })} className={CHAMP}>
           <option value="">— Choisir —</option>
           {natures.map((n) => (
             <option key={n.valeur} value={n.valeur}>
@@ -684,7 +718,13 @@ function BlocPave({
             const montant = montantLigneDevis(l, coefficient, tauxHoraire);
             return (
               <div key={i} className="grid grid-cols-[2fr_0.7fr_0.6fr_0.8fr_0.7fr_1.2fr_0.9fr_0.9fr_auto] items-center gap-1.5">
-                <input value={l.designation} onChange={(e) => majLigne(i, { designation: e.target.value })} placeholder="Désignation" className={CHAMP_SM} />
+                <input
+                  id={`pave-${pave.cle}-ligne-${i}`}
+                  value={l.designation}
+                  onChange={(e) => majLigne(i, { designation: e.target.value })}
+                  placeholder="Désignation"
+                  className={CHAMP_SM}
+                />
                 <select value={l.unite} onChange={(e) => majLigne(i, { unite: e.target.value })} className={CHAMP_SM}>
                   {UNITES.map((u) => (
                     <option key={u} value={u}>
@@ -765,6 +805,7 @@ function BlocRemise({
           <div className="w-36">
             <label className={ETIQUETTE}>{remise.type === "pct" ? "Remise (%)" : "Remise (€ HT)"}</label>
             <input
+              id="devis-remise-valeur"
               value={remise.valeur}
               onChange={(e) => onChange({ ...remise, valeur: e.target.value })}
               inputMode="decimal"

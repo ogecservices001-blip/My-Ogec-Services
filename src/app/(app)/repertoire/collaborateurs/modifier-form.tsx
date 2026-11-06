@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { QUALITES, QUALITE_VERS_ROLE } from "@/lib/repertoire/qualites";
@@ -25,6 +26,8 @@ export function ModifierProfilForm({ profil }: { profil: Profil }) {
   const router = useRouter();
   const action = modifierProfil.bind(null, profil.id);
   const [state, formAction, pending] = useActionState(action, null);
+  const { signaler, surChampInvalide, fenetre } = useChampManquant();
+  useSignalerRefusServeur(state, signaler);
   const [qualite, setQualite] = useState(profil.qualite ?? "");
 
   useEffect(() => {
@@ -35,7 +38,8 @@ export function ModifierProfilForm({ profil }: { profil: Profil }) {
   }, [state, router]);
 
   return (
-    <form action={formAction}>
+    <form action={formAction} onInvalidCapture={surChampInvalide}>
+      {fenetre}
       {state && !state.ok && (
         <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.erreur}

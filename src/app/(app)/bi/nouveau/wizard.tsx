@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant, type CibleChamp } from "@/components/champ-manquant";
 import { useEffect, useMemo, useRef, useState, useTransition, type Dispatch, type SetStateAction } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Camera, Eye, X, Plus, Minus } from "lucide-react";
@@ -728,6 +729,33 @@ export function BiWizard({
       .every((c) => (materielChamps[c.cle] ?? "").trim() !== "");
   }, [typeActif, materielChamps]);
 
+  const { signaler, fenetre: fenetreChampManquant } = useChampManquant();
+
+  function manqueEtapeClient(): [string, CibleChamp] | null {
+    if (!clientNom) return ["Choisis le client", "wizard-client"];
+    if (!siteId) return ["Choisis le site", "wizard-site"];
+    if (avecAffaire(pole) && !devisId) return ["Choisis l'affaire (devis commandé)", "wizard-devis"];
+    if (avecEquipementObligatoire(pole) && !equipementId) return ["Choisis l'équipement", "wizard-equipement"];
+    if (avecNouvelEquipement(pole)) {
+      if (!typeActif) return ["Choisis la famille d'équipement", "wizard-famille"];
+      if (!installationLocalisation.trim()) return ["Renseigne la localisation", "wizard-localisation"];
+    }
+    if ((pole === Poles.remplacementIdentique || avecNouvelEquipement(pole)) && !materielComplet) {
+      if (!typeActif) return ["Choisis le type du nouveau matériel", "wizard-materiel"];
+      const manquant = champsPertinents(typeActif)
+        .filter((c) => !CHAMPS_MATERIEL_FACULTATIFS_BI.has(c.cle))
+        .find((c) => (materielChamps[c.cle] ?? "").trim() === "");
+      return [`Complète les caractéristiques du matériel${manquant ? ` : ${manquant.label}` : ""}`, "wizard-materiel"];
+    }
+    if (avecGroupesEntretien(pole)) {
+      if (groupesSelectionnes.size === 0) return ["Coche au moins un groupe à entretenir", "wizard-groupes"];
+      for (const id of nonDesservisIds) {
+        if (!(motifsNonDesservi[id] ?? "").trim()) return ["Indique le motif de non-entretien", `wizard-motif-${id}`];
+      }
+    }
+    return null;
+  }
+
   const peutAvancerEtapeClient = useMemo(() => {
     if (!siteId) return false;
     if (avecAffaire(pole) && !devisId) return false;
@@ -916,6 +944,19 @@ export function BiWizard({
   }
 
   function avancerEtape() {
+    if (etape === 1 && !peutAvancerEtapeClient) {
+      const manque = manqueEtapeClient();
+      signaler(manque?.[0] ?? "Il manque une information pour continuer", manque?.[1] ?? null);
+      return;
+    }
+    if (etape === 2 && resteAFaire) {
+      signaler(
+        "Ce devis couvre d'autres équipements",
+        "wizard-autre-equipement",
+        { detail: "Renseigne-les tous avec « Autre équipement » avant de continuer." },
+      );
+      return;
+    }
     if (etape === 2 && pole === Poles.depannage) {
       poserQuestions("suivant");
       return;
@@ -938,7 +979,9 @@ export function BiWizard({
 
   function soumettre(statut: "brouillon" | "averif") {
     if (statut === "averif" && (resteAFaire || pageSuivante)) {
-      setErreur("Ce devis couvre d'autres équipements : renseigne-les tous avant de transmettre le BI.");
+      signaler("Ce devis couvre d'autres équipements", null, {
+        detail: "Renseigne-les tous avant de transmettre le BI.",
+      });
       return;
     }
     if (statut === "averif" && tempsPasse.trim() === "") {
@@ -1115,6 +1158,7 @@ export function BiWizard({
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <label className="mb-1 block text-xs font-medium text-slate-600">Client</label>
             <select
+              id="wizard-client"
               value={clientNom}
               onChange={(e) => {
                 setClientNom(e.target.value);
@@ -1132,6 +1176,7 @@ export function BiWizard({
             </select>
             {sitesDuClient.length > 1 && (
               <select
+                id="wizard-site"
                 value={siteId}
                 onChange={(e) => setSiteId(e.target.value)}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/20"
@@ -1150,6 +1195,7 @@ export function BiWizard({
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <label className="mb-1 block text-xs font-medium text-slate-600">Affaire (devis commandé)</label>
               <select
+                id="wizard-devis"
                 value={devisId}
                 disabled={chargementSite}
                 onChange={(e) => {
@@ -1185,7 +1231,7 @@ export function BiWizard({
 
           {siteId && avecGroupesEntretien(pole) && (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-              <p className="mb-2 text-xs font-medium text-slate-600">Groupes à entretenir</p>
+              <p id="wizard-groupes" className="mb-2 text-xs font-medium text-slate-600">Groupes à entretenir</p>
               {equipementsSite.length === 0 ? (
                 <p className="text-sm text-slate-400">Aucun équipement enregistré sur ce site.</p>
               ) : (
@@ -1222,6 +1268,7 @@ export function BiWizard({
                       </label>
                       {nonDesservisIds.has(eq.id) && (
                         <input
+                          id={`wizard-motif-${eq.id}`}
                           value={motifsNonDesservi[eq.id] ?? ""}
                           onChange={(e) => setMotifsNonDesservi((prev) => ({ ...prev, [eq.id]: e.target.value }))}
                           placeholder="Motif de non-entretien"
@@ -1238,12 +1285,14 @@ export function BiWizard({
           {siteId && avecEquipementObligatoire(pole) && (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <label className="mb-1 block text-xs font-medium text-slate-600">Équipement</label>
-              <SelectEquipement equipements={equipementsSite} value={equipementId} onChange={setEquipementId} disabled={chargementSite} />
+              <div id="wizard-equipement">
+                <SelectEquipement equipements={equipementsSite} value={equipementId} onChange={setEquipementId} disabled={chargementSite} />
+              </div>
               {equipement?.localisation && (
                 <p className="mt-1.5 text-xs font-semibold text-teal-700">Localisation : {equipement.localisation}</p>
               )}
               {equipement && pole === Poles.remplacementIdentique && (
-                <div className="mt-3 space-y-3 border-t border-slate-100 pt-3">
+                <div id="wizard-materiel" className="mt-3 space-y-3 border-t border-slate-100 pt-3">
                   <p className="text-xs font-medium text-slate-600">Nouveau matériel</p>
                   <TypeActifSelector
                     typesEquipement={typesEquipement}
@@ -1290,6 +1339,7 @@ export function BiWizard({
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Famille d&apos;équipement</label>
                 <select
+                  id="wizard-famille"
                   value={typeActifId}
                   onChange={(e) => {
                     setTypeActifId(e.target.value);
@@ -1308,6 +1358,7 @@ export function BiWizard({
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Localisation</label>
                 <input
+                  id="wizard-localisation"
                   value={installationLocalisation}
                   onChange={(e) => setInstallationLocalisation(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
@@ -1337,7 +1388,7 @@ export function BiWizard({
                 )}
               </div>
               {typeActif && (
-                <div className="space-y-3 border-t border-slate-100 pt-3">
+                <div id="wizard-materiel" className="space-y-3 border-t border-slate-100 pt-3">
                   <p className="text-xs font-medium text-slate-600">Caractéristiques du matériel</p>
                   {typeActif.type_equipement1_fixe && (
                     <TypeEquipementSelects
@@ -1843,6 +1894,7 @@ export function BiWizard({
         )}
         {etape === 2 && autreEquipementPossible && (
           <button
+            id="wizard-autre-equipement"
             type="button"
             onClick={() => (pole === Poles.depannage ? poserQuestions("autre") : ajouterAutreEquipement([]))}
             disabled={!equipement && !equipementLibre.trim() && !avecNouvelEquipement(pole)}
@@ -1854,7 +1906,6 @@ export function BiWizard({
         {etape > 0 && etape < TOTAL_ETAPES - 1 && (
           <button
             onClick={etape === 2 && pageSuivante ? passerPageSuivante : avancerEtape}
-            disabled={(etape === 1 && !peutAvancerEtapeClient) || (etape === 2 && resteAFaire)}
             className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-40 ${ACCENT}`}
           >
             {etape === 2 && pageSuivante ? "Page suivante" : "Suivant"}
@@ -1879,6 +1930,8 @@ export function BiWizard({
           </>
         )}
       </div>
+
+      {fenetreChampManquant}
 
       {popupDevis && (
         <PopupChoix

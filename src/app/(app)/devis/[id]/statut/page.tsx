@@ -18,7 +18,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
   if (!devis) notFound();
 
   const [{ data: site }, { data: bons }, { data: equipements }, { data: commandes }] = await Promise.all([
-    supabase.from("sites").select("nom, site").eq("id", devis.site_id).single(),
+    supabase.from("sites").select("nom, site, courriel_responsable").eq("id", devis.site_id).single(),
     supabase
       .from("bons_intervention")
       .select("id, numero, statut, date_intervention, date_debut, date_fin, temps_passe, nombre_deplacements")
@@ -70,6 +70,7 @@ export default async function StatutDevisPage({ params }: { params: Promise<{ id
     <StatutDevisForm
       devis={devis as Tables<"devis">}
       site={site as Pick<Site, "nom" | "site"> | null}
+      emailClient={devis.email_responsable_contrat || site?.courriel_responsable || ""}
       realise={realise}
       equipements={equipements ?? []}
       commandesFournisseur={commandesFournisseur}

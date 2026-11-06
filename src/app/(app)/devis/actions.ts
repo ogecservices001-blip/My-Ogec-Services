@@ -419,14 +419,16 @@ export async function envoyerDevisParEmail(id: string): Promise<ActionResult> {
 
   const { data: devis, error } = await supabase.from("devis").select("*").eq("id", id).single();
   if (error || !devis) return { ok: false, erreur: "Devis introuvable." };
-  if (!devis.email_responsable_contrat) return { ok: false, erreur: "Aucun email connu pour ce client." };
 
-  const { data: site } = await supabase.from("sites").select("nom, site").eq("id", devis.site_id).single();
+  const { data: site } = await supabase.from("sites").select("nom, site, courriel_responsable").eq("id", devis.site_id).single();
+  // Devis importé : email repris du classeur ; devis créé dans l'appli : celui du responsable sur la fiche client.
+  const destinataire = devis.email_responsable_contrat || site?.courriel_responsable || "";
+  if (!destinataire) return { ok: false, erreur: "Aucun email du responsable sur la fiche client." };
 
   const pdfBytes = await genererPdfDevis({ devis, site: site ?? null });
 
   try {
-    await envoyerDevis({ devis, site: site ?? null, destinataire: devis.email_responsable_contrat, pdfBytes });
+    await envoyerDevis({ devis, site: site ?? null, destinataire, pdfBytes });
   } catch (e) {
     return { ok: false, erreur: e instanceof Error ? e.message : "Échec de l'envoi." };
   }

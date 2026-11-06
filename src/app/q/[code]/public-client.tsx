@@ -1,5 +1,6 @@
 "use client";
 
+import { useChampManquant } from "@/components/champ-manquant";
 import { useState } from "react";
 import { QrCode, CheckCircle2, Wrench } from "lucide-react";
 import type { EquipementPublicDonnees } from "@/lib/gmao/depannage";
@@ -16,10 +17,12 @@ export function EquipementPublicClient({ codeQr }: { codeQr: string }) {
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
   const [demandeEnvoyee, setDemandeEnvoyee] = useState(false);
 
+  const { signaler, fenetre } = useChampManquant();
+
   async function verifier() {
     setErreur(null);
     if (!email.trim() || !email.includes("@")) {
-      setErreur("Merci de saisir un email valide.");
+      signaler(email.trim() ? "Cet email n'est pas valide" : "Saisis ton email", "public-email");
       return;
     }
     setChargement(true);
@@ -36,7 +39,7 @@ export function EquipementPublicClient({ codeQr }: { codeQr: string }) {
   async function envoyerDemande() {
     setErreur(null);
     if (!message.trim()) {
-      setErreur("Merci de décrire la panne rencontrée.");
+      signaler("Décris la panne rencontrée", "public-message");
       return;
     }
     if (!emailValide) return;
@@ -53,6 +56,7 @@ export function EquipementPublicClient({ codeQr }: { codeQr: string }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
       <div className="w-full max-w-lg">
+        {fenetre}
         <div className="mb-4 rounded-2xl bg-teal-700 px-5 py-4 text-center text-white shadow-sm">
           <p className="text-sm font-bold">Équipement OGEC Services</p>
         </div>
@@ -69,6 +73,7 @@ export function EquipementPublicClient({ codeQr }: { codeQr: string }) {
             </div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Email</label>
             <input
+              id="public-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -179,6 +184,7 @@ function ContenuEquipement({
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <p className="mb-2 text-sm font-bold text-slate-900">Signaler une panne</p>
           <textarea
+            id="public-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={4}

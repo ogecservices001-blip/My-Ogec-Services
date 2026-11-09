@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
-import { labelPole, labelStatut, Statuts, prixDuDevis } from "@/lib/bi/constants";
+import { labelPole, labelStatut, Statuts, sansMontant } from "@/lib/bi/constants";
 import {
   dureeEnHeures,
   parsePu,
@@ -95,7 +95,7 @@ export async function GET() {
     const montantDeplacements = forfait !== null ? forfait * b.nombre_deplacements : 0;
     const interventions = interventionsDuBon(b);
     const prestas: Presta[] = interventions.flatMap((i) => i.prestas);
-    const montantTotal = montantHeures + montantDeplacements + totalHT(prestas);
+    const montantTotal = sansMontant(b.pole) ? null : montantHeures + montantDeplacements + totalHT(prestas);
     const compteRendu = interventions.map((i) => i.compte_rendu).filter(Boolean).join(" | ");
     const prestasTexte = prestas.length > 0 ? prestaSummary(prestas) : "";
 
@@ -129,7 +129,7 @@ export async function GET() {
       prestasTexte,
       taux?.taux_horaire_regie ?? "",
       taux?.forfait_deplacement ?? "",
-      prixDuDevis(b.pole) ? "" : eur(montantTotal),
+      montantTotal === null ? "" : eur(montantTotal),
       b.obs_tech,
       b.obs_client,
       b.note_interne,

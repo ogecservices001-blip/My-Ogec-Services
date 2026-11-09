@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { FilAjouter } from "@/components/fil-extra-context";
-import { Statuts, labelPole, prixDuDevis } from "@/lib/bi/constants";
+import { Statuts, labelPole, sansMontant } from "@/lib/bi/constants";
 import { montantMainDoeuvre, montantDeplacements, totalHT, eur, type Presta, type TauxSite } from "@/lib/bi/format";
 import { formaterDate } from "@/lib/format";
 import type { Site } from "@/lib/types";
@@ -65,7 +65,7 @@ export default async function BonInterventionGroupeClientPage({
 
   function montant(b: (typeof lignes)[number]): number | null {
     const taux: TauxSite = b.site_id ? (siteParId.get(b.site_id) ?? null) : null;
-    if (prixDuDevis(b.pole)) return null;
+    if (sansMontant(b.pole)) return null;
     const montantHeures = montantMainDoeuvre(b.temps_passe, taux) ?? 0;
     const montantDepl = montantDeplacements(b.nombre_deplacements, taux) ?? 0;
     const prestas = [

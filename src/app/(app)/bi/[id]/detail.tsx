@@ -9,7 +9,7 @@ import Link from "next/link";
 import { ArrowLeft, Lock, X, FileText, ExternalLink, Mail } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { StatutBadge } from "@/components/bi/statut-badge";
-import { Poles, Statuts, avecPeriode, prixDuDevis, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI, CLASSEMENT_LABELS, POLE_PLUSIEURS_TYPES } from "@/lib/bi/constants";
+import { Poles, Statuts, avecPeriode, sansMontant, labelPole, PHOTO_TYPES, CHAMPS_MATERIEL_EXCLUS_BI, CLASSEMENT_LABELS, POLE_PLUSIEURS_TYPES } from "@/lib/bi/constants";
 import {
   equipementLabel,
   eur,
@@ -158,7 +158,7 @@ export function BiDetail({
                 </Section>
               ) : (
                 <>
-                  {!prixDuDevis(bon.pole) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
+                  {!sansMontant(bon.pole) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
                   <BlocClassement bon={bon} />
                 </>
               )}
@@ -1006,7 +1006,7 @@ function VueCorrection({
         ) : (
           <BlocClassement bon={bon} onChange={setClassementActuel} onMoisChange={setMoisActuel} />
         )}
-        {classementFinal === "facturer" && !prixDuDevis(pole) && (
+        {classementFinal === "facturer" && !sansMontant(pole) && (
           <BlocMainDoeuvreDeplacement tempsPasse={tempsPasse} nombreDeplacements={nombreDeplacements} tauxSite={tauxSite} />
         )}
         {classementFinal === "" && (

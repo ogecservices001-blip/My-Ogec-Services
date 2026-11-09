@@ -91,6 +91,11 @@ export const avecTempsLibre = (code: string) =>
 /// suivre les heures réelles, sans montant ni déplacements facturés.
 export const prixDuDevis = (code: string) => code === POLE_PLUSIEURS_TYPES || avecAffaire(code);
 
+/// BI sans aucun montant calculé : sur devis (le prix est celui du devis) ou
+/// Entretien sous contrat (forfait du contrat). Jamais d'estimation
+/// heures × taux + déplacements pour eux, nulle part.
+export const sansMontant = (code: string) => prixDuDevis(code) || code === Poles.entretienSousContrat;
+
 /// Dépannage uniquement : fourniture de matériel posé/consommé sur
 /// place (désignation + quantité, jamais de prix).
 export const avecFournitureMateriel = (code: string) => code === Poles.depannage;

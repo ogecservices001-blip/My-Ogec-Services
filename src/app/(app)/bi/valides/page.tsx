@@ -1,6 +1,6 @@
 import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Statuts, prixDuDevis } from "@/lib/bi/constants";
+import { Statuts, sansMontant } from "@/lib/bi/constants";
 import { montantMainDoeuvre, montantDeplacements, totalHT, type Presta } from "@/lib/bi/format";
 import { BonsValidesTableau } from "./bons-valides";
 
@@ -27,7 +27,7 @@ export default async function BiValidesPage() {
 
   // Prestation sur devis : aucun montant ici, le prix est celui du devis.
   const lignes = (bons ?? []).map((b) => {
-    if (prixDuDevis(b.pole)) return { ...b, montantHt: null };
+    if (sansMontant(b.pole)) return { ...b, montantHt: null };
     const taux = b.site_id ? (tauxParSite.get(b.site_id) ?? null) : null;
     const montantHeures = montantMainDoeuvre(b.temps_passe, taux) ?? 0;
     const montantDepl = montantDeplacements(b.nombre_deplacements, taux) ?? 0;

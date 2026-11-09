@@ -64,6 +64,11 @@ export const avecEquipementObligatoire = (code: string) =>
 /// équipement unique.
 export const avecGroupesEntretien = (code: string) => code === Poles.entretienSousContrat;
 
+/// Groupe d'entretien d'un équipement : les équipements sans groupe sont
+/// réunis sous "Sans groupe" (sites dont le parc n'est pas découpé en groupes).
+export const SANS_GROUPE = "Sans groupe";
+export const groupeEntretien = (groupe: string) => groupe.trim() || SANS_GROUPE;
+
 /// Équipement du parc GMAO proposé mais pas exigé.
 export const avecEquipementOptionnel = (code: string) => code === Poles.depannage || code === Poles.reparationDiverse;
 

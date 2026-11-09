@@ -1,4 +1,5 @@
 import type { Tables } from "@/lib/types";
+import { groupeEntretien } from "@/lib/bi/constants";
 
 type Bon = Tables<"bons_intervention">;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,7 +31,7 @@ export async function equipementsEntretenus(
     ((bon.entretien_non_desservis as { nom?: string }[] | null) ?? []).map((e) => e.nom).filter(Boolean),
   );
   return ((data ?? []) as { id: string; nom: string; groupe: string; champs_en_tete: Record<string, unknown> }[])
-    .filter((eq) => bon.entretien_groupes.includes(eq.groupe) && !nonDesservis.has(eq.nom))
+    .filter((eq) => bon.entretien_groupes.includes(groupeEntretien(eq.groupe)) && !nonDesservis.has(eq.nom))
     .map((eq) => ({
       id: eq.id,
       nom: eq.nom,

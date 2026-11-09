@@ -23,8 +23,7 @@ import {
   avecTempsLibre,
   avecFournitureMateriel,
   CHAMPS_MATERIEL_EXCLUS_BI,
-  CHAMPS_MATERIEL_FACULTATIFS_BI,
-} from "@/lib/bi/constants";
+  CHAMPS_MATERIEL_FACULTATIFS_BI, SANS_GROUPE, groupeEntretien } from "@/lib/bi/constants";
 import { today, tempsStandard, multiplierDuree, ETATS_EQUIPEMENT } from "@/lib/bi/format";
 import {
   chargerEquipementsDuSite,
@@ -356,10 +355,13 @@ export function BiWizard({
   }
 
   const groupesDisponibles = useMemo(
-    () => [...new Set(equipementsSite.map((e) => e.groupe.trim()).filter(Boolean))].sort(),
+    () =>
+      [...new Set(equipementsSite.map((e) => groupeEntretien(e.groupe)))].sort((a, b) =>
+        a === SANS_GROUPE ? 1 : b === SANS_GROUPE ? -1 : a.localeCompare(b, "fr"),
+      ),
     [equipementsSite],
   );
-  const equipementsGroupesSelectionnes = equipementsSite.filter((e) => groupesSelectionnes.has(e.groupe));
+  const equipementsGroupesSelectionnes = equipementsSite.filter((e) => groupesSelectionnes.has(groupeEntretien(e.groupe)));
 
   function toggleGroupe(groupe: string, coche: boolean) {
     setGroupesSelectionnes((prev) => {
@@ -369,7 +371,7 @@ export function BiWizard({
       return next;
     });
     if (!coche) {
-      const idsDuGroupe = new Set(equipementsSite.filter((e) => e.groupe === groupe).map((e) => e.id));
+      const idsDuGroupe = new Set(equipementsSite.filter((e) => groupeEntretien(e.groupe) === groupe).map((e) => e.id));
       setNonDesservisIds((prev) => new Set([...prev].filter((id) => !idsDuGroupe.has(id))));
     }
   }
@@ -392,7 +394,7 @@ export function BiWizard({
     if (actuel && actuel !== texteAutoEntretienRef.current.trim()) return;
     const lignes: string[] = [];
     for (const groupe of groupesSelectionnes) {
-      const eqs = equipementsSite.filter((e) => e.groupe === groupe);
+      const eqs = equipementsSite.filter((e) => groupeEntretien(e.groupe) === groupe);
       if (eqs.length === 0) continue;
       const n = eqs.length;
       lignes.push(`Entretien ${groupe} : ${n} équipement${n > 1 ? "s" : ""}.`);
@@ -1246,7 +1248,7 @@ export function BiWizard({
                       />
                       {groupe}{" "}
                       <span className="text-xs text-slate-400">
-                        ({equipementsSite.filter((e) => e.groupe === groupe).length} équipement(s))
+                        ({equipementsSite.filter((e) => groupeEntretien(e.groupe) === groupe).length} équipement(s))
                       </span>
                     </label>
                   ))}

@@ -13,6 +13,7 @@ import type {
   ChampListeLigne,
   ChecklistValues,
   GroupesMesuresReleve,
+  Releve,
 } from "@/lib/gmao/types";
 import { concatTypeEquipement, analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { calculerHeuresVisite } from "@/lib/gmao/calcul-heures-visite";
@@ -44,6 +45,9 @@ export function ReleveForm({
   nomsTechniciens,
   devisEnCours,
   depannagesOuverts,
+  releveExistant,
+  onTermine,
+  onFermer,
 }: {
   siteId: string;
   site: { nom: string; site: string };
@@ -55,6 +59,11 @@ export function ReleveForm({
   nomsTechniciens: string[];
   devisEnCours: DevisEnCours[];
   depannagesOuverts: { id: string; numero: string; message: string }[];
+  /// Relevé pas encore rattaché à une visite, rouvert pour correction.
+  releveExistant?: Releve | null;
+  /// Ouvert depuis le BI Entretien : on y revient au lieu de quitter la page.
+  onTermine?: () => void;
+  onFermer?: () => void;
 }) {
   const router = useRouter();
   const action = creerReleve.bind(null, equipement.id, siteId);
@@ -67,8 +76,9 @@ export function ReleveForm({
     nomTech: nomTechInitial || equipement.champs_en_tete.nomTech || "",
     dateIntervPrevue: aujourdhui(),
   }));
-  const [checklistValues, setChecklistValues] = useState<ChecklistValues>({});
+  const [checklistValues, setChecklistValues] = useState<ChecklistValues>(releveExistant?.checklist_values ?? {});
   const [groupesMesures, setGroupesMesures] = useState<GroupesMesuresReleve>(() => {
+    if (releveExistant) return releveExistant.groupes_mesures;
     const init: GroupesMesuresReleve = {};
     for (const groupe of type.groupes_mesures) {
       const occurrences = groupe.repetable ? groupe.nombreMax : 1;
@@ -78,17 +88,21 @@ export function ReleveForm({
     }
     return init;
   });
-  const [validation, setValidation] = useState<string | null>(null);
-  const [remarque1, setRemarque1] = useState("");
-  const [remarque2, setRemarque2] = useState("");
-  const [informationsInternes, setInformationsInternes] = useState("");
+  const [validation, setValidation] = useState<string | null>(releveExistant?.validation_fonctionnement ?? null);
+  const [remarque1, setRemarque1] = useState(releveExistant?.remarque1 ?? "");
+  const [remarque2, setRemarque2] = useState(releveExistant?.remarque2 ?? "");
+  const [informationsInternes, setInformationsInternes] = useState(releveExistant?.informations_internes ?? "");
 
   useEffect(() => {
-    if (state?.ok) {
-      router.push(`/gmao/clients/${siteId}/equipements`);
-      router.refresh();
+    if (!state?.ok) return;
+    if (onTermine) {
+      onTermine();
+      return;
     }
-  }, [state, router, siteId]);
+    router.push(`/gmao/clients/${siteId}/equipements`);
+    router.refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seul un nouveau résultat déclenche la sortie
+  }, [state]);
 
   const resultatReference = analyserReference(champsEnTete, references);
   const freqBrut = champsEnTete.freqEntretienAnnuelle;
@@ -109,13 +123,24 @@ export function ReleveForm({
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <Link
-          href={`/gmao/clients/${siteId}/equipements`}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-          Retour
-        </Link>
+        {onFermer ? (
+          <button
+            type="button"
+            onClick={onFermer}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+            Retour au BI
+          </button>
+        ) : (
+          <Link
+            href={`/gmao/clients/${siteId}/equipements`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+            Retour
+          </Link>
+        )}
         <Link
           href={`/gmao/clients/${siteId}/equipements/${equipement.id}/releves`}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
@@ -168,6 +193,12 @@ export function ReleveForm({
         <input type="hidden" name="remarque1" value={remarque1} />
         <input type="hidden" name="remarque2" value={remarque2} />
         <input type="hidden" name="informations_internes" value={informationsInternes} />
+        {releveExistant && <input type="hidden" name="releve_id" value={releveExistant.id} />}
+        {releveExistant && (
+          <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Relevé déjà fait le {new Date(releveExistant.date).toLocaleDateString("fr-FR")} — tu le corriges.
+          </p>
+        )}
 
         {state && !state.ok && (
           <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.erreur}</p>

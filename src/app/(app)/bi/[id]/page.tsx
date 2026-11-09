@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { Tables } from "@/lib/types";
 import { BiDetail, type InfosVisite } from "./detail";
-import { Poles } from "@/lib/bi/constants";
+import { Poles, Statuts } from "@/lib/bi/constants";
 import { equipementsEntretenus, proposerVisite } from "@/lib/gmao/visites";
 
 export default async function BiDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -47,7 +47,7 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
       ids.length > 0
         ? await supabase.from("releves").select("equipement_id, bon_intervention_id").in("equipement_id", ids)
         : { data: [] };
-    const valide = bon.visite_numero !== null;
+    const valide = bon.statut !== Statuts.brouillon && bon.statut !== Statuts.aVerifier;
     // Avant validation : relevés en attente de rattachement ; après : ceux rattachés à ce BI.
     const avecReleve = new Set(
       (releves ?? [])

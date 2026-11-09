@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { numeroBI, currentYear, now } from "@/lib/bi/format";
 import { Poles } from "@/lib/bi/constants";
+import { equipementsEntretenus, proposerVisite, type VisiteSaisie } from "@/lib/gmao/visites";
 import type { ActionResult } from "@/lib/action-result";
 import type { ChampsEnTeteEquipement, ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 
@@ -241,6 +242,10 @@ export type BiInput = {
 
   entretien_groupes: string[];
   entretien_non_desservis: NonDesserviInput[];
+  /// Entretien sous contrat : visite saisie par le technicien ("1 de 2 — 2026").
+  visite_numero?: number | null;
+  visite_total?: number | null;
+  visite_annee?: number | null;
 
   date_debut: string;
   date_fin: string;
@@ -294,6 +299,9 @@ export type BrouillonBI = {
   materiel_champs_en_tete: Record<string, string>;
   entretien_groupes: string[];
   entretien_non_desservis: NonDesserviInput[];
+  visite_numero: number | null;
+  visite_total: number | null;
+  visite_annee: number | null;
   date_debut: string;
   date_fin: string;
   date_intervention: string;
@@ -370,6 +378,9 @@ export async function chargerBrouillonBI(id: string): Promise<BrouillonBI | null
     materiel_champs_en_tete: data.materiel_champs_en_tete as unknown as Record<string, string>,
     entretien_groupes: data.entretien_groupes,
     entretien_non_desservis: data.entretien_non_desservis as unknown as NonDesserviInput[],
+    visite_numero: data.visite_numero,
+    visite_total: data.visite_total,
+    visite_annee: data.visite_annee,
     date_debut: data.date_debut,
     date_fin: data.date_fin,
     date_intervention: data.date_intervention,
@@ -444,6 +455,13 @@ export async function enregistrerBI(
     materiel_champs_en_tete: input.materiel_champs_en_tete,
     entretien_groupes: input.entretien_groupes,
     entretien_non_desservis: input.entretien_non_desservis,
+    ...(input.pole === Poles.entretienSousContrat
+      ? {
+          visite_numero: input.visite_numero ?? null,
+          visite_total: input.visite_total ?? null,
+          visite_annee: input.visite_annee ?? null,
+        }
+      : {}),
     date_debut: input.date_debut,
     date_fin: input.date_fin,
     date_intervention: input.date_intervention,
@@ -505,4 +523,23 @@ async function prochainChronoBI(supabase: any, annee: number): Promise<number> {
     throw new Error(error?.message ?? "Échec de l'attribution du numéro de bon.");
   }
   return data as number;
+}
+
+/// Visite proposée au technicien dans le BI Entretien sous contrat : visites
+/// déjà validées cette année sur les équipements cochés + 1, fréquence du site.
+export async function proposerVisiteBI(params: {
+  siteId: string;
+  groupes: string[];
+  nonDesservis: string[];
+  dateDebut: string;
+  dateFin: string;
+}): Promise<VisiteSaisie> {
+  await requireProfile();
+  const supabase = await createClient();
+  const entretenus = await equipementsEntretenus(supabase, {
+    site_id: params.siteId,
+    entretien_groupes: params.groupes,
+    entretien_non_desservis: params.nonDesservis.map((nom) => ({ nom })),
+  });
+  return proposerVisite(supabase, { date_debut: params.dateDebut, date_fin: params.dateFin }, entretenus);
 }

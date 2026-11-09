@@ -145,7 +145,7 @@ export function BiDetail({
         <div className="space-y-4">
           <BlocClient bon={bon} />
           <VueLectureSeule bon={bon} typesEquipement={typesEquipement} modele={modele} />
-          {bon.visite_numero !== null && infosVisite && (
+          {bon.visite_numero !== null && infosVisite && STATUTS_AVEC_PDF.has(bon.statut) && (
             <Section titre={`Visite d'entretien — ${libelleVisite({ numero: bon.visite_numero, total: bon.visite_total, annee: bon.visite_annee })}`}>
               <RelevesDeLaVisite equipements={infosVisite.equipements} rattaches />
               <div className="mt-3 flex flex-wrap items-center gap-2">

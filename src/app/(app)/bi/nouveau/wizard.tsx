@@ -1,5 +1,6 @@
 "use client";
 
+import { RelevesVisite } from "@/components/bi/releves-visite";
 import { ChoixClientSite } from "@/components/choix-client-site";
 import { dateFrVersIso, formaterDate } from "@/lib/format";
 
@@ -27,22 +28,7 @@ import {
   CHAMPS_MATERIEL_EXCLUS_BI,
   CHAMPS_MATERIEL_FACULTATIFS_BI, SANS_GROUPE, groupeEntretien } from "@/lib/bi/constants";
 import { today, tempsStandard, multiplierDuree, ETATS_EQUIPEMENT } from "@/lib/bi/format";
-import {
-  chargerEquipementsDuSite,
-  chargerDevisDuSite,
-  chargerModeleBI,
-  chargerInfosNouvelEquipement,
-  enregistrerBI,
-  type EquipementDuSite,
-  type DevisDuSite,
-  type DevisARealiser,
-  type ModeleBI,
-  type PhotoInput,
-  type PrestaInput,
-  type DepannageEnCours,
-  type InterventionSupplementaireInput,
-  type BrouillonBI,
-} from "./actions";
+import { chargerEquipementsDuSite, chargerDevisDuSite, chargerModeleBI, chargerInfosNouvelEquipement, enregistrerBI, type EquipementDuSite, type DevisDuSite, type DevisARealiser, type ModeleBI, type PhotoInput, type PrestaInput, type DepannageEnCours, type InterventionSupplementaireInput, type BrouillonBI, proposerVisiteBI } from "./actions";
 
 type SiteOption = {
   id: string;
@@ -690,6 +676,44 @@ export function BiWizard({
 
   const { signaler, fenetre: fenetreChampManquant } = useChampManquant();
 
+  // Visite d'entretien saisie par le technicien (pré-remplie, modifiable).
+  const [visiteNumero, setVisiteNumero] = useState(brouillon?.visite_numero ? String(brouillon.visite_numero) : "");
+  const [visiteTotal, setVisiteTotal] = useState(brouillon?.visite_total ? String(brouillon.visite_total) : "");
+  const [visiteAnnee, setVisiteAnnee] = useState(brouillon?.visite_annee ? String(brouillon.visite_annee) : "");
+  const visiteModifiee = useRef(Boolean(brouillon?.visite_numero));
+  const clePropositionVisite = [siteId, [...groupesSelectionnes].sort().join("|"), [...nonDesservisIds].sort().join("|"), dateDebut, dateFin].join("#");
+  useEffect(() => {
+    if (pole !== Poles.entretienSousContrat || !siteId || groupesSelectionnes.size === 0 || visiteModifiee.current) return;
+    let annule = false;
+    proposerVisiteBI({
+      siteId,
+      groupes: [...groupesSelectionnes],
+      nonDesservis: equipementsGroupesSelectionnes.filter((e) => nonDesservisIds.has(e.id)).map((e) => e.nom),
+      dateDebut,
+      dateFin,
+    }).then((v) => {
+      if (annule || visiteModifiee.current) return;
+      setVisiteNumero(String(v.numero));
+      setVisiteTotal(String(v.total));
+      setVisiteAnnee(String(v.annee));
+    });
+    return () => {
+      annule = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recalcul seulement quand site, groupes ou dates changent
+  }, [pole, clePropositionVisite]);
+
+  function manqueVisite(): [string, CibleChamp] | null {
+    if (pole !== Poles.entretienSousContrat) return null;
+    const total = Number(visiteTotal);
+    if (!Number.isInteger(total) || total < 1 || total > 12) return ["Indique le nombre de visites par an (1 à 12)", "wizard-visite-total"];
+    const numero = Number(visiteNumero);
+    if (!Number.isInteger(numero) || numero < 1 || numero > total) return [`Indique le n° de la visite (1 à ${total})`, "wizard-visite-numero"];
+    const annee = Number(visiteAnnee);
+    if (!Number.isInteger(annee) || annee < 2020 || annee > 2100) return ["Indique l'année du contrat (ex : 2026)", "wizard-visite-annee"];
+    return null;
+  }
+
   function manqueEtapeClient(): [string, CibleChamp] | null {
     if (!clientNom) return ["Choisis le client", "wizard-client"];
     if (!siteId) return ["Choisis le site", "wizard-site"];
@@ -712,7 +736,7 @@ export function BiWizard({
         if (!(motifsNonDesservi[id] ?? "").trim()) return ["Indique le motif de non-entretien", `wizard-motif-${id}`];
       }
     }
-    return null;
+    return manqueVisite();
   }
 
   const peutAvancerEtapeClient = useMemo(() => {
@@ -813,6 +837,9 @@ export function BiWizard({
       entretien_non_desservis: equipementsGroupesSelectionnes
         .filter((eq) => nonDesservisIds.has(eq.id))
         .map((eq) => ({ nom: eq.nom, motif: (motifsNonDesservi[eq.id] ?? "").trim() })),
+      visite_numero: pole === Poles.entretienSousContrat && visiteNumero ? Number(visiteNumero) : null,
+      visite_total: pole === Poles.entretienSousContrat && visiteTotal ? Number(visiteTotal) : null,
+      visite_annee: pole === Poles.entretienSousContrat && visiteAnnee ? Number(visiteAnnee) : null,
       date_debut: dateDebut,
       date_fin: dateFin,
       date_intervention: dateIntervention,
@@ -903,7 +930,7 @@ export function BiWizard({
   }
 
   function avancerEtape() {
-    if (etape === 1 && !peutAvancerEtapeClient) {
+    if (etape === 1 && (!peutAvancerEtapeClient || manqueVisite())) {
       const manque = manqueEtapeClient();
       signaler(manque?.[0] ?? "Il manque une information pour continuer", manque?.[1] ?? null);
       return;
@@ -936,6 +963,12 @@ export function BiWizard({
     else setEtape(etape + 1);
   }
 
+  // BI Entretien sous contrat : équipements sans relevé technique, signalés
+  // (sans bloquer) à la transmission.
+  const [relevesManquants, setRelevesManquants] = useState<string[]>([]);
+  const [popupReleves, setPopupReleves] = useState(false);
+  const relevesConfirmesRef = useRef(false);
+
   function soumettre(statut: "brouillon" | "averif") {
     if (statut === "averif" && (resteAFaire || pageSuivante)) {
       signaler("Ce devis couvre d'autres équipements", null, {
@@ -957,6 +990,15 @@ export function BiWizard({
     }
     if (statut === "averif" && (signataire.trim() === "" || sigTechVide || sigClientVide)) {
       setAlerteSignature(true);
+      return;
+    }
+    if (
+      statut === "averif" &&
+      pole === Poles.entretienSousContrat &&
+      relevesManquants.length > 0 &&
+      !relevesConfirmesRef.current
+    ) {
+      setPopupReleves(true);
       return;
     }
     setErreur(null);
@@ -1149,6 +1191,50 @@ export function BiWizard({
             </div>
           )}
 
+          {siteId && pole === Poles.entretienSousContrat && groupesSelectionnes.size > 0 && (
+            <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-4 shadow-sm">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-teal-700">Visite d&apos;entretien</p>
+              <div className="flex flex-wrap items-end gap-2 text-sm">
+                <span className="pb-2 text-slate-600">Visite n°</span>
+                <input
+                  id="wizard-visite-numero"
+                  value={visiteNumero}
+                  onChange={(e) => {
+                    visiteModifiee.current = true;
+                    setVisiteNumero(e.target.value);
+                  }}
+                  inputMode="numeric"
+                  className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-center text-sm outline-none focus:border-violet-600"
+                />
+                <span className="pb-2 text-slate-600">de</span>
+                <input
+                  id="wizard-visite-total"
+                  value={visiteTotal}
+                  onChange={(e) => {
+                    visiteModifiee.current = true;
+                    setVisiteTotal(e.target.value);
+                  }}
+                  inputMode="numeric"
+                  className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-center text-sm outline-none focus:border-violet-600"
+                />
+                <span className="pb-2 text-slate-600">— année</span>
+                <input
+                  id="wizard-visite-annee"
+                  value={visiteAnnee}
+                  onChange={(e) => {
+                    visiteModifiee.current = true;
+                    setVisiteAnnee(e.target.value);
+                  }}
+                  inputMode="numeric"
+                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-center text-sm outline-none focus:border-violet-600"
+                />
+              </div>
+              <p className="mt-1.5 text-[11px] text-slate-500">
+                Proposée d&apos;après les visites déjà faites — corrige si ce n&apos;est pas la bonne.
+              </p>
+            </div>
+          )}
+
           {siteId && avecEquipementObligatoire(pole) && (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <label className="mb-1 block text-xs font-medium text-slate-600">Équipement</label>
@@ -1318,6 +1404,18 @@ export function BiWizard({
 
       {etape === 2 && (
         <div className="space-y-4">
+          {pole === Poles.entretienSousContrat && siteId && site && (
+            <RelevesVisite
+              visite={visiteNumero ? `Visite ${visiteNumero}${visiteTotal ? ` de ${visiteTotal}` : ""}${visiteAnnee ? ` — ${visiteAnnee}` : ""}` : ""}
+              siteId={siteId}
+              site={{ nom: site.nom, site: site.site }}
+              equipements={equipementsGroupesSelectionnes.filter((e) => !nonDesservisIds.has(e.id))}
+              references={references}
+              nomUtilisateur={nomUtilisateur}
+              techniciens={techniciensDisponibles}
+              onManquants={setRelevesManquants}
+            />
+          )}
           {modePages && pageSuivante && (
             <p className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm text-violet-800">
               Page suivante : {labelPole(pageSuivante.nature)}
@@ -1794,6 +1892,23 @@ export function BiWizard({
       </div>
 
       {fenetreChampManquant}
+
+      {popupReleves && (
+        <PopupChoix
+          titre={`${relevesManquants.length} équipement(s) sans relevé technique : ${relevesManquants.join(", ")}. Transmettre quand même ?`}
+          choix={[
+            {
+              label: "Oui, transmettre",
+              onClick: () => {
+                setPopupReleves(false);
+                relevesConfirmesRef.current = true;
+                soumettre("averif");
+              },
+            },
+            { label: "Non, je les fais", onClick: () => setPopupReleves(false) },
+          ]}
+        />
+      )}
 
       {popupDevis && (
         <PopupChoix

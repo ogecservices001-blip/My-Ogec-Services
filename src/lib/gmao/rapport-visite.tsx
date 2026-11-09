@@ -25,7 +25,9 @@ export async function chargerRapportVisite(
 ): Promise<{ ok: true; donnees: DonneesRapportVisite } | { ok: false; erreur: string }> {
   const { data: bi } = await supabase.from("bons_intervention").select("*").eq("id", biId).single();
   if (!bi) return { ok: false, erreur: "BI introuvable." };
-  if (!bi.visite_numero) return { ok: false, erreur: "Ce BI n'est pas une visite d'entretien validée." };
+  if (!bi.visite_numero || bi.statut === "brouillon" || bi.statut === "averif") {
+    return { ok: false, erreur: "Ce BI n'est pas une visite d'entretien validée." };
+  }
 
   const entretenus = await equipementsEntretenus(supabase, bi);
   const ids = entretenus.map((e) => e.id);

@@ -331,22 +331,40 @@ export function BiWizard({
   // Compte rendu auto-généré pour Entretien sous contrat, une ligne par
   // groupe coché — ne réécrit jamais un texte déjà modifié à la main.
   const texteAutoEntretienRef = useRef("");
+  // Rattrapage : équipements ayant déjà eu cette visite (remontés par le bloc des relevés).
+  const [dejaFaits, setDejaFaits] = useState<Record<string, string>>({});
+
   useEffect(() => {
     if (!avecGroupesEntretien(pole)) return;
     const actuel = compteRenduRef.current.trim();
     if (actuel && actuel !== texteAutoEntretienRef.current.trim()) return;
+    // Seuls les équipements entretenus dans CE BI : ni les non entretenus, ni
+    // ceux qui ont déjà eu cette visite par un autre BI (rattrapage).
     const lignes: string[] = [];
+    const visite = `visite ${visiteNumero}${visiteTotal ? ` de ${visiteTotal}` : ""}${visiteAnnee ? ` — ${visiteAnnee}` : ""}`;
     for (const groupe of groupesSelectionnes) {
-      const eqs = equipementsSite.filter((e) => groupeEntretien(e.groupe) === groupe);
+      const eqs = equipementsSite.filter(
+        (e) => groupeEntretien(e.groupe) === groupe && !nonDesservisIds.has(e.id) && !dejaFaits[e.id],
+      );
       if (eqs.length === 0) continue;
+      const rattrapage = equipementsSite.some((e) => groupeEntretien(e.groupe) === groupe && dejaFaits[e.id]);
       const n = eqs.length;
-      lignes.push(`Entretien ${groupe} : ${n} équipement${n > 1 ? "s" : ""}.`);
+      lignes.push(
+        rattrapage
+          ? `Entretien ${groupe} : ${eqs.map((e) => e.nom).join(", ")} — rattrapage de la ${visite}.`
+          : `Entretien ${groupe} : ${n} équipement${n > 1 ? "s" : ""}.`,
+      );
+    }
+    const nbDeja = Object.keys(dejaFaits).length;
+    if (nbDeja > 0) {
+      const bis = [...new Set(Object.values(dejaFaits))].join(", ");
+      lignes.push(`${nbDeja} équipement${nbDeja > 1 ? "s" : ""} déjà entretenu${nbDeja > 1 ? "s" : ""} pour cette visite (${bis}).`);
     }
     const texte = lignes.join("\n");
     texteAutoEntretienRef.current = texte;
     setCompteRendu(texte);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupesSelectionnes, equipementsSite]);
+  }, [groupesSelectionnes, equipementsSite, nonDesservisIds, dejaFaits]);
 
   // Compte rendu auto-généré pour les pôles à résumé (nature + ce qui
   // est déjà connu de l'étape 1) — ne réécrit jamais un texte déjà
@@ -1438,6 +1456,9 @@ export function BiWizard({
               nomUtilisateur={nomUtilisateur}
               techniciens={techniciensDisponibles}
               onManquants={setRelevesManquants}
+              onDejaFaits={(d) =>
+                setDejaFaits((prev) => (JSON.stringify(prev) === JSON.stringify(d) ? prev : d))
+              }
             />
           )}
           {modePages && pageSuivante && (

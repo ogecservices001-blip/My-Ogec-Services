@@ -28,6 +28,7 @@ export function RelevesVisite({
   nomUtilisateur,
   techniciens,
   onManquants,
+  onDejaFaits,
 }: {
   /// "Visite 1 de 2 — 2026" saisie dans le BI.
   visite: string;
@@ -40,6 +41,8 @@ export function RelevesVisite({
   nomUtilisateur: string;
   techniciens: string[];
   onManquants: (noms: string[]) => void;
+  /// Rattrapage : équipements ayant déjà eu cette visite → n° du BI.
+  onDejaFaits?: (deja: Record<string, string>) => void;
 }) {
   const [etat, setEtat] = useState<Record<string, EtatReleveVisite>>({});
   const [fiche, setFiche] = useState<FicheReleve | null>(null);
@@ -66,6 +69,9 @@ export function RelevesVisite({
   }, [recharger]);
 
   useEffect(() => {
+    const deja: Record<string, string> = {};
+    for (const [id, e] of Object.entries(etat)) if (e.etat === "deja_fait") deja[id] = e.bi;
+    onDejaFaits?.(deja);
     onManquants(tries.filter((e) => !etat[e.id]).map((e) => e.nom));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- rappel du parent volontairement hors dépendances
   }, [tries, etat]);

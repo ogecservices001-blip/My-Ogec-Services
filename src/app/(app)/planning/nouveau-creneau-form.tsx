@@ -1,5 +1,6 @@
 "use client";
 
+import { ChoixClientSite } from "@/components/choix-client-site";
 import { useChampManquant } from "@/components/champ-manquant";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -68,8 +69,6 @@ export function NouveauCreneauForm({
     () => sites.filter((s) => s.hors_contrat === (sourceClient === "hors_contrat")),
     [sites, sourceClient],
   );
-  const nomsClients = useMemo(() => [...new Set(sitesSource.map((s) => s.nom))].sort((a, b) => a.localeCompare(b)), [sitesSource]);
-  const sitesDuClient = sitesSource.filter((s) => s.nom === clientNom);
   const affairesFiltrees = useMemo(
     () =>
       devisARealiser.filter((d) =>
@@ -278,42 +277,20 @@ export function NouveauCreneauForm({
                 </div>
               ) : (
                 <>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Client</label>
-                    <select
-                      id="planning-client"
-                      value={clientNom}
-                      onChange={(e) => {
-                        setClientNom(e.target.value);
-                        const correspondants = sitesSource.filter((s) => s.nom === e.target.value);
-                        setSiteId(correspondants.length === 1 ? correspondants[0].id : "");
+                  <ChoixClientSite
+                    sites={sitesSource}
+                    clientNom={clientNom}
+                    siteId={siteId}
+                    idClient="planning-client"
+                    idSite="planning-site"
+                    onChange={(choix) => {
+                      setClientNom(choix.clientNom);
+                      if (choix.siteId !== siteId) {
+                        setSiteId(choix.siteId);
                         setDevisId("");
-                      }}
-                      className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-                    >
-                      <option value="">— Choisir un client —</option>
-                      {nomsClients.map((nom) => (
-                        <option key={nom} value={nom}>
-                          {nom}
-                        </option>
-                      ))}
-                    </select>
-                    {sitesDuClient.length > 1 && (
-                      <select
-                        id="planning-site"
-                        value={siteId}
-                        onChange={(e) => setSiteId(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-                      >
-                        <option value="">— Choisir un site —</option>
-                        {sitesDuClient.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.site || "Site sans nom"}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
+                      }
+                    }}
+                  />
 
                   {siteId && (
                     <div>

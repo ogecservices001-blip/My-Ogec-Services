@@ -1,5 +1,6 @@
 "use client";
 
+import { ChoixClientSite } from "@/components/choix-client-site";
 import { dateFrVersIso, formaterDate } from "@/lib/format";
 
 import { useChampManquant, type CibleChamp } from "@/components/champ-manquant";
@@ -256,11 +257,6 @@ export function BiWizard({
     () => (horsContratParam !== null ? sites.filter((s) => s.hors_contrat === (horsContratParam === "1")) : sites),
     [sites, horsContratParam],
   );
-  const nomsClients = useMemo(
-    () => [...new Set(sitesFiltres.map((s) => s.nom))].sort((a, b) => a.localeCompare(b)),
-    [sitesFiltres],
-  );
-  const sitesDuClient = sitesFiltres.filter((s) => s.nom === clientNom);
   const site = sites.find((s) => s.id === siteId) ?? null;
   const typeActif = typesEquipement.find((t) => t.id === typeActifId) ?? null;
   const equipement = equipementsSite.find((e) => e.id === equipementId) ?? null;
@@ -1160,39 +1156,17 @@ export function BiWizard({
           )}
 
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Client</label>
-            <select
-              id="wizard-client"
-              value={clientNom}
-              onChange={(e) => {
-                setClientNom(e.target.value);
-                const correspondants = sites.filter((s) => s.nom === e.target.value);
-                setSiteId(correspondants.length === 1 ? correspondants[0].id : "");
+            <ChoixClientSite
+              sites={sitesFiltres}
+              clientNom={clientNom}
+              siteId={siteId}
+              idClient="wizard-client"
+              idSite="wizard-site"
+              onChange={(choix) => {
+                setClientNom(choix.clientNom);
+                setSiteId(choix.siteId);
               }}
-              className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/20"
-            >
-              <option value="">— Choisir un client —</option>
-              {nomsClients.map((nom) => (
-                <option key={nom} value={nom}>
-                  {nom}
-                </option>
-              ))}
-            </select>
-            {sitesDuClient.length > 1 && (
-              <select
-                id="wizard-site"
-                value={siteId}
-                onChange={(e) => setSiteId(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/20"
-              >
-                <option value="">— Choisir un site —</option>
-                {sitesDuClient.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.site || "Site sans nom"}
-                  </option>
-                ))}
-              </select>
-            )}
+            />
           </div>
 
           {siteId && avecAffaire(pole) && (
@@ -1258,7 +1232,7 @@ export function BiWizard({
               )}
               {groupesSelectionnes.size > 0 && equipementsGroupesSelectionnes.length > 0 && (
                 <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
-                  <p className="text-xs font-medium text-slate-600">Équipements non entretenus (optionnel)</p>
+                  <p className="text-base font-bold text-red-600">Équipements non entretenus (optionnel)</p>
                   {equipementsGroupesSelectionnes.map((eq) => (
                     <div key={eq.id}>
                       <label className="flex items-center gap-2 text-sm">

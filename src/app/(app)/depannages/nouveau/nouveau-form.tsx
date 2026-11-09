@@ -1,5 +1,6 @@
 "use client";
 
+import { ChoixClientSite } from "@/components/choix-client-site";
 import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -53,12 +54,7 @@ export function NouveauDepannageForm({
     () => (type ? sites.filter((s) => s.hors_contrat === (type === "hors")) : []),
     [sites, type],
   );
-  const nomsClients = useMemo(
-    () => [...new Set(sitesDuPerimetre.map((s) => s.nom))].sort((a, b) => a.localeCompare(b)),
-    [sitesDuPerimetre],
-  );
   const [clientNom, setClientNom] = useState(initial?.clientNom ?? "");
-  const sitesDuClient = sitesDuPerimetre.filter((s) => s.nom === clientNom);
   const [siteId, setSiteId] = useState(initial?.siteId ?? "");
 
   function changerType(valeur: "" | "sous" | "hors") {
@@ -163,12 +159,6 @@ export function NouveauDepannageForm({
     signaler(manque[0], manque[1]);
   }
 
-  function changerClient(nom: string) {
-    setClientNom(nom);
-    const sitesCorrespondants = sitesDuPerimetre.filter((s) => s.nom === nom);
-    definirSiteId(sitesCorrespondants.length === 1 ? sitesCorrespondants[0].id : "");
-  }
-
   return (
     <div>
       <p className="mb-5 text-sm text-slate-500">
@@ -199,39 +189,19 @@ export function NouveauDepannageForm({
                 <option value="hors">Client hors contrat</option>
               </select>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Client *</label>
-              <select
-                id="depannage-client"
-                value={clientNom}
-                onChange={(e) => changerClient(e.target.value)}
+            <div className="sm:col-span-2">
+              <ChoixClientSite
+                sites={sitesDuPerimetre}
+                clientNom={clientNom}
+                siteId={siteId}
+                idClient="depannage-client"
+                idSite="depannage-site"
                 disabled={!type}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
-              >
-                <option value="">— Choisir un client —</option>
-                {nomsClients.map((nom) => (
-                  <option key={nom} value={nom}>
-                    {nom}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Site *</label>
-              <select
-                id="depannage-site"
-                value={siteId}
-                onChange={(e) => definirSiteId(e.target.value)}
-                disabled={!clientNom}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
-              >
-                <option value="">— Choisir un site —</option>
-                {sitesDuClient.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.site || "(sans nom de site)"}
-                  </option>
-                ))}
-              </select>
+                onChange={(choix) => {
+                  if (choix.clientNom !== clientNom) setClientNom(choix.clientNom);
+                  if (choix.siteId !== siteId) definirSiteId(choix.siteId);
+                }}
+              />
             </div>
           </div>
 

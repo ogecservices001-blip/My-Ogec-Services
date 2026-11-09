@@ -1,5 +1,6 @@
 "use client";
 
+import { ChoixClientSite } from "@/components/choix-client-site";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -113,8 +114,6 @@ export function NouveauDevisForm({
   const [type, setType] = useState<"" | "sous" | "hors">(brouillon?.type ?? prefill?.type ?? "");
   const [clientNom, setClientNom] = useState(brouillon?.clientNom ?? prefill?.clientNom ?? "");
   const sitesDuType = type ? sites.filter((s) => s.horsContrat === (type === "hors")) : [];
-  const clients = [...new Set(sitesDuType.map((s) => s.nom))].filter(Boolean).sort((a, b) => a.localeCompare(b));
-  const sitesDuClient = clientNom ? sitesDuType.filter((s) => s.nom === clientNom) : [];
 
   const [siteId, setSiteId] = useState(brouillon?.siteId ?? prefill?.siteId ?? "");
   const [equipements, setEquipements] = useState<Equipement[]>([]);
@@ -144,11 +143,6 @@ export function NouveauDevisForm({
   function changerType(valeur: "" | "sous" | "hors") {
     setType(valeur);
     setClientNom("");
-    changerSite("");
-  }
-
-  function changerClient(nom: string) {
-    setClientNom(nom);
     changerSite("");
   }
 
@@ -336,28 +330,19 @@ export function NouveauDevisForm({
             </select>
           </div>
 
-          <div>
-            <label className={ETIQUETTE}>Client *</label>
-            <select id="devis-client" value={clientNom} onChange={(e) => changerClient(e.target.value)} disabled={!type} className={`${CHAMP} disabled:bg-slate-50`}>
-              <option value="">— Choisir un client —</option>
-              {clients.map((nom) => (
-                <option key={nom} value={nom}>
-                  {nom}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className={ETIQUETTE}>Site *</label>
-            <select id="devis-site" value={siteId} onChange={(e) => changerSite(e.target.value)} disabled={!clientNom} className={`${CHAMP} disabled:bg-slate-50`}>
-              <option value="">— Choisir un site —</option>
-              {sitesDuClient.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.site || "(sans nom de site)"}
-                </option>
-              ))}
-            </select>
+          <div className="sm:col-span-2">
+            <ChoixClientSite
+              sites={sitesDuType}
+              clientNom={clientNom}
+              siteId={siteId}
+              idClient="devis-client"
+              idSite="devis-site"
+              disabled={!type}
+              onChange={(choix) => {
+                if (choix.clientNom !== clientNom) setClientNom(choix.clientNom);
+                if (choix.siteId !== siteId) changerSite(choix.siteId);
+              }}
+            />
           </div>
         </div>
       </div>

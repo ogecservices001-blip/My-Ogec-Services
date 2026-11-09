@@ -14,7 +14,6 @@ import { NATURE_MULTIPLE, type PaveDevis } from "@/lib/devis/paves";
 import type { TypeEquipement, ReferenceHoraire, ChampsEnTeteEquipement } from "@/lib/gmao/types";
 import {
   Poles,
-  ORDRE_AFFICHAGE_POLES,
   labelPole,
   avecAffaire,
   avecPeriode,
@@ -196,7 +195,7 @@ export function BiWizard({
     if (poleParam) {
       return { etape: 1, pole: poleParam, devisId: "", depannageId: null as string | null, clientNom: "", siteId: "", equipementId: "", compteRendu: "" };
     }
-    return { etape: 0, pole: "", devisId: "", depannageId: null as string | null, clientNom: "", siteId: "", equipementId: "", compteRendu: "" };
+    return { etape: 1, pole: "", devisId: "", depannageId: null as string | null, clientNom: "", siteId: "", equipementId: "", compteRendu: "" };
   }
   const etatInitial = calculerEtatInitial();
   // Première étape réellement affichée — si on arrive pré-rempli
@@ -308,49 +307,8 @@ export function BiWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pré-remplissage ponctuel au choix du devis, pas une synchro continue
   }, [devisId, pole]);
 
-  function choisirPole(code: string) {
-    if (pole === code) return;
-    setPole(code);
-    setDevisId("");
-    setEquipementId("");
-    setTypeActifId("");
-    setMaterielChamps({});
-    setInstallationNom("");
-    setInstallationLocalisation("");
-    setInstallationGroupe("");
-    setEquipementLibre("");
-    setGroupesSelectionnes(new Set());
-    setNonDesservisIds(new Set());
-    setMotifsNonDesservi({});
-    setDepannageId(null);
-    setEtape(1);
-    setTempsManuel(false);
-  }
-
   function annulerDepannage() {
     setDepannageId(null);
-  }
-
-  // Affaires à réaliser — même principe que les dépannages en cours,
-  // mais à l'étape Pôle puisque choisir une affaire détermine aussi le
-  // pôle (= sa nature, voir Devis.nature). Recherche client-side, la
-  // liste peut porter plusieurs centaines de lignes.
-  const [rechercheAffaires, setRechercheAffaires] = useState("");
-  const affairesFiltrees = devisARealiser.filter((d) =>
-    `${d.client_nom} ${d.client_site} ${d.libelle}`.toLowerCase().includes(rechercheAffaires.toLowerCase()),
-  );
-
-  function choisirAffaireARealiser(d: DevisARealiser) {
-    const pages = pagesDuDevis(d);
-    const poleDevis = pages ? pages[0].nature : d.nature;
-    setPole(poleDevis);
-    setDevisId(d.id);
-    setClientNom(d.client_nom);
-    setSiteId(d.site_id);
-    if (!avecNouvelEquipement(poleDevis) && !avecEquipementLibre(poleDevis)) {
-      setEquipementId(pages ? (pages[0].equipementId ?? "") : (d.equipement_id ?? ""));
-    }
-    setEtape(1);
   }
 
   const groupesDisponibles = useMemo(
@@ -1054,76 +1012,6 @@ export function BiWizard({
       </div>
 
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>}
-
-      {etape === 0 && (
-        <div className="space-y-4">
-          {devisARealiser.length > 0 && (
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
-                Affaires à réaliser ({devisARealiser.length})
-              </p>
-              <input
-                value={rechercheAffaires}
-                onChange={(e) => setRechercheAffaires(e.target.value)}
-                placeholder="Rechercher un client, un site..."
-                className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
-              />
-              <div className="max-h-64 space-y-1.5 overflow-y-auto">
-                {affairesFiltrees.slice(0, 50).map((d) => (
-                  <button
-                    key={d.id}
-                    onClick={() => choisirAffaireARealiser(d)}
-                    className="block w-full rounded-lg border border-slate-100 p-2.5 text-left hover:bg-slate-50"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-bold text-slate-900">
-                        {[d.client_nom, d.client_site].filter(Boolean).join(" — ")}
-                      </p>
-                      <span
-                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                        style={{ backgroundColor: `${COULEURS_POLES[d.nature]}26`, color: COULEURS_POLES[d.nature] }}
-                      >
-                        {labelPole(d.nature)}
-                      </span>
-                    </div>
-                    {d.libelle && <p className="truncate text-xs text-slate-500">{d.libelle}</p>}
-                  </button>
-                ))}
-                {affairesFiltrees.length === 0 && (
-                  <p className="py-2 text-center text-xs text-slate-400">Aucune affaire trouvée</p>
-                )}
-              </div>
-              <p className="mt-2 text-center text-xs text-slate-400">ou choisir un pôle directement ci-dessous</p>
-            </div>
-          )}
-
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Pôle</p>
-          {ORDRE_AFFICHAGE_POLES.map((code) => {
-            const selectionne = pole === code;
-            const couleur = COULEURS_POLES[code];
-            return (
-              <button
-                key={code}
-                onClick={() => choisirPole(code)}
-                className="flex w-full items-center gap-3.5 rounded-2xl border p-3.5 text-left transition"
-                style={{
-                  borderColor: selectionne ? couleur : "#e2e8f0",
-                  borderWidth: selectionne ? 2 : 1,
-                  backgroundColor: selectionne ? `${couleur}1a` : "white",
-                }}
-              >
-                <span
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold"
-                  style={{ backgroundColor: `${couleur}26`, color: couleur }}
-                >
-                  {code}
-                </span>
-                <span className="flex-1 font-bold text-slate-900">{labelPole(code)}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {etape === 1 && (
         <div className="space-y-4">

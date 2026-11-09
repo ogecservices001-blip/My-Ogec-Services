@@ -245,8 +245,8 @@ function RapportDocument({ donnees, logo }: { donnees: DonneesRapportVisite; log
             Équipements entretenus ({fiches.length + sansReleve.length})
           </Text>
           <View style={styles.tableEntete}>
-            <Text style={styles.colNom}>Équipement</Text>
             <Text style={styles.colGroupe}>Groupe</Text>
+            <Text style={styles.colNom}>Équipement</Text>
             <Text style={styles.colLoc}>Localisation</Text>
             <Text style={styles.colFonct}>Fonctionnement</Text>
           </View>
@@ -255,8 +255,8 @@ function RapportDocument({ donnees, logo }: { donnees: DonneesRapportVisite; log
             const couleur = fonctionnement === "Fonctionnel" ? VERT : fonctionnement === "Non Fonctionnel" ? ROUGE : "#0f172a";
             return (
               <View key={f.equipement.id} style={styles.tableLigne} wrap={false}>
-                <Text style={styles.colNom}>{f.equipement.nom}</Text>
                 <Text style={styles.colGroupe}>{f.equipement.groupe || "—"}</Text>
+                <Text style={styles.colNom}>{f.equipement.nom}</Text>
                 <Text style={styles.colLoc}>{f.equipement.localisation || "—"}</Text>
                 <Text style={[styles.colFonct, { color: couleur }]}>{fonctionnement}</Text>
               </View>
@@ -264,8 +264,8 @@ function RapportDocument({ donnees, logo }: { donnees: DonneesRapportVisite; log
           })}
           {sansReleve.map((e) => (
             <View key={e.nom} style={styles.tableLigne} wrap={false}>
-              <Text style={styles.colNom}>{e.nom}</Text>
               <Text style={styles.colGroupe}>{e.groupe || "—"}</Text>
+              <Text style={styles.colNom}>{e.nom}</Text>
               <Text style={styles.colLoc}>{e.localisation || "—"}</Text>
               <Text style={[styles.colFonct, { color: GRIS }]}>Sans relevé</Text>
             </View>

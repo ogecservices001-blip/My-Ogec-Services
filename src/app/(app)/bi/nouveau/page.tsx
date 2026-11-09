@@ -15,6 +15,8 @@ export default async function NouveauBiPage({
   const profile = await requireProfile();
   if (profile.role === "admin") redirect("/");
   const { pole, devisId, depannageId, horsContrat, brouillonId } = await searchParams;
+  // Toujours ouvert avec un type, un devis, un dépannage ou un brouillon : seul, l'écran n'a pas d'usage.
+  if (!pole && !devisId && !depannageId && !brouillonId) redirect("/");
   const supabase = await createClient();
 
   const [{ data: sites }, { data: techniciens }, { data: typesEquipement }, { data: references }, depannagesEnCours, devisARealiser, brouillon] =

@@ -1135,7 +1135,7 @@ function RelevesDeLaVisite({
 }) {
   const deja = dejaFaits.length > 0 && (
     <p className="mt-2 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs text-slate-600">
-      Déjà faits pour cette visite ({dejaFaits.length}) : {[...new Set(dejaFaits.map((d) => d.bi))].join(", ")} — ni recomptés
+      Déjà entretenus ({dejaFaits.length}) {[...new Set(dejaFaits.map((d) => d.bi))].join(" ; ")} — ni recomptés
       ni re-annotés.
     </p>
   );

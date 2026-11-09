@@ -119,7 +119,7 @@ export function RelevesVisite({
                 </div>
                 <span className="flex shrink-0 items-center gap-1 text-right text-xs font-semibold text-slate-500">
                   <CheckCircle2 className="h-4 w-4 text-slate-400" strokeWidth={2.25} />
-                  {fonctionnement} — déjà fait ({etatEq.bi})
+                  {fonctionnement} — déjà fait {etatEq.bi}
                 </span>
               </div>
             );

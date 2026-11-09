@@ -77,7 +77,7 @@ export function controlerVisite(v: VisiteSaisie | null | undefined): string | nu
 
 /// Équipements ayant déjà eu cette visite (même n° et même année) par un autre
 /// BI validé — cas d'un BI de rattrapage : on ne la compte pas deux fois.
-/// Renvoie équipement → n° du BI qui l'a faite.
+/// Renvoie équipement → "le jj/mm/aaaa — BI-…" (date de la visite et BI qui l'a faite).
 export async function visitesDejaValidees(
   supabase: Supabase,
   equipementIds: string[],
@@ -89,19 +89,22 @@ export async function visitesDejaValidees(
   if (equipementIds.length === 0 || !numero || !annee) return resultat;
   let requete = supabase
     .from("visites_entretien")
-    .select("equipement_id, bon_intervention_id")
+    .select("equipement_id, bon_intervention_id, date")
     .in("equipement_id", equipementIds)
     .eq("visite_numero", numero)
     .eq("annee", annee);
   if (biExclu) requete = requete.neq("bon_intervention_id", biExclu);
   const { data } = await requete;
-  const lignes = (data ?? []) as { equipement_id: string; bon_intervention_id: string }[];
+  const lignes = (data ?? []) as { equipement_id: string; bon_intervention_id: string; date: string }[];
   if (lignes.length === 0) return resultat;
   const { data: bons } = await supabase
     .from("bons_intervention")
     .select("id, numero")
     .in("id", [...new Set(lignes.map((l) => l.bon_intervention_id))]);
   const numeroBi = new Map(((bons ?? []) as { id: string; numero: string }[]).map((b) => [b.id, b.numero]));
-  for (const l of lignes) resultat.set(l.equipement_id, numeroBi.get(l.bon_intervention_id) ?? "un autre BI");
+  for (const l of lignes) {
+    const [a, m, j] = l.date.slice(0, 10).split("-");
+    resultat.set(l.equipement_id, `le ${j}/${m}/${a} — ${numeroBi.get(l.bon_intervention_id) ?? "un autre BI"}`);
+  }
   return resultat;
 }

@@ -357,8 +357,8 @@ export function BiWizard({
     }
     const nbDeja = Object.keys(dejaFaits).length;
     if (nbDeja > 0) {
-      const bis = [...new Set(Object.values(dejaFaits))].join(", ");
-      lignes.push(`${nbDeja} équipement${nbDeja > 1 ? "s" : ""} déjà entretenu${nbDeja > 1 ? "s" : ""} pour cette visite (${bis}).`);
+      const bis = [...new Set(Object.values(dejaFaits))].join(" ; ");
+      lignes.push(`${nbDeja} équipement${nbDeja > 1 ? "s" : ""} déjà entretenu${nbDeja > 1 ? "s" : ""} ${bis}.`);
     }
     const texte = lignes.join("\n");
     texteAutoEntretienRef.current = texte;

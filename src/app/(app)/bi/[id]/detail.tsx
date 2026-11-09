@@ -22,7 +22,7 @@ import {
   type InterventionEquipement,
   type Presta,
 } from "@/lib/bi/format";
-import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, classerBI, type CorrectionInput, rattacherRelevesEnAttente } from "./actions";
+import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, classerBI, type CorrectionInput, rattacherRelevesEnAttente, envoyerRapportParEmail } from "./actions";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 import { suggererNumeroEquipement } from "@/lib/gmao/numero-equipement";
 import { libelleVisite, type VisiteSaisie } from "@/lib/gmao/visites";
@@ -72,6 +72,7 @@ export function BiDetail({
   const enCorrection = isAdmin && bon.statut === Statuts.aVerifier;
   const [archiveUrl, setArchiveUrl] = useState<string | null>(null);
   const [modaleEmailOuverte, setModaleEmailOuverte] = useState(false);
+  const [modaleRapportOuverte, setModaleRapportOuverte] = useState(false);
 
   useEffect(() => {
     if (bon.pdf_storage_path) urlArchiveSignee(bon.pdf_storage_path).then(setArchiveUrl);
@@ -147,7 +148,29 @@ export function BiDetail({
           {bon.visite_numero !== null && infosVisite && (
             <Section titre={`Visite d'entretien — ${libelleVisite({ numero: bon.visite_numero, total: bon.visite_total, annee: bon.visite_annee })}`}>
               <RelevesDeLaVisite equipements={infosVisite.equipements} rattaches />
-              {isAdmin && <BoutonRattacher biId={bon.id} enAttente={infosVisite.relevesEnAttente} />}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <a
+                  href={`/bi/${bon.id}/rapport`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-teal-300 bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-50"
+                >
+                  <FileText className="h-3.5 w-3.5" strokeWidth={2} />
+                  Rapport technique (PDF)
+                </a>
+                {isAdmin && bon.email && (
+                  <button
+                    onClick={() => setModaleRapportOuverte(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50"
+                  >
+                    <Mail className="h-3.5 w-3.5" strokeWidth={2} />
+                    Envoyer le rapport au client
+                  </button>
+                )}
+              </div>
+              {isAdmin && infosVisite.relevesEnAttente > 0 && (
+                <BoutonRattacher biId={bon.id} enAttente={infosVisite.relevesEnAttente} />
+              )}
             </Section>
           )}
           {isAdmin && (
@@ -168,6 +191,9 @@ export function BiDetail({
         </div>
       )}
 
+      {modaleRapportOuverte && (
+        <ModaleEmail biId={bon.id} destinataire={bon.email} rapport onClose={() => setModaleRapportOuverte(false)} />
+      )}
       {modaleEmailOuverte && (
         <ModaleEmail biId={bon.id} destinataire={bon.email} onClose={() => setModaleEmailOuverte(false)} />
       )}
@@ -217,10 +243,13 @@ function ModaleEmail({
   biId,
   destinataire,
   onClose,
+  rapport,
 }: {
   biId: string;
   destinataire: string;
   onClose: () => void;
+  /// true : envoie le rapport technique de la visite au lieu du BI.
+  rapport?: boolean;
 }) {
   const router = useRouter();
   const [info, setInfo] = useState("");
@@ -236,7 +265,11 @@ function ModaleEmail({
             <X className="h-4.5 w-4.5" strokeWidth={2} />
           </button>
         </div>
-        <p className="mb-3 text-xs text-slate-500">Le PDF du bon d&apos;intervention sera joint à l&apos;email.</p>
+        <p className="mb-3 text-xs text-slate-500">
+          {rapport
+            ? "Le rapport technique de la visite (PDF) sera joint à l'email."
+            : "Le PDF du bon d'intervention sera joint à l'email."}
+        </p>
         <textarea
           value={info}
           onChange={(e) => setInfo(e.target.value)}
@@ -256,7 +289,7 @@ function ModaleEmail({
           <button
             onClick={() =>
               startTransition(async () => {
-                const res = await envoyerBiParEmail(biId, info);
+                const res = rapport ? await envoyerRapportParEmail(biId, info) : await envoyerBiParEmail(biId, info);
                 if (!res.ok) {
                   setErreur(res.erreur);
                   return;

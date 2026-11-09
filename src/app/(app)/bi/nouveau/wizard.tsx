@@ -253,10 +253,11 @@ export function BiWizard({
   // liste de clients proposée, pour que le technicien n'ait pas à
   // chercher parmi tous les clients confondus.
   const horsContratParam = searchParams.get("horsContrat");
-  const sitesFiltres = useMemo(
-    () => (horsContratParam !== null ? sites.filter((s) => s.hors_contrat === (horsContratParam === "1")) : sites),
-    [sites, horsContratParam],
-  );
+  // Entretien sous contrat : uniquement les clients sous contrat.
+  const sitesFiltres = useMemo(() => {
+    if (pole === Poles.entretienSousContrat) return sites.filter((s) => !s.hors_contrat);
+    return horsContratParam !== null ? sites.filter((s) => s.hors_contrat === (horsContratParam === "1")) : sites;
+  }, [sites, horsContratParam, pole]);
   const site = sites.find((s) => s.id === siteId) ?? null;
   const typeActif = typesEquipement.find((t) => t.id === typeActifId) ?? null;
   const equipement = equipementsSite.find((e) => e.id === equipementId) ?? null;

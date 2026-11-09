@@ -6,9 +6,10 @@ import { requireAdmin, requireProfile } from "@/lib/auth";
 import { Poles, Statuts, CHAMPS_MATERIEL_EXCLUS_BI, POLE_PLUSIEURS_TYPES } from "@/lib/bi/constants";
 import { now, interventionsDuBon, type Presta, type InterventionEquipement } from "@/lib/bi/format";
 import { archiverBiSiBesoin, genererPdfAvecPhotos } from "@/lib/bi/archive";
-import { envoyerConfirmationBI } from "@/lib/bi/email";
+import { envoyerConfirmationBI, envoyerRapportVisiteEmail } from "@/lib/bi/email";
+import { chargerRapportVisite, genererPdfRapportVisite, nomFichierRapport } from "@/lib/gmao/rapport-visite";
 import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
-import { controlerVisite, dateVisiteDuBon, equipementsEntretenus, type VisiteSaisie } from "@/lib/gmao/visites";
+import { controlerVisite, dateVisiteDuBon, equipementsEntretenus, libelleVisite, type VisiteSaisie } from "@/lib/gmao/visites";
 import type { ActionResult } from "@/lib/action-result";
 import type { Tables } from "@/lib/types";
 
@@ -349,6 +350,29 @@ export async function urlArchiveSignee(chemin: string): Promise<string | null> {
 /// Envoie le PDF au client par email — action manuelle depuis l'écran
 /// bureau (même schéma que "Répondre par email" côté Suivi Dépannage),
 /// jamais automatique à la validation.
+/// Envoie au client le rapport technique de la visite d'entretien.
+export async function envoyerRapportParEmail(id: string, informationComplementaire: string): Promise<ActionResult> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const chargement = await chargerRapportVisite(supabase, id);
+  if (!chargement.ok) return { ok: false, erreur: chargement.erreur };
+  const { bi } = chargement.donnees;
+  if (!bi.email) return { ok: false, erreur: "Aucun email client sur ce bon." };
+  try {
+    const pdfBytes = await genererPdfRapportVisite(chargement.donnees);
+    await envoyerRapportVisiteEmail({
+      bon: bi,
+      visite: libelleVisite({ numero: bi.visite_numero, total: bi.visite_total, annee: bi.visite_annee }),
+      pdfBytes,
+      nomFichier: nomFichierRapport(bi),
+      informationComplementaire,
+    });
+  } catch (e) {
+    return { ok: false, erreur: e instanceof Error ? e.message : "Échec de l'envoi." };
+  }
+  return { ok: true };
+}
+
 export async function envoyerBiParEmail(id: string, informationComplementaire: string): Promise<ActionResult> {
   await requireAdmin();
   const supabase = await createClient();

@@ -51,3 +51,42 @@ export async function envoyerConfirmationBI(params: {
     attachments: [{ filename: `${bon.numero}.pdf`, content: pdfBytes, contentType: "application/pdf" }],
   });
 }
+
+/// Envoie le rapport technique d'une visite d'entretien (relevés de tous les
+/// équipements) au client, PDF en pièce jointe.
+export async function envoyerRapportVisiteEmail(params: {
+  bon: Bon;
+  visite: string;
+  pdfBytes: Buffer;
+  nomFichier: string;
+  informationComplementaire: string;
+}): Promise<void> {
+  const { bon, visite, pdfBytes, nomFichier, informationComplementaire } = params;
+  const motDePasse = process.env.GMAIL_APP_PASSWORD;
+  if (!motDePasse) throw new Error("Envoi email non configuré (GMAIL_APP_PASSWORD manquant).");
+
+  const html = `
+    <p>Bonjour,</p>
+    <p>Veuillez trouver ci-joint le rapport technique de notre visite d'entretien.</p>
+    <table style="border-collapse:collapse;font-family:sans-serif;font-size:13px;">
+      ${ligne("Client", [bon.client_nom, bon.site].filter(Boolean).join(" — "))}
+      ${ligne("Visite d'entretien", visite)}
+      ${ligne("Bon d'intervention", bon.numero)}
+      ${ligne("Période", [bon.date_debut, bon.date_fin].filter(Boolean).join(" au "))}
+      ${informationComplementaire ? ligne("Information complémentaire", informationComplementaire) : ""}
+    </table>
+  `;
+
+  const transporteur = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: GMAIL_USER, pass: motDePasse },
+  });
+
+  await transporteur.sendMail({
+    from: `OGEC Services <${GMAIL_USER}>`,
+    to: bon.email,
+    subject: `Rapport technique d'entretien — ${visite} — ${bon.client_nom}`,
+    html,
+    attachments: [{ filename: nomFichier, content: pdfBytes, contentType: "application/pdf" }],
+  });
+}

@@ -95,13 +95,7 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
         })),
         { onConflict: "bon_intervention_id,equipement_id" },
       );
-      // Les relevés techniques faits depuis la visite précédente (pas encore
-      // rattachés) prennent le repère de cette visite.
-      await supabase
-        .from("releves")
-        .update({ bon_intervention_id: bi.id, visite_annee: bi.visite_annee, ...repere })
-        .in("equipement_id", entretenus.map((eq) => eq.id))
-        .is("bon_intervention_id", null);
+      await rattacherReleves(supabase, bi, entretenus.map((eq) => eq.id));
       break;
     }
     case Poles.remplacementIdentique: {
@@ -202,6 +196,46 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
   }
 }
 
+/// Les relevés techniques pas encore rattachés de ces équipements prennent le
+/// repère de la visite du BI. Renvoie le nombre de relevés rattachés.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function rattacherReleves(supabase: any, bi: Bon, equipementIds: string[]): Promise<number> {
+  if (equipementIds.length === 0 || !bi.visite_numero) return 0;
+  const { data, error } = await supabase
+    .from("releves")
+    .update({
+      bon_intervention_id: bi.id,
+      visite_numero: bi.visite_numero,
+      visite_total: bi.visite_total,
+      visite_annee: bi.visite_annee,
+    })
+    .in("equipement_id", equipementIds)
+    .is("bon_intervention_id", null)
+    .select("id");
+  if (error) throw new Error(error.message);
+  return (data ?? []).length;
+}
+
+/// Bouton du BI validé : rattache les relevés saisis après la validation.
+export async function rattacherRelevesEnAttente(id: string): Promise<ActionResult & { nombre?: number }> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { data: bi } = await supabase.from("bons_intervention").select("*").eq("id", id).single();
+  if (!bi) return { ok: false, erreur: "BI introuvable." };
+  if (bi.pole !== Poles.entretienSousContrat || !bi.visite_numero) {
+    return { ok: false, erreur: "Ce BI n'est pas une visite d'entretien validée." };
+  }
+  try {
+    const entretenus = await equipementsEntretenus(supabase, bi);
+    const nombre = await rattacherReleves(supabase, bi, entretenus.map((e) => e.id));
+    revalidatePath(`/bi/${id}`);
+    revalidatePath("/gmao", "layout");
+    return { ok: true, nombre };
+  } catch (e) {
+    return { ok: false, erreur: e instanceof Error ? e.message : "Rattachement impossible." };
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function ajouterRemarqueEquipement(supabase: any, equipementId: string, remarque: string) {
   const { data: eq } = await supabase.from("equipements").select("remarque_technicien").eq("id", equipementId).single();
@@ -223,8 +257,9 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
     if (erreurVisite) return { ok: false, erreur: erreurVisite };
   }
 
+  const entretienSousContrat = input.pole === Poles.entretienSousContrat;
   const { data: classementEnBase } = await supabase.from("bons_intervention").select("classement").eq("id", id).single();
-  if (classementEnBase?.classement === "facturer" && !input.mois_facturation) {
+  if (!entretienSousContrat && classementEnBase?.classement === "facturer" && !input.mois_facturation) {
     return { ok: false, erreur: "Le mois de facturation est obligatoire pour un BI à facturer." };
   }
 
@@ -269,7 +304,8 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
       equipement_nom: input.equipement_nom,
       equipement_numero: input.equipement_numero,
       interventions_supplementaires: input.interventions_supplementaires,
-      mois_facturation: input.mois_facturation,
+      mois_facturation: entretienSousContrat ? "" : input.mois_facturation,
+      ...(entretienSousContrat ? { classement: "maintenance" } : {}),
       history: nouvelHistory,
     })
     .eq("id", id)

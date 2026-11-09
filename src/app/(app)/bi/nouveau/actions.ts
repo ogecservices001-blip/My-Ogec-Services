@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { numeroBI, currentYear, now } from "@/lib/bi/format";
+import { Poles } from "@/lib/bi/constants";
 import type { ActionResult } from "@/lib/action-result";
 import type { ChampsEnTeteEquipement, ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 
@@ -422,6 +423,7 @@ export async function enregistrerBI(
     chrono,
     numero,
     statut,
+    ...(input.pole === Poles.entretienSousContrat ? { classement: "maintenance" } : {}),
     site_id: input.site_id,
     depannage_id: input.depannage_id,
     client_nom: input.client_nom,

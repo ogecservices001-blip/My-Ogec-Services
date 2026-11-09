@@ -22,7 +22,7 @@ import {
   type InterventionEquipement,
   type Presta,
 } from "@/lib/bi/format";
-import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, classerBI, type CorrectionInput } from "./actions";
+import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, classerBI, type CorrectionInput, rattacherRelevesEnAttente } from "./actions";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 import { suggererNumeroEquipement } from "@/lib/gmao/numero-equipement";
 import { libelleVisite, type VisiteSaisie } from "@/lib/gmao/visites";
@@ -30,7 +30,12 @@ import { libelleVisite, type VisiteSaisie } from "@/lib/gmao/visites";
 /// BI Entretien sous contrat : proposition de n° de visite et équipements
 /// entretenus, avec ou sans relevé technique (en attente avant validation,
 /// rattaché à ce BI après).
-export type InfosVisite = { proposition: VisiteSaisie; equipements: { nom: string; avecReleve: boolean }[] };
+export type InfosVisite = {
+  proposition: VisiteSaisie;
+  equipements: { nom: string; avecReleve: boolean }[];
+  /// BI validé : relevés saisis depuis, pas encore rattachés.
+  relevesEnAttente: number;
+};
 
 const STATUTS_AVEC_PDF = new Set<string>([Statuts.valide, Statuts.pdfGenere, Statuts.pretEnvoi, Statuts.envoye]);
 
@@ -142,12 +147,21 @@ export function BiDetail({
           {bon.visite_numero !== null && infosVisite && (
             <Section titre={`Visite d'entretien — ${libelleVisite({ numero: bon.visite_numero, total: bon.visite_total, annee: bon.visite_annee })}`}>
               <RelevesDeLaVisite equipements={infosVisite.equipements} rattaches />
+              {isAdmin && <BoutonRattacher biId={bon.id} enAttente={infosVisite.relevesEnAttente} />}
             </Section>
           )}
           {isAdmin && (
             <>
-              {!prixDuDevis(bon.pole) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
-              <BlocClassement bon={bon} />
+              {bon.pole === Poles.entretienSousContrat ? (
+                <Section titre="Classement">
+                  <p className="text-sm text-slate-700">Maintenance (forfait entretien)</p>
+                </Section>
+              ) : (
+                <>
+                  {!prixDuDevis(bon.pole) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
+                  <BlocClassement bon={bon} />
+                </>
+              )}
             </>
           )}
           <BlocHistorique bon={bon} />
@@ -698,7 +712,8 @@ function VueCorrection({
   ].map((n) => n.trim());
   const numeroEnDouble = (numero: string) =>
     numerosEquipementSite.includes(numero.trim()) || numerosPoses.filter((n) => n === numero.trim()).length > 1;
-  const moisRenseigne = classementActuel !== "facturer" || /^\d{2}-\d{4}$/.test(moisActuel.trim());
+  const classementFinal = pole === Poles.entretienSousContrat ? "maintenance" : classementActuel;
+  const moisRenseigne = classementFinal !== "facturer" || /^\d{2}-\d{4}$/.test(moisActuel.trim());
   const { signaler, fenetre } = useChampManquant();
 
   function manquePourValider(): [string, CibleChamp] | null {
@@ -722,7 +737,7 @@ function VueCorrection({
       if (!(p.equipement_numero ?? "").trim()) return ["Renseigne le numéro de l'équipement posé", `bi-eq-numero-${j}`];
       if (numeroEnDouble(p.equipement_numero ?? "")) return ["Ce numéro d'équipement est déjà utilisé : choisis-en un autre", `bi-eq-numero-${j}`];
     }
-    if (classementActuel === "") return ["Choisis un classement", "bi-classement"];
+    if (classementFinal === "") return ["Choisis un classement", "bi-classement"];
     if (!moisRenseigne) return ["Saisis le mois de facturation au format MM-AAAA (ex : 10-2026)", "bi-mois"];
     if (!emailValide) return [email.trim() ? "L'email du client n'est pas valide" : "Renseigne l'email du client", "bi-email"];
     return null;
@@ -752,7 +767,7 @@ function VueCorrection({
       interventions_supplementaires: interventions.slice(1),
       equipement_nom: poleDe(0) === Poles.installationNeuve ? equipementNom.trim() : bon.equipement_nom,
       equipement_numero: poleDe(0) === Poles.installationNeuve ? equipementNumero.trim() : bon.equipement_numero,
-      mois_facturation: classementActuel === "facturer" ? moisActuel.trim() : "",
+      mois_facturation: classementFinal === "facturer" ? moisActuel.trim() : "",
       visite: avecVisite
         ? { numero: Number(visiteNumero), total: Number(visiteTotal), annee: Number(visiteAnnee) }
         : null,
@@ -984,11 +999,17 @@ function VueCorrection({
           </div>
         )}
 
-        <BlocClassement bon={bon} onChange={setClassementActuel} onMoisChange={setMoisActuel} />
-        {classementActuel === "facturer" && !prixDuDevis(pole) && (
+        {pole === Poles.entretienSousContrat ? (
+          <p className="text-sm text-slate-600">
+            <span className="font-semibold">Classement :</span> Maintenance (forfait entretien)
+          </p>
+        ) : (
+          <BlocClassement bon={bon} onChange={setClassementActuel} onMoisChange={setMoisActuel} />
+        )}
+        {classementFinal === "facturer" && !prixDuDevis(pole) && (
           <BlocMainDoeuvreDeplacement tempsPasse={tempsPasse} nombreDeplacements={nombreDeplacements} tauxSite={tauxSite} />
         )}
-        {classementActuel === "" && (
+        {classementFinal === "" && (
           <p className="text-xs font-medium text-amber-600">Choisis un classement ci-dessus avant de valider.</p>
         )}
         {!moisRenseigne && (
@@ -1038,6 +1059,31 @@ function VueCorrection({
       </button>
       {fenetre}
     </Section>
+  );
+}
+
+function BoutonRattacher({ biId, enAttente }: { biId: string; enAttente: number }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [message, setMessage] = useState<string | null>(null);
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            const res = await rattacherRelevesEnAttente(biId);
+            setMessage(res.ok ? `${res.nombre ?? 0} relevé(s) rattaché(s).` : res.erreur);
+            router.refresh();
+          })
+        }
+        className="rounded-lg border border-teal-300 bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 disabled:opacity-60"
+      >
+        {pending ? "Rattachement..." : `Rattacher les relevés en attente (${enAttente})`}
+      </button>
+      {message && <span className="text-xs text-slate-600">{message}</span>}
+    </div>
   );
 }
 

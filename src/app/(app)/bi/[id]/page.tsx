@@ -57,6 +57,7 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
     infosVisite = {
       proposition: await proposerVisite(supabase, bon, entretenus),
       equipements: entretenus.map((e) => ({ nom: e.nom, avecReleve: avecReleve.has(e.id) })),
+      relevesEnAttente: valide ? (releves ?? []).filter((r) => r.bon_intervention_id === null).length : 0,
     };
   }
 

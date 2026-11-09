@@ -1,5 +1,7 @@
 "use client";
 
+import { dateFrVersIso, formaterDate } from "@/lib/format";
+
 import { useChampManquant, type CibleChamp } from "@/components/champ-manquant";
 import { useEffect, useMemo, useRef, useState, useTransition, type Dispatch, type SetStateAction } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -2037,10 +2039,9 @@ export function BiWizard({
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
         <input
-          type="text"
-          value={valeur}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="jj/mm/aaaa"
+          type="date"
+          value={dateFrVersIso(valeur)}
+          onChange={(e) => onChange(formaterDate(e.target.value))}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
         />
       </div>

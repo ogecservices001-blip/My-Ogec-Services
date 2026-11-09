@@ -1,5 +1,7 @@
 "use client";
 
+import { dateFrVersIso, formaterDate } from "@/lib/format";
+
 import { useChampManquant, type CibleChamp } from "@/components/champ-manquant";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -822,11 +824,11 @@ function VueCorrection({
 
         {avecPeriode(pole) ? (
           <div className="grid grid-cols-2 gap-2">
-            <Champ label="Date de début" valeur={dateDebut} onChange={setDateDebut} />
-            <Champ label="Date de fin" valeur={dateFin} onChange={setDateFin} />
+            <ChampDate label="Date de début" valeur={dateDebut} onChange={setDateDebut} />
+            <ChampDate label="Date de fin" valeur={dateFin} onChange={setDateFin} />
           </div>
         ) : (
-          <Champ label="Date d'intervention" valeur={dateIntervention} onChange={setDateIntervention} />
+          <ChampDate label="Date d'intervention" valeur={dateIntervention} onChange={setDateIntervention} />
         )}
 
         <div className="grid grid-cols-2 gap-2">
@@ -1083,6 +1085,21 @@ function Ligne({ label, valeur }: { label: string; valeur: string }) {
     <div className="flex gap-2 py-0.5 text-sm">
       <span className="w-36 shrink-0 font-semibold text-slate-500">{label}</span>
       <span className="text-slate-800">{valeur}</span>
+    </div>
+  );
+}
+
+/// Date stockée "jj/mm/aaaa", saisie avec le calendrier du navigateur.
+function ChampDate({ label, valeur, onChange }: { label: string; valeur: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
+      <input
+        type="date"
+        value={dateFrVersIso(valeur)}
+        onChange={(e) => onChange(formaterDate(e.target.value))}
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
+      />
     </div>
   );
 }

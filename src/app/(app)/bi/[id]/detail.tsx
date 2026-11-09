@@ -826,19 +826,17 @@ function VueCorrection({
             <Champ label="Date de fin" valeur={dateFin} onChange={setDateFin} />
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
-            <Champ label="Date d'intervention" valeur={dateIntervention} onChange={setDateIntervention} />
-            <Champ label="Temps passé" valeur={tempsPasse} onChange={setTempsPasse} />
-          </div>
+          <Champ label="Date d'intervention" valeur={dateIntervention} onChange={setDateIntervention} />
         )}
 
-        {!avecPeriode(pole) && (
+        <div className="grid grid-cols-2 gap-2">
+          <Champ label="Temps passé" valeur={tempsPasse} onChange={setTempsPasse} />
           <Champ
             label="Nombre de déplacements"
             valeur={String(nombreDeplacements)}
             onChange={(v) => setNombreDeplacements(Math.max(1, parseInt(v, 10) || 1))}
           />
-        )}
+        </div>
 
         {poleDe(0) === Poles.installationNeuve && (
           <>

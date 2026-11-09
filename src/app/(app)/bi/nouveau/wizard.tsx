@@ -1755,51 +1755,46 @@ export function BiWizard({
                 <ChampDate label="Date de fin" valeur={dateFin} onChange={setDateFin} />
               </div>
             ) : (
-              <>
-                <ChampDate label="Date d'intervention" valeur={dateIntervention} onChange={setDateIntervention} />
-                {(
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-600">Temps passé</label>
-                      <input
-                        ref={tempsPasseRef}
-                        value={tempsPasse}
-                        onChange={(e) => {
-                          setTempsManuel(true);
-                          setTempsPasse(e.target.value);
-                        }}
-                        className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-violet-600 ${
-                          champEnEvidence === "heures" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200"
-                        }`}
-                      />
-                      {avecTempsLibre(pole) && techniciens.length > 1 && tempsPasse.trim() && (
-                        <p className="mt-1 text-xs font-semibold text-violet-700">
-                          → {multiplierDuree(tempsPasse.trim(), techniciens.length)} au total pour {techniciens.length} techniciens
-                        </p>
-                      )}
-                    </div>
-                    {(
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-slate-600">Nombre de déplacements</label>
-                        <input
-                          ref={nombreDeplacementsRef}
-                          type="number"
-                          min={1}
-                          value={nombreDeplacements}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setNombreDeplacements(v === "" ? "" : Math.max(1, parseInt(v, 10) || 1));
-                          }}
-                          className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-violet-600 ${
-                            champEnEvidence === "deplacements" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200"
-                          }`}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
+              <ChampDate label="Date d'intervention" valeur={dateIntervention} onChange={setDateIntervention} />
             )}
+            {/* Temps passé et déplacements : demandés pour tous les BI, période ou non. */}
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Temps passé</label>
+                <input
+                  ref={tempsPasseRef}
+                  value={tempsPasse}
+                  onChange={(e) => {
+                    setTempsManuel(true);
+                    setTempsPasse(e.target.value);
+                  }}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-violet-600 ${
+                    champEnEvidence === "heures" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200"
+                  }`}
+                />
+                {avecTempsLibre(pole) && techniciens.length > 1 && tempsPasse.trim() && (
+                  <p className="mt-1 text-xs font-semibold text-violet-700">
+                    → {multiplierDuree(tempsPasse.trim(), techniciens.length)} au total pour {techniciens.length} techniciens
+                  </p>
+                )}
+              </div>
+              <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Nombre de déplacements</label>
+                  <input
+                    ref={nombreDeplacementsRef}
+                    type="number"
+                    min={1}
+                    value={nombreDeplacements}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNombreDeplacements(v === "" ? "" : Math.max(1, parseInt(v, 10) || 1));
+                    }}
+                    className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-violet-600 ${
+                      champEnEvidence === "deplacements" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200"
+                    }`}
+                  />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">

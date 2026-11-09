@@ -49,7 +49,7 @@ export default async function GmaoClientsPage({
     complement_adresse: s.complement_adresse,
     code_postal: s.code_postal,
     commune: s.commune,
-    heures: sommeHeuresAnnee(equipementsParSite.get(s.id) ?? [], references_, freqCouranteParEquipement),
+    heures: sommeHeuresAnnee(equipementsParSite.get(s.id) ?? [], references_, freqCouranteParEquipement, !horsContrat),
   }));
 
   return (

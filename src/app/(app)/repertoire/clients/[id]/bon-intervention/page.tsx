@@ -48,7 +48,7 @@ export default async function BonInterventionClientPage({ params }: { params: Pr
   const lignes = bons ?? [];
 
   function montant(b: (typeof lignes)[number]): number | null {
-    if (sansMontant(b.pole)) return null;
+    if (sansMontant(b.pole, b.devis_id)) return null;
     const montantHeures = montantMainDoeuvre(b.temps_passe, taux) ?? 0;
     const montantDepl = montantDeplacements(b.nombre_deplacements, taux) ?? 0;
     const prestas = [

@@ -65,7 +65,7 @@ export default async function BonInterventionGroupeClientPage({
 
   function montant(b: (typeof lignes)[number]): number | null {
     const taux: TauxSite = b.site_id ? (siteParId.get(b.site_id) ?? null) : null;
-    if (sansMontant(b.pole)) return null;
+    if (sansMontant(b.pole, b.devis_id)) return null;
     const montantHeures = montantMainDoeuvre(b.temps_passe, taux) ?? 0;
     const montantDepl = montantDeplacements(b.nombre_deplacements, taux) ?? 0;
     const prestas = [

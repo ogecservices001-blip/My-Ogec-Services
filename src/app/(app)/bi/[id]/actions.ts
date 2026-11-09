@@ -83,6 +83,23 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
         if (!inter.equipement_id) continue;
         await ajouterRemarqueEquipement(supabase, inter.equipement_id, `${verbe} le ${date} via ${bi.numero} : ${inter.compte_rendu}`);
       }
+      // Entretien à facturer d'équipements hors contrat (sans devis) : leurs
+      // relevés techniques en attente lui sont rattachés.
+      if (bi.pole === Poles.entretienHorsContrat && !bi.devis_id && bi.site_id) {
+        const { data: horsContrat } = await supabase
+          .from("equipements")
+          .select("id")
+          .eq("site_id", bi.site_id)
+          .eq("hors_contrat", true);
+        const ids = ((horsContrat ?? []) as { id: string }[]).map((e) => e.id);
+        if (ids.length > 0) {
+          await supabase
+            .from("releves")
+            .update({ bon_intervention_id: bi.id })
+            .in("equipement_id", ids)
+            .is("bon_intervention_id", null);
+        }
+      }
       break;
     }
     case Poles.entretienSousContrat: {

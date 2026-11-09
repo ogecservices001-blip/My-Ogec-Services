@@ -155,3 +155,35 @@ export async function validerEquipement(id: string, siteId: string): Promise<Act
   revalidatePath(`/gmao/clients/${siteId}/equipements/${id}`);
   return { ok: true };
 }
+
+/// Avenant signé : l'équipement passe sous contrat (ou en sort). La remarque
+/// garde la trace du changement.
+export async function changerContratEquipement(
+  id: string,
+  siteId: string,
+  sousContrat: boolean,
+  dateAvenant: string,
+): Promise<ActionResult> {
+  await requireAdmin();
+  if (sousContrat && !/^\d{4}-\d{2}-\d{2}$/.test(dateAvenant)) {
+    return { ok: false, erreur: "Indique la date de l'avenant." };
+  }
+  const supabase = await createClient();
+  const { data: eq } = await supabase.from("equipements").select("remarque_technicien").eq("id", id).single();
+  if (!eq) return { ok: false, erreur: "Équipement introuvable." };
+  const aujourdhui = formaterDateJour(new Date());
+  const trace = sousContrat
+    ? `Passé sous contrat le ${aujourdhui} (avenant du ${dateAvenant.split("-").reverse().join("/")}).`
+    : `Repassé hors contrat le ${aujourdhui}.`;
+  const { error } = await supabase
+    .from("equipements")
+    .update({
+      hors_contrat: !sousContrat,
+      remarque_technicien: eq.remarque_technicien ? `${eq.remarque_technicien}\n${trace}` : trace,
+    })
+    .eq("id", id);
+  if (error) return { ok: false, erreur: error.message };
+  revalidatePath(`/gmao/clients/${siteId}/equipements`);
+  revalidatePath(`/gmao/clients/${siteId}/equipements/${id}`);
+  return { ok: true };
+}

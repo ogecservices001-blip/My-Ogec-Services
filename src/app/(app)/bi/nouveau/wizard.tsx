@@ -178,6 +178,23 @@ export function BiWizard({
         };
       }
     }
+    // BI à facturer (entretien d'équipements hors contrat), ouvert depuis un BI
+    // Entretien sous contrat : site, équipements et compte rendu pré-remplis.
+    const siteIdParam = searchParams.get("siteId");
+    if (poleParam && siteIdParam && searchParams.get("facturable") === "1") {
+      const s = sites.find((site) => site.id === siteIdParam);
+      const noms = (searchParams.get("noms") ?? "").split("|").filter(Boolean);
+      return {
+        etape: 1,
+        pole: poleParam,
+        devisId: "",
+        depannageId: null as string | null,
+        clientNom: s?.nom ?? "",
+        siteId: siteIdParam,
+        equipementId: (searchParams.get("equipementIds") ?? "").split(",")[0] ?? "",
+        compteRendu: noms.length > 0 ? `Entretien hors contrat (à facturer) : ${noms.join(", ")}.` : "",
+      };
+    }
     if (poleParam) {
       return { etape: 1, pole: poleParam, devisId: "", depannageId: null as string | null, clientNom: "", siteId: "", equipementId: "", compteRendu: "" };
     }
@@ -190,6 +207,9 @@ export function BiWizard({
   // depuis cette toute première étape sort de l'assistant au lieu de
   // révéler une étape jamais montrée.
   const [etapeDepart] = useState(etatInitial.etape);
+  // BI à facturer sans devis (hors contrat) et BI d'entretien à reprendre ensuite.
+  const sansDevis = searchParams.get("facturable") === "1";
+  const retourBrouillon = searchParams.get("retour");
 
   const [etape, setEtape] = useState(etatInitial.etape);
   const [pole, setPole] = useState(etatInitial.pole);
@@ -344,7 +364,7 @@ export function BiWizard({
     const visite = `visite ${visiteNumero}${visiteTotal ? ` de ${visiteTotal}` : ""}${visiteAnnee ? ` — ${visiteAnnee}` : ""}`;
     for (const groupe of groupesSelectionnes) {
       const eqs = equipementsSite.filter(
-        (e) => groupeEntretien(e.groupe) === groupe && !nonDesservisIds.has(e.id) && !dejaFaits[e.id],
+        (e) => groupeEntretien(e.groupe) === groupe && !nonDesservisIds.has(e.id) && !dejaFaits[e.id] && !e.hors_contrat,
       );
       if (eqs.length === 0) continue;
       const rattrapage = equipementsSite.some((e) => groupeEntretien(e.groupe) === groupe && dejaFaits[e.id]);
@@ -753,7 +773,7 @@ export function BiWizard({
   function manqueEtapeClient(): [string, CibleChamp] | null {
     if (!clientNom) return ["Choisis le client", "wizard-client"];
     if (!siteId) return ["Choisis le site", "wizard-site"];
-    if (avecAffaire(pole) && !devisId) return ["Choisis l'affaire (devis commandé)", "wizard-devis"];
+    if (avecAffaire(pole) && !devisId && !sansDevis) return ["Choisis l'affaire (devis commandé)", "wizard-devis"];
     if (avecEquipementObligatoire(pole) && !equipementId) return ["Choisis l'équipement", "wizard-equipement"];
     if (avecNouvelEquipement(pole)) {
       if (!typeActif) return ["Choisis la famille d'équipement", "wizard-famille"];
@@ -777,7 +797,7 @@ export function BiWizard({
 
   const peutAvancerEtapeClient = useMemo(() => {
     if (!siteId) return false;
-    if (avecAffaire(pole) && !devisId) return false;
+    if (avecAffaire(pole) && !devisId && !sansDevis) return false;
     if (avecEquipementObligatoire(pole) && !equipementId) return false;
     if (pole === Poles.remplacementIdentique && !materielComplet) return false;
     if (avecNouvelEquipement(pole)) {
@@ -791,7 +811,7 @@ export function BiWizard({
       }
     }
     return true;
-  }, [siteId, pole, devisId, equipementId, materielComplet, installationLocalisation, groupesSelectionnes, nonDesservisIds, motifsNonDesservi]);
+  }, [siteId, pole, devisId, sansDevis, equipementId, materielComplet, installationLocalisation, groupesSelectionnes, nonDesservisIds, motifsNonDesservi]);
 
   const photosEnCours = photos.some((p) => p.enCours);
 
@@ -1002,6 +1022,30 @@ export function BiWizard({
   // BI Entretien sous contrat : équipements sans relevé technique, signalés
   // (sans bloquer) à la transmission.
   const [relevesManquants, setRelevesManquants] = useState<string[]>([]);
+  const [horsContratAFacturer, setHorsContratAFacturer] = useState<{ id: string; nom: string }[]>([]);
+  const [popupHorsContrat, setPopupHorsContrat] = useState(false);
+
+  /// Le BI d'entretien est sauvegardé en brouillon, puis le BI à facturer
+  /// s'ouvre pré-rempli ; une fois transmis, on revient sur ce brouillon.
+  function ouvrirBiAFacturer() {
+    setPopupHorsContrat(false);
+    startEnregistrement(async () => {
+      const res = await enregistrerBI(construireInput(), "brouillon", brouillonId ?? undefined);
+      if (!res.ok || !res.id) {
+        setErreur(res.ok ? "Enregistrement impossible." : res.erreur);
+        return;
+      }
+      const params = new URLSearchParams({
+        pole: Poles.entretienHorsContrat,
+        siteId,
+        equipementIds: horsContratAFacturer.map((e) => e.id).join(","),
+        noms: horsContratAFacturer.map((e) => e.nom).join("|"),
+        facturable: "1",
+        retour: res.id,
+      });
+      router.push(`/bi/nouveau?${params.toString()}`);
+    });
+  }
   const [popupReleves, setPopupReleves] = useState(false);
   const relevesConfirmesRef = useRef(false);
 
@@ -1026,6 +1070,10 @@ export function BiWizard({
     }
     if (statut === "averif" && (signataire.trim() === "" || sigTechVide || sigClientVide)) {
       setAlerteSignature(true);
+      return;
+    }
+    if (statut === "averif" && pole === Poles.entretienSousContrat && horsContratAFacturer.length > 0) {
+      setPopupHorsContrat(true);
       return;
     }
     if (statut === "averif" && !heuresConfirmeesRef.current) {
@@ -1059,7 +1107,7 @@ export function BiWizard({
         setBrouillonConfirme(true);
         return;
       }
-      router.push("/");
+      router.push(retourBrouillon ? `/bi/nouveau?brouillonId=${retourBrouillon}` : "/");
       router.refresh();
     });
   }
@@ -1140,7 +1188,7 @@ export function BiWizard({
             />
           </div>
 
-          {siteId && avecAffaire(pole) && (
+          {siteId && avecAffaire(pole) && !sansDevis && (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <label className="mb-1 block text-xs font-medium text-slate-600">Affaire (devis commandé)</label>
               <select
@@ -1451,7 +1499,11 @@ export function BiWizard({
               visiteAnnee={Number(visiteAnnee) || null}
               siteId={siteId}
               site={{ nom: site.nom, site: site.site }}
-              equipements={equipementsGroupesSelectionnes.filter((e) => !nonDesservisIds.has(e.id))}
+              equipements={equipementsGroupesSelectionnes.filter((e) => !nonDesservisIds.has(e.id) && !e.hors_contrat)}
+              equipementsHorsContrat={equipementsGroupesSelectionnes.filter((e) => !nonDesservisIds.has(e.id) && e.hors_contrat)}
+              onHorsContratAFacturer={(l) =>
+                setHorsContratAFacturer((prev) => (JSON.stringify(prev) === JSON.stringify(l) ? prev : l))
+              }
               references={references}
               nomUtilisateur={nomUtilisateur}
               techniciens={techniciensDisponibles}
@@ -1938,6 +1990,17 @@ export function BiWizard({
       </div>
 
       {fenetreChampManquant}
+
+      {popupHorsContrat && (
+        <PopupChoix
+          titre={`${horsContratAFacturer.map((e) => e.nom).join(", ")} ${horsContratAFacturer.length > 1 ? "sont" : "est"} hors contrat : un BI à facturer va être fait d'abord.`}
+          lignes={[["Ensuite", "retour à ce BI d'entretien"]]}
+          choix={[
+            { label: "Faire le BI à facturer", onClick: ouvrirBiAFacturer },
+            { label: "Annuler", onClick: () => setPopupHorsContrat(false) },
+          ]}
+        />
+      )}
 
       {popupHeures && (
         <PopupChoix

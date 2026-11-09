@@ -26,12 +26,17 @@ export async function equipementsEntretenus(
   bon: Pick<Bon, "site_id" | "entretien_groupes" | "entretien_non_desservis">,
 ): Promise<{ id: string; nom: string; freq: string }[]> {
   if (!bon.site_id || bon.entretien_groupes.length === 0) return [];
-  const { data } = await supabase.from("equipements").select("id, nom, groupe, champs_en_tete").eq("site_id", bon.site_id);
+  const { data } = await supabase
+    .from("equipements")
+    .select("id, nom, groupe, champs_en_tete, hors_contrat")
+    .eq("site_id", bon.site_id);
   const nonDesservis = new Set(
     ((bon.entretien_non_desservis as { nom?: string }[] | null) ?? []).map((e) => e.nom).filter(Boolean),
   );
-  return ((data ?? []) as { id: string; nom: string; groupe: string; champs_en_tete: Record<string, unknown> }[])
-    .filter((eq) => bon.entretien_groupes.includes(groupeEntretien(eq.groupe)) && !nonDesservis.has(eq.nom))
+  // Un équipement hors contrat (avenant à faire) ne fait pas partie de la
+  // visite du contrat : son entretien passe par un BI à facturer.
+  return ((data ?? []) as { id: string; nom: string; groupe: string; champs_en_tete: Record<string, unknown>; hors_contrat: boolean }[])
+    .filter((eq) => !eq.hors_contrat && bon.entretien_groupes.includes(groupeEntretien(eq.groupe)) && !nonDesservis.has(eq.nom))
     .map((eq) => ({
       id: eq.id,
       nom: eq.nom,

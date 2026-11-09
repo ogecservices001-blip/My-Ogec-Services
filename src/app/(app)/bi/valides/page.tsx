@@ -27,7 +27,7 @@ export default async function BiValidesPage() {
 
   // Prestation sur devis : aucun montant ici, le prix est celui du devis.
   const lignes = (bons ?? []).map((b) => {
-    if (sansMontant(b.pole)) return { ...b, montantHt: null };
+    if (sansMontant(b.pole, b.devis_id)) return { ...b, montantHt: null };
     const taux = b.site_id ? (tauxParSite.get(b.site_id) ?? null) : null;
     const montantHeures = montantMainDoeuvre(b.temps_passe, taux) ?? 0;
     const montantDepl = montantDeplacements(b.nombre_deplacements, taux) ?? 0;

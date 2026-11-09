@@ -94,7 +94,10 @@ export const prixDuDevis = (code: string) => code === POLE_PLUSIEURS_TYPES || av
 /// BI sans aucun montant calculé : sur devis (le prix est celui du devis) ou
 /// Entretien sous contrat (forfait du contrat). Jamais d'estimation
 /// heures × taux + déplacements pour eux, nulle part.
-export const sansMontant = (code: string) => prixDuDevis(code) || code === Poles.entretienSousContrat;
+/// `devisId` : un BI d'un type "sur devis" créé sans devis (entretien d'un
+/// équipement hors contrat à facturer) est facturé en régie.
+export const sansMontant = (code: string, devisId?: string | null) =>
+  code === Poles.entretienSousContrat || (prixDuDevis(code) && !(devisId === null && avecAffaire(code)));
 
 /// Dépannage uniquement : fourniture de matériel posé/consommé sur
 /// place (désignation + quantité, jamais de prix).

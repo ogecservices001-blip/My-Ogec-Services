@@ -95,7 +95,7 @@ export async function GET() {
     const montantDeplacements = forfait !== null ? forfait * b.nombre_deplacements : 0;
     const interventions = interventionsDuBon(b);
     const prestas: Presta[] = interventions.flatMap((i) => i.prestas);
-    const montantTotal = sansMontant(b.pole) ? null : montantHeures + montantDeplacements + totalHT(prestas);
+    const montantTotal = sansMontant(b.pole, b.devis_id) ? null : montantHeures + montantDeplacements + totalHT(prestas);
     const compteRendu = interventions.map((i) => i.compte_rendu).filter(Boolean).join(" | ");
     const prestasTexte = prestas.length > 0 ? prestaSummary(prestas) : "";
 

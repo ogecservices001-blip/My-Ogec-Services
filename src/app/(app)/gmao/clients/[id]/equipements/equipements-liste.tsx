@@ -32,6 +32,7 @@ export function EquipementsListe({
   typesById,
   references,
   freqCouranteParEquipement,
+  siteSousContrat,
   isAdmin,
 }: {
   siteId: string;
@@ -39,6 +40,7 @@ export function EquipementsListe({
   typesById: Record<string, TypeEquipement>;
   references: ReferenceHoraire[];
   freqCouranteParEquipement: Map<string, number | null>;
+  siteSousContrat: boolean;
   isAdmin: boolean;
 }) {
   const [qrOuvert, setQrOuvert] = useState<Equipement | null>(null);
@@ -65,7 +67,7 @@ export function EquipementsListe({
     return a.localeCompare(b);
   });
 
-  const heuresSite = sommeHeuresAnnee(equipements, references, freqCouranteParEquipement);
+  const heuresSite = sommeHeuresAnnee(equipements, references, freqCouranteParEquipement, siteSousContrat);
 
   return (
     <div className="space-y-3">
@@ -82,6 +84,7 @@ export function EquipementsListe({
           typesById={typesById}
           references={references}
           freqCouranteParEquipement={freqCouranteParEquipement}
+          siteSousContrat={siteSousContrat}
           isAdmin={isAdmin}
           siteId={siteId}
           onQr={setQrOuvert}
@@ -122,11 +125,13 @@ function Groupe({
   typesById,
   references,
   freqCouranteParEquipement,
+  siteSousContrat,
   isAdmin,
   siteId,
   onQr,
   ouvertParDefaut,
 }: {
+  siteSousContrat: boolean;
   nom: string;
   couleur: { bg: string; text: string };
   equipements: Equipement[];
@@ -139,7 +144,7 @@ function Groupe({
   ouvertParDefaut: boolean;
 }) {
   const [ouvert, setOuvert] = useState(ouvertParDefaut);
-  const heuresGroupe = sommeHeuresAnnee(equipements, references, freqCouranteParEquipement);
+  const heuresGroupe = sommeHeuresAnnee(equipements, references, freqCouranteParEquipement, siteSousContrat);
 
   return (
     <div className="border-t border-slate-100 pt-3 first:border-t-0 first:pt-0">

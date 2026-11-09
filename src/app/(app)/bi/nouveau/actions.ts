@@ -32,6 +32,7 @@ export type EquipementDuSite = {
   groupe: string;
   type_equipement_id: string;
   champs_en_tete: ChampsEnTeteEquipement;
+  hors_contrat: boolean;
 };
 
 export async function chargerEquipementsDuSite(siteId: string): Promise<EquipementDuSite[]> {
@@ -39,7 +40,7 @@ export async function chargerEquipementsDuSite(siteId: string): Promise<Equipeme
   const supabase = await createClient();
   const { data } = await supabase
     .from("equipements")
-    .select("id, nom, numero_equipement, localisation, groupe, type_equipement_id, champs_en_tete")
+    .select("id, nom, numero_equipement, localisation, groupe, type_equipement_id, champs_en_tete, hors_contrat")
     .eq("site_id", siteId)
     .order("nom");
   return (data ?? []) as EquipementDuSite[];

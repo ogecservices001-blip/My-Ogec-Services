@@ -96,11 +96,15 @@ export function sommeHeuresAnnee(
   equipements: Equipement[],
   references: ReferenceHoraire[],
   freqCouranteParEquipement: Map<string, number | null>,
+  /// Client sous contrat : un équipement hors contrat (avenant à faire) ne
+  /// compte pas dans les heures du contrat.
+  ignorerHorsContrat = true,
 ): HeuresAnnee {
   let prevues: HeuresVisite = { heuresTech: 0, heuresAssistant: 0 };
   let effectuees: HeuresVisite = { heuresTech: 0, heuresAssistant: 0 };
 
   for (const eq of equipements) {
+    if (ignorerHorsContrat && eq.hors_contrat) continue;
     const reference = trouverReferenceExacte(eq.champs_en_tete, references);
     if (!reference) continue;
     const freqBrut = eq.champs_en_tete.freqEntretienAnnuelle;

@@ -74,7 +74,7 @@ export async function calculerLignesAuditHeures(supabase: SupabaseClient<any>): 
       .not("site_id", "is", null)
       .is("devis_id", null),
     supabase.from("bons_intervention").select("site_id, temps_passe, statut, pole").in("site_id", siteIds),
-    supabase.from("equipements").select("site_id, champs_en_tete").in("site_id", siteIds),
+    supabase.from("equipements").select("site_id, champs_en_tete").in("site_id", siteIds).eq("hors_contrat", false),
     supabase.from("references_horaires").select("*"),
   ]);
 

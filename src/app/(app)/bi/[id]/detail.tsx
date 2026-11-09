@@ -183,7 +183,7 @@ export function BiDetail({
                 </Section>
               ) : (
                 <>
-                  {!sansMontant(bon.pole) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
+                  {!sansMontant(bon.pole, bon.devis_id) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
                   <BlocClassement bon={bon} />
                 </>
               )}
@@ -1041,7 +1041,7 @@ function VueCorrection({
         ) : (
           <BlocClassement bon={bon} onChange={setClassementActuel} onMoisChange={setMoisActuel} />
         )}
-        {classementFinal === "facturer" && !sansMontant(pole) && (
+        {classementFinal === "facturer" && !sansMontant(pole, bon.devis_id) && (
           <BlocMainDoeuvreDeplacement tempsPasse={tempsPasse} nombreDeplacements={nombreDeplacements} tauxSite={tauxSite} />
         )}
         {classementFinal === "" && (

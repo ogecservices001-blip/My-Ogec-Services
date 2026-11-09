@@ -14,6 +14,7 @@ import { ETATS_EQUIPEMENT } from "@/lib/bi/format";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { getCurrentProfile } from "@/lib/profile";
 import { ValiderBouton } from "./valider-bouton";
+import { ContratBouton } from "./contrat-bouton";
 
 export default async function VisualiserEquipementPage({
   params,
@@ -101,7 +102,16 @@ export default async function VisualiserEquipementPage({
           )}
         </div>
       )}
+      {eq.hors_contrat && !site.hors_contrat && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+          <p className="text-sm font-semibold text-orange-800">
+            Équipement hors contrat — ses heures ne comptent pas dans le contrat, un entretien est à facturer.
+          </p>
+          {isAdmin && <ContratBouton id={equipementId} siteId={id} horsContrat />}
+        </div>
+      )}
       <div className="mb-4 flex items-center justify-end gap-2">
+        {isAdmin && !eq.hors_contrat && !site.hors_contrat && <ContratBouton id={equipementId} siteId={id} horsContrat={false} />}
         {isAdmin && (
           <Link
             href={`/gmao/clients/${id}/equipements/${equipementId}/modifier`}

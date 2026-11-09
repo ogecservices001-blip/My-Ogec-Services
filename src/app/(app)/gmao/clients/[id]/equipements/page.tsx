@@ -91,6 +91,7 @@ export default async function EquipementsSitePage({
         typesById={typesById}
         references={(references ?? []) as ReferenceHoraire[]}
         freqCouranteParEquipement={freqCouranteParEquipement}
+        siteSousContrat={!site.hors_contrat}
         isAdmin={isAdmin}
       />
     </div>

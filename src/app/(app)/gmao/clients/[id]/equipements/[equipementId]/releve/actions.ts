@@ -157,7 +157,9 @@ export async function chargerFicheReleve(equipementId: string): Promise<FicheRel
 
 export type EtatReleveVisite =
   | { etat: "deja_fait"; fonctionnement: string; bi: string }
-  | { etat: "en_attente"; fonctionnement: string };
+  | { etat: "en_attente"; fonctionnement: string }
+  /// Hors contrat : le BI à facturer a déjà été transmis pour ce relevé.
+  | { etat: "facture"; fonctionnement: string; bi: string };
 
 /// État des relevés d'un site pour une visite donnée : déjà faite par un BI
 /// validé (rattrapage : rien à refaire), relevé en attente, ou rien.
@@ -177,6 +179,27 @@ export async function etatRelevesVisite(
   const etat: Record<string, EtatReleveVisite> = {};
   for (const r of enAttente ?? []) {
     etat[r.equipement_id] = { etat: "en_attente", fonctionnement: r.validation_fonctionnement ?? "Fait" };
+  }
+  // BI à facturer (entretien hors contrat, sans devis) déjà transmis après le
+  // relevé : l'équipement hors contrat est traité.
+  const { data: factures } = await supabase
+    .from("bons_intervention")
+    .select("numero, created_at")
+    .eq("site_id", siteId)
+    .eq("pole", "25")
+    .is("devis_id", null)
+    .neq("statut", "brouillon")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const derniereFacture = (factures ?? [])[0];
+  if (derniereFacture) {
+    const { data: horsContrat } = await supabase.from("equipements").select("id").eq("site_id", siteId).eq("hors_contrat", true);
+    const ids = new Set((horsContrat ?? []).map((e) => e.id));
+    for (const r of enAttente ?? []) {
+      if (ids.has(r.equipement_id) && r.date <= derniereFacture.created_at) {
+        etat[r.equipement_id] = { etat: "facture", fonctionnement: r.validation_fonctionnement ?? "Fait", bi: derniereFacture.numero };
+      }
+    }
   }
   if (numero && annee) {
     const { data: equipements } = await supabase.from("equipements").select("id").eq("site_id", siteId);

@@ -9,7 +9,14 @@ import { archiverBiSiBesoin, genererPdfAvecPhotos } from "@/lib/bi/archive";
 import { envoyerConfirmationBI, envoyerRapportVisiteEmail } from "@/lib/bi/email";
 import { chargerRapportVisite, genererPdfRapportVisite, nomFichierRapport } from "@/lib/gmao/rapport-visite";
 import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
-import { controlerVisite, dateVisiteDuBon, equipementsEntretenus, libelleVisite, type VisiteSaisie } from "@/lib/gmao/visites";
+import {
+  controlerVisite,
+  dateVisiteDuBon,
+  equipementsEntretenus,
+  libelleVisite,
+  visitesDejaValidees,
+  type VisiteSaisie,
+} from "@/lib/gmao/visites";
 import type { ActionResult } from "@/lib/action-result";
 import type { Tables } from "@/lib/types";
 
@@ -79,7 +86,11 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
       break;
     }
     case Poles.entretienSousContrat: {
-      const entretenus = await equipementsEntretenus(supabase, bi);
+      // BI de rattrapage : les équipements ayant déjà eu cette visite par un
+      // autre BI ne sont ni recomptés ni re-annotés.
+      const tous = await equipementsEntretenus(supabase, bi);
+      const deja = await visitesDejaValidees(supabase, tous.map((e) => e.id), bi.visite_numero, bi.visite_annee, bi.id);
+      const entretenus = tous.filter((e) => !deja.has(e.id));
       for (const eq of entretenus) {
         await ajouterRemarqueEquipement(supabase, eq.id, `Entretien effectué le ${date} via ${bi.numero} : ${bi.compte_rendu}`);
       }

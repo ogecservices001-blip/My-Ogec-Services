@@ -4,7 +4,7 @@ import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@
 import type { Tables } from "@/lib/types";
 import type { Equipement, TypeEquipement, Releve } from "./types";
 import { concatTypeEquipement } from "./suggestion-reference-horaire";
-import { equipementsEntretenus, libelleVisite } from "./visites";
+import { equipementsEntretenus, libelleVisite, visitesDejaValidees } from "./visites";
 
 type Bon = Tables<"bons_intervention">;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,6 +15,8 @@ export type DonneesRapportVisite = {
   fiches: { equipement: Equipement; type: TypeEquipement | null; releve: Releve }[];
   sansReleve: { nom: string; groupe: string; localisation: string }[];
   nonDesservis: { nom: string; motif: string }[];
+  /// Rattrapage : équipements déjà entretenus pour cette visite par un autre BI.
+  dejaFaits: { nom: string; bi: string }[];
 };
 
 /// Rapport technique d'une visite d'entretien : le BI Entretien sous contrat
@@ -29,7 +31,9 @@ export async function chargerRapportVisite(
     return { ok: false, erreur: "Ce BI n'est pas une visite d'entretien validée." };
   }
 
-  const entretenus = await equipementsEntretenus(supabase, bi);
+  const tous = await equipementsEntretenus(supabase, bi);
+  const deja = await visitesDejaValidees(supabase, tous.map((e) => e.id), bi.visite_numero, bi.visite_annee, bi.id);
+  const entretenus = tous.filter((e) => !deja.has(e.id));
   const ids = entretenus.map((e) => e.id);
   const [{ data: equipements }, { data: releves }] = await Promise.all([
     ids.length > 0 ? supabase.from("equipements").select("*").in("id", ids) : Promise.resolve({ data: [] }),
@@ -63,6 +67,7 @@ export async function chargerRapportVisite(
           const eq = equipementParId.get(e.id);
           return { nom: e.nom, groupe: eq?.groupe ?? "", localisation: eq?.localisation ?? "" };
         }),
+      dejaFaits: tous.filter((e) => deja.has(e.id)).map((e) => ({ nom: e.nom, bi: deja.get(e.id)! })),
       nonDesservis: ((bi.entretien_non_desservis as { nom?: string; motif?: string }[] | null) ?? [])
         .filter((n) => n.nom)
         .map((n) => ({ nom: n.nom ?? "", motif: n.motif ?? "" })),
@@ -222,7 +227,7 @@ function FicheEquipement({ fiche }: { fiche: DonneesRapportVisite["fiches"][numb
 }
 
 function RapportDocument({ donnees, logo }: { donnees: DonneesRapportVisite; logo: Buffer | null }) {
-  const { bi, fiches, sansReleve, nonDesservis } = donnees;
+  const { bi, fiches, sansReleve, nonDesservis, dejaFaits } = donnees;
   const visite = libelleVisite({ numero: bi.visite_numero, total: bi.visite_total, annee: bi.visite_annee });
   const periode = bi.date_debut && bi.date_fin && bi.date_debut !== bi.date_fin ? `du ${bi.date_debut} au ${bi.date_fin}` : bi.date_debut || bi.date_fin;
   const sousTitre = `${[bi.client_nom, bi.site].filter(Boolean).join(" — ")} · ${visite}`;
@@ -273,6 +278,16 @@ function RapportDocument({ donnees, logo }: { donnees: DonneesRapportVisite; log
             </View>
           ))}
         </View>
+
+        {dejaFaits.length > 0 && (
+          <View style={styles.bloc}>
+            <Text style={styles.blocTitre}>Déjà entretenus pour cette visite ({dejaFaits.length})</Text>
+            <Ligne
+              cle={[...new Set(dejaFaits.map((d) => d.bi))].join(", ")}
+              valeur={dejaFaits.map((d) => d.nom).join(", ")}
+            />
+          </View>
+        )}
 
         {nonDesservis.length > 0 && (
           <View style={styles.bloc}>

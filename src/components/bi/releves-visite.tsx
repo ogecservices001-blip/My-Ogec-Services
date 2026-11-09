@@ -6,7 +6,8 @@ import type { ReferenceHoraire } from "@/lib/gmao/types";
 import { groupeEntretien, SANS_GROUPE } from "@/lib/bi/constants";
 import {
   chargerFicheReleve,
-  etatRelevesEnAttente,
+  etatRelevesVisite,
+  type EtatReleveVisite,
   type FicheReleve,
 } from "@/app/(app)/gmao/clients/[id]/equipements/[equipementId]/releve/actions";
 import { ReleveForm } from "@/app/(app)/gmao/clients/[id]/equipements/[equipementId]/releve/nouveau/releve-form";
@@ -18,6 +19,8 @@ export type EquipementVisite = { id: string; nom: string; groupe: string; locali
 /// visite compte même sans relevé, le BI prévient seulement à la transmission.
 export function RelevesVisite({
   visite,
+  visiteNumero,
+  visiteAnnee,
   siteId,
   site,
   equipements,
@@ -28,6 +31,8 @@ export function RelevesVisite({
 }: {
   /// "Visite 1 de 2 — 2026" saisie dans le BI.
   visite: string;
+  visiteNumero: number | null;
+  visiteAnnee: number | null;
   siteId: string;
   site: { nom: string; site: string };
   equipements: EquipementVisite[];
@@ -36,7 +41,7 @@ export function RelevesVisite({
   techniciens: string[];
   onManquants: (noms: string[]) => void;
 }) {
-  const [etat, setEtat] = useState<Record<string, string>>({});
+  const [etat, setEtat] = useState<Record<string, EtatReleveVisite>>({});
   const [fiche, setFiche] = useState<FicheReleve | null>(null);
   const [chargement, startChargement] = useTransition();
   const [ouvertureId, setOuvertureId] = useState<string | null>(null);
@@ -53,8 +58,8 @@ export function RelevesVisite({
   );
 
   const recharger = useCallback(() => {
-    startChargement(async () => setEtat(await etatRelevesEnAttente(siteId)));
-  }, [siteId]);
+    startChargement(async () => setEtat(await etatRelevesVisite(siteId, visiteNumero, visiteAnnee)));
+  }, [siteId, visiteNumero, visiteAnnee]);
 
   useEffect(() => {
     recharger();
@@ -94,7 +99,25 @@ export function RelevesVisite({
       </div>
       <div className="divide-y divide-slate-100">
         {tries.map((e) => {
-          const fonctionnement = etat[e.id];
+          const etatEq = etat[e.id];
+          const fonctionnement = etatEq?.fonctionnement;
+          if (etatEq?.etat === "deja_fait") {
+            return (
+              <div key={e.id} className="flex items-center gap-2 py-2 opacity-70">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-900">
+                    <span className="font-normal text-slate-400">{groupeEntretien(e.groupe)} · </span>
+                    {e.nom}
+                  </p>
+                  {e.localisation && <p className="truncate text-xs text-slate-500">{e.localisation}</p>}
+                </div>
+                <span className="flex shrink-0 items-center gap-1 text-right text-xs font-semibold text-slate-500">
+                  <CheckCircle2 className="h-4 w-4 text-slate-400" strokeWidth={2.25} />
+                  {fonctionnement} — déjà fait ({etatEq.bi})
+                </span>
+              </div>
+            );
+          }
           return (
             <div key={e.id} className="flex items-center gap-2 py-2">
               <div className="min-w-0 flex-1">

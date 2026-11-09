@@ -4,7 +4,7 @@ import { getCurrentProfile } from "@/lib/profile";
 import type { Tables } from "@/lib/types";
 import { BiDetail, type InfosVisite } from "./detail";
 import { Poles, Statuts } from "@/lib/bi/constants";
-import { equipementsEntretenus, proposerVisite } from "@/lib/gmao/visites";
+import { equipementsEntretenus, proposerVisite, visitesDejaValidees } from "@/lib/gmao/visites";
 
 export default async function BiDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -41,7 +41,9 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
 
   let infosVisite: InfosVisite | null = null;
   if (bon.pole === Poles.entretienSousContrat) {
-    const entretenus = await equipementsEntretenus(supabase, bon);
+    const tous = await equipementsEntretenus(supabase, bon);
+    const deja = await visitesDejaValidees(supabase, tous.map((e) => e.id), bon.visite_numero, bon.visite_annee, bon.id);
+    const entretenus = tous.filter((e) => !deja.has(e.id));
     const ids = entretenus.map((e) => e.id);
     const { data: releves } =
       ids.length > 0
@@ -58,6 +60,7 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
       proposition: await proposerVisite(supabase, bon, entretenus),
       equipements: entretenus.map((e) => ({ nom: e.nom, avecReleve: avecReleve.has(e.id) })),
       relevesEnAttente: valide ? (releves ?? []).filter((r) => r.bon_intervention_id === null).length : 0,
+      dejaFaits: tous.filter((e) => deja.has(e.id)).map((e) => ({ nom: e.nom, bi: deja.get(e.id)! })),
     };
   }
 

@@ -1429,6 +1429,8 @@ export function BiWizard({
           {pole === Poles.entretienSousContrat && siteId && site && (
             <RelevesVisite
               visite={visiteNumero ? `Visite ${visiteNumero}${visiteTotal ? ` de ${visiteTotal}` : ""}${visiteAnnee ? ` — ${visiteAnnee}` : ""}` : ""}
+              visiteNumero={Number(visiteNumero) || null}
+              visiteAnnee={Number(visiteAnnee) || null}
               siteId={siteId}
               site={{ nom: site.nom, site: site.site }}
               equipements={equipementsGroupesSelectionnes.filter((e) => !nonDesservisIds.has(e.id))}

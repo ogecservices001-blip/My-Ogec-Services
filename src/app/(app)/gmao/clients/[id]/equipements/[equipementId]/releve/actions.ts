@@ -6,6 +6,7 @@ import { requireProfile } from "@/lib/auth";
 import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { freqCouranteCalculee } from "@/lib/gmao/releve-service";
 import { chargerDevisEnCoursParEquipement, type DevisEnCours } from "@/lib/devis/en-cours";
+import { visitesDejaValidees } from "@/lib/gmao/visites";
 import type {
   ChampsEnTeteEquipement,
   ChecklistValues,
@@ -154,18 +155,44 @@ export async function chargerFicheReleve(equipementId: string): Promise<FicheRel
   };
 }
 
-/// Relevés en attente (pas encore rattachés à une visite) des équipements d'un
-/// site : équipement → fonctionnement saisi.
-export async function etatRelevesEnAttente(siteId: string): Promise<Record<string, string>> {
+export type EtatReleveVisite =
+  | { etat: "deja_fait"; fonctionnement: string; bi: string }
+  | { etat: "en_attente"; fonctionnement: string };
+
+/// État des relevés d'un site pour une visite donnée : déjà faite par un BI
+/// validé (rattrapage : rien à refaire), relevé en attente, ou rien.
+export async function etatRelevesVisite(
+  siteId: string,
+  numero: number | null,
+  annee: number | null,
+): Promise<Record<string, EtatReleveVisite>> {
   await requireProfile();
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data: enAttente } = await supabase
     .from("releves")
     .select("equipement_id, validation_fonctionnement, date")
     .eq("site_id", siteId)
     .is("bon_intervention_id", null)
     .order("date");
-  const etat: Record<string, string> = {};
-  for (const r of data ?? []) etat[r.equipement_id] = r.validation_fonctionnement ?? "Fait";
+  const etat: Record<string, EtatReleveVisite> = {};
+  for (const r of enAttente ?? []) {
+    etat[r.equipement_id] = { etat: "en_attente", fonctionnement: r.validation_fonctionnement ?? "Fait" };
+  }
+  if (numero && annee) {
+    const { data: equipements } = await supabase.from("equipements").select("id").eq("site_id", siteId);
+    const deja = await visitesDejaValidees(supabase, (equipements ?? []).map((e) => e.id), numero, annee);
+    if (deja.size > 0) {
+      const { data: rattaches } = await supabase
+        .from("releves")
+        .select("equipement_id, validation_fonctionnement")
+        .eq("site_id", siteId)
+        .eq("visite_numero", numero)
+        .eq("visite_annee", annee);
+      const fonctionnement = new Map((rattaches ?? []).map((r) => [r.equipement_id, r.validation_fonctionnement ?? "Fait"]));
+      for (const [id, bi] of deja) {
+        etat[id] = { etat: "deja_fait", fonctionnement: fonctionnement.get(id) ?? "Entretenu", bi };
+      }
+    }
+  }
   return etat;
 }

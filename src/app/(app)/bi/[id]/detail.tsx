@@ -35,6 +35,8 @@ export type InfosVisite = {
   equipements: { nom: string; avecReleve: boolean }[];
   /// BI validé : relevés saisis depuis, pas encore rattachés.
   relevesEnAttente: number;
+  /// Rattrapage : équipements ayant déjà eu cette visite par un autre BI.
+  dejaFaits: { nom: string; bi: string }[];
 };
 
 const STATUTS_AVEC_PDF = new Set<string>([Statuts.valide, Statuts.pdfGenere, Statuts.pretEnvoi, Statuts.envoye]);
@@ -147,7 +149,7 @@ export function BiDetail({
           <VueLectureSeule bon={bon} typesEquipement={typesEquipement} modele={modele} />
           {bon.visite_numero !== null && infosVisite && STATUTS_AVEC_PDF.has(bon.statut) && (
             <Section titre={`Visite d'entretien — ${libelleVisite({ numero: bon.visite_numero, total: bon.visite_total, annee: bon.visite_annee })}`}>
-              <RelevesDeLaVisite equipements={infosVisite.equipements} rattaches />
+              <RelevesDeLaVisite equipements={infosVisite.equipements} dejaFaits={infosVisite.dejaFaits} rattaches />
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <a
                   href={`/bi/${bon.id}/rapport`}
@@ -1028,7 +1030,7 @@ function VueCorrection({
               Pré-rempli d&apos;après les visites déjà validées. Une visite faite en janvier peut être rattachée à
               l&apos;année précédente.
             </p>
-            {infosVisite && <RelevesDeLaVisite equipements={infosVisite.equipements} />}
+            {infosVisite && <RelevesDeLaVisite equipements={infosVisite.equipements} dejaFaits={infosVisite.dejaFaits} />}
           </div>
         )}
 
@@ -1124,13 +1126,21 @@ function BoutonRattacher({ biId, enAttente }: { biId: string; enAttente: number 
 /// pour tous, l'alerte n'est qu'une information.
 function RelevesDeLaVisite({
   equipements,
+  dejaFaits,
   rattaches,
 }: {
   equipements: { nom: string; avecReleve: boolean }[];
+  dejaFaits: { nom: string; bi: string }[];
   rattaches?: boolean;
 }) {
+  const deja = dejaFaits.length > 0 && (
+    <p className="mt-2 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs text-slate-600">
+      Déjà faits pour cette visite ({dejaFaits.length}) : {[...new Set(dejaFaits.map((d) => d.bi))].join(", ")} — ni recomptés
+      ni re-annotés.
+    </p>
+  );
   if (equipements.length === 0) {
-    return <p className="mt-2 text-xs text-slate-500">Aucun équipement dans les groupes cochés.</p>;
+    return deja || <p className="mt-2 text-xs text-slate-500">Aucun équipement dans les groupes cochés.</p>;
   }
   const sansReleve = equipements.filter((e) => !e.avecReleve);
   const nbAvec = equipements.length - sansReleve.length;
@@ -1146,6 +1156,7 @@ function RelevesDeLaVisite({
           quand même pour eux.
         </p>
       )}
+      {deja}
     </div>
   );
 }

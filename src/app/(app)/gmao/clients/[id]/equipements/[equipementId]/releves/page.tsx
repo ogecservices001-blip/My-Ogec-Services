@@ -3,6 +3,7 @@ import { CalendarDays, User, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { FilAjouter } from "@/components/fil-extra-context";
 import type { Equipement, TypeEquipement, Releve } from "@/lib/gmao/types";
+import { libelleVisite } from "@/lib/gmao/visites";
 
 function deuxChiffres(n: number): string {
   return String(n).padStart(2, "0");
@@ -102,6 +103,15 @@ function CarteReleve({ releve, type }: { releve: Releve; type: TypeEquipement })
           <CalendarDays className="h-4 w-4 text-teal-600" strokeWidth={2} />
           {formaterDate(releve.date)}
         </span>
+        {releve.visite_numero !== null ? (
+          <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[11px] font-bold text-teal-700">
+            {libelleVisite({ numero: releve.visite_numero, total: releve.visite_total, annee: releve.visite_annee })}
+          </span>
+        ) : (
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+            En attente du BI d&apos;entretien
+          </span>
+        )}
         {releve.nom_tech && (
           <span className="flex items-center gap-1 text-xs text-slate-500">
             <User className="h-3.5 w-3.5" strokeWidth={2} />

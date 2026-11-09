@@ -3,51 +3,27 @@ import type { createClient } from "@/lib/supabase/server";
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 /// Avant cette date, aucune visite n'est comptée (base de test à vider
-/// avant la vraie mise en production) — évite que des relevés de test
-/// faussent le calcul de "Fréquence courante". Port de
-/// `coupureComptageVisites` (releve_service.dart).
+/// avant la vraie mise en production). Port de `coupureComptageVisites`
+/// (releve_service.dart).
 export const COUPURE_COMPTAGE_VISITES = new Date(Date.UTC(2026, 0, 1));
 
-/// Nombre de relevés déjà enregistrés pour `equipementId` durant
-/// l'année civile `annee`.
-export async function compterVisitesAnnee(
-  supabase: SupabaseServerClient,
-  equipementId: string,
-  annee: number,
-): Promise<number> {
-  const debut = new Date(Date.UTC(annee, 0, 1)).toISOString();
-  const fin = new Date(Date.UTC(annee + 1, 0, 1)).toISOString();
-  const { count } = await supabase
-    .from("releves")
-    .select("*", { count: "exact", head: true })
-    .eq("equipement_id", equipementId)
-    .gte("date", debut)
-    .lt("date", fin);
-  return count ?? 0;
-}
-
-/// "Fréquence courante" calculée pour la visite en cours d'un
-/// équipement : nombre de relevés déjà faits cette année + 1. `null`
-/// avant `COUPURE_COMPTAGE_VISITES`.
+/// Visite en cours d'un équipement pour l'année de contrat en cours : plus
+/// haut n° de visite validé pour cette année + 1. Une visite = un BI
+/// "Entretien sous contrat" validé, dont le bureau a saisi le n° et l'année
+/// (table visites_entretien) ; les relevés GMAO ne comptent pas. Le
+/// compteur repart à 1 chaque année, que toutes les visites de l'année
+/// précédente aient été faites ou non. `null` avant
+/// `COUPURE_COMPTAGE_VISITES`.
 export async function freqCouranteCalculee(
   supabase: SupabaseServerClient,
   equipementId: string,
 ): Promise<number | null> {
-  const maintenant = new Date();
-  if (maintenant < COUPURE_COMPTAGE_VISITES) return null;
-  const visites = await compterVisitesAnnee(supabase, equipementId, maintenant.getUTCFullYear());
-  return visites + 1;
+  return (await freqCouranteCalculeeBatch(supabase, [equipementId])).get(equipementId) ?? null;
 }
 
-/// Variante "Fréquence courante" pour plusieurs équipements en un seul
-/// aller-retour réseau (au lieu d'un `freqCouranteCalculee` par
-/// équipement) — même résultat, utilisée pour les compteurs de liste
-/// (parc d'un site, d'un client, ou global). Ne filtre PAS par
-/// `equipement_id` côté requête (un `.in()` sur des milliers d'ids —
-/// tout le parc GMAO au niveau global — dépasserait vite une taille de
-/// requête raisonnable) : la table `releves` d'une année civile reste
-/// petite quel que soit le nombre d'équipements, donc on la lit en
-/// entier et on filtre localement.
+/// Même calcul pour plusieurs équipements en un seul aller-retour : la
+/// table des visites d'une année reste petite, elle est lue en entier puis
+/// filtrée localement (un `.in()` sur tout le parc serait trop long).
 export async function freqCouranteCalculeeBatch(
   supabase: SupabaseServerClient,
   equipementIds: string[],
@@ -61,19 +37,16 @@ export async function freqCouranteCalculeeBatch(
     return resultat;
   }
 
-  const debut = new Date(Date.UTC(maintenant.getUTCFullYear(), 0, 1)).toISOString();
-  const fin = new Date(Date.UTC(maintenant.getUTCFullYear() + 1, 0, 1)).toISOString();
   const { data } = await supabase
-    .from("releves")
-    .select("equipement_id")
-    .gte("date", debut)
-    .lt("date", fin)
-    .returns<{ equipement_id: string }[]>();
+    .from("visites_entretien")
+    .select("equipement_id, visite_numero")
+    .eq("annee", maintenant.getUTCFullYear())
+    .returns<{ equipement_id: string; visite_numero: number }[]>();
 
-  const comptes = new Map<string, number>();
+  const derniere = new Map<string, number>();
   for (const row of data ?? []) {
-    comptes.set(row.equipement_id, (comptes.get(row.equipement_id) ?? 0) + 1);
+    derniere.set(row.equipement_id, Math.max(derniere.get(row.equipement_id) ?? 0, row.visite_numero));
   }
-  for (const id of equipementIds) resultat.set(id, (comptes.get(id) ?? 0) + 1);
+  for (const id of equipementIds) resultat.set(id, (derniere.get(id) ?? 0) + 1);
   return resultat;
 }

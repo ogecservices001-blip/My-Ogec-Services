@@ -191,6 +191,9 @@ export type Database = {
           techniciens: string[]
           temps_passe: string
           updated_at: string
+          visite_annee: number | null
+          visite_numero: number | null
+          visite_total: number | null
         }
         Insert: {
           adresse?: string
@@ -256,6 +259,9 @@ export type Database = {
           techniciens?: string[]
           temps_passe?: string
           updated_at?: string
+          visite_annee?: number | null
+          visite_numero?: number | null
+          visite_total?: number | null
         }
         Update: {
           adresse?: string
@@ -321,6 +327,9 @@ export type Database = {
           techniciens?: string[]
           temps_passe?: string
           updated_at?: string
+          visite_annee?: number | null
+          visite_numero?: number | null
+          visite_total?: number | null
         }
         Relationships: [
           {
@@ -1371,6 +1380,10 @@ export type Database = {
           remarque2: string
           site_id: string
           validation_fonctionnement: string | null
+          bon_intervention_id: string | null
+          visite_annee: number | null
+          visite_numero: number | null
+          visite_total: number | null
         }
         Insert: {
           checklist_values?: Json
@@ -1387,6 +1400,10 @@ export type Database = {
           remarque2?: string
           site_id: string
           validation_fonctionnement?: string | null
+          bon_intervention_id?: string | null
+          visite_annee?: number | null
+          visite_numero?: number | null
+          visite_total?: number | null
         }
         Update: {
           checklist_values?: Json
@@ -1403,6 +1420,10 @@ export type Database = {
           remarque2?: string
           site_id?: string
           validation_fonctionnement?: string | null
+          bon_intervention_id?: string | null
+          visite_annee?: number | null
+          visite_numero?: number | null
+          visite_total?: number | null
         }
         Relationships: [
           {
@@ -1768,6 +1789,42 @@ export type Database = {
           nom?: string
           type_equipement1_fixe?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      visites_entretien: {
+        Row: {
+          bon_intervention_id: string
+          created_at: string
+          date: string
+          equipement_id: string
+          id: string
+          site_id: string
+          annee: number
+          visite_numero: number
+          visite_total: number
+        }
+        Insert: {
+          bon_intervention_id: string
+          created_at?: string
+          date: string
+          equipement_id: string
+          id?: string
+          site_id: string
+          annee: number
+          visite_numero: number
+          visite_total: number
+        }
+        Update: {
+          bon_intervention_id?: string
+          created_at?: string
+          date?: string
+          equipement_id?: string
+          id?: string
+          site_id?: string
+          annee?: number
+          visite_numero?: number
+          visite_total?: number
         }
         Relationships: []
       }

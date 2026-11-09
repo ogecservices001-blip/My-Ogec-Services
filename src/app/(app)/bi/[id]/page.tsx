@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import type { Tables } from "@/lib/types";
-import { BiDetail } from "./detail";
+import { BiDetail, type InfosVisite } from "./detail";
+import { Poles } from "@/lib/bi/constants";
+import { equipementsEntretenus, proposerVisite } from "@/lib/gmao/visites";
 
 export default async function BiDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,8 +39,30 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
       : Promise.resolve({ data: [] }),
   ]);
 
+  let infosVisite: InfosVisite | null = null;
+  if (bon.pole === Poles.entretienSousContrat) {
+    const entretenus = await equipementsEntretenus(supabase, bon);
+    const ids = entretenus.map((e) => e.id);
+    const { data: releves } =
+      ids.length > 0
+        ? await supabase.from("releves").select("equipement_id, bon_intervention_id").in("equipement_id", ids)
+        : { data: [] };
+    const valide = bon.visite_numero !== null;
+    // Avant validation : relevés en attente de rattachement ; après : ceux rattachés à ce BI.
+    const avecReleve = new Set(
+      (releves ?? [])
+        .filter((r) => (valide ? r.bon_intervention_id === bon.id : r.bon_intervention_id === null))
+        .map((r) => r.equipement_id),
+    );
+    infosVisite = {
+      proposition: await proposerVisite(supabase, bon, entretenus),
+      equipements: entretenus.map((e) => ({ nom: e.nom, avecReleve: avecReleve.has(e.id) })),
+    };
+  }
+
   return (
     <BiDetail
+      infosVisite={infosVisite}
       bon={bon as Tables<"bons_intervention">}
       techniciensDisponibles={(techniciens ?? []).map((t) => t.name)}
       typesEquipement={typesEquipement ?? []}

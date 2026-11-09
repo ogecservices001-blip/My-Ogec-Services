@@ -23,6 +23,12 @@ import {
 import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, classerBI, type CorrectionInput } from "./actions";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 import { suggererNumeroEquipement } from "@/lib/gmao/numero-equipement";
+import { libelleVisite, type VisiteSaisie } from "@/lib/gmao/visites";
+
+/// BI Entretien sous contrat : proposition de n° de visite et équipements
+/// entretenus, avec ou sans relevé technique (en attente avant validation,
+/// rattaché à ce BI après).
+export type InfosVisite = { proposition: VisiteSaisie; equipements: { nom: string; avecReleve: boolean }[] };
 
 const STATUTS_AVEC_PDF = new Set<string>([Statuts.valide, Statuts.pdfGenere, Statuts.pretEnvoi, Statuts.envoye]);
 
@@ -43,8 +49,10 @@ export function BiDetail({
   tauxSite,
   numeroAffaireSite,
   numerosEquipementSite,
+  infosVisite,
 }: {
   bon: Bon;
+  infosVisite: InfosVisite | null;
   techniciensDisponibles: string[];
   typesEquipement: TypeEquipementResume[];
   modele: ModeleResume;
@@ -120,6 +128,7 @@ export function BiDetail({
             tauxSite={tauxSite}
             numeroAffaireSite={numeroAffaireSite}
             numerosEquipementSite={numerosEquipementSite}
+            infosVisite={infosVisite}
             onValide={() => router.refresh()}
           />
           <BlocHistorique bon={bon} />
@@ -128,6 +137,11 @@ export function BiDetail({
         <div className="space-y-4">
           <BlocClient bon={bon} />
           <VueLectureSeule bon={bon} typesEquipement={typesEquipement} modele={modele} />
+          {bon.visite_numero !== null && infosVisite && (
+            <Section titre={`Visite d'entretien — ${libelleVisite({ numero: bon.visite_numero, total: bon.visite_total, annee: bon.visite_annee })}`}>
+              <RelevesDeLaVisite equipements={infosVisite.equipements} rattaches />
+            </Section>
+          )}
           {isAdmin && (
             <>
               {!prixDuDevis(bon.pole) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
@@ -626,6 +640,7 @@ function VueCorrection({
   tauxSite,
   numeroAffaireSite,
   numerosEquipementSite,
+  infosVisite,
   onValide,
 }: {
   bon: Bon;
@@ -633,9 +648,14 @@ function VueCorrection({
   tauxSite: TauxSiteComplet;
   numeroAffaireSite: string;
   numerosEquipementSite: string[];
+  infosVisite: InfosVisite | null;
   onValide: () => void;
 }) {
   const [pole, setPole] = useState(bon.pole);
+  const [visiteNumero, setVisiteNumero] = useState(String(bon.visite_numero ?? infosVisite?.proposition.numero ?? ""));
+  const [visiteTotal, setVisiteTotal] = useState(String(bon.visite_total ?? infosVisite?.proposition.total ?? ""));
+  const [visiteAnnee, setVisiteAnnee] = useState(String(bon.visite_annee ?? infosVisite?.proposition.annee ?? ""));
+  const avecVisite = pole === Poles.entretienSousContrat;
   const [techniciens, setTechniciens] = useState<string[]>(bon.techniciens);
   const [dateDebut, setDateDebut] = useState(bon.date_debut);
   const [dateFin, setDateFin] = useState(bon.date_fin);
@@ -680,6 +700,14 @@ function VueCorrection({
   const { signaler, fenetre } = useChampManquant();
 
   function manquePourValider(): [string, CibleChamp] | null {
+    if (avecVisite) {
+      const total = Number(visiteTotal);
+      if (!Number.isInteger(total) || total < 1 || total > 12) return ["Indique le nombre de visites par an (1 à 12)", "bi-visite-total"];
+      const numero = Number(visiteNumero);
+      if (!Number.isInteger(numero) || numero < 1 || numero > total) return [`Indique le n° de la visite (1 à ${total})`, "bi-visite-numero"];
+      const annee = Number(visiteAnnee);
+      if (!Number.isInteger(annee) || annee < 2020 || annee > 2100) return ["Indique l'année du contrat (ex : 2026)", "bi-visite-annee"];
+    }
     if (poleDe(0) === Poles.installationNeuve) {
       if (bon.materiel_type_equipement_id === null) return ["Le type d'équipement posé n'est pas renseigné sur ce BI", null];
       if (!equipementNom.trim()) return ["Renseigne le nom de l'équipement", "bi-eq-nom"];
@@ -723,6 +751,9 @@ function VueCorrection({
       equipement_nom: poleDe(0) === Poles.installationNeuve ? equipementNom.trim() : bon.equipement_nom,
       equipement_numero: poleDe(0) === Poles.installationNeuve ? equipementNumero.trim() : bon.equipement_numero,
       mois_facturation: classementActuel === "facturer" ? moisActuel.trim() : "",
+      visite: avecVisite
+        ? { numero: Number(visiteNumero), total: Number(visiteTotal), annee: Number(visiteAnnee) }
+        : null,
     };
     startTransition(async () => {
       const res = await validerBI(bon.id, bon, input);
@@ -916,6 +947,43 @@ function VueCorrection({
           );
         })}
 
+        {avecVisite && (
+          <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-3">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-teal-700">Visite d&apos;entretien</p>
+            <div className="flex flex-wrap items-end gap-2 text-sm">
+              <span className="pb-2 text-slate-600">Visite n°</span>
+              <input
+                id="bi-visite-numero"
+                value={visiteNumero}
+                onChange={(e) => setVisiteNumero(e.target.value)}
+                inputMode="numeric"
+                className="w-14 rounded-lg border border-slate-200 px-2 py-1.5 text-center text-sm outline-none focus:border-violet-600"
+              />
+              <span className="pb-2 text-slate-600">de</span>
+              <input
+                id="bi-visite-total"
+                value={visiteTotal}
+                onChange={(e) => setVisiteTotal(e.target.value)}
+                inputMode="numeric"
+                className="w-14 rounded-lg border border-slate-200 px-2 py-1.5 text-center text-sm outline-none focus:border-violet-600"
+              />
+              <span className="pb-2 text-slate-600">— année</span>
+              <input
+                id="bi-visite-annee"
+                value={visiteAnnee}
+                onChange={(e) => setVisiteAnnee(e.target.value)}
+                inputMode="numeric"
+                className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-center text-sm outline-none focus:border-violet-600"
+              />
+            </div>
+            <p className="mt-1.5 text-[11px] text-slate-500">
+              Pré-rempli d&apos;après les visites déjà validées. Une visite faite en janvier peut être rattachée à
+              l&apos;année précédente.
+            </p>
+            {infosVisite && <RelevesDeLaVisite equipements={infosVisite.equipements} />}
+          </div>
+        )}
+
         <BlocClassement bon={bon} onChange={setClassementActuel} onMoisChange={setMoisActuel} />
         {classementActuel === "facturer" && !prixDuDevis(pole) && (
           <BlocMainDoeuvreDeplacement tempsPasse={tempsPasse} nombreDeplacements={nombreDeplacements} tauxSite={tauxSite} />
@@ -970,6 +1038,36 @@ function VueCorrection({
       </button>
       {fenetre}
     </Section>
+  );
+}
+
+/// Équipements entretenus avec ou sans relevé technique — la visite compte
+/// pour tous, l'alerte n'est qu'une information.
+function RelevesDeLaVisite({
+  equipements,
+  rattaches,
+}: {
+  equipements: { nom: string; avecReleve: boolean }[];
+  rattaches?: boolean;
+}) {
+  if (equipements.length === 0) {
+    return <p className="mt-2 text-xs text-slate-500">Aucun équipement dans les groupes cochés.</p>;
+  }
+  const sansReleve = equipements.filter((e) => !e.avecReleve);
+  const nbAvec = equipements.length - sansReleve.length;
+  return (
+    <div className="mt-2 space-y-1.5 text-xs">
+      <p className="font-semibold text-slate-700">
+        {nbAvec} / {equipements.length} équipement(s) avec relevé technique{" "}
+        {rattaches ? "rattaché à cette visite" : "en attente (rattachés à la validation)"}
+      </p>
+      {sansReleve.length > 0 && (
+        <p className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-amber-800">
+          Sans relevé technique ({sansReleve.length}) : {sansReleve.map((e) => e.nom).join(", ")} — la visite compte
+          quand même pour eux.
+        </p>
+      )}
+    </div>
   );
 }
 

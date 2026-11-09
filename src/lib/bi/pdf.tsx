@@ -4,6 +4,7 @@ import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@
 import type { Tables } from "@/lib/types";
 import { Poles, avecPeriode, avecAffaire, labelPole, PHOTO_TYPES, POLE_PLUSIEURS_TYPES } from "./constants";
 import { equipementLabel, interventionsDuBon, type Presta } from "./format";
+import { libelleVisite } from "@/lib/gmao/visites";
 
 type Bon = Tables<"bons_intervention">;
 
@@ -44,7 +45,8 @@ export type BonPdf = Pick<
   | "sig_client"
   | "signataire"
   | "date_signature"
->;
+> &
+  Partial<Pick<Bon, "visite_numero" | "visite_total" | "visite_annee">>;
 
 const BLEU = "#1375D0";
 const ENCRE = "#14202E";
@@ -163,10 +165,13 @@ function descriptionEquipement(pole: string): string | null {
 
 function lignesDates(b: BonPdf): { label: string; valeur: string }[] {
   if (avecPeriode(b.pole)) {
+    const visite = b.visite_numero
+      ? [{ label: "Visite d'entretien", valeur: libelleVisite({ numero: b.visite_numero, total: b.visite_total ?? null, annee: b.visite_annee ?? null }).replace(/^Visite /, "") }]
+      : [];
     if (b.date_debut && b.date_fin && b.date_debut !== b.date_fin) {
-      return [{ label: "Période d'intervention", valeur: `du ${b.date_debut} au ${b.date_fin}` }];
+      return [{ label: "Période d'intervention", valeur: `du ${b.date_debut} au ${b.date_fin}` }, ...visite];
     }
-    return [{ label: "Date d'intervention", valeur: b.date_debut || "—" }];
+    return [{ label: "Date d'intervention", valeur: b.date_debut || "—" }, ...visite];
   }
   const lignes = [{ label: "Date d'intervention", valeur: b.date_intervention || "—" }];
   if (b.heure_debut || b.heure_fin) {

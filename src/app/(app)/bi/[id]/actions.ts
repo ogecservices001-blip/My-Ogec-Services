@@ -8,6 +8,7 @@ import { now, interventionsDuBon, type Presta, type InterventionEquipement } fro
 import { archiverBiSiBesoin, genererPdfAvecPhotos } from "@/lib/bi/archive";
 import { envoyerConfirmationBI } from "@/lib/bi/email";
 import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
+import { controlerVisite, dateVisiteDuBon, equipementsEntretenus, type VisiteSaisie } from "@/lib/gmao/visites";
 import type { ActionResult } from "@/lib/action-result";
 import type { Tables } from "@/lib/types";
 
@@ -29,6 +30,8 @@ export type CorrectionInput = {
   equipement_nom: string;
   equipement_numero: string;
   mois_facturation: string;
+  /// BI Entretien sous contrat : n° de visite et année du contrat saisis par le bureau.
+  visite?: VisiteSaisie | null;
 };
 
 type Bon = Tables<"bons_intervention">;
@@ -75,18 +78,30 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
       break;
     }
     case Poles.entretienSousContrat: {
-      if (bi.entretien_groupes.length === 0) return;
-      const { data: equipementsSite } = await supabase
-        .from("equipements")
-        .select("id, nom, groupe")
-        .eq("site_id", bi.site_id);
-      const nomsNonDesservis = new Set(
-        (bi.entretien_non_desservis as { nom?: string }[]).map((e) => e.nom).filter(Boolean),
-      );
-      for (const eq of equipementsSite ?? []) {
-        if (!bi.entretien_groupes.includes(eq.groupe) || nomsNonDesservis.has(eq.nom)) continue;
+      const entretenus = await equipementsEntretenus(supabase, bi);
+      for (const eq of entretenus) {
         await ajouterRemarqueEquipement(supabase, eq.id, `Entretien effectué le ${date} via ${bi.numero} : ${bi.compte_rendu}`);
       }
+      if (entretenus.length === 0 || !bi.visite_numero || !bi.visite_total || !bi.visite_annee) break;
+      const repere = { visite_numero: bi.visite_numero, visite_total: bi.visite_total };
+      await supabase.from("visites_entretien").upsert(
+        entretenus.map((eq) => ({
+          equipement_id: eq.id,
+          site_id: bi.site_id,
+          bon_intervention_id: bi.id,
+          date: dateVisiteDuBon(bi),
+          annee: bi.visite_annee,
+          ...repere,
+        })),
+        { onConflict: "bon_intervention_id,equipement_id" },
+      );
+      // Les relevés techniques faits depuis la visite précédente (pas encore
+      // rattachés) prennent le repère de cette visite.
+      await supabase
+        .from("releves")
+        .update({ bon_intervention_id: bi.id, visite_annee: bi.visite_annee, ...repere })
+        .in("equipement_id", entretenus.map((eq) => eq.id))
+        .is("bon_intervention_id", null);
       break;
     }
     case Poles.remplacementIdentique: {
@@ -202,6 +217,12 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
   }
   const supabase = await createClient();
 
+  const visite = input.pole === Poles.entretienSousContrat ? input.visite : null;
+  if (input.pole === Poles.entretienSousContrat) {
+    const erreurVisite = controlerVisite(visite);
+    if (erreurVisite) return { ok: false, erreur: erreurVisite };
+  }
+
   const { data: classementEnBase } = await supabase.from("bons_intervention").select("classement").eq("id", id).single();
   if (classementEnBase?.classement === "facturer" && !input.mois_facturation) {
     return { ok: false, erreur: "Le mois de facturation est obligatoire pour un BI à facturer." };
@@ -230,6 +251,9 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
     .update({
       pole: input.pole,
       statut: Statuts.valide,
+      visite_numero: visite?.numero ?? null,
+      visite_total: visite?.total ?? null,
+      visite_annee: visite?.annee ?? null,
       techniciens: input.techniciens,
       date_debut: input.date_debut,
       date_fin: input.date_fin,

@@ -13,7 +13,7 @@ type Supabase = any;
 export type DonneesRapportVisite = {
   bi: Bon;
   fiches: { equipement: Equipement; type: TypeEquipement | null; releve: Releve }[];
-  sansReleve: string[];
+  sansReleve: { nom: string; groupe: string; localisation: string }[];
   nonDesservis: { nom: string; motif: string }[];
 };
 
@@ -55,7 +55,12 @@ export async function chargerRapportVisite(
     donnees: {
       bi,
       fiches,
-      sansReleve: entretenus.filter((e) => !releveParEquipement.has(e.id)).map((e) => e.nom),
+      sansReleve: entretenus
+        .filter((e) => !releveParEquipement.has(e.id))
+        .map((e) => {
+          const eq = equipementParId.get(e.id);
+          return { nom: e.nom, groupe: eq?.groupe ?? "", localisation: eq?.localisation ?? "" };
+        }),
       nonDesservis: ((bi.entretien_non_desservis as { nom?: string; motif?: string }[] | null) ?? [])
         .filter((n) => n.nom)
         .map((n) => ({ nom: n.nom ?? "", motif: n.motif ?? "" })),
@@ -83,6 +88,12 @@ const styles = StyleSheet.create({
   valeurRouge: { flex: 1, fontFamily: "Helvetica-Bold", color: ROUGE },
   grand: { fontSize: 18, fontFamily: "Helvetica-Bold", marginBottom: 4 },
   texte: { marginBottom: 3 },
+  tableEntete: { flexDirection: "row", paddingVertical: 3, paddingHorizontal: 8, borderTopWidth: 0.5, borderColor: BORD, color: GRIS, fontSize: 8 },
+  tableLigne: { flexDirection: "row", paddingVertical: 3, paddingHorizontal: 8, borderTopWidth: 0.5, borderColor: BORD },
+  colNom: { width: "26%", fontFamily: "Helvetica-Bold" },
+  colGroupe: { width: "20%" },
+  colLoc: { width: "32%" },
+  colFonct: { width: "22%", fontFamily: "Helvetica-Bold" },
   piedPage: { position: "absolute", bottom: 18, left: 30, right: 30, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: GRIS },
 });
 
@@ -233,11 +244,31 @@ function RapportDocument({ donnees, logo }: { donnees: DonneesRapportVisite; log
           <Text style={styles.blocTitre}>
             Équipements entretenus ({fiches.length + sansReleve.length})
           </Text>
-          {fiches.map((f) => (
-            <Ligne key={f.equipement.id} cle={f.equipement.nom} valeur="Relevé technique joint" />
-          ))}
-          {sansReleve.map((nom) => (
-            <Ligne key={nom} cle={nom} valeur="Entretenu — sans relevé technique" />
+          <View style={styles.tableEntete}>
+            <Text style={styles.colNom}>Équipement</Text>
+            <Text style={styles.colGroupe}>Groupe</Text>
+            <Text style={styles.colLoc}>Localisation</Text>
+            <Text style={styles.colFonct}>Fonctionnement</Text>
+          </View>
+          {fiches.map((f) => {
+            const fonctionnement = f.releve.validation_fonctionnement ?? "—";
+            const couleur = fonctionnement === "Fonctionnel" ? VERT : fonctionnement === "Non Fonctionnel" ? ROUGE : "#0f172a";
+            return (
+              <View key={f.equipement.id} style={styles.tableLigne} wrap={false}>
+                <Text style={styles.colNom}>{f.equipement.nom}</Text>
+                <Text style={styles.colGroupe}>{f.equipement.groupe || "—"}</Text>
+                <Text style={styles.colLoc}>{f.equipement.localisation || "—"}</Text>
+                <Text style={[styles.colFonct, { color: couleur }]}>{fonctionnement}</Text>
+              </View>
+            );
+          })}
+          {sansReleve.map((e) => (
+            <View key={e.nom} style={styles.tableLigne} wrap={false}>
+              <Text style={styles.colNom}>{e.nom}</Text>
+              <Text style={styles.colGroupe}>{e.groupe || "—"}</Text>
+              <Text style={styles.colLoc}>{e.localisation || "—"}</Text>
+              <Text style={[styles.colFonct, { color: GRIS }]}>Sans relevé</Text>
+            </View>
           ))}
         </View>
 

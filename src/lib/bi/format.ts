@@ -272,3 +272,25 @@ export function interventionsDuBon(bon: {
   const supplementaires = (bon.interventions_supplementaires as InterventionEquipement[] | null) ?? [];
   return [primaire, ...supplementaires];
 }
+
+/// Période (Entretien sous contrat) : jours ouvrés du lundi au vendredi entre
+/// les deux dates incluses, et temps d'une journée type cumulé sur ces jours
+/// (7h30 du lundi au jeudi, 5h le vendredi), pour un technicien.
+export function periodeOuvree(debutJjMmAaaa: string, finJjMmAaaa: string): { jours: number; temps: string } {
+  const debut = parserDateFr(debutJjMmAaaa);
+  const fin = parserDateFr(finJjMmAaaa || debutJjMmAaaa);
+  if (!debut || !fin || fin < debut) return { jours: 0, temps: "" };
+  let jours = 0;
+  let minutes = 0;
+  const d = new Date(debut);
+  for (let garde = 0; d <= fin && garde < 366; garde++) {
+    const jour = `${deuxChiffres(d.getDate())}/${deuxChiffres(d.getMonth() + 1)}/${d.getFullYear()}`;
+    const standard = parserDuree(tempsStandard(jour));
+    if (standard) {
+      jours += 1;
+      minutes += standard;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return { jours, temps: minutes > 0 ? formaterDuree(minutes) : "" };
+}

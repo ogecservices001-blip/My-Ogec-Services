@@ -27,7 +27,7 @@ import {
   avecFournitureMateriel,
   CHAMPS_MATERIEL_EXCLUS_BI,
   CHAMPS_MATERIEL_FACULTATIFS_BI, SANS_GROUPE, groupeEntretien } from "@/lib/bi/constants";
-import { today, tempsStandard, multiplierDuree, ETATS_EQUIPEMENT } from "@/lib/bi/format";
+import { today, tempsStandard, multiplierDuree, periodeOuvree, ETATS_EQUIPEMENT } from "@/lib/bi/format";
 import { chargerEquipementsDuSite, chargerDevisDuSite, chargerModeleBI, chargerInfosNouvelEquipement, enregistrerBI, type EquipementDuSite, type DevisDuSite, type DevisARealiser, type ModeleBI, type PhotoInput, type PrestaInput, type DepannageEnCours, type InterventionSupplementaireInput, type BrouillonBI, proposerVisiteBI } from "./actions";
 
 type SiteOption = {
@@ -653,9 +653,27 @@ export function BiWizard({
 
   useEffect(() => {
     if (tempsManuel) return;
-    const base = avecTempsLibre(pole) ? "" : tempsStandard(dateIntervention);
+    const base = avecTempsLibre(pole)
+      ? ""
+      : avecPeriode(pole)
+        ? periodeOuvree(dateDebut, dateFin).temps
+        : tempsStandard(dateIntervention);
     setTempsPasse(base ? multiplierDuree(base, techniciens.length) : "");
-  }, [pole, dateIntervention, techniciens.length, tempsManuel]);
+  }, [pole, dateIntervention, dateDebut, dateFin, techniciens.length, tempsManuel]);
+
+  // Période : un déplacement par jour ouvré (lundi au vendredi), tant que le
+  // technicien n'a pas corrigé lui-même.
+  const [deplacementsManuel, setDeplacementsManuel] = useState(false);
+  useEffect(() => {
+    if (!avecPeriode(pole) || deplacementsManuel) return;
+    const { jours } = periodeOuvree(dateDebut, dateFin);
+    if (jours > 0) setNombreDeplacements(jours);
+  }, [pole, dateDebut, dateFin, deplacementsManuel]);
+
+  // Calcul automatique (journée type) à faire confirmer : certains clients ne
+  // reçoivent que le matin, ce n'est pas toujours une journée complète.
+  const [popupHeures, setPopupHeures] = useState(false);
+  const heuresConfirmeesRef = useRef(false);
 
   function ajouterTechnicien(nom: string) {
     if (!nom || techniciens.includes(nom)) return;
@@ -990,6 +1008,10 @@ export function BiWizard({
     }
     if (statut === "averif" && (signataire.trim() === "" || sigTechVide || sigClientVide)) {
       setAlerteSignature(true);
+      return;
+    }
+    if (statut === "averif" && !heuresConfirmeesRef.current) {
+      setPopupHeures(true);
       return;
     }
     if (
@@ -1750,6 +1772,7 @@ export function BiWizard({
                     value={nombreDeplacements}
                     onChange={(e) => {
                       const v = e.target.value;
+                      setDeplacementsManuel(true);
                       setNombreDeplacements(v === "" ? "" : Math.max(1, parseInt(v, 10) || 1));
                     }}
                     className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-violet-600 ${
@@ -1893,6 +1916,37 @@ export function BiWizard({
 
       {fenetreChampManquant}
 
+      {popupHeures && (
+        <PopupChoix
+          titre="Confirme avant de transmettre"
+          lignes={[
+            [
+              "Temps passé",
+              `${avecTempsLibre(pole) ? multiplierDuree(tempsPasse.trim(), techniciens.length) : tempsPasse || "—"} (${techniciens.length} technicien${techniciens.length > 1 ? "s" : ""})`,
+            ],
+            ["Déplacements", String(nombreDeplacements || 0)],
+          ]}
+          choix={[
+            {
+              label: "Oui, c'est juste",
+              onClick: () => {
+                setPopupHeures(false);
+                heuresConfirmeesRef.current = true;
+                soumettre("averif");
+              },
+            },
+            {
+              label: "Non, je corrige",
+              onClick: () => {
+                setPopupHeures(false);
+                pointerVers(tempsPasseRef, "heures");
+                tempsPasseRef.current?.focus();
+              },
+            },
+          ]}
+        />
+      )}
+
       {popupReleves && (
         <PopupChoix
           titre={`${relevesManquants.length} équipement(s) sans relevé technique : ${relevesManquants.join(", ")}. Transmettre quand même ?`}
@@ -1991,11 +2045,29 @@ export function BiWizard({
 
   // Jamais de fermeture au clic en dehors ni de case à cocher libre —
   // le technicien doit choisir une des 2 réponses pour continuer.
-  function PopupChoix({ titre, choix }: { titre: string; choix: { label: string; onClick: () => void }[] }) {
+  function PopupChoix({
+    titre,
+    lignes,
+    choix,
+  }: {
+    titre: string;
+    lignes?: [string, string][];
+    choix: { label: string; onClick: () => void }[];
+  }) {
     return (
       <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4">
         <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
           <h2 className="mb-4 text-base font-bold text-slate-900">{titre}</h2>
+          {lignes && (
+            <div className="mb-4 space-y-1.5 rounded-xl bg-slate-50 p-3">
+              {lignes.map(([k, v]) => (
+                <p key={k} className="flex justify-between gap-3 text-sm">
+                  <span className="text-slate-600">{k}</span>
+                  <span className="font-bold text-slate-900">{v}</span>
+                </p>
+              ))}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-2">
             {choix.map((c) => (
               <button

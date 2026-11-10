@@ -1,5 +1,6 @@
 "use client";
 
+import { ListeRecherche } from "@/components/liste-recherche";
 import { ChoixClientSite } from "@/components/choix-client-site";
 import { useChampManquant } from "@/components/champ-manquant";
 import { useEffect, useMemo, useState, useTransition } from "react";
@@ -295,18 +296,16 @@ export function NouveauCreneauForm({
                   {siteId && (
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-600">Affaire (devis, optionnel)</label>
-                      <select
-                        value={devisId}
-                        onChange={(e) => setDevisId(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-                      >
-                        <option value="">— Entretien récurrent (pas d&apos;affaire) —</option>
-                        {devisDuSite.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.numero || "(sans référence)"} — {d.libelle.slice(0, 40)}
-                          </option>
-                        ))}
-                      </select>
+                      <ListeRecherche
+                        valeur={devisId}
+                        onChange={setDevisId}
+                        placeholder="Entretien récurrent (pas d'affaire)"
+                        vide="Aucune affaire trouvée"
+                        options={devisDuSite.map((d) => ({
+                          valeur: d.id,
+                          label: `${d.numero || "(sans référence)"} — ${d.libelle.slice(0, 40)}`,
+                        }))}
+                      />
                     </div>
                   )}
                 </>
@@ -315,19 +314,14 @@ export function NouveauCreneauForm({
           ) : (
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Poste hors client</label>
-              <select
+              <ListeRecherche
                 id="planning-poste"
-                value={posteHorsClientId}
-                onChange={(e) => setPosteHorsClientId(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-              >
-                <option value="">— Choisir —</option>
-                {postesHorsClient.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.client} — {p.site}
-                  </option>
-                ))}
-              </select>
+                valeur={posteHorsClientId}
+                onChange={setPosteHorsClientId}
+                placeholder="Tape pour chercher le poste"
+                vide="Aucun poste trouvé"
+                options={postesHorsClient.map((p) => ({ valeur: p.id, label: p.client, detail: p.site || undefined }))}
+              />
             </div>
           )}
 

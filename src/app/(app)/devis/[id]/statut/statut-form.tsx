@@ -1,5 +1,6 @@
 "use client";
 
+import { ListeRecherche } from "@/components/liste-recherche";
 import { useChampManquant } from "@/components/champ-manquant";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -474,22 +475,20 @@ export function StatutDevisForm({
             <label className="mb-1 block text-xs font-medium text-slate-600">
               Équipement concerné (facultatif){paves.length > 1 && pave.libelle ? ` — ${pave.libelle.slice(0, 50)}` : ""}
             </label>
-            <select
-              value={equipementIds[i]}
-              onChange={(e) => setEquipementIds((ids) => ids.map((id, j) => (j === i ? e.target.value : id)))}
+            <ListeRecherche
+              valeur={equipementIds[i]}
+              onChange={(v) => setEquipementIds((ids) => ids.map((id, j) => (j === i ? v : id)))}
               disabled={pending}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-            >
-              <option value="">— aucun —</option>
-              {equipements
+              placeholder="Tape pour chercher (facultatif)"
+              vide="Aucun équipement trouvé"
+              options={equipements
                 .filter((e) => e.id === equipementIds[i] || !equipementIds.includes(e.id))
-                .map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.nom}
-                    {e.numero_equipement ? ` (${e.numero_equipement})` : ""}
-                  </option>
-                ))}
-            </select>
+                .map((e) => ({
+                  valeur: e.id,
+                  label: e.numero_equipement ? `${e.nom} (${e.numero_equipement})` : e.nom,
+                  detail: e.localisation || undefined,
+                }))}
+            />
           </div>
         ))}
         <button

@@ -1,5 +1,6 @@
 "use client";
 
+import { ListeRecherche } from "@/components/liste-recherche";
 import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -82,18 +83,14 @@ export function EquipementForm({
       <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Famille d&apos;équipement</label>
-          <select
+          <ListeRecherche
             id="equipement-famille"
-            value={typeId}
-            onChange={(e) => changerType(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-          >
-            {types.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.code} — {t.nom}
-              </option>
-            ))}
-          </select>
+            valeur={typeId}
+            onChange={changerType}
+            placeholder="Tape pour chercher la famille"
+            vide="Aucune famille trouvée"
+            options={types.map((t) => ({ valeur: t.id, label: t.nom, detail: t.code }))}
+          />
         </div>
 
         <ChampTexte label="Nom (ex: UI VRV 04-06)" name="nom" defaultValue={equipementExistant?.nom} />

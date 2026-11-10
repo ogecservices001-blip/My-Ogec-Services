@@ -53,7 +53,12 @@ export function ChoixClientSite({
   function choisirClient(nom: string) {
     const sitesDuClient = sites.filter((s) => s.nom === nom);
     const garde = sitesDuClient.some((s) => s.id === siteId) ? siteId : "";
-    onChange({ clientNom: nom, siteId: sitesDuClient.length === 1 ? sitesDuClient[0].id : garde });
+    const siteChoisi = sitesDuClient.length === 1 ? sitesDuClient[0].id : garde;
+    onChange({ clientNom: nom, siteId: siteChoisi });
+    // Client validé et plusieurs sites : la liste de ses sites s'ouvre d'elle-même.
+    if (nom && !siteChoisi && sitesDuClient.length > 1) {
+      setTimeout(() => document.getElementById(idSite)?.focus(), 0);
+    }
   }
 
   function choisirSite(id: string) {

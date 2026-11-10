@@ -1,5 +1,6 @@
 "use client";
 
+import { ListeRecherche } from "@/components/liste-recherche";
 import { RelevesVisite } from "@/components/bi/releves-visite";
 import { ChoixClientSite } from "@/components/choix-client-site";
 import { dateFrVersIso, formaterDate } from "@/lib/format";
@@ -1191,12 +1192,17 @@ export function BiWizard({
           {siteId && avecAffaire(pole) && !sansDevis && (
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <label className="mb-1 block text-xs font-medium text-slate-600">Affaire (devis commandé)</label>
-              <select
+              <ListeRecherche
                 id="wizard-devis"
-                value={devisId}
+                valeur={devisId}
                 disabled={chargementSite}
-                onChange={(e) => {
-                  const id = e.target.value;
+                placeholder={chargementSite ? "Chargement..." : "Tape pour chercher l'affaire"}
+                vide="Aucune affaire trouvée"
+                options={devisDuSite.map((d) => ({
+                  valeur: d.id,
+                  label: `${d.numero || "(sans référence)"} — ${d.libelle.slice(0, 40)}`,
+                }))}
+                onChange={(id) => {
                   setDevisId(id);
                   const d = devisDuSite.find((x) => x.id === id);
                   const pages = d ? pagesDuDevis(d) : null;
@@ -1209,15 +1215,7 @@ export function BiWizard({
                     if (d?.equipement_id) setEquipementId(d.equipement_id);
                   }
                 }}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/20 disabled:bg-slate-50"
-              >
-                <option value="">{chargementSite ? "Chargement..." : "— Choisir l'affaire —"}</option>
-                {devisDuSite.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.numero || "(sans référence)"} — {d.libelle.slice(0, 40)}
-                  </option>
-                ))}
-              </select>
+              />
               {!chargementSite && devisDuSite.length === 0 && siteId && (
                 <p className="mt-1.5 text-xs text-amber-700">
                   Aucune affaire de cette nature pour ce site — importer un devis depuis le module Devis.
@@ -1379,22 +1377,16 @@ export function BiWizard({
               <p className="text-xs font-medium text-slate-600">Nouvel équipement à installer</p>
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Famille d&apos;équipement</label>
-                <select
+                <ListeRecherche
                   id="wizard-famille"
-                  value={typeActifId}
-                  onChange={(e) => {
-                    setTypeActifId(e.target.value);
+                  valeur={typeActifId}
+                  placeholder="Tape pour chercher la famille"
+                  options={typesEquipement.map((t) => ({ valeur: t.id, label: t.nom }))}
+                  onChange={(id) => {
+                    setTypeActifId(id);
                     setMaterielChamps({ dateMES: today() });
                   }}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
-                >
-                  <option value="">—</option>
-                  {typesEquipement.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.nom}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Localisation</label>
@@ -1791,20 +1783,13 @@ export function BiWizard({
                 </span>
               ))}
             </div>
-            <select
-              value=""
-              onChange={(e) => ajouterTechnicien(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
-            >
-              <option value="">+ Ajouter un intervenant</option>
-              {techniciensDisponibles
-                .filter((t) => !techniciens.includes(t))
-                .map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-            </select>
+            <ListeRecherche
+              valeur=""
+              placeholder="+ Ajouter un intervenant"
+              vide="Aucun technicien trouvé"
+              options={techniciensDisponibles.filter((t) => !techniciens.includes(t)).map((t) => ({ valeur: t, label: t }))}
+              onChange={(t) => t && ajouterTechnicien(t)}
+            />
           </div>
 
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
@@ -2196,21 +2181,20 @@ function SelectEquipement({
   onChange: (v: string) => void;
   disabled?: boolean;
 }) {
-  const tries = [...equipements].sort((a, b) => (a.groupe + a.nom).localeCompare(b.groupe + b.nom));
+  const tries = [...equipements].sort((a, b) => (a.groupe + a.nom).localeCompare(b.groupe + b.nom, "fr", { numeric: true }));
   return (
-    <select
-      value={value}
+    <ListeRecherche
+      valeur={value}
       disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600 disabled:bg-slate-50"
-    >
-      <option value="">{disabled ? "Chargement..." : "— Non précisé —"}</option>
-      {tries.map((eq) => (
-        <option key={eq.id} value={eq.id}>
-          {[eq.nom, eq.groupe, eq.localisation].filter(Boolean).join(" — ")}
-        </option>
-      ))}
-    </select>
+      placeholder={disabled ? "Chargement..." : "Tape pour chercher l'équipement"}
+      vide="Aucun équipement trouvé"
+      options={tries.map((eq) => ({
+        valeur: eq.id,
+        label: eq.nom,
+        detail: [eq.groupe, eq.localisation].filter(Boolean).join(" — ") || undefined,
+      }))}
+      onChange={onChange}
+    />
   );
 }
 

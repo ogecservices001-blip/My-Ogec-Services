@@ -1,5 +1,6 @@
 "use client";
 
+import { ListeRecherche } from "@/components/liste-recherche";
 import { ChoixClientSite } from "@/components/choix-client-site";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -636,19 +637,18 @@ function BlocPave({
 
         <div>
           <label className={ETIQUETTE}>Équipement concerné (facultatif)</label>
-          <select
-            value={equipementId}
-            onChange={(e) => changerEquipement(e.target.value)}
+          <ListeRecherche
+            valeur={equipementId}
+            onChange={changerEquipement}
             disabled={!siteId || equipementsFiltres.length === 0}
-            className={`${CHAMP} disabled:bg-slate-50`}
-          >
-            <option value="">— aucun —</option>
-            {equipementsFiltres.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.libelle}
-              </option>
-            ))}
-          </select>
+            placeholder="Tape pour chercher (facultatif)"
+            vide="Aucun équipement trouvé"
+            options={equipementsFiltres.map((e) => ({
+              valeur: e.id,
+              label: e.libelle,
+              detail: e.localisation || undefined,
+            }))}
+          />
         </div>
       </div>
 

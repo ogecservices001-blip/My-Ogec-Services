@@ -1,5 +1,6 @@
 "use client";
 
+import { ListeRecherche } from "@/components/liste-recherche";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, ScanLine } from "lucide-react";
@@ -114,7 +115,7 @@ export function NouvelleCommandeForm({
   const [erreurAnalyse, setErreurAnalyse] = useState<string | null>(null);
   const [lignesExtraites, setLignesExtraites] = useState(false);
   const fichierRef = useRef<HTMLInputElement>(null);
-  const fournisseurRef = useRef<HTMLSelectElement>(null);
+  const fournisseurRef = useRef<HTMLDivElement>(null);
   const interlocuteurRef = useRef<HTMLSelectElement>(null);
   const articlesRef = useRef<HTMLDivElement>(null);
   const adresseRef = useRef<HTMLSelectElement>(null);
@@ -126,7 +127,9 @@ export function NouvelleCommandeForm({
 
   function pointerVers(ref: { current: HTMLElement | null }, cle: string) {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    ref.current?.focus({ preventScroll: true });
+    // Liste avec recherche : le curseur va dans sa zone de saisie.
+    const cible = ref.current?.matches("input, select, textarea") ? ref.current : ref.current?.querySelector("input");
+    (cible ?? ref.current)?.focus({ preventScroll: true });
     setChampEnEvidence(cle);
     setTimeout(() => setChampEnEvidence((v) => (v === cle ? null : v)), 2500);
   }
@@ -305,14 +308,19 @@ export function NouvelleCommandeForm({
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className={ETIQUETTE}>Fournisseur</label>
-            <select ref={fournisseurRef} value={fournisseurId} onChange={(e) => choisirFournisseur(e.target.value)} className={classeChamp("fournisseur")}>
-              <option value="">— choisir —</option>
-              {fournisseurs.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.nom}
-                </option>
-              ))}
-            </select>
+            <div
+              ref={fournisseurRef}
+              className={champEnEvidence === "fournisseur" ? "rounded-lg ring-2 ring-red-300" : ""}
+            >
+              <ListeRecherche
+                id="bcde-fournisseur"
+                valeur={fournisseurId}
+                placeholder="Tape pour chercher le fournisseur"
+                vide="Aucun fournisseur trouvé"
+                options={fournisseurs.map((f) => ({ valeur: f.id, label: f.nom }))}
+                onChange={choisirFournisseur}
+              />
+            </div>
           </div>
           {interlocuteurs.length > 1 && (
             <div>

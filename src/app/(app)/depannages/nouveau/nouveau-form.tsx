@@ -1,5 +1,6 @@
 "use client";
 
+import { ListeRecherche } from "@/components/liste-recherche";
 import { ChoixClientSite } from "@/components/choix-client-site";
 import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -244,20 +245,20 @@ export function NouveauDepannageForm({
 
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Équipement concerné (facultatif)</label>
-              <select
-                name="equipement_id"
-                value={equipementId}
-                onChange={(e) => changerEquipement(e.target.value)}
+              <input type="hidden" name="equipement_id" value={equipementId} />
+              <ListeRecherche
+                id="depannage-equipement"
+                valeur={equipementId}
+                onChange={changerEquipement}
                 disabled={!siteId || chargementEquipements}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
-              >
-                <option value="">{chargementEquipements ? "Chargement..." : "— aucun —"}</option>
-                {equipementsFiltres.map((eq) => (
-                  <option key={eq.id} value={eq.id}>
-                    {[eq.nom, eq.numero_equipement].filter(Boolean).join(" — ")}
-                  </option>
-                ))}
-              </select>
+                placeholder={chargementEquipements ? "Chargement..." : "Tape pour chercher (facultatif)"}
+                vide="Aucun équipement trouvé"
+                options={equipementsFiltres.map((eq) => ({
+                  valeur: eq.id,
+                  label: eq.nom,
+                  detail: [eq.numero_equipement, eq.localisation].filter(Boolean).join(" — ") || undefined,
+                }))}
+              />
             </div>
           </div>
         </div>

@@ -27,9 +27,12 @@ export async function chargerRapportVisite(
 ): Promise<{ ok: true; donnees: DonneesRapportVisite } | { ok: false; erreur: string }> {
   const { data: bi } = await supabase.from("bons_intervention").select("*").eq("id", biId).single();
   if (!bi) return { ok: false, erreur: "BI introuvable." };
-  if (!bi.visite_numero || bi.statut === "brouillon" || bi.statut === "averif") {
-    return { ok: false, erreur: "Ce BI n'est pas une visite d'entretien validée." };
+  if (bi.statut === "brouillon" || bi.statut === "averif") {
+    return { ok: false, erreur: "Ce BI n'est pas encore validé." };
   }
+  // Autre BI que l'entretien sous contrat (ex. entretien hors contrat à
+  // facturer) : le rapport reprend simplement les relevés qui lui sont rattachés.
+  if (!bi.visite_numero) return chargerRapportReleves(supabase, bi);
 
   const tous = await equipementsEntretenus(supabase, bi);
   const deja = await visitesDejaValidees(supabase, tous.map((e) => e.id), bi.visite_numero, bi.visite_annee, bi.id);
@@ -73,6 +76,32 @@ export async function chargerRapportVisite(
         .map((n) => ({ nom: n.nom ?? "", motif: n.motif ?? "" })),
     },
   };
+}
+
+async function chargerRapportReleves(
+  supabase: Supabase,
+  bi: Bon,
+): Promise<{ ok: true; donnees: DonneesRapportVisite } | { ok: false; erreur: string }> {
+  const { data: releves } = await supabase.from("releves").select("*").eq("bon_intervention_id", bi.id).order("date");
+  const liste = (releves ?? []) as Releve[];
+  if (liste.length === 0) return { ok: false, erreur: "Aucun relevé technique rattaché à ce BI." };
+  const ids = [...new Set(liste.map((r) => r.equipement_id))];
+  const { data: equipements } = await supabase.from("equipements").select("*").in("id", ids);
+  const typeIds = [...new Set(((equipements ?? []) as Equipement[]).map((e) => e.type_equipement_id))];
+  const { data: types } =
+    typeIds.length > 0 ? await supabase.from("types_equipement").select("*").in("id", typeIds) : { data: [] };
+  const equipementParId = new Map(((equipements ?? []) as Equipement[]).map((e) => [e.id, e]));
+  const typeParId = new Map(((types ?? []) as TypeEquipement[]).map((t) => [t.id, t]));
+  const releveParEquipement = new Map<string, Releve>();
+  for (const r of liste) releveParEquipement.set(r.equipement_id, r);
+  const fiches = [...releveParEquipement.entries()]
+    .filter(([id]) => equipementParId.has(id))
+    .map(([id, releve]) => {
+      const equipement = equipementParId.get(id)!;
+      return { equipement, type: typeParId.get(equipement.type_equipement_id) ?? null, releve };
+    })
+    .sort((a, b) => a.equipement.nom.localeCompare(b.equipement.nom, "fr", { numeric: true }));
+  return { ok: true, donnees: { bi, fiches, sansReleve: [], dejaFaits: [], nonDesservis: [] } };
 }
 
 const VERT = "#1f9f6c";
@@ -230,7 +259,7 @@ function RapportDocument({ donnees, logo }: { donnees: DonneesRapportVisite; log
   const { bi, fiches, sansReleve, nonDesservis, dejaFaits } = donnees;
   const visite = libelleVisite({ numero: bi.visite_numero, total: bi.visite_total, annee: bi.visite_annee });
   const periode = bi.date_debut && bi.date_fin && bi.date_debut !== bi.date_fin ? `du ${bi.date_debut} au ${bi.date_fin}` : bi.date_debut || bi.date_fin;
-  const sousTitre = `${[bi.client_nom, bi.site].filter(Boolean).join(" — ")} · ${visite}`;
+  const sousTitre = [[bi.client_nom, bi.site].filter(Boolean).join(" — "), visite].filter(Boolean).join(" · ");
 
   return (
     <Document>
@@ -241,7 +270,7 @@ function RapportDocument({ donnees, logo }: { donnees: DonneesRapportVisite; log
           <Ligne cle="Client" valeur={bi.client_nom} />
           <Ligne cle="Site" valeur={bi.site} />
           {bi.adresse && <Ligne cle="Adresse" valeur={bi.adresse} />}
-          <Ligne cle="Visite d'entretien" valeur={visite.replace(/^Visite /, "")} />
+          {visite && <Ligne cle="Visite d'entretien" valeur={visite.replace(/^Visite /, "")} />}
           <Ligne cle="Bon d'intervention" valeur={bi.numero} />
           {periode && <Ligne cle="Période d'intervention" valeur={periode} />}
           {bi.techniciens.length > 0 && <Ligne cle="Techniciens" valeur={bi.techniciens.join(", ")} />}

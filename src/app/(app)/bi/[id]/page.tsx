@@ -64,8 +64,22 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
     };
   }
 
+  // Tout autre BI : relevés techniques qui lui sont rattachés (ex. entretien
+  // d'un équipement hors contrat à facturer).
+  let relevesRattaches: { nom: string; fonctionnement: string }[] = [];
+  if (bon.pole !== Poles.entretienSousContrat) {
+    const { data: rel } = await supabase
+      .from("releves")
+      .select("validation_fonctionnement, equipements(nom)")
+      .eq("bon_intervention_id", bon.id);
+    relevesRattaches = ((rel ?? []) as unknown as { validation_fonctionnement: string | null; equipements: { nom: string } | null }[]).map(
+      (r) => ({ nom: r.equipements?.nom ?? "Équipement", fonctionnement: r.validation_fonctionnement ?? "Fait" }),
+    );
+  }
+
   return (
     <BiDetail
+      relevesRattaches={relevesRattaches}
       infosVisite={infosVisite}
       bon={bon as Tables<"bons_intervention">}
       techniciensDisponibles={(techniciens ?? []).map((t) => t.name)}

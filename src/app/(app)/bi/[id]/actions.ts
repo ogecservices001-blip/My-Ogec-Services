@@ -390,7 +390,7 @@ export async function envoyerRapportParEmail(id: string, informationComplementai
     const pdfBytes = await genererPdfRapportVisite(chargement.donnees);
     await envoyerRapportVisiteEmail({
       bon: bi,
-      visite: libelleVisite({ numero: bi.visite_numero, total: bi.visite_total, annee: bi.visite_annee }),
+      visite: libelleVisite({ numero: bi.visite_numero, total: bi.visite_total, annee: bi.visite_annee }) || bi.numero,
       pdfBytes,
       nomFichier: nomFichierRapport(bi),
       informationComplementaire,

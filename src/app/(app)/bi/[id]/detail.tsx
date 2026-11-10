@@ -59,9 +59,11 @@ export function BiDetail({
   numeroAffaireSite,
   numerosEquipementSite,
   infosVisite,
+  relevesRattaches,
 }: {
   bon: Bon;
   infosVisite: InfosVisite | null;
+  relevesRattaches: { nom: string; fonctionnement: string }[];
   techniciensDisponibles: string[];
   typesEquipement: TypeEquipementResume[];
   modele: ModeleResume;
@@ -173,6 +175,42 @@ export function BiDetail({
               {isAdmin && infosVisite.relevesEnAttente > 0 && (
                 <BoutonRattacher biId={bon.id} enAttente={infosVisite.relevesEnAttente} />
               )}
+            </Section>
+          )}
+          {relevesRattaches.length > 0 && STATUTS_AVEC_PDF.has(bon.statut) && (
+            <Section titre={`Relevés techniques (${relevesRattaches.length})`}>
+              <div className="space-y-1 text-sm">
+                {relevesRattaches.map((r, i) => (
+                  <p key={i} className="flex justify-between gap-2">
+                    <span className="font-semibold text-slate-800">{r.nom}</span>
+                    <span
+                      className={`font-semibold ${r.fonctionnement === "Non Fonctionnel" ? "text-red-600" : "text-brand-green-dark"}`}
+                    >
+                      {r.fonctionnement}
+                    </span>
+                  </p>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <a
+                  href={`/bi/${bon.id}/rapport`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-teal-300 bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-50"
+                >
+                  <FileText className="h-3.5 w-3.5" strokeWidth={2} />
+                  Rapport technique (PDF)
+                </a>
+                {isAdmin && bon.email && (
+                  <button
+                    onClick={() => setModaleRapportOuverte(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50"
+                  >
+                    <Mail className="h-3.5 w-3.5" strokeWidth={2} />
+                    Envoyer le rapport au client
+                  </button>
+                )}
+              </div>
             </Section>
           )}
           {isAdmin && (

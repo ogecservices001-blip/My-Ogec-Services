@@ -1,7 +1,8 @@
 "use client";
 
 import { ListeRecherche } from "@/components/liste-recherche";
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
+import { ajouterMarqueFamille } from "@/app/(app)/gmao/actions";
 import { CLES_CHAMPS_FIXES_EQUIPEMENT, type ChampEnTete, type ChampListeLigne, type ChampsEnTeteEquipement, type ReferenceHoraire } from "@/lib/gmao/types";
 import { formaterDate, dateFrVersIso } from "@/lib/format";
 import { OcrScanButton } from "./ocr-scan-button";
@@ -32,12 +33,49 @@ export function ChampEnTeteField({
   champ,
   valeur,
   onChange,
+  familleId,
 }: {
   champ: ChampEnTete;
   valeur: string | ChampListeLigne[] | undefined;
   onChange: (v: string) => void;
+  /// Famille de l'équipement : permet d'ajouter une marque sur le terrain.
+  familleId?: string;
 }) {
   const v = typeof valeur === "string" ? valeur : "";
+  const [marquesAjoutees, setMarquesAjoutees] = useState<string[]>([]);
+  const [erreurMarque, setErreurMarque] = useState<string | null>(null);
+
+  // Marque : toujours une liste avec recherche, où le technicien peut ajouter
+  // une marque à la famille (sans doublon).
+  if (champ.cle === "marque" && familleId) {
+    const toutes = [...new Set([...champ.options, ...marquesAjoutees, ...(v ? [v] : [])])].sort((a, b) =>
+      a.localeCompare(b, "fr"),
+    );
+    return (
+      <div>
+        <label className="mb-1 block text-xs font-medium text-slate-600">{champ.label}</label>
+        <ListeRecherche
+          valeur={v}
+          onChange={onChange}
+          placeholder="Tape pour chercher la marque"
+          vide="Aucune marque"
+          options={toutes.map((o) => ({ valeur: o, label: o }))}
+          libelleCreer={(s) => `+ Ajouter la marque « ${s} »`}
+          onCreer={async (saisie) => {
+            setErreurMarque(null);
+            const res = await ajouterMarqueFamille(familleId, saisie);
+            if (!res.ok) {
+              setErreurMarque(res.erreur);
+              return;
+            }
+            setMarquesAjoutees((prev) => [...prev, res.marque]);
+            onChange(res.marque);
+          }}
+        />
+        {erreurMarque && <p className="mt-1 text-xs text-red-600">{erreurMarque}</p>}
+      </div>
+    );
+  }
 
   if (champ.options.length === 0) {
     const estDate = champ.cle.toLowerCase().startsWith("date");

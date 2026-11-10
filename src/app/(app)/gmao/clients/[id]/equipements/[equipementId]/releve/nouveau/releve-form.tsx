@@ -241,6 +241,7 @@ export function ReleveForm({
             {type.champs_en_tete_supplementaires.map((champ) => (
               <ChampEnTeteField
                 key={champ.cle}
+                familleId={type.id}
                 champ={champAvecOptionsLive(champ)}
                 valeur={champsEnTete[champ.cle]}
                 onChange={(v) => setChampsEnTete((prev) => ({ ...prev, [champ.cle]: v }))}

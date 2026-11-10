@@ -2057,6 +2057,10 @@ export type Database = {
       }
     }
     Functions: {
+      ajouter_marque_famille: {
+        Args: { p_marque: string; p_type_id: string }
+        Returns: undefined
+      }
       est_technicien_du_creneau: {
         Args: { p_creneau_id: string }
         Returns: boolean

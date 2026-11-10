@@ -1379,6 +1379,7 @@ export function BiWizard({
                   {champsPertinents(typeActif).map((champ) => (
                     <ChampEnTeteField
                       key={champ.cle}
+                      familleId={typeActif?.id}
                       champ={champ}
                       valeur={materielChamps[champ.cle]}
                       onChange={(v) => setMaterielChamps((prev) => ({ ...prev, [champ.cle]: v }))}
@@ -1451,6 +1452,7 @@ export function BiWizard({
                   {champsPertinents(typeActif).map((champ) => (
                     <ChampEnTeteField
                       key={champ.cle}
+                      familleId={typeActif?.id}
                       champ={champ}
                       valeur={materielChamps[champ.cle]}
                       onChange={(v) => setMaterielChamps((prev) => ({ ...prev, [champ.cle]: v }))}

@@ -23,6 +23,8 @@ export function ListeRecherche({
   placeholder = "— Choisir —",
   disabled,
   vide = "Aucun résultat",
+  onCreer,
+  libelleCreer = (s: string) => `+ Ajouter « ${s} »`,
 }: {
   id?: string;
   options: OptionRecherche[];
@@ -31,6 +33,10 @@ export function ListeRecherche({
   placeholder?: string;
   disabled?: boolean;
   vide?: string;
+  /// Si fourni : ajouter la saisie quand rien ne lui correspond exactement
+  /// (sans tenir compte des accents, majuscules et espaces).
+  onCreer?: (saisie: string) => void;
+  libelleCreer?: (saisie: string) => string;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const [saisie, setSaisie] = useState("");
@@ -44,6 +50,12 @@ export function ListeRecherche({
     if (!cible) return options;
     return options.filter((o) => normaliserRecherche(`${o.label} ${o.detail ?? ""}`).includes(cible));
   }, [options, saisie]);
+
+  const saisiePropre = saisie.replace(/\s+/g, " ").trim();
+  const peutCreer =
+    Boolean(onCreer) &&
+    saisiePropre.length > 0 &&
+    !options.some((o) => normaliserRecherche(o.label).replace(/\s+/g, " ") === normaliserRecherche(saisiePropre).replace(/\s+/g, " "));
 
   useEffect(() => {
     if (!ouvert) return;
@@ -95,6 +107,10 @@ export function ListeRecherche({
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (filtrees[actif]) choisir(filtrees[actif]);
+      else if (peutCreer) {
+        onCreer?.(saisiePropre);
+        fermer();
+      }
     } else if (e.key === "Escape") {
       fermer();
     } else if (e.key === "Tab") {
@@ -149,7 +165,7 @@ export function ListeRecherche({
           role="listbox"
           className="absolute z-40 mt-1 max-h-[50vh] w-full overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white py-1 shadow-lg sm:max-h-64"
         >
-          {filtrees.length === 0 ? (
+          {filtrees.length === 0 && !peutCreer ? (
             <li className="px-3 py-2 text-sm text-slate-400">{vide}</li>
           ) : (
             filtrees.map((o, i) => (
@@ -168,6 +184,20 @@ export function ListeRecherche({
                 {o.detail && <span className="ml-1.5 text-xs text-slate-400">{o.detail}</span>}
               </li>
             ))
+          )}
+          {peutCreer && (
+            <li
+              role="option"
+              aria-selected={false}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onCreer?.(saisiePropre);
+                fermer();
+              }}
+              className="cursor-pointer border-t border-slate-100 px-3 py-3 text-base font-semibold text-brand-green-dark hover:bg-brand-green/10 sm:py-2 sm:text-sm"
+            >
+              {libelleCreer(saisiePropre)}
+            </li>
           )}
         </ul>
       )}

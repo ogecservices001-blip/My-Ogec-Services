@@ -132,6 +132,7 @@ export function EquipementForm({
             {champsSupplementaires.map((champ) => (
               <ChampEnTeteField
                 key={champ.cle}
+                familleId={typeId}
                 champ={champ}
                 valeur={champsEnTete[champ.cle]}
                 onChange={(v) => setChampsEnTete((prev) => ({ ...prev, [champ.cle]: v }))}

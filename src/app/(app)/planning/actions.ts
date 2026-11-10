@@ -6,6 +6,7 @@ import { requireAdmin, requireProfile } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
 import { creneauSchema, type CreneauInput } from "@/lib/validation/creneau";
 import { quotaJournalier } from "@/lib/planning/quota";
+import { envoyerAnnoncePassage } from "@/lib/planning/email";
 
 export type CreneauAvecTechniciens = {
   id: string;
@@ -18,6 +19,9 @@ export type CreneauAvecTechniciens = {
   heure_debut: string | null;
   heures_prevues: number;
   observations: string;
+  visite_numero: number | null;
+  visite_total: number | null;
+  visite_annee: number | null;
   techniciens: { id: string; name: string }[];
 };
 
@@ -30,7 +34,7 @@ export async function chargerCreneauxSemaine(debutISO: string, finISO: string): 
   const { data } = await supabase
     .from("creneaux_planning")
     .select(
-      "id, site_id, devis_id, poste_hors_client_id, client_nom, site, date, heure_debut, heures_prevues, observations, creneau_techniciens(technicien_id, profiles(id, name))",
+      "id, site_id, devis_id, poste_hors_client_id, client_nom, site, date, heure_debut, heures_prevues, observations, visite_numero, visite_total, visite_annee, creneau_techniciens(technicien_id, profiles(id, name))",
     )
     .eq("annule", false)
     .gte("date", debutISO)
@@ -48,6 +52,9 @@ export async function chargerCreneauxSemaine(debutISO: string, finISO: string): 
     heure_debut: c.heure_debut,
     heures_prevues: Number(c.heures_prevues),
     observations: c.observations,
+    visite_numero: c.visite_numero,
+    visite_total: c.visite_total,
+    visite_annee: c.visite_annee,
     techniciens: (c.creneau_techniciens ?? []).flatMap((ct) =>
       (Array.isArray(ct.profiles) ? ct.profiles : ct.profiles ? [ct.profiles] : []) as { id: string; name: string }[],
     ),
@@ -130,6 +137,21 @@ export async function verifierQuota(
   return alertes;
 }
 
+export async function verifierQuotaJours(
+  technicienIds: string[],
+  jours: { date: string; heures: number }[],
+  creneauIdExclu?: string,
+): Promise<string[]> {
+  await requireAdmin();
+  const alertes: string[] = [];
+  for (const j of jours) {
+    for (const a of await verifierQuota(technicienIds, j.date, j.heures, creneauIdExclu)) {
+      alertes.push(`${j.date.split("-").reverse().join("/")} : ${a}`);
+    }
+  }
+  return alertes;
+}
+
 async function enregistrerTechniciens(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -142,44 +164,55 @@ async function enregistrerTechniciens(
   return error?.message ?? null;
 }
 
-export async function creerCreneau(input: CreneauInput): Promise<ActionResult> {
+/// Un créneau par jour de la période, chacun avec tous les techniciens
+/// choisis. Tout ou rien : si un jour échoue, les créneaux déjà créés sont
+/// retirés.
+export async function creerCreneaux(
+  input: Omit<CreneauInput, "date" | "heures_prevues">,
+  jours: { date: string; heures: number }[],
+): Promise<{ ok: true; ids: string[] } | { ok: false; erreur: string }> {
   const profile = await requireAdmin();
-  const parsed = creneauSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, erreur: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
+  if (jours.length === 0) return { ok: false, erreur: "Aucun jour à planifier." };
+  const lignes = [];
+  for (const j of jours) {
+    const parsed = creneauSchema.safeParse({ ...input, date: j.date, heures_prevues: j.heures });
+    if (!parsed.success) return { ok: false, erreur: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
+    lignes.push(parsed.data);
   }
-  const v = parsed.data;
 
   const supabase = await createClient();
-  const { data: creneau, error } = await supabase
-    .from("creneaux_planning")
-    .insert({
-      site_id: v.site_id,
-      devis_id: v.devis_id,
-      poste_hors_client_id: v.poste_hors_client_id,
-      client_nom: v.client_nom,
-      site: v.site,
-      date: v.date,
-      heure_debut: v.heure_debut,
-      heures_prevues: v.heures_prevues,
-      observations: v.observations,
-      created_by: profile.id,
-    })
-    .select("id")
-    .single();
-  if (error || !creneau) {
-    return { ok: false, erreur: error?.message ?? "Impossible de créer le créneau (jour férié/week-end ?)." };
-  }
-
-  const erreurTech = await enregistrerTechniciens(supabase, creneau.id, v.technicien_ids);
-  if (erreurTech) {
-    await supabase.from("creneaux_planning").delete().eq("id", creneau.id);
-    return { ok: false, erreur: erreurTech };
+  const ids: string[] = [];
+  for (const v of lignes) {
+    const { data: creneau, error } = await supabase
+      .from("creneaux_planning")
+      .insert({
+        site_id: v.site_id,
+        devis_id: v.devis_id,
+        poste_hors_client_id: v.poste_hors_client_id,
+        client_nom: v.client_nom,
+        site: v.site,
+        date: v.date,
+        heure_debut: v.heure_debut,
+        heures_prevues: v.heures_prevues,
+        observations: v.observations,
+        visite_numero: v.visite_numero,
+        visite_total: v.visite_total,
+        visite_annee: v.visite_annee,
+        created_by: profile.id,
+      })
+      .select("id")
+      .single();
+    const erreur = error || !creneau ? (error?.message ?? `Impossible de créer le créneau du ${v.date}.`) : await enregistrerTechniciens(supabase, creneau.id, v.technicien_ids);
+    if (creneau) ids.push(creneau.id);
+    if (erreur) {
+      if (ids.length) await supabase.from("creneaux_planning").delete().in("id", ids);
+      return { ok: false, erreur: `${v.date.split("-").reverse().join("/")} : ${erreur}` };
+    }
   }
 
   revalidatePath("/planning");
   revalidatePath("/planning/mon-planning");
-  return { ok: true };
+  return { ok: true, ids };
 }
 
 export async function modifierCreneau(id: string, input: CreneauInput): Promise<ActionResult> {
@@ -203,6 +236,9 @@ export async function modifierCreneau(id: string, input: CreneauInput): Promise<
       heure_debut: v.heure_debut,
       heures_prevues: v.heures_prevues,
       observations: v.observations,
+      visite_numero: v.visite_numero,
+      visite_total: v.visite_total,
+      visite_annee: v.visite_annee,
     })
     .eq("id", id);
   if (error) return { ok: false, erreur: error.message };
@@ -244,7 +280,7 @@ export async function chargerMesCreneaux(debutISO: string, finISO: string): Prom
   const { data } = await supabase
     .from("creneau_techniciens")
     .select(
-      "creneaux_planning!inner(id, site_id, devis_id, poste_hors_client_id, client_nom, site, date, heure_debut, heures_prevues, observations, annule)",
+      "creneaux_planning!inner(id, site_id, devis_id, poste_hors_client_id, client_nom, site, date, heure_debut, heures_prevues, observations, visite_numero, visite_total, visite_annee, annule)",
     )
     .eq("technicien_id", profile.id)
     .eq("creneaux_planning.annule", false)
@@ -255,4 +291,122 @@ export async function chargerMesCreneaux(debutISO: string, finISO: string): Prom
     .flatMap((l) => (Array.isArray(l.creneaux_planning) ? l.creneaux_planning : l.creneaux_planning ? [l.creneaux_planning] : []))
     .map((c) => ({ ...c, heures_prevues: Number(c.heures_prevues) }))
     .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export type InfoVisiteSite = {
+  frequence: number;
+  annee: number;
+  heuresContrat: number;
+  heuresParVisite: number;
+  visites: { numero: number; faite: boolean; programmees: number }[];
+  prochaine: number | null;
+  email: string;
+};
+
+/// Pour un site sous contrat et une année : fréquence (la plus courante
+/// sur son parc sous contrat), heures du contrat par visite, visites déjà
+/// faites (BI validés) et heures déjà programmées pour chacune.
+export async function chargerInfoVisiteSite(siteId: string, annee: number, creneauxExclus: string[] = []): Promise<InfoVisiteSite | null> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const [{ data: site }, { data: equipements }, { data: creneaux }] = await Promise.all([
+    supabase.from("sites").select("nb_heures_vendues, courriel_responsable").eq("id", siteId).single(),
+    supabase.from("equipements").select("id, champs_en_tete").eq("site_id", siteId).eq("hors_contrat", false),
+    supabase
+      .from("creneaux_planning")
+      .select("id, visite_numero, heures_prevues, creneau_techniciens(technicien_id)")
+      .eq("site_id", siteId)
+      .eq("visite_annee", annee)
+      .eq("annule", false)
+      .is("devis_id", null),
+  ]);
+  if (!site) return null;
+
+  const comptes = new Map<number, number>();
+  for (const e of equipements ?? []) {
+    const brut = (e.champs_en_tete as Record<string, unknown> | null)?.freqEntretienAnnuelle;
+    const f = typeof brut === "string" ? parseInt(brut, 10) : NaN;
+    if (Number.isFinite(f) && f >= 1 && f <= 12) comptes.set(f, (comptes.get(f) ?? 0) + 1);
+  }
+  const frequence = [...comptes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 1;
+
+  const faites = new Set<number>();
+  const ids = (equipements ?? []).map((e) => e.id);
+  if (ids.length > 0) {
+    const { data: visites } = await supabase.from("visites_entretien").select("visite_numero").eq("annee", annee).in("equipement_id", ids);
+    for (const v of visites ?? []) faites.add(v.visite_numero);
+  }
+
+  const programmees = new Map<number, number>();
+  for (const c of creneaux ?? []) {
+    if (!c.visite_numero || creneauxExclus.includes(c.id)) continue;
+    const nb = Math.max(1, (c.creneau_techniciens as unknown[] | null)?.length ?? 1);
+    programmees.set(c.visite_numero, (programmees.get(c.visite_numero) ?? 0) + Number(c.heures_prevues) * nb);
+  }
+
+  const heuresContrat = parseFloat(String(site.nb_heures_vendues ?? "").replace(",", ".")) || 0;
+  const heuresParVisite = heuresContrat / frequence;
+  const visites = Array.from({ length: frequence }, (_, i) => ({
+    numero: i + 1,
+    faite: faites.has(i + 1),
+    programmees: programmees.get(i + 1) ?? 0,
+  }));
+  const prochaine =
+    visites.find((v) => !v.faite && (heuresParVisite <= 0 ? v.programmees === 0 : v.programmees < heuresParVisite - 0.01))?.numero ?? null;
+
+  return { frequence, annee, heuresContrat, heuresParVisite, visites, prochaine, email: site.courriel_responsable ?? "" };
+}
+
+export type ConflitAbsence = { id: string; date: string; client_nom: string; site: string; techniciens: string[] };
+
+/// Interventions client où un des techniciens est déjà programmé, sur les
+/// jours où l'on veut poser son absence.
+export async function chercherConflitsAbsence(technicienIds: string[], dates: string[]): Promise<ConflitAbsence[]> {
+  await requireAdmin();
+  if (technicienIds.length === 0 || dates.length === 0) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("creneaux_planning")
+    .select("id, date, client_nom, site, site_id, creneau_techniciens!inner(technicien_id, profiles(name))")
+    .in("date", dates)
+    .eq("annule", false)
+    .not("site_id", "is", null)
+    .in("creneau_techniciens.technicien_id", technicienIds)
+    .order("date");
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    date: c.date,
+    client_nom: c.client_nom,
+    site: c.site,
+    techniciens: (c.creneau_techniciens ?? []).flatMap((ct) =>
+      ((Array.isArray(ct.profiles) ? ct.profiles : ct.profiles ? [ct.profiles] : []) as { name: string }[]).map((p) => p.name),
+    ),
+  }));
+}
+
+/// Annonce au client des dates de passage (sans les noms des techniciens).
+export async function envoyerMailPlanning(creneauIds: string[], destinataire: string): Promise<ActionResult> {
+  await requireAdmin();
+  const email = destinataire.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, erreur: "Adresse email invalide." };
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("creneaux_planning")
+    .select("date, heure_debut, client_nom, site, devis_id, visite_numero, visite_total, visite_annee")
+    .in("id", creneauIds)
+    .order("date");
+  if (!data || data.length === 0) return { ok: false, erreur: "Créneaux introuvables." };
+  try {
+    await envoyerAnnoncePassage({ destinataire: email, creneaux: data });
+  } catch (e) {
+    return { ok: false, erreur: e instanceof Error ? e.message : "Échec de l'envoi." };
+  }
+  return { ok: true };
+}
+
+export async function chargerEmailSite(siteId: string): Promise<string> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { data } = await supabase.from("sites").select("courriel_responsable").eq("id", siteId).single();
+  return data?.courriel_responsable ?? "";
 }

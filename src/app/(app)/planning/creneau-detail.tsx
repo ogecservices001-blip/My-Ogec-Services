@@ -60,6 +60,11 @@ export function CreneauDetail({
               {creneau.techniciens.map((t) => t.name).join(", ")}
             </p>
           )}
+          {creneau.visite_numero && creneau.visite_total && (
+            <p className="font-semibold text-teal-700">
+              Visite d&apos;entretien {creneau.visite_numero} de {creneau.visite_total}
+            </p>
+          )}
           {creneau.observations && <p className="text-slate-400">{creneau.observations}</p>}
         </div>
 

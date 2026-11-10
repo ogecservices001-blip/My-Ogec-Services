@@ -548,6 +548,9 @@ export type Database = {
           site: string
           site_id: string | null
           updated_at: string
+          visite_annee: number | null
+          visite_numero: number | null
+          visite_total: number | null
         }
         Insert: {
           annule?: boolean
@@ -564,6 +567,9 @@ export type Database = {
           site?: string
           site_id?: string | null
           updated_at?: string
+          visite_annee?: number | null
+          visite_numero?: number | null
+          visite_total?: number | null
         }
         Update: {
           annule?: boolean
@@ -580,6 +586,9 @@ export type Database = {
           site?: string
           site_id?: string | null
           updated_at?: string
+          visite_annee?: number | null
+          visite_numero?: number | null
+          visite_total?: number | null
         }
         Relationships: [
           {

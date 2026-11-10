@@ -20,10 +20,13 @@ export const creneauSchema = z
     heures_prevues: z.coerce.number().positive("Les heures prévues doivent être supérieures à 0"),
     observations: z.string().trim().default(""),
     technicien_ids: z.array(z.string().uuid()).min(1, "Au moins un technicien est obligatoire"),
+    visite_numero: z.number().int().min(1).max(12).nullable().default(null),
+    visite_total: z.number().int().min(1).max(12).nullable().default(null),
+    visite_annee: z.number().int().min(2000).max(2100).nullable().default(null),
   })
   .refine((v) => !!v.site_id !== !!v.poste_hors_client_id, {
     message: "Choisis soit un site, soit un poste hors client",
     path: ["site_id"],
   });
 
-export type CreneauInput = z.infer<typeof creneauSchema>;
+export type CreneauInput = z.input<typeof creneauSchema>;

@@ -4,16 +4,16 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { CreneauCarte, type CreneauAffiche } from "./creneau-carte";
+import { CreneauCarte } from "./creneau-carte";
 import { CreneauDetail } from "./creneau-detail";
-import { NouveauCreneauForm } from "./nouveau-creneau-form";
+import { NouveauCreneauForm, type CreneauAModifier } from "./nouveau-creneau-form";
 import { ajouterJours, formaterJourCourt, lundiDeLaSemaine } from "@/lib/planning/dates";
 import type { PosteHorsClientOption } from "./actions";
 import type { DevisARealiser } from "@/app/(app)/bi/nouveau/actions";
 
 type SiteOption = { id: string; nom: string; site: string; hors_contrat: boolean };
 type TechnicienOption = { id: string; name: string };
-type CreneauComplet = CreneauAffiche & { site_id: string | null; devis_id: string | null };
+type CreneauComplet = CreneauAModifier;
 
 const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
 
@@ -42,6 +42,7 @@ export function GrilleSemaine({
   devisARealiser,
   joursFeries,
   creneaux,
+  creneauOuvertId,
 }: {
   lundiSemaine: string;
   sites: SiteOption[];
@@ -50,10 +51,18 @@ export function GrilleSemaine({
   devisARealiser: DevisARealiser[];
   joursFeries: string[];
   creneaux: CreneauComplet[];
+  creneauOuvertId?: string;
 }) {
   const router = useRouter();
   const [formulaire, setFormulaire] = useState<{ date: string; technicienId?: string; creneau?: CreneauComplet } | null>(null);
-  const [detail, setDetail] = useState<CreneauComplet | null>(null);
+  const [detail, setDetail] = useState<CreneauComplet | null>(() => creneaux.find((c) => c.id === creneauOuvertId) ?? null);
+
+  function voirCreneau(id: string, date: string) {
+    setFormulaire(null);
+    const c = creneaux.find((x) => x.id === id);
+    if (c) setDetail(c);
+    else router.push(`/planning?semaine=${lundiDeLaSemaine(date)}&creneau=${id}`);
+  }
   const inputDateRef = useRef<HTMLInputElement>(null);
 
   const joursSemaine = JOURS.map((nom, i) => ({ nom, date: ajouterJours(lundiSemaine, i) }));
@@ -190,6 +199,7 @@ export function GrilleSemaine({
           creneauAModifier={formulaire.creneau}
           techniciensDuCreneau={formulaire.creneau?.techniciens?.map((t) => t.id)}
           onFerme={() => setFormulaire(null)}
+          onVoirCreneau={voirCreneau}
         />
       )}
     </div>

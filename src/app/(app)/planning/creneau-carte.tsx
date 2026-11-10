@@ -11,6 +11,8 @@ export type CreneauAffiche = {
   heure_debut: string | null;
   heures_prevues: number;
   observations: string;
+  visite_numero?: number | null;
+  visite_total?: number | null;
   techniciens?: { id: string; name: string }[];
 };
 
@@ -41,6 +43,11 @@ export function CreneauCarte({
       }`}
     >
       <p className="truncate text-sm font-semibold text-slate-900">{titre}</p>
+      {creneau.visite_numero && creneau.visite_total && (
+        <p className="text-[11px] font-semibold text-teal-700">
+          Visite {creneau.visite_numero}/{creneau.visite_total}
+        </p>
+      )}
       <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
         <Clock className="h-3 w-3" strokeWidth={2} />
         {creneau.heure_debut ? `${creneau.heure_debut} — ` : ""}

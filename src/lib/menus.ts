@@ -47,8 +47,7 @@ export function construireModules(isAdmin: boolean): Module[] {
       icone: Building2,
       couleur: "bg-green-100 text-brand-green-dark",
       sousMenus: [
-        { nom: "Clients sous contrat", href: "/repertoire/clients" },
-        { nom: "Clients hors contrat", href: "/repertoire/clients?horsContrat=1" },
+        { nom: "Clients", href: "/repertoire/clients" },
         { nom: "Fournisseurs", href: "/repertoire/fournisseurs" },
         { nom: "Collaborateurs", href: "/repertoire/collaborateurs" },
       ],
@@ -88,8 +87,7 @@ export function construireModules(isAdmin: boolean): Module[] {
       icone: Wrench,
       couleur: "bg-teal-100 text-teal-600",
       sousMenus: [
-        { nom: "Clients sous contrat", href: "/gmao/clients?horsContrat=0" },
-        { nom: "Clients hors contrat", href: "/gmao/clients?horsContrat=1" },
+        { nom: "Clients", href: "/gmao/clients?horsContrat=0" },
         { nom: "Scanner QR", href: "/gmao/scanner" },
       ],
     },

@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, Download } from "lucide-react";
+import { Search, Download, Upload } from "lucide-react";
+import { ModaleImportFamilles } from "./modale-import";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import type { TypeEquipement } from "@/lib/gmao/types";
 
@@ -15,6 +16,7 @@ const COLONNES: ColonneTableur[] = [
 
 export function FamillesListe({ familles, isAdmin }: { familles: TypeEquipement[]; isAdmin: boolean }) {
   const [recherche, setRecherche] = useState("");
+  const [importOuvert, setImportOuvert] = useState(false);
 
   const filtres = useMemo(
     () =>
@@ -34,6 +36,17 @@ export function FamillesListe({ familles, isAdmin }: { familles: TypeEquipement[
           <p className="text-sm text-slate-500">{filtres.length} famille(s)</p>
         </div>
         <div className="flex items-center gap-2">
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setImportOuvert(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+            title="Importer le référentiel équipements depuis Excel"
+          >
+            <Upload className="h-4 w-4" strokeWidth={2.25} />
+            Import Excel
+          </button>
+        )}
         {isAdmin && (
           <a
             download
@@ -70,6 +83,7 @@ export function FamillesListe({ familles, isAdmin }: { familles: TypeEquipement[
         valeurs={filtres.map((f) => [f.nom, f.code])}
         vide="Aucune famille trouvée"
       />
+      {importOuvert && <ModaleImportFamilles onClose={() => setImportOuvert(false)} />}
     </div>
   );
 }

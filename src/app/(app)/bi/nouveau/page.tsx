@@ -10,14 +10,26 @@ import { BiWizard } from "./wizard";
 export default async function NouveauBiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ pole?: string; devisId?: string; depannageId?: string; horsContrat?: string; brouillonId?: string }>;
+  searchParams: Promise<{
+    pole?: string;
+    devisId?: string;
+    depannageId?: string;
+    horsContrat?: string;
+    brouillonId?: string;
+    siteId?: string;
+  }>;
 }) {
   const profile = await requireProfile();
   if (profile.role === "admin") redirect("/");
-  const { pole, devisId, depannageId, horsContrat, brouillonId } = await searchParams;
+  const { pole, devisId, depannageId, horsContrat, brouillonId, siteId } = await searchParams;
   // Toujours ouvert avec un type, un devis, un dépannage ou un brouillon : seul, l'écran n'a pas d'usage.
   if (!pole && !devisId && !depannageId && !brouillonId) redirect("/");
   const supabase = await createClient();
+
+  // Dépannage depuis le menu : on choisit d'abord le site (écran en pleine largeur).
+  if (pole === "60" && !siteId && !depannageId && !brouillonId) {
+    redirect(`/bi/depannage?horsContrat=${horsContrat === "1" ? 1 : 0}`);
+  }
 
   const [{ data: sites }, { data: techniciens }, { data: typesEquipement }, { data: references }, depannagesEnCours, devisARealiser, brouillon] =
     await Promise.all([
@@ -37,7 +49,7 @@ export default async function NouveauBiPage({
 
   return (
     <BiWizard
-      key={`${pole ?? ""}|${devisId ?? ""}|${depannageId ?? ""}|${horsContrat ?? ""}|${brouillonId ?? ""}`}
+      key={`${pole ?? ""}|${devisId ?? ""}|${depannageId ?? ""}|${horsContrat ?? ""}|${brouillonId ?? ""}|${siteId ?? ""}`}
       sites={sites ?? []}
       techniciensDisponibles={(techniciens ?? []).map((t) => t.name)}
       typesEquipement={(typesEquipement ?? []) as TypeEquipement[]}

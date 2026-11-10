@@ -196,6 +196,20 @@ export function BiWizard({
         compteRendu: noms.length > 0 ? `Entretien hors contrat (à facturer) : ${noms.join(", ")}.` : "",
       };
     }
+    // Site déjà choisi sur l'écran d'entrée (Dépannage) : client et site remplis.
+    if (poleParam && siteIdParam) {
+      const s = sites.find((site) => site.id === siteIdParam);
+      return {
+        etape: 1,
+        pole: poleParam,
+        devisId: "",
+        depannageId: null as string | null,
+        clientNom: s?.nom ?? "",
+        siteId: s ? siteIdParam : "",
+        equipementId: "",
+        compteRendu: "",
+      };
+    }
     if (poleParam) {
       return { etape: 1, pole: poleParam, devisId: "", depannageId: null as string | null, clientNom: "", siteId: "", equipementId: "", compteRendu: "" };
     }
@@ -536,6 +550,9 @@ export function BiWizard({
     if (etape > etapeDepart) setEtape(etape - 1);
     else if (modePages && indexPage > 0) {
       setErreur("Les pages précédentes sont déjà validées : le bureau pourra les corriger à la vérification.");
+    } else if (searchParams.get("siteId") && pole === Poles.depannage && !retourBrouillon) {
+      // Retour à l'écran de choix du site du dépannage.
+      router.push(`/bi/depannage?horsContrat=${searchParams.get("horsContrat") ?? "0"}`);
     } else router.push("/");
   }
 

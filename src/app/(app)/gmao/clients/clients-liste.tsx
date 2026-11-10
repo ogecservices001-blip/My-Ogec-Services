@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChoixClientSite } from "@/components/choix-client-site";
-import { Search, Download, Upload, ScanLine } from "lucide-react";
+import { Download, Upload, ScanLine } from "lucide-react";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import type { ActionResult } from "@/lib/action-result";
@@ -45,21 +45,12 @@ export function GmaoClientsListe({
   tousLesSiteIds: string[];
   supprimerAction: () => Promise<ActionResult>;
 }) {
-  const [recherche, setRecherche] = useState("");
   const router = useRouter();
   const [clientChoisi, setClientChoisi] = useState("");
   const sitesChoix = useMemo(() => lignes.map((l) => ({ id: l.id, nom: l.nom, site: l.site })), [lignes]);
 
-  const filtres = useMemo(() => {
-    const cible = recherche.toLowerCase();
-    return lignes.filter(
-      (l) =>
-        l.nom.toLowerCase().includes(cible) ||
-        l.site.toLowerCase().includes(cible) ||
-        l.commune.toLowerCase().includes(cible) ||
-        l.adresse.toLowerCase().includes(cible),
-    );
-  }, [lignes, recherche]);
+  // Recherche : le choix Client | Site en tête de page la remplace.
+  const filtres = lignes;
 
   const nbClients = useMemo(() => new Set(filtres.map((l) => l.nom)).size, [filtres]);
 
@@ -102,15 +93,6 @@ export function GmaoClientsListe({
             >
               Hors contrat
             </Link>
-          </div>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              placeholder="Rechercher un client..."
-              value={recherche}
-              onChange={(e) => setRecherche(e.target.value)}
-              className="w-56 rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-            />
           </div>
           <Link
             href="/gmao/scanner"

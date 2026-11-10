@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChoixClientSite } from "@/components/choix-client-site";
 import { Search, Plus, Upload, Download } from "lucide-react";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import type { Site } from "@/lib/types";
@@ -26,6 +28,9 @@ export function ClientsListe({
   isAdmin: boolean;
 }) {
   const [recherche, setRecherche] = useState("");
+  const router = useRouter();
+  const [clientChoisi, setClientChoisi] = useState("");
+  const sitesChoix = useMemo(() => sites.map((s) => ({ id: s.id, nom: s.nom, site: s.site })), [sites]);
 
   const nbClients = useMemo(() => new Set(sites.map((s) => s.nom)).size, [sites]);
 
@@ -108,6 +113,22 @@ export function ClientsListe({
             </>
           )}
         </div>
+      </div>
+
+      <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Aller à la fiche d&apos;un site</p>
+        <ChoixClientSite
+          sites={sitesChoix}
+          clientNom={clientChoisi}
+          siteId=""
+          idClient="repertoire-client"
+          idSite="repertoire-site"
+          obligatoire={false}
+          onChange={(choix) => {
+            setClientChoisi(choix.clientNom);
+            if (choix.siteId) router.push(`/repertoire/clients/${choix.siteId}`);
+          }}
+        />
       </div>
 
       <Tableur

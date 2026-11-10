@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChoixClientSite } from "@/components/choix-client-site";
 import { Search, Download, Upload, ScanLine } from "lucide-react";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
@@ -44,6 +46,9 @@ export function GmaoClientsListe({
   supprimerAction: () => Promise<ActionResult>;
 }) {
   const [recherche, setRecherche] = useState("");
+  const router = useRouter();
+  const [clientChoisi, setClientChoisi] = useState("");
+  const sitesChoix = useMemo(() => lignes.map((l) => ({ id: l.id, nom: l.nom, site: l.site })), [lignes]);
 
   const filtres = useMemo(() => {
     const cible = recherche.toLowerCase();
@@ -133,6 +138,22 @@ export function GmaoClientsListe({
             </>
           )}
         </div>
+      </div>
+
+      <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Aller au parc d&apos;un site</p>
+        <ChoixClientSite
+          sites={sitesChoix}
+          clientNom={clientChoisi}
+          siteId=""
+          idClient="gmao-client"
+          idSite="gmao-site"
+          obligatoire={false}
+          onChange={(choix) => {
+            setClientChoisi(choix.clientNom);
+            if (choix.siteId) router.push(`/gmao/clients/${choix.siteId}/equipements`);
+          }}
+        />
       </div>
 
       <Tableur

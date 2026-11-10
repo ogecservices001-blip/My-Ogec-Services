@@ -1,5 +1,6 @@
 "use client";
 
+import { ListeRecherche } from "@/components/liste-recherche";
 import type { Dispatch, SetStateAction } from "react";
 import { CLES_CHAMPS_FIXES_EQUIPEMENT, type ChampEnTete, type ChampListeLigne, type ChampsEnTeteEquipement, type ReferenceHoraire } from "@/lib/gmao/types";
 import { formaterDate, dateFrVersIso } from "@/lib/format";
@@ -61,6 +62,20 @@ export function ChampEnTeteField({
   }
 
   const options = v && !champ.options.includes(v) ? [...champ.options, v] : champ.options;
+  // Liste longue (marque, réfrigérant, technicien...) : avec recherche.
+  if (options.length > 6) {
+    return (
+      <div>
+        <label className="mb-1 block text-xs font-medium text-slate-600">{champ.label}</label>
+        <ListeRecherche
+          valeur={v}
+          onChange={onChange}
+          placeholder="Tape pour chercher"
+          options={options.map((o) => ({ valeur: o, label: o }))}
+        />
+      </div>
+    );
+  }
   return (
     <div>
       <label className="mb-1 block text-xs font-medium text-slate-600">{champ.label}</label>
@@ -113,7 +128,7 @@ export function TypeEquipementSelects({
         .map((r) => r.type_equipement2)
         .filter((v) => v.trim().length > 0),
     ),
-  ].sort((a, b) => a.localeCompare(b));
+  ].sort((a, b) => a.localeCompare(b, "fr", { numeric: true }));
   if (type2Choisi && !options2.includes(type2Choisi)) options2.push(type2Choisi);
 
   const options3 = type2Choisi
@@ -128,7 +143,7 @@ export function TypeEquipementSelects({
             .map((r) => r.type_equipement3)
             .filter((v) => v.trim().length > 0),
         ),
-      ].sort((a, b) => a.localeCompare(b))
+      ].sort((a, b) => a.localeCompare(b, "fr", { numeric: true }))
     : [];
   if (type3Choisi && !options3.includes(type3Choisi)) options3.push(type3Choisi);
 
@@ -136,36 +151,22 @@ export function TypeEquipementSelects({
     <div className="grid grid-cols-2 gap-2">
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-600">Type Equipement 2</label>
-        <select
-          value={type2Choisi}
-          onChange={(e) =>
-            setChampsEnTete((prev) => ({ ...prev, typeEquipement2: e.target.value, typeEquipement3: "" }))
-          }
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-        >
-          <option value="">—</option>
-          {options2.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
+        <ListeRecherche
+          valeur={type2Choisi}
+          onChange={(v) => setChampsEnTete((prev) => ({ ...prev, typeEquipement2: v, typeEquipement3: "" }))}
+          placeholder="Tape pour chercher"
+          options={options2.map((v) => ({ valeur: v, label: v }))}
+        />
       </div>
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-600">Type Equipement 3 (puissance)</label>
-        <select
-          value={type3Choisi}
-          onChange={(e) => setChampsEnTete((prev) => ({ ...prev, typeEquipement3: e.target.value }))}
+        <ListeRecherche
+          valeur={type3Choisi}
+          onChange={(v) => setChampsEnTete((prev) => ({ ...prev, typeEquipement3: v }))}
           disabled={!type2Choisi}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50"
-        >
-          <option value="">—</option>
-          {options3.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
+          placeholder={type2Choisi ? "Tape pour chercher" : "Choisis d'abord le type 2"}
+          options={options3.map((v) => ({ valeur: v, label: v }))}
+        />
       </div>
     </div>
   );

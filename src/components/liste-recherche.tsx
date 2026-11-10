@@ -11,7 +11,7 @@ export function normaliserRecherche(s: string): string {
 }
 
 const CHAMP =
-  "w-full rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-14 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50";
+  "w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-3 pr-14 text-base sm:py-2 sm:text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 disabled:bg-slate-50";
 
 /// Liste déroulante avec saisie : on tape quelques lettres, la liste se filtre,
 /// on choisit à la souris, au doigt ou au clavier (flèches + Entrée, Échap).
@@ -63,6 +63,11 @@ export function ListeRecherche({
     setOuvert(true);
     setSaisie("");
     setActif(Math.max(0, options.findIndex((o) => o.valeur === valeur)));
+    // Téléphone : le clavier occupe le bas de l'écran ; on remonte le champ en
+    // haut pour que la liste reste visible au-dessus.
+    if (typeof window !== "undefined" && window.innerWidth < 640) {
+      setTimeout(() => conteneurRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 250);
+    }
   }
 
   function fermer() {
@@ -142,7 +147,7 @@ export function ListeRecherche({
           ref={listeRef}
           id={id ? `${id}-liste` : undefined}
           role="listbox"
-          className="absolute z-40 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+          className="absolute z-40 mt-1 max-h-[50vh] w-full overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white py-1 shadow-lg sm:max-h-64"
         >
           {filtrees.length === 0 ? (
             <li className="px-3 py-2 text-sm text-slate-400">{vide}</li>
@@ -155,7 +160,7 @@ export function ListeRecherche({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => choisir(o)}
                 onMouseEnter={() => setActif(i)}
-                className={`cursor-pointer px-3 py-2 text-sm ${
+                className={`cursor-pointer px-3 py-3 text-base sm:py-2 sm:text-sm ${
                   i === actif ? "bg-brand-green/10" : ""
                 } ${o.valeur === valeur ? "font-semibold text-brand-green-dark" : "text-slate-800"}`}
               >

@@ -87,8 +87,7 @@ function positif(v: number): number {
 /// Additionne heures prévues/effectuées/restantes de tous les
 /// équipements dont la fréquence est renseignée — pour les compteurs
 /// par groupe/site. La référence de chaque équipement est recalculée
-/// en direct depuis Type Equipement 1/2/3 (jamais depuis
-/// `reference_horaire_id` stocké). `freqCouranteParEquipement` vient de
+/// en direct depuis Type Equipement 1/2/3. `freqCouranteParEquipement` vient de
 /// `freqCouranteCalculeeBatch` (un seul aller-retour réseau pour tous
 /// les équipements, plutôt qu'un appel par équipement comme dans
 /// `sommeHeuresAnnee` côté Flutter). Port fidèle du calcul lui-même.

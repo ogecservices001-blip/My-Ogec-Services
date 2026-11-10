@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { freqCouranteCalculee } from "@/lib/gmao/releve-service";
 import { chargerDevisEnCoursParEquipement, type DevisEnCours } from "@/lib/devis/en-cours";
 import { visitesDejaValidees } from "@/lib/gmao/visites";
@@ -60,12 +59,10 @@ export async function creerReleve(
     champsEnTete.typeEquipement1 = type.type_equipement1_fixe;
   }
 
-  const { data: references } = await supabase.from("references_horaires").select("*");
-  const { reference } = analyserReference(champsEnTete, references ?? []);
 
   const { error: errUpdate } = await supabase
     .from("equipements")
-    .update({ champs_en_tete: champsEnTete, reference_horaire_id: reference?.id ?? null })
+    .update({ champs_en_tete: champsEnTete })
     .eq("id", equipementId);
   if (errUpdate) return { ok: false, erreur: errUpdate.message };
 

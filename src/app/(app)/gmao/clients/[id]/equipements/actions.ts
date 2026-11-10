@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, requireProfile } from "@/lib/auth";
 import { equipementSchema } from "@/lib/validation/equipement";
-import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { suggererNumeroEquipement } from "@/lib/gmao/numero-equipement";
 import type { ChampsEnTeteEquipement } from "@/lib/gmao/types";
 import type { ActionResult } from "@/lib/action-result";
@@ -45,8 +44,6 @@ export async function creerEquipement(
     champsEnTete.typeEquipement1 = type.type_equipement1_fixe;
   }
 
-  const { data: references } = await supabase.from("references_horaires").select("*");
-  const { reference } = analyserReference(champsEnTete, references ?? []);
 
   const [{ data: site }, { data: equipementsSite }] = await Promise.all([
     supabase.from("sites_view").select("n_affaire, hors_contrat").eq("id", parsed.data.site_id).single(),
@@ -69,7 +66,6 @@ export async function creerEquipement(
     ...parsed.data,
     numero_equipement: numeroEquipement,
     champs_en_tete: champsEnTete,
-    reference_horaire_id: reference?.id ?? null,
     hors_contrat: true,
     a_valider: true,
     remarque_technicien: remarqueTechnicien,
@@ -115,15 +111,12 @@ export async function modifierEquipement(
     champsEnTete.typeEquipement1 = type.type_equipement1_fixe;
   }
 
-  const { data: references } = await supabase.from("references_horaires").select("*");
-  const { reference } = analyserReference(champsEnTete, references ?? []);
 
   const { error } = await supabase
     .from("equipements")
     .update({
       ...parsed.data,
       champs_en_tete: champsEnTete,
-      reference_horaire_id: reference?.id ?? null,
     })
     .eq("id", id);
   if (error) return { ok: false, erreur: error.message };

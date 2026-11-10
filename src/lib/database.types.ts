@@ -918,7 +918,6 @@ export type Database = {
           localisation: string
           nom: string
           numero_equipement: string
-          reference_horaire_id: string | null
           remarque_technicien: string
           site_id: string
           type_equipement_id: string
@@ -937,7 +936,6 @@ export type Database = {
           localisation?: string
           nom?: string
           numero_equipement?: string
-          reference_horaire_id?: string | null
           remarque_technicien?: string
           site_id: string
           type_equipement_id: string
@@ -956,20 +954,12 @@ export type Database = {
           localisation?: string
           nom?: string
           numero_equipement?: string
-          reference_horaire_id?: string | null
           remarque_technicien?: string
           site_id?: string
           type_equipement_id?: string
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "equipements_reference_horaire_id_fkey"
-            columns: ["reference_horaire_id"]
-            isOneToOne: false
-            referencedRelation: "references_horaires"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "equipements_site_id_fkey"
             columns: ["site_id"]

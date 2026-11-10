@@ -8,7 +8,6 @@ import { now, interventionsDuBon, type Presta, type InterventionEquipement } fro
 import { archiverBiSiBesoin, genererPdfAvecPhotos } from "@/lib/bi/archive";
 import { envoyerConfirmationBI, envoyerRapportVisiteEmail } from "@/lib/bi/email";
 import { chargerRapportVisite, genererPdfRapportVisite, nomFichierRapport } from "@/lib/gmao/rapport-visite";
-import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import {
   controlerVisite,
   dateVisiteDuBon,
@@ -201,8 +200,6 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
         const freqSite = [...comptesFreq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
         if (freqSite) champsEnTete.freqEntretienAnnuelle = freqSite;
 
-        const { data: references } = await supabase.from("references_horaires").select("*");
-        const { reference } = analyserReference(champsEnTete, references ?? []);
         await supabase.from("equipements").insert({
           site_id: bi.site_id,
           type_equipement_id: pose.typeId,
@@ -216,7 +213,6 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
           // client déjà hors contrat, c'est trivial — rien à signaler.
           hors_contrat: true,
           champs_en_tete: champsEnTete,
-          reference_horaire_id: reference?.id ?? null,
           remarque_technicien: `Installé le ${date} via ${bi.numero} : ${pose.compteRendu}${bi.hors_contrat ? "" : " — Hors contrat, avenant à faire."}`,
         });
       }

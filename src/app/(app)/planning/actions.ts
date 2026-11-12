@@ -7,6 +7,16 @@ import type { ActionResult } from "@/lib/action-result";
 import { creneauSchema, type CreneauInput } from "@/lib/validation/creneau";
 import { quotaJournalier } from "@/lib/planning/quota";
 import { envoyerAnnoncePassage } from "@/lib/planning/email";
+import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
+import { heuresEquipementVisiteSite } from "@/lib/gmao/calcul-heures-visite";
+import type { ChampsEnTeteEquipement, ReferenceHoraire } from "@/lib/gmao/types";
+
+/// Bureau et techniciens (lecture du planning général), jamais un compte client.
+async function requireStaff() {
+  const profile = await requireProfile();
+  if (profile.role !== "admin" && profile.role !== "technicien") throw new Error("Accès réservé à l'équipe OGEC.");
+  return profile;
+}
 
 export type CreneauAvecTechniciens = {
   id: string;
@@ -29,7 +39,7 @@ export type CreneauAvecTechniciens = {
 /// uniquement (un technicien a sa propre requête filtrée, voir la page
 /// "Mon planning").
 export async function chargerCreneauxSemaine(debutISO: string, finISO: string): Promise<CreneauAvecTechniciens[]> {
-  await requireAdmin();
+  await requireStaff();
   const supabase = await createClient();
   const { data } = await supabase
     .from("creneaux_planning")
@@ -69,7 +79,7 @@ export type TechnicienOption = { id: string; name: string };
 /// planifier tout le monde, pas seulement ceux qui ont déjà un accès à
 /// l'appli. Jamais les admins (bureau), ni les comptes "client".
 export async function chargerTechniciens(): Promise<TechnicienOption[]> {
-  await requireAdmin();
+  await requireStaff();
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
@@ -293,23 +303,28 @@ export async function chargerMesCreneaux(debutISO: string, finISO: string): Prom
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+export type HeuresVisitePlanning = { tech: number; assistant: number; total: number };
+
 export type InfoVisiteSite = {
   frequence: number;
   annee: number;
   heuresContrat: number;
-  heuresParVisite: number;
-  visites: { numero: number; faite: boolean; programmees: number }[];
+  visites: { numero: number; faite: boolean; programmees: number; heures: HeuresVisitePlanning }[];
   prochaine: number | null;
+  equipementsCalcules: number;
+  equipementsSansHeures: number;
   email: string;
 };
 
-/// Pour un site sous contrat et une année : fréquence (la plus courante
-/// sur son parc sous contrat), heures du contrat par visite, visites déjà
-/// faites (BI validés) et heures déjà programmées pour chacune.
+/// Pour un site sous contrat et une année : fréquence (la plus courante sur
+/// son parc sous contrat), heures de chaque visite tirées du Référentiel
+/// Heures équipement par équipement (visite 1 = colonne An, puis Sem / Tri /
+/// Mens selon la séquence GMAO), visites déjà faites (BI validés) et heures
+/// déjà programmées pour chacune.
 export async function chargerInfoVisiteSite(siteId: string, annee: number, creneauxExclus: string[] = []): Promise<InfoVisiteSite | null> {
   await requireAdmin();
   const supabase = await createClient();
-  const [{ data: site }, { data: equipements }, { data: creneaux }] = await Promise.all([
+  const [{ data: site }, { data: equipements }, { data: creneaux }, { data: references }] = await Promise.all([
     supabase.from("sites").select("nb_heures_vendues, courriel_responsable").eq("id", siteId).single(),
     supabase.from("equipements").select("id, champs_en_tete").eq("site_id", siteId).eq("hors_contrat", false),
     supabase
@@ -319,19 +334,37 @@ export async function chargerInfoVisiteSite(siteId: string, annee: number, crene
       .eq("visite_annee", annee)
       .eq("annule", false)
       .is("devis_id", null),
+    supabase.from("references_horaires").select("*"),
   ]);
   if (!site) return null;
 
+  const parc = (equipements ?? []).map((e) => {
+    const champs = (e.champs_en_tete ?? {}) as ChampsEnTeteEquipement;
+    const brut = champs.freqEntretienAnnuelle;
+    const freq = typeof brut === "string" ? parseInt(brut, 10) : NaN;
+    return { id: e.id, freq, reference: analyserReference(champs, (references ?? []) as ReferenceHoraire[]).reference };
+  });
+
   const comptes = new Map<number, number>();
-  for (const e of equipements ?? []) {
-    const brut = (e.champs_en_tete as Record<string, unknown> | null)?.freqEntretienAnnuelle;
-    const f = typeof brut === "string" ? parseInt(brut, 10) : NaN;
-    if (Number.isFinite(f) && f >= 1 && f <= 12) comptes.set(f, (comptes.get(f) ?? 0) + 1);
-  }
+  for (const e of parc) if (Number.isFinite(e.freq) && e.freq >= 1 && e.freq <= 12) comptes.set(e.freq, (comptes.get(e.freq) ?? 0) + 1);
   const frequence = [...comptes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 1;
 
+  const calculables = parc.filter((e) => e.reference && Number.isFinite(e.freq) && e.freq >= 1);
+  const heuresDe = (numero: number): HeuresVisitePlanning => {
+    let tech = 0;
+    let assistant = 0;
+    for (const e of calculables) {
+      const h = heuresEquipementVisiteSite(e.freq, frequence, numero, e.reference!);
+      if (h) {
+        tech += Number(h.heuresTech) || 0;
+        assistant += Number(h.heuresAssistant) || 0;
+      }
+    }
+    return { tech, assistant, total: tech + assistant };
+  };
+
   const faites = new Set<number>();
-  const ids = (equipements ?? []).map((e) => e.id);
+  const ids = parc.map((e) => e.id);
   if (ids.length > 0) {
     const { data: visites } = await supabase.from("visites_entretien").select("visite_numero").eq("annee", annee).in("equipement_id", ids);
     for (const v of visites ?? []) faites.add(v.visite_numero);
@@ -344,17 +377,25 @@ export async function chargerInfoVisiteSite(siteId: string, annee: number, crene
     programmees.set(c.visite_numero, (programmees.get(c.visite_numero) ?? 0) + Number(c.heures_prevues) * nb);
   }
 
-  const heuresContrat = parseFloat(String(site.nb_heures_vendues ?? "").replace(",", ".")) || 0;
-  const heuresParVisite = heuresContrat / frequence;
   const visites = Array.from({ length: frequence }, (_, i) => ({
     numero: i + 1,
     faite: faites.has(i + 1),
     programmees: programmees.get(i + 1) ?? 0,
+    heures: heuresDe(i + 1),
   }));
   const prochaine =
-    visites.find((v) => !v.faite && (heuresParVisite <= 0 ? v.programmees === 0 : v.programmees < heuresParVisite - 0.01))?.numero ?? null;
+    visites.find((v) => !v.faite && (v.heures.total <= 0 ? v.programmees === 0 : v.programmees < v.heures.total - 0.01))?.numero ?? null;
 
-  return { frequence, annee, heuresContrat, heuresParVisite, visites, prochaine, email: site.courriel_responsable ?? "" };
+  return {
+    frequence,
+    annee,
+    heuresContrat: parseFloat(String(site.nb_heures_vendues ?? "").replace(",", ".")) || 0,
+    visites,
+    prochaine,
+    equipementsCalcules: calculables.length,
+    equipementsSansHeures: parc.length - calculables.length,
+    email: site.courriel_responsable ?? "",
+  };
 }
 
 export type ConflitAbsence = { id: string; date: string; client_nom: string; site: string; techniciens: string[] };

@@ -1,33 +1,59 @@
+import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { chargerMesCreneaux } from "../actions";
-import { MonPlanningListe } from "./mon-planning-liste";
-import { ajouterJours, aujourdhuiISO } from "@/lib/planning/dates";
+import { createClient } from "@/lib/supabase/server";
+import { chargerCreneauxSemaine, chargerMesCreneaux, chargerTechniciens } from "../actions";
+import { MaSemaine } from "./ma-semaine";
+import { GrilleSemaine } from "../grille-semaine";
+import { ajouterJours, lundiDeLaSemaine } from "@/lib/planning/dates";
 
-export default async function MonPlanningPage() {
-  await requireProfile();
-  const debut = aujourdhuiISO();
-  // Fenêtre large (3 semaines à partir d'aujourd'hui) pour que le
-  // technicien voie venir ses prochains jours sans naviguer — les jours
-  // déjà passés de la semaine en cours ne l'intéressent plus.
-  const fin = ajouterJours(debut, 21);
+export default async function MonPlanningPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ vue?: string; semaine?: string }>;
+}) {
+  const profile = await requireProfile();
+  const { vue, semaine } = await searchParams;
+  const general = vue === "general" && (profile.role === "technicien" || profile.role === "admin");
+  const lundi = lundiDeLaSemaine(semaine);
+  const vendredi = ajouterJours(lundi, 4);
 
-  const creneaux = await chargerMesCreneaux(debut, fin);
+  const supabase = await createClient();
+  const { data: feries } = await supabase.from("jours_feries").select("date").gte("date", lundi).lte("date", vendredi);
+  const joursFeries = (feries ?? []).map((j) => j.date);
 
-  const parJour = new Map<string, typeof creneaux>();
-  for (const c of creneaux) {
-    const liste = parJour.get(c.date) ?? [];
-    liste.push(c);
-    parJour.set(c.date, liste);
-  }
-  const jours = [...parJour.entries()].sort(([a], [b]) => a.localeCompare(b));
+  const onglet = (actif: boolean) =>
+    `rounded-lg px-4 py-2 text-sm font-semibold ${actif ? "bg-brand-green text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`;
 
   return (
     <div>
       <div className="mb-4">
         <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Mon planning</h1>
-        <p className="text-sm text-slate-500">Tes créneaux des 3 prochaines semaines</p>
       </div>
-      <MonPlanningListe jours={jours} />
+      <div className="mb-4 inline-flex gap-1 rounded-xl bg-slate-100 p-1">
+        <Link href={`/planning/mon-planning?vue=semaine&semaine=${lundi}`} className={onglet(!general)}>
+          Ma semaine
+        </Link>
+        <Link href={`/planning/mon-planning?vue=general&semaine=${lundi}`} className={onglet(general)}>
+          Planning général
+        </Link>
+      </div>
+
+      {general ? (
+        <GrilleSemaine
+          key={lundi}
+          lundiSemaine={lundi}
+          sites={[]}
+          techniciens={await chargerTechniciens()}
+          postesHorsClient={[]}
+          devisARealiser={[]}
+          joursFeries={joursFeries}
+          creneaux={await chargerCreneauxSemaine(lundi, vendredi)}
+          lectureSeule
+          prefixeLien="/planning/mon-planning?vue=general&semaine="
+        />
+      ) : (
+        <MaSemaine key={lundi} lundiSemaine={lundi} creneaux={await chargerMesCreneaux(lundi, vendredi)} joursFeries={joursFeries} />
+      )}
     </div>
   );
 }

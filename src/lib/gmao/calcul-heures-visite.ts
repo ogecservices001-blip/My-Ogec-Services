@@ -126,3 +126,21 @@ export function sommeHeuresAnnee(
     },
   };
 }
+
+/// Heures d'un équipement pour la visite n d'un site qui en fait `freqSite`
+/// par an. Un équipement entretenu moins souvent que le site ne compte
+/// qu'aux visites où il passe (site 4/an, équipement 2/an : visites 1 et 3).
+export function heuresEquipementVisiteSite(
+  freqEquipement: number,
+  freqSite: number,
+  numeroVisite: number,
+  reference: ReferenceHoraire,
+): HeuresVisite | null {
+  if (!(freqEquipement > 0) || !(freqSite > 0) || numeroVisite < 1) return null;
+  if (freqEquipement <= freqSite && freqSite % freqEquipement === 0) {
+    const pas = freqSite / freqEquipement;
+    if ((numeroVisite - 1) % pas !== 0) return { heuresTech: 0, heuresAssistant: 0 };
+    return calculerHeuresVisite(freqEquipement, (numeroVisite - 1) / pas + 1, reference);
+  }
+  return calculerHeuresVisite(freqEquipement, numeroVisite, reference);
+}

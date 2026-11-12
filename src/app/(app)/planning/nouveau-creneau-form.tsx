@@ -168,7 +168,7 @@ export function NouveauCreneauForm({
   }, [cleInfo, siteId, anneeVisite, creneauAModifier]);
 
   const visiteInfo = info && visite ? info.visites.find((v) => v.numero === visite.numero) : undefined;
-  const resteAvant = info && visiteInfo ? Math.max(0, info.heuresParVisite - visiteInfo.programmees) : null;
+  const resteAvant = info && visiteInfo ? Math.max(0, visiteInfo.heures.total - visiteInfo.programmees) : null;
 
   function changerOnglet(o: Onglet) {
     setOnglet(o);
@@ -482,10 +482,23 @@ export function NouveauCreneauForm({
                                 {info.prochaine === null && (
                                   <p className="font-semibold text-amber-700">Toutes les visites {info.annee} sont faites ou planifiées.</p>
                                 )}
-                                <p className="text-slate-600">
-                                  Contrat : {formaterHeures(info.heuresContrat)} par an, soit{" "}
-                                  <strong>{formaterHeures(info.heuresParVisite)} par visite</strong>
+                                {visiteInfo && (
+                                  <p className="text-slate-700">
+                                    Visite {visiteInfo.numero} de {info.frequence} : {formaterHeures(visiteInfo.heures.tech)} tech +{" "}
+                                    {formaterHeures(visiteInfo.heures.assistant)} assistant ={" "}
+                                    <strong>{formaterHeures(visiteInfo.heures.total)}</strong>
+                                  </p>
+                                )}
+                                <p className="text-xs text-slate-400">
+                                  Calculé sur {info.equipementsCalcules} équipement{info.equipementsCalcules > 1 ? "s" : ""} sous contrat (Référentiel
+                                  Heures) · heures vendues au contrat : {formaterHeures(info.heuresContrat)} / an
                                 </p>
+                                {info.equipementsSansHeures > 0 && (
+                                  <p className="text-xs text-amber-700">
+                                    {info.equipementsSansHeures} équipement{info.equipementsSansHeures > 1 ? "s" : ""} sans heures (fréquence ou référence
+                                    manquante dans la GMAO).
+                                  </p>
+                                )}
                                 {visiteInfo?.faite && <p className="font-semibold text-amber-700">Cette visite est déjà faite (BI validé).</p>}
                                 {visiteInfo && visiteInfo.programmees > 0 && (
                                   <p className="text-slate-600">Déjà programmé pour cette visite : {formaterHeures(visiteInfo.programmees)}</p>
@@ -504,9 +517,6 @@ export function NouveauCreneauForm({
                                     )}
                                   </p>
                                 )}
-                                {info.heuresContrat === 0 && (
-                                  <p className="text-xs text-amber-700">Aucune heure vendue renseignée sur la fiche client de ce site.</p>
-                                )}
                                 <div className="flex flex-wrap gap-1.5 pt-1">
                                   {info.visites.map((v) => (
                                     <span
@@ -514,14 +524,17 @@ export function NouveauCreneauForm({
                                       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                                         v.faite
                                           ? "bg-slate-200 text-slate-600"
-                                          : v.programmees > 0 && v.programmees >= info.heuresParVisite - 0.01
+                                          : v.programmees > 0 && v.programmees >= v.heures.total - 0.01
                                             ? "bg-brand-green/15 text-brand-green-dark"
                                             : v.programmees > 0
                                               ? "bg-amber-100 text-amber-700"
                                               : "bg-white text-slate-500 ring-1 ring-slate-200"
                                       }`}
                                     >
-                                      V{v.numero} {v.faite ? "faite" : v.programmees > 0 ? formaterHeures(v.programmees) : "à planifier"}
+                                      V{v.numero}{" "}
+                                      {v.faite
+                                        ? "faite"
+                                        : `${v.programmees > 0 ? `${formaterHeures(v.programmees)} / ` : ""}${formaterHeures(v.heures.total)}`}
                                     </span>
                                   ))}
                                 </div>

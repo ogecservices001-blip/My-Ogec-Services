@@ -43,6 +43,8 @@ export function GrilleSemaine({
   joursFeries,
   creneaux,
   creneauOuvertId,
+  lectureSeule = false,
+  prefixeLien = "/planning?semaine=",
 }: {
   lundiSemaine: string;
   sites: SiteOption[];
@@ -52,6 +54,8 @@ export function GrilleSemaine({
   joursFeries: string[];
   creneaux: CreneauComplet[];
   creneauOuvertId?: string;
+  lectureSeule?: boolean;
+  prefixeLien?: string;
 }) {
   const router = useRouter();
   const [formulaire, setFormulaire] = useState<{ date: string; technicienId?: string; creneau?: CreneauComplet } | null>(null);
@@ -79,7 +83,7 @@ export function GrilleSemaine({
 
   function allerALaSemaineDe(dateChoisie: string) {
     if (!dateChoisie) return;
-    router.push(`/planning?semaine=${lundiDeLaSemaine(dateChoisie)}`);
+    router.push(`${prefixeLien}${lundiDeLaSemaine(dateChoisie)}`);
   }
 
   function creneauxDuJourEtTechnicien(date: string, technicienId: string): CreneauComplet[] {
@@ -90,7 +94,7 @@ export function GrilleSemaine({
     <div>
       <div className="mb-4 flex items-center justify-between">
         <Link
-          href={`/planning?semaine=${semainePrecedente}`}
+          href={`${prefixeLien}${semainePrecedente}`}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
         >
           <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
@@ -118,7 +122,7 @@ export function GrilleSemaine({
           />
         </div>
         <Link
-          href={`/planning?semaine=${semaineSuivante}`}
+          href={`${prefixeLien}${semaineSuivante}`}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
         >
           Semaine suivante
@@ -159,14 +163,16 @@ export function GrilleSemaine({
                       className={`min-h-[70px] space-y-1.5 rounded-lg border border-t-2 border-dashed border-slate-200 bg-white/60 p-1.5 ${couleur.bordure}`}
                     >
                       {creneauxCellule.map((c) => (
-                        <CreneauCarte key={c.id} creneau={c} cliquable onClick={() => setDetail(c)} />
+                        <CreneauCarte key={c.id} creneau={c} cliquable={!lectureSeule} onClick={() => setDetail(c)} />
                       ))}
-                      <button
-                        onClick={() => setFormulaire({ date: jour.date, technicienId: t.id })}
-                        className="flex w-full items-center justify-center rounded-lg py-1 text-slate-300 hover:bg-slate-50 hover:text-slate-500"
-                      >
-                        <Plus className="h-4 w-4" strokeWidth={2.5} />
-                      </button>
+                      {!lectureSeule && (
+                        <button
+                          onClick={() => setFormulaire({ date: jour.date, technicienId: t.id })}
+                          className="flex w-full items-center justify-center rounded-lg py-1 text-slate-300 hover:bg-slate-50 hover:text-slate-500"
+                        >
+                          <Plus className="h-4 w-4" strokeWidth={2.5} />
+                        </button>
+                      )}
                     </div>
                   );
                 })}

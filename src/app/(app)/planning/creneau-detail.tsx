@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Pencil, Trash2, Users, X } from "lucide-react";
+import Link from "next/link";
+import { ClipboardCheck, Clock, Pencil, Trash2, Users, X } from "lucide-react";
 import { supprimerCreneau } from "./actions";
 import type { CreneauAffiche } from "./creneau-carte";
 
@@ -66,6 +67,15 @@ export function CreneauDetail({
             </p>
           )}
           {creneau.observations && <p className="text-slate-400">{creneau.observations}</p>}
+          {creneau.bi &&
+            (creneau.bi.statut === "brouillon" ? (
+              <p className="font-semibold text-amber-700">BI en cours (brouillon du technicien)</p>
+            ) : (
+              <Link href={`/bi/${creneau.bi.id}`} className="inline-flex items-center gap-1.5 font-semibold text-brand-green-dark hover:underline">
+                <ClipboardCheck className="h-3.5 w-3.5" strokeWidth={2} />
+                Voir le BI {creneau.bi.numero}
+              </Link>
+            ))}
         </div>
 
         {erreur && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}

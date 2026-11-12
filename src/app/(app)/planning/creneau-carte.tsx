@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Users } from "lucide-react";
+import { ClipboardCheck, Clock, Users } from "lucide-react";
 
 export type CreneauAffiche = {
   id: string;
@@ -14,6 +14,7 @@ export type CreneauAffiche = {
   visite_numero?: number | null;
   visite_total?: number | null;
   techniciens?: { id: string; name: string }[];
+  bi?: { id: string; numero: string; statut: string } | null;
 };
 
 /// Carte compacte, purement informative — les actions (Modifier,
@@ -60,6 +61,16 @@ export function CreneauCarte({
         </p>
       )}
       {creneau.observations && <p className="mt-1 text-xs text-slate-400">{creneau.observations}</p>}
+      {creneau.bi && (
+        <p
+          className={`mt-1.5 flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-semibold ${
+            creneau.bi.statut === "brouillon" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          <ClipboardCheck className="h-3 w-3 shrink-0" strokeWidth={2.25} />
+          {creneau.bi.statut === "brouillon" ? "BI en cours (brouillon)" : `BI fait — ${creneau.bi.numero}`}
+        </p>
+      )}
     </Composant>
   );
 }

@@ -6,6 +6,7 @@ import { chargerCreneauxSemaine, chargerTechniciens, chargerPostesHorsClient } f
 import { chargerDevisARealiser } from "@/app/(app)/bi/nouveau/actions";
 import { GrilleSemaine } from "./grille-semaine";
 import { ajouterJours, lundiDeLaSemaine } from "@/lib/planning/dates";
+import { biDesInterventions, cleIntervention, creneauxDesInterventions } from "@/lib/planning/intervention";
 
 export default async function PlanificationPage({
   searchParams,
@@ -26,6 +27,10 @@ export default async function PlanificationPage({
     chargerCreneauxSemaine(lundi, vendredi),
     supabase.from("jours_feries").select("date").gte("date", ajouterJours(lundi, -400)).lte("date", ajouterJours(lundi, 1200)),
   ]);
+
+  const avecSite = creneaux.filter((c) => c.site_id);
+  const bis = await biDesInterventions(supabase, await creneauxDesInterventions(supabase, avecSite));
+  const creneauxAvecBi = creneaux.map((c) => ({ ...c, bi: c.site_id ? (bis.get(cleIntervention(c)) ?? null) : null }));
 
   return (
     <div>
@@ -66,7 +71,7 @@ export default async function PlanificationPage({
         postesHorsClient={postesHorsClient}
         devisARealiser={devisARealiser}
         joursFeries={(joursFeries ?? []).map((j) => j.date)}
-        creneaux={creneaux}
+        creneaux={creneauxAvecBi}
         creneauOuvertId={creneau}
         devisAPlanifier={(devisARealiser ?? []).find((d) => d.id === devis) ?? null}
         devisDemandeIntrouvable={Boolean(devis) && !(devisARealiser ?? []).some((d) => d.id === devis)}

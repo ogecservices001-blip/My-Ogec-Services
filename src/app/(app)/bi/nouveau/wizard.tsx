@@ -431,6 +431,17 @@ export function BiWizard({
       const localisation = equipement?.localisation ?? "";
       if (nom) texte = [labelPole(pole), [nom, localisation].filter(Boolean).join(" – ")].join(" — ");
     }
+    const devisLie = devisId ? devisDuSite.find((d) => d.id === devisId) : undefined;
+    const pavesDevis = ((devisLie?.paves as PaveDevis[] | null) ?? []).filter((p) => p.lignes?.length);
+    const pave =
+      pavesDevis.find((p) => equipementId && p.equipementId === equipementId) ?? (pavesDevis.length === 1 ? pavesDevis[0] : undefined);
+    const lignesDevis = (pave?.lignes ?? [])
+      .filter((l) => l.designation?.trim())
+      .map((l) => {
+        const qte = [l.quantite?.trim(), l.unite?.trim()].filter(Boolean).join(" ");
+        return `- ${l.designation.trim()}${qte ? ` (${qte})` : ""}`;
+      });
+    if (lignesDevis.length > 0) texte = [texte, ...lignesDevis].join("\n");
     texteAutoRef.current = texte;
     setCompteRendu(texte);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -443,6 +454,8 @@ export function BiWizard({
     installationLocalisation,
     installationGroupe,
     materielChamps,
+    devisId,
+    devisDuSite,
   ]);
 
   // ---------- Étape 2 : Compte rendu + photos ----------

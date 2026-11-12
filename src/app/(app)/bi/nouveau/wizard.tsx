@@ -108,6 +108,8 @@ export function BiWizard({
   depannagesEnCours,
   devisARealiser,
   brouillon,
+  techniciensCreneau = [],
+  periodeCreneau = null,
 }: {
   sites: SiteOption[];
   techniciensDisponibles: string[];
@@ -117,6 +119,8 @@ export function BiWizard({
   depannagesEnCours: DepannageEnCours[];
   devisARealiser: DevisARealiser[];
   brouillon: BrouillonBI | null;
+  techniciensCreneau?: string[];
+  periodeCreneau?: { debut: string; fin: string } | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -669,11 +673,13 @@ export function BiWizard({
 
   // ---------- Étape 3 : Techniciens + Dates + Signatures ----------
   const [techniciens, setTechniciens] = useState<string[]>(
-    brouillon && brouillon.techniciens.length > 0 ? brouillon.techniciens : nomUtilisateur ? [nomUtilisateur] : [],
+    brouillon && brouillon.techniciens.length > 0
+      ? brouillon.techniciens
+      : [...new Set([nomUtilisateur, ...techniciensCreneau].filter(Boolean))],
   );
-  const [dateDebut, setDateDebut] = useState(brouillon?.date_debut || today());
-  const [dateFin, setDateFin] = useState(brouillon?.date_fin || today());
-  const [dateIntervention, setDateIntervention] = useState(brouillon?.date_intervention || today());
+  const [dateDebut, setDateDebut] = useState(brouillon?.date_debut || periodeCreneau?.debut || today());
+  const [dateFin, setDateFin] = useState(brouillon?.date_fin || periodeCreneau?.fin || today());
+  const [dateIntervention, setDateIntervention] = useState(brouillon?.date_intervention || periodeCreneau?.fin || today());
   const [tempsPasse, setTempsPasse] = useState(brouillon?.temps_passe ?? "");
   // Si un temps était déjà saisi sur le brouillon, ne pas le laisser
   // recalculer/écraser par l'effet de temps standard ci-dessous.

@@ -10,16 +10,24 @@ import { ajouterJours, formaterJourCourt, lundiDeLaSemaine } from "@/lib/plannin
 
 const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
 
+export type EtatIntervention = {
+  dernierJour: boolean;
+  fin: string;
+  bi: { id: string; numero: string; statut: string } | null;
+};
+
 /// Semaine du technicien connecté, du lundi au vendredi, en lecture seule :
 /// 5 colonnes sur PC, jours empilés sur téléphone.
 export function MaSemaine({
   lundiSemaine,
   creneaux,
   joursFeries,
+  etats,
 }: {
   lundiSemaine: string;
   creneaux: CreneauMonPlanning[];
   joursFeries: string[];
+  etats: Record<string, EtatIntervention>;
 }) {
   const router = useRouter();
   const inputDateRef = useRef<HTMLInputElement>(null);
@@ -95,19 +103,7 @@ export function MaSemaine({
                   duJour.map((c) => (
                     <div key={c.id} className="space-y-1.5">
                       <CreneauCarte creneau={c} />
-                      {c.site_id && (
-                        <Link
-                          href={
-                            c.devis_id
-                              ? `/bi/nouveau?devisId=${c.devis_id}&creneauId=${c.id}`
-                              : `/bi/nouveau?pole=20&siteId=${c.site_id}&creneauId=${c.id}`
-                          }
-                          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-green px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-dark"
-                        >
-                          <ClipboardCheck className="h-4 w-4" strokeWidth={2.25} />
-                          Faire le BI
-                        </Link>
-                      )}
+                      {c.site_id && <BoutonBi creneau={c} etat={etats[c.id]} />}
                       {c.devis_id && (
                         <Link
                           href={`/planning/mon-planning/devis/${c.devis_id}`}
@@ -126,5 +122,48 @@ export function MaSemaine({
         })}
       </div>
     </div>
+  );
+}
+
+function BoutonBi({ creneau, etat }: { creneau: CreneauMonPlanning; etat?: EtatIntervention }) {
+  const bi = etat?.bi ?? null;
+  if (bi && bi.statut !== "brouillon") {
+    return (
+      <p className="flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2.5 text-sm font-semibold text-slate-600">
+        <ClipboardCheck className="h-4 w-4" strokeWidth={2.25} />
+        BI fait{bi.numero ? ` — ${bi.numero}` : ""}
+      </p>
+    );
+  }
+  if (bi) {
+    return (
+      <Link
+        href={`/bi/nouveau?brouillonId=${bi.id}`}
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
+      >
+        <ClipboardCheck className="h-4 w-4" strokeWidth={2.25} />
+        Reprendre le BI
+      </Link>
+    );
+  }
+  if (etat && !etat.dernierJour) {
+    return (
+      <p className="px-1 text-center text-xs text-slate-400">
+        BI à faire le dernier jour ({etat.fin.split("-").reverse().slice(0, 2).join("/")})
+      </p>
+    );
+  }
+  return (
+    <Link
+      href={
+        creneau.devis_id
+          ? `/bi/nouveau?devisId=${creneau.devis_id}&creneauId=${creneau.id}`
+          : `/bi/nouveau?pole=20&siteId=${creneau.site_id}&creneauId=${creneau.id}`
+      }
+      className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-green px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-dark"
+    >
+      <ClipboardCheck className="h-4 w-4" strokeWidth={2.25} />
+      Faire le BI
+    </Link>
   );
 }

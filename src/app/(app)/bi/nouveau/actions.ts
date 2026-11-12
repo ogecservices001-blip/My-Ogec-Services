@@ -1,5 +1,6 @@
 "use server";
 
+import { biDesInterventions, cleIntervention, creneauxDesInterventions } from "@/lib/planning/intervention";
 import { NATURE_MULTIPLE } from "@/lib/devis/paves";
 import { interventionsDuBon } from "@/lib/bi/format";
 import { revalidatePath } from "next/cache";
@@ -423,6 +424,24 @@ export async function enregistrerBI(
 ): Promise<ActionResult & { id?: string }> {
   const profile = await requireProfile();
   const supabase = await createClient();
+
+  if (!brouillonId && input.creneau_id) {
+    const { data: creneau } = await supabase
+      .from("creneaux_planning")
+      .select("id, site_id, devis_id, visite_numero, visite_annee, date")
+      .eq("id", input.creneau_id)
+      .single();
+    if (creneau) {
+      const groupe = await creneauxDesInterventions(supabase, [creneau]);
+      const existant = (await biDesInterventions(supabase, groupe)).get(cleIntervention(creneau));
+      if (existant) {
+        return {
+          ok: false,
+          erreur: `Un BI existe déjà pour cette intervention (${existant.numero || "brouillon en cours"}) : une intervention = un seul BI. Reprends-le depuis ton planning.`,
+        };
+      }
+    }
+  }
 
   let chrono = 0;
   let numero = "";

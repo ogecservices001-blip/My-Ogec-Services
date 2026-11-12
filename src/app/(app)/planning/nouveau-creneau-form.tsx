@@ -55,6 +55,8 @@ export function NouveauCreneauForm({
   techniciensDuCreneau,
   onFerme,
   onVoirCreneau,
+  devisInitialId,
+  onEnregistre,
 }: {
   sites: SiteOption[];
   techniciens: TechnicienOption[];
@@ -67,18 +69,21 @@ export function NouveauCreneauForm({
   techniciensDuCreneau?: string[];
   onFerme: () => void;
   onVoirCreneau: (id: string, date: string) => void;
+  devisInitialId?: string;
+  onEnregistre?: () => void;
 }) {
+  const devisInitial = devisInitialId ? devisARealiser.find((d) => d.id === devisInitialId) : undefined;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { signaler, fenetre } = useChampManquant();
   const modification = Boolean(creneauAModifier);
 
   const [onglet, setOnglet] = useState<Onglet>(
-    creneauAModifier?.poste_hors_client_id ? "hors_client" : creneauAModifier?.devis_id ? "prestation" : "sous_contrat",
+    creneauAModifier?.poste_hors_client_id ? "hors_client" : creneauAModifier?.devis_id || devisInitial ? "prestation" : "sous_contrat",
   );
-  const [clientNom, setClientNom] = useState(creneauAModifier?.client_nom ?? "");
-  const [siteId, setSiteId] = useState(creneauAModifier?.site_id ?? "");
-  const [devisId, setDevisId] = useState(creneauAModifier?.devis_id ?? "");
+  const [clientNom, setClientNom] = useState(creneauAModifier?.client_nom ?? devisInitial?.client_nom ?? "");
+  const [siteId, setSiteId] = useState(creneauAModifier?.site_id ?? devisInitial?.site_id ?? "");
+  const [devisId, setDevisId] = useState(creneauAModifier?.devis_id ?? devisInitial?.id ?? "");
   const [posteId, setPosteId] = useState(creneauAModifier?.poste_hors_client_id ?? "");
   const [technicienIds, setTechnicienIds] = useState<string[]>(
     techniciensDuCreneau ?? (technicienInitialId ? [technicienInitialId] : []),
@@ -258,6 +263,7 @@ export function NouveauCreneauForm({
         ids = res.ids;
       }
       router.refresh();
+      if (onglet === "prestation") onEnregistre?.();
       if (onglet === "hors_client") return onFerme();
       setEnregistre({ ids, jours, visite: onglet === "sous_contrat" ? visite : null });
       setMailEnvoye(false);

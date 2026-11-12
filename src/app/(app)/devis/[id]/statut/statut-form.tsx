@@ -5,7 +5,7 @@ import { useChampManquant } from "@/components/champ-manquant";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, FileText, Pencil, Send, History, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Pencil, Send, History, Trash2, CalendarPlus } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import { pavesDuDevis } from "@/lib/devis/paves";
@@ -422,6 +422,15 @@ export function StatutDevisForm({
           >
             Remettre en attente
           </button>
+          {isAdmin && devis.date_commande_client && !devis.annule && (
+            <Link
+              href={`/planning?devis=${devis.id}`}
+              className="flex w-full items-center gap-2 rounded-xl bg-brand-green px-4 py-3 text-left text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
+            >
+              <CalendarPlus className="h-4 w-4" strokeWidth={2.25} />
+              Planifier
+            </Link>
+          )}
         </div>
       ) : (
         <div className="rounded-2xl bg-white p-4 shadow-sm">

@@ -45,6 +45,8 @@ export function GrilleSemaine({
   creneauOuvertId,
   lectureSeule = false,
   prefixeLien = "/planning?semaine=",
+  devisAPlanifier = null,
+  devisDemandeIntrouvable = false,
 }: {
   lundiSemaine: string;
   sites: SiteOption[];
@@ -56,6 +58,8 @@ export function GrilleSemaine({
   creneauOuvertId?: string;
   lectureSeule?: boolean;
   prefixeLien?: string;
+  devisAPlanifier?: DevisARealiser | null;
+  devisDemandeIntrouvable?: boolean;
 }) {
   const router = useRouter();
   const [formulaire, setFormulaire] = useState<{ date: string; technicienId?: string; creneau?: CreneauComplet } | null>(null);
@@ -68,6 +72,12 @@ export function GrilleSemaine({
     else router.push(`/planning?semaine=${lundiDeLaSemaine(date)}&creneau=${id}`);
   }
   const inputDateRef = useRef<HTMLInputElement>(null);
+  const [devisPlanifie, setDevisPlanifie] = useState(false);
+
+  function fermerFormulaire() {
+    setFormulaire(null);
+    if (devisAPlanifier && devisPlanifie) router.replace(`/planning?semaine=${lundiSemaine}`);
+  }
 
   const joursSemaine = JOURS.map((nom, i) => ({ nom, date: ajouterJours(lundiSemaine, i) }));
   const semainePrecedente = ajouterJours(lundiSemaine, -7);
@@ -92,6 +102,25 @@ export function GrilleSemaine({
 
   return (
     <div>
+      {devisAPlanifier && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-green/40 bg-brand-green/10 px-4 py-3">
+          <p className="text-sm text-slate-800">
+            <span className="font-bold">À planifier : devis {devisAPlanifier.numero || "(sans référence)"}</span> — {devisAPlanifier.client_nom} —{" "}
+            {devisAPlanifier.client_site}. Clique sur un <strong>+</strong> du jour et du technicien voulus.
+          </p>
+          <Link
+            href={`/planning?semaine=${lundiSemaine}`}
+            className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
+          >
+            Annuler
+          </Link>
+        </div>
+      )}
+      {devisDemandeIntrouvable && (
+        <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Ce devis n&apos;est pas (ou plus) à réaliser : pas commandé, annulé ou déjà réalisé.
+        </p>
+      )}
       <div className="mb-4 flex items-center justify-between">
         <Link
           href={`${prefixeLien}${semainePrecedente}`}
@@ -204,8 +233,10 @@ export function GrilleSemaine({
           technicienInitialId={formulaire.technicienId}
           creneauAModifier={formulaire.creneau}
           techniciensDuCreneau={formulaire.creneau?.techniciens?.map((t) => t.id)}
-          onFerme={() => setFormulaire(null)}
+          onFerme={fermerFormulaire}
           onVoirCreneau={voirCreneau}
+          devisInitialId={formulaire.creneau ? undefined : devisAPlanifier?.id}
+          onEnregistre={() => setDevisPlanifie(true)}
         />
       )}
     </div>

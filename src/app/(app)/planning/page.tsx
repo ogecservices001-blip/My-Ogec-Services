@@ -10,10 +10,10 @@ import { ajouterJours, lundiDeLaSemaine } from "@/lib/planning/dates";
 export default async function PlanificationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ semaine?: string; creneau?: string }>;
+  searchParams: Promise<{ semaine?: string; creneau?: string; devis?: string }>;
 }) {
   await requireAdmin();
-  const { semaine, creneau } = await searchParams;
+  const { semaine, creneau, devis } = await searchParams;
   const lundi = lundiDeLaSemaine(semaine);
   const vendredi = ajouterJours(lundi, 4);
 
@@ -59,7 +59,7 @@ export default async function PlanificationPage({
         </div>
       </div>
       <GrilleSemaine
-        key={`${lundi}-${creneau ?? ""}`}
+        key={`${lundi}-${creneau ?? ""}-${devis ?? ""}`}
         lundiSemaine={lundi}
         sites={sites ?? []}
         techniciens={techniciens}
@@ -68,6 +68,9 @@ export default async function PlanificationPage({
         joursFeries={(joursFeries ?? []).map((j) => j.date)}
         creneaux={creneaux}
         creneauOuvertId={creneau}
+        devisAPlanifier={(devisARealiser ?? []).find((d) => d.id === devis) ?? null}
+        devisDemandeIntrouvable={Boolean(devis) && !(devisARealiser ?? []).some((d) => d.id === devis)}
+        prefixeLien={devis ? `/planning?devis=${devis}&semaine=` : undefined}
       />
     </div>
   );

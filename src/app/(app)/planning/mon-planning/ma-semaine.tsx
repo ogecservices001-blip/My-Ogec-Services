@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, FileText, Wrench } from "lucide-react";
 import { CreneauCarte } from "../creneau-carte";
 import type { CreneauMonPlanning } from "../actions";
 import { ajouterJours, formaterJourCourt, lundiDeLaSemaine } from "@/lib/planning/dates";
@@ -92,7 +92,29 @@ export function MaSemaine({
                 {duJour.length === 0 ? (
                   <p className="px-1 py-2 text-xs text-slate-400">Rien de prévu</p>
                 ) : (
-                  duJour.map((c) => <CreneauCarte key={c.id} creneau={c} />)
+                  duJour.map((c) => (
+                    <div key={c.id} className="space-y-1.5">
+                      <CreneauCarte creneau={c} />
+                      {c.site_id && (
+                        <Link
+                          href={`/gmao/clients/${c.site_id}/equipements`}
+                          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-green px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-dark"
+                        >
+                          <Wrench className="h-4 w-4" strokeWidth={2.25} />
+                          GMAO du site
+                        </Link>
+                      )}
+                      {c.devis_id && (
+                        <Link
+                          href={`/planning/mon-planning/devis/${c.devis_id}`}
+                          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white px-3 py-2.5 text-sm font-semibold text-brand-green-dark shadow-sm ring-1 ring-brand-green/40 hover:bg-brand-green/5"
+                        >
+                          <FileText className="h-4 w-4" strokeWidth={2.25} />
+                          Voir le devis
+                        </Link>
+                      )}
+                    </div>
+                  ))
                 )}
               </div>
             </div>

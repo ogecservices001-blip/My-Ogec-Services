@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ChevronLeft, ChevronRight, FileText, Wrench } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardCheck, FileText } from "lucide-react";
 import { CreneauCarte } from "../creneau-carte";
 import type { CreneauMonPlanning } from "../actions";
 import { ajouterJours, formaterJourCourt, lundiDeLaSemaine } from "@/lib/planning/dates";
@@ -97,11 +97,15 @@ export function MaSemaine({
                       <CreneauCarte creneau={c} />
                       {c.site_id && (
                         <Link
-                          href={`/gmao/clients/${c.site_id}/equipements`}
+                          href={
+                            c.devis_id
+                              ? `/bi/nouveau?devisId=${c.devis_id}&creneauId=${c.id}`
+                              : `/bi/nouveau?pole=20&siteId=${c.site_id}&creneauId=${c.id}`
+                          }
                           className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-green px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-dark"
                         >
-                          <Wrench className="h-4 w-4" strokeWidth={2.25} />
-                          GMAO du site
+                          <ClipboardCheck className="h-4 w-4" strokeWidth={2.25} />
+                          Faire le BI
                         </Link>
                       )}
                       {c.devis_id && (

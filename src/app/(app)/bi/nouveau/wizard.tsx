@@ -901,6 +901,7 @@ export function BiWizard({
       equipement_groupe: equipementGroupeFinal,
       equipement_localisation: equipementLocalisationFinal,
       devis_id: devis?.id ?? null,
+      creneau_id: searchParams.get("creneauId") || brouillon?.creneau_id || null,
       devis_numero: devis?.numero ?? "",
       devis_reference_client: devis?.reference_client ?? "",
       devis_date_commande_client: devis?.date_commande_client ?? "",

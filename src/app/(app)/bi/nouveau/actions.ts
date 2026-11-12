@@ -217,6 +217,7 @@ export type InterventionSupplementaireInput = {
 };
 
 export type BiInput = {
+  creneau_id?: string | null;
   /// Type de la première page d'un BI à plusieurs pages (pole = PN), sinon vide.
   pole_principal: string;
   pole: string;
@@ -291,6 +292,7 @@ export type BrouillonBI = {
   pole: string;
   site_id: string;
   depannage_id: string | null;
+  creneau_id: string | null;
   equipement_id: string | null;
   equipement_nom: string;
   equipement_groupe: string;
@@ -370,6 +372,7 @@ export async function chargerBrouillonBI(id: string): Promise<BrouillonBI | null
     pole: data.pole,
     site_id: data.site_id ?? "",
     depannage_id: data.depannage_id,
+    creneau_id: data.creneau_id,
     equipement_id: data.equipement_id,
     equipement_nom: data.equipement_nom,
     equipement_groupe: data.equipement_groupe,
@@ -438,6 +441,7 @@ export async function enregistrerBI(
     ...(input.pole === Poles.entretienSousContrat ? { classement: "maintenance" } : {}),
     site_id: input.site_id,
     depannage_id: input.depannage_id,
+    creneau_id: input.creneau_id ?? null,
     client_nom: input.client_nom,
     site: input.site,
     adresse: input.adresse,

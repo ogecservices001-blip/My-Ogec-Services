@@ -68,19 +68,33 @@ export async function calculerLignesAuditHeures(supabase: SupabaseClient<any>): 
   const [{ data: creneaux }, { data: bons }, { data: equipements }, { data: references }] = await Promise.all([
     supabase
       .from("creneaux_planning")
-      .select("site_id, date, heures_prevues, creneau_techniciens(technicien_id)")
+      .select("id, site_id, date, heures_prevues, visite_numero, visite_annee, creneau_techniciens(technicien_id)")
       .in("site_id", siteIds)
       .eq("annule", false)
       .not("site_id", "is", null)
       .is("devis_id", null),
-    supabase.from("bons_intervention").select("site_id, temps_passe, statut, pole").in("site_id", siteIds),
+    supabase.from("bons_intervention").select("site_id, temps_passe, statut, pole, creneau_id").in("site_id", siteIds),
     supabase.from("equipements").select("site_id, champs_en_tete").in("site_id", siteIds).eq("hors_contrat", false),
     supabase.from("references_horaires").select("*"),
   ]);
 
+  // Un créneau dont le BI (lancé depuis le planning) est validé n'est plus
+  // compté : ses heures réelles sont déjà dans le BI. La même visite posée
+  // sur plusieurs jours est couverte en entier.
+  const creneauParId = new Map((creneaux ?? []).map((c) => [c.id, c]));
+  const cleVisite = (c: { id: string; site_id: string | null; visite_numero: number | null; visite_annee: number | null }) =>
+    c.visite_numero && c.visite_annee ? `${c.site_id}|${c.visite_annee}|${c.visite_numero}` : `creneau|${c.id}`;
+  const couverts = new Set<string>();
+  for (const b of bons ?? []) {
+    if (!b.creneau_id || !STATUTS_VALIDES.has(b.statut) || b.pole !== Poles.entretienSousContrat) continue;
+    const c = creneauParId.get(b.creneau_id);
+    if (c) couverts.add(cleVisite(c));
+  }
+
   const programmeesParSite = new Map<string, number>();
   const realiseesParSite = new Map<string, number>();
   for (const c of creneaux ?? []) {
+    if (couverts.has(cleVisite(c))) continue;
     // heures_prevues est la durée du créneau PAR technicien (sert au
     // quota journalier 7.5h/5h côté Planning) — un créneau à 2
     // techniciens livre deux fois ces heures au client, pas une seule.

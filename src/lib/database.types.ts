@@ -135,6 +135,7 @@ export type Database = {
           client_nom: string
           compte_rendu: string
           created_at: string
+          creneau_id: string | null
           created_by: string
           date_debut: string
           date_fin: string
@@ -203,6 +204,7 @@ export type Database = {
           client_nom?: string
           compte_rendu?: string
           created_at?: string
+          creneau_id?: string | null
           created_by?: string
           date_debut?: string
           date_fin?: string
@@ -271,6 +273,7 @@ export type Database = {
           client_nom?: string
           compte_rendu?: string
           created_at?: string
+          creneau_id?: string | null
           created_by?: string
           date_debut?: string
           date_fin?: string

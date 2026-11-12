@@ -38,6 +38,7 @@ const LARGEUR_PLEINE = [
   "/planning",
   "/planning/audit-heures",
   "/planning/heures-par-pole",
+  "/planning/heures-planifiees",
   "/bi",
   "/bi/valides",
   "/bi/depannage",
@@ -72,7 +73,7 @@ const LARGEUR_PLEINE_PATTERNS = [
 /// Écrans qui se passent entièrement de la sidebar (grille dense où
 /// chaque pixel compte) — la page elle-même doit alors fournir son
 /// propre bouton retour, puisque la sidebar n'est plus là pour naviguer.
-const SANS_SIDEBAR = ["/planning", "/planning/audit-heures", "/planning/heures-par-pole"];
+const SANS_SIDEBAR = ["/planning", "/planning/audit-heures", "/planning/heures-par-pole", "/planning/heures-planifiees"];
 
 /// Module/sous-menu correspondant au chemin actuel — même logique de
 /// correspondance (exact ou préfixe de fiche détail) que la barre

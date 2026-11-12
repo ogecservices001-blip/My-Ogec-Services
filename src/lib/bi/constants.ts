@@ -138,6 +138,16 @@ export const CLASSEMENT_LABELS: Record<string, string> = {
   maintenance: "Maintenance",
 };
 
+/// Classement coché d'office à la création du BI, modifiable ensuite par le
+/// bureau. "À Classer" (geste commercial, reprise d'une erreur...) n'est
+/// jamais proposé d'office.
+export function classementParDefaut(pole: string, devisId: string | null | undefined): string {
+  if (devisId) return "reception_travaux";
+  if (pole === Poles.entretienSousContrat) return "maintenance";
+  if (pole === Poles.depannage || pole === Poles.entretienHorsContrat) return "facturer";
+  return "";
+}
+
 /// Clés de `champs_en_tete` jamais proposées au technicien ni affichées
 /// côté bureau sur le Bon d'intervention (Installation neuve/
 /// Remplacement à l'identique) : le nom du technicien est déjà connu

@@ -1,5 +1,6 @@
 "use server";
 
+import { classementParDefaut } from "@/lib/bi/constants";
 import { biDesInterventions, cleIntervention, creneauxDesInterventions } from "@/lib/planning/intervention";
 import { NATURE_MULTIPLE } from "@/lib/devis/paves";
 import { interventionsDuBon } from "@/lib/bi/format";
@@ -457,7 +458,7 @@ export async function enregistrerBI(
     chrono,
     numero,
     statut,
-    ...(input.pole === Poles.entretienSousContrat ? { classement: "maintenance" } : {}),
+    ...(classementParDefaut(input.pole, input.devis_id) ? { classement: classementParDefaut(input.pole, input.devis_id) } : {}),
     site_id: input.site_id,
     depannage_id: input.depannage_id,
     creneau_id: input.creneau_id ?? null,

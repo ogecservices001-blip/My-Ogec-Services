@@ -282,9 +282,8 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
     if (erreurVisite) return { ok: false, erreur: erreurVisite };
   }
 
-  const entretienSousContrat = input.pole === Poles.entretienSousContrat;
   const { data: classementEnBase } = await supabase.from("bons_intervention").select("classement").eq("id", id).single();
-  if (!entretienSousContrat && classementEnBase?.classement === "facturer" && !input.mois_facturation) {
+  if (classementEnBase?.classement === "facturer" && !input.mois_facturation) {
     return { ok: false, erreur: "Le mois de facturation est obligatoire pour un BI à facturer." };
   }
 
@@ -329,8 +328,7 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
       equipement_nom: input.equipement_nom,
       equipement_numero: input.equipement_numero,
       interventions_supplementaires: input.interventions_supplementaires,
-      mois_facturation: entretienSousContrat ? "" : input.mois_facturation,
-      ...(entretienSousContrat ? { classement: "maintenance" } : {}),
+      mois_facturation: classementEnBase?.classement === "facturer" ? input.mois_facturation : "",
       history: nouvelHistory,
     })
     .eq("id", id)

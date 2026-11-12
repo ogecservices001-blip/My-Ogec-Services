@@ -216,16 +216,8 @@ export function BiDetail({
           )}
           {isAdmin && (
             <>
-              {bon.pole === Poles.entretienSousContrat ? (
-                <Section titre="Classement">
-                  <p className="text-sm text-slate-700">Maintenance (forfait entretien)</p>
-                </Section>
-              ) : (
-                <>
-                  {!sansMontant(bon.pole, bon.devis_id) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
-                  <BlocClassement bon={bon} />
-                </>
-              )}
+              {!sansMontant(bon.pole, bon.devis_id) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
+              <BlocClassement bon={bon} />
             </>
           )}
           <BlocHistorique bon={bon} />
@@ -786,7 +778,7 @@ function VueCorrection({
   ].map((n) => n.trim());
   const numeroEnDouble = (numero: string) =>
     numerosEquipementSite.includes(numero.trim()) || numerosPoses.filter((n) => n === numero.trim()).length > 1;
-  const classementFinal = pole === Poles.entretienSousContrat ? "maintenance" : classementActuel;
+  const classementFinal = classementActuel;
   const moisRenseigne = classementFinal !== "facturer" || /^\d{2}-\d{4}$/.test(moisActuel.trim());
   const { signaler, fenetre } = useChampManquant();
 
@@ -1066,13 +1058,7 @@ function VueCorrection({
           </div>
         )}
 
-        {pole === Poles.entretienSousContrat ? (
-          <p className="text-sm text-slate-600">
-            <span className="font-semibold">Classement :</span> Maintenance (forfait entretien)
-          </p>
-        ) : (
-          <BlocClassement bon={bon} onChange={setClassementActuel} onMoisChange={setMoisActuel} />
-        )}
+        <BlocClassement bon={bon} onChange={setClassementActuel} onMoisChange={setMoisActuel} />
         {classementFinal === "facturer" && !sansMontant(pole, bon.devis_id) && (
           <BlocMainDoeuvreDeplacement tempsPasse={tempsPasse} nombreDeplacements={nombreDeplacements} tauxSite={tauxSite} />
         )}

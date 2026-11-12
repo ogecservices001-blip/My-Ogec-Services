@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { CreneauCarte } from "./creneau-carte";
+import { DepannageCarte } from "./depannage-carte";
+import type { DepannagePlanning } from "@/lib/planning/depannages";
 import { CreneauDetail } from "./creneau-detail";
 import { NouveauCreneauForm, type CreneauAModifier } from "./nouveau-creneau-form";
 import { ajouterJours, formaterJourCourt, lundiDeLaSemaine } from "@/lib/planning/dates";
@@ -47,6 +49,7 @@ export function GrilleSemaine({
   prefixeLien = "/planning?semaine=",
   devisAPlanifier = null,
   devisDemandeIntrouvable = false,
+  depannages = [],
 }: {
   lundiSemaine: string;
   sites: SiteOption[];
@@ -60,6 +63,7 @@ export function GrilleSemaine({
   prefixeLien?: string;
   devisAPlanifier?: DevisARealiser | null;
   devisDemandeIntrouvable?: boolean;
+  depannages?: DepannagePlanning[];
 }) {
   const router = useRouter();
   const [formulaire, setFormulaire] = useState<{ date: string; technicienId?: string; creneau?: CreneauComplet } | null>(null);
@@ -194,6 +198,11 @@ export function GrilleSemaine({
                       {creneauxCellule.map((c) => (
                         <CreneauCarte key={c.id} creneau={c} cliquable={!lectureSeule} onClick={() => setDetail(c)} />
                       ))}
+                      {depannages
+                        .filter((d) => d.date === jour.date && d.technicienIds.includes(t.id))
+                        .map((d) => (
+                          <DepannageCarte key={d.cle} depannage={d} lienBi={!lectureSeule} />
+                        ))}
                       {!lectureSeule && (
                         <button
                           onClick={() => setFormulaire({ date: jour.date, technicienId: t.id })}

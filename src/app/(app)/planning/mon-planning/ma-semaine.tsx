@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight, ClipboardCheck, FileText } from "lucide-react";
 import { CreneauCarte } from "../creneau-carte";
+import { DepannageCarte } from "../depannage-carte";
+import type { DepannagePlanning } from "@/lib/planning/depannages";
 import type { CreneauMonPlanning } from "../actions";
 import { ajouterJours, formaterJourCourt, lundiDeLaSemaine } from "@/lib/planning/dates";
 
@@ -23,11 +25,13 @@ export function MaSemaine({
   creneaux,
   joursFeries,
   etats,
+  depannages,
 }: {
   lundiSemaine: string;
   creneaux: CreneauMonPlanning[];
   joursFeries: string[];
   etats: Record<string, EtatIntervention>;
+  depannages: DepannagePlanning[];
 }) {
   const router = useRouter();
   const inputDateRef = useRef<HTMLInputElement>(null);
@@ -85,6 +89,7 @@ export function MaSemaine({
       <div className="grid gap-3 md:grid-cols-5">
         {jours.map((jour) => {
           const duJour = creneaux.filter((c) => c.date === jour.date);
+          const depannagesDuJour = depannages.filter((d) => d.date === jour.date);
           const ferie = joursFeries.includes(jour.date);
           const estAujourdhui = jour.date === aujourdhui;
           return (
@@ -97,7 +102,10 @@ export function MaSemaine({
                 {ferie && <span className="ml-1 text-xs">Férié</span>}
               </div>
               <div className="space-y-2">
-                {duJour.length === 0 ? (
+                {depannagesDuJour.map((d) => (
+                  <DepannageCarte key={d.cle} depannage={d} />
+                ))}
+                {duJour.length === 0 && depannagesDuJour.length === 0 ? (
                   <p className="px-1 py-2 text-xs text-slate-400">Rien de prévu</p>
                 ) : (
                   duJour.map((c) => (

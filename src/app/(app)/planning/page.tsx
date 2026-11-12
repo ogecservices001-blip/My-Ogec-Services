@@ -7,6 +7,7 @@ import { chargerDevisARealiser } from "@/app/(app)/bi/nouveau/actions";
 import { GrilleSemaine } from "./grille-semaine";
 import { ajouterJours, lundiDeLaSemaine } from "@/lib/planning/dates";
 import { biDesInterventions, cleIntervention, creneauxDesInterventions } from "@/lib/planning/intervention";
+import { chargerDepannagesPlanning } from "@/lib/planning/depannages";
 
 export default async function PlanificationPage({
   searchParams,
@@ -31,6 +32,7 @@ export default async function PlanificationPage({
   const avecSite = creneaux.filter((c) => c.site_id);
   const bis = await biDesInterventions(supabase, await creneauxDesInterventions(supabase, avecSite));
   const creneauxAvecBi = creneaux.map((c) => ({ ...c, bi: c.site_id ? (bis.get(cleIntervention(c)) ?? null) : null }));
+  const depannages = await chargerDepannagesPlanning(supabase, lundi, vendredi);
 
   return (
     <div>
@@ -73,6 +75,7 @@ export default async function PlanificationPage({
         joursFeries={(joursFeries ?? []).map((j) => j.date)}
         creneaux={creneauxAvecBi}
         creneauOuvertId={creneau}
+        depannages={depannages}
         devisAPlanifier={(devisARealiser ?? []).find((d) => d.id === devis) ?? null}
         devisDemandeIntrouvable={Boolean(devis) && !(devisARealiser ?? []).some((d) => d.id === devis)}
         prefixeLien={devis ? `/planning?devis=${devis}&semaine=` : undefined}

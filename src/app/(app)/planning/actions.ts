@@ -7,6 +7,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { creneauSchema, type CreneauInput } from "@/lib/validation/creneau";
 import { quotaJournalier } from "@/lib/planning/quota";
 import { envoyerAnnoncePassage } from "@/lib/planning/email";
+import { chargerDepannagesPlanning, heuresDepannageDuJour } from "@/lib/planning/depannages";
 import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { heuresEquipementVisiteSite } from "@/lib/gmao/calcul-heures-visite";
 import type { ChampsEnTeteEquipement, ReferenceHoraire } from "@/lib/gmao/types";
@@ -135,10 +136,12 @@ export async function verifierQuota(
   const supabase = await createClient();
   const { data: techniciens } = await supabase.from("profiles").select("id, name").in("id", technicienIds);
   const quota = quotaJournalier(new Date(`${date}T00:00:00`));
+  const depannages = await chargerDepannagesPlanning(supabase, date, date);
 
   const alertes: string[] = [];
   for (const t of techniciens ?? []) {
-    const dejaPlanifie = await heuresDejaPlanifiees(supabase, t.id, date, creneauIdExclu);
+    const dejaPlanifie =
+      (await heuresDejaPlanifiees(supabase, t.id, date, creneauIdExclu)) + heuresDepannageDuJour(depannages, t.id, date);
     const total = dejaPlanifie + heuresPrevues;
     if (total > quota) {
       alertes.push(`${t.name} aura ${total}h planifiées ce jour-là (quota ${quota}h).`);

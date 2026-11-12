@@ -7,6 +7,7 @@ import { GrilleSemaine } from "../grille-semaine";
 import { ajouterJours, lundiDeLaSemaine } from "@/lib/planning/dates";
 import { biDesInterventions, cleIntervention, creneauxDesInterventions, periodeIntervention } from "@/lib/planning/intervention";
 import type { EtatIntervention } from "./ma-semaine";
+import { chargerDepannagesPlanning } from "@/lib/planning/depannages";
 
 export default async function MonPlanningPage({
   searchParams,
@@ -33,6 +34,8 @@ export default async function MonPlanningPage({
     const periode = periodeIntervention(groupes, cle) ?? { debut: c.date, fin: c.date };
     etats[c.id] = { dernierJour: c.date === periode.fin, fin: periode.fin, bi: bis.get(cle) ?? null };
   }
+
+  const depannages = await chargerDepannagesPlanning(supabase, lundi, vendredi);
 
   const onglet = (actif: boolean) =>
     `rounded-lg px-4 py-2 text-sm font-semibold ${actif ? "bg-brand-green text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`;
@@ -62,10 +65,14 @@ export default async function MonPlanningPage({
           joursFeries={joursFeries}
           creneaux={await chargerCreneauxSemaine(lundi, vendredi)}
           lectureSeule
+          depannages={depannages}
           prefixeLien="/planning/mon-planning?vue=general&semaine="
         />
       ) : (
-        <MaSemaine key={lundi} lundiSemaine={lundi} creneaux={mesCreneaux} joursFeries={joursFeries} etats={etats} />
+        <MaSemaine key={lundi} lundiSemaine={lundi} creneaux={mesCreneaux} joursFeries={joursFeries}
+          etats={etats}
+          depannages={depannages.filter((d) => d.technicienIds.includes(profile.id))}
+        />
       )}
     </div>
   );

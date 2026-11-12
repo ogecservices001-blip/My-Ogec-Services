@@ -527,7 +527,7 @@ export async function enregistrerBI(
   if (input.depannage_id && statut === "averif") {
     await supabase
       .from("demandes_depannage")
-      .update({ bon_intervention_id: bi.id, statut: "traitee", date_traitement: new Date().toISOString() })
+      .update({ bon_intervention_id: bi.id, statut: "traitee", date_traitement: new Date().toISOString(), intervenant_id: profile.id })
       .eq("id", input.depannage_id);
     revalidatePath("/depannages");
   }

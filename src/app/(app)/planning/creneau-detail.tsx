@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { DemandeValidation } from "./demande-validation";
+import { LIBELLE_VALIDATION } from "@/lib/planning/validation";
 import { ClipboardCheck, Clock, Pencil, Trash2, Users, X } from "lucide-react";
 import { supprimerCreneau } from "./actions";
 import type { CreneauAffiche } from "./creneau-carte";
@@ -23,6 +25,7 @@ export function CreneauDetail({
   const [pending, startTransition] = useTransition();
   const [confirmation, setConfirmation] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [demande, setDemande] = useState(false);
 
   const titre = `${creneau.client_nom} — ${creneau.site}`;
 
@@ -41,7 +44,7 @@ export function CreneauDetail({
 
   return (
     <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+      <div className={`max-h-[94vh] w-full overflow-y-auto rounded-2xl bg-white p-5 shadow-xl ${demande ? "max-w-2xl" : "max-w-sm"}`}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-bold text-slate-900">{titre}</h2>
           <button onClick={onFerme} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
@@ -66,6 +69,13 @@ export function CreneauDetail({
               Visite d&apos;entretien {creneau.visite_numero} de {creneau.visite_total}
             </p>
           )}
+          {creneau.validation && (
+            <p className="font-semibold text-slate-700">
+              {LIBELLE_VALIDATION[creneau.validation.statut]}
+              {creneau.validation.statut === "autre_date" && creneau.validation.datePropose &&
+                ` (à partir du ${creneau.validation.datePropose.split("-").reverse().join("/")})`}
+            </p>
+          )}
           {creneau.observations && <p className="text-slate-400">{creneau.observations}</p>}
           {creneau.bi &&
             (creneau.bi.statut === "brouillon" ? (
@@ -79,6 +89,20 @@ export function CreneauDetail({
         </div>
 
         {erreur && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}
+
+        {!creneau.poste_hors_client_id &&
+          (demande ? (
+            <div className="mb-4 rounded-xl border border-slate-200 p-4">
+              <DemandeValidation creneauId={creneau.id} />
+            </div>
+          ) : (
+            <button
+              onClick={() => setDemande(true)}
+              className="mb-3 w-full rounded-xl border border-brand-green/40 px-4 py-2.5 text-sm font-semibold text-brand-green-dark hover:bg-brand-green/5"
+            >
+              {creneau.validation ? "Renvoyer une demande d'accord au client" : "Demander l'accord du client"}
+            </button>
+          ))}
 
         {confirmation ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-3">

@@ -8,6 +8,7 @@ import { ajouterJours, lundiDeLaSemaine } from "@/lib/planning/dates";
 import { biDesInterventions, cleIntervention, creneauxDesInterventions, periodeIntervention } from "@/lib/planning/intervention";
 import type { EtatIntervention } from "./ma-semaine";
 import { chargerDepannagesPlanning } from "@/lib/planning/depannages";
+import { chargerEtatsValidation } from "@/lib/planning/validation";
 
 export default async function MonPlanningPage({
   searchParams,
@@ -36,6 +37,9 @@ export default async function MonPlanningPage({
   }
 
   const depannages = await chargerDepannagesPlanning(supabase, lundi, vendredi);
+  const creneauxGeneral = general ? await chargerCreneauxSemaine(lundi, vendredi) : [];
+  const validations = await chargerEtatsValidation(supabase, [...mesCreneaux, ...creneauxGeneral].map((c) => c.id));
+  const avecValidation = <T extends { id: string }>(liste: T[]) => liste.map((c) => ({ ...c, validation: validations.get(c.id) ?? null }));
 
   const onglet = (actif: boolean) =>
     `rounded-lg px-4 py-2 text-sm font-semibold ${actif ? "bg-brand-green text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`;
@@ -63,13 +67,13 @@ export default async function MonPlanningPage({
           postesHorsClient={[]}
           devisARealiser={[]}
           joursFeries={joursFeries}
-          creneaux={await chargerCreneauxSemaine(lundi, vendredi)}
+          creneaux={avecValidation(creneauxGeneral)}
           lectureSeule
           depannages={depannages}
           prefixeLien="/planning/mon-planning?vue=general&semaine="
         />
       ) : (
-        <MaSemaine key={lundi} lundiSemaine={lundi} creneaux={mesCreneaux} joursFeries={joursFeries}
+        <MaSemaine key={lundi} lundiSemaine={lundi} creneaux={avecValidation(mesCreneaux)} joursFeries={joursFeries}
           etats={etats}
           depannages={depannages.filter((d) => d.technicienIds.includes(profile.id))}
         />

@@ -8,6 +8,9 @@ import { GrilleSemaine } from "./grille-semaine";
 import { ajouterJours, lundiDeLaSemaine } from "@/lib/planning/dates";
 import { biDesInterventions, cleIntervention, creneauxDesInterventions } from "@/lib/planning/intervention";
 import { chargerDepannagesPlanning } from "@/lib/planning/depannages";
+import { chargerEtatsValidation } from "@/lib/planning/validation";
+import { ReponsesClients, type ReponseClient } from "./reponses-clients";
+import type { JourDemande } from "@/lib/planning/periode";
 
 export default async function PlanificationPage({
   searchParams,
@@ -31,7 +34,30 @@ export default async function PlanificationPage({
 
   const avecSite = creneaux.filter((c) => c.site_id);
   const bis = await biDesInterventions(supabase, await creneauxDesInterventions(supabase, avecSite));
-  const creneauxAvecBi = creneaux.map((c) => ({ ...c, bi: c.site_id ? (bis.get(cleIntervention(c)) ?? null) : null }));
+  const validations = await chargerEtatsValidation(supabase, creneaux.map((c) => c.id));
+  const creneauxAvecBi = creneaux.map((c) => ({
+    ...c,
+    bi: c.site_id ? (bis.get(cleIntervention(c)) ?? null) : null,
+    validation: validations.get(c.id) ?? null,
+  }));
+  const { data: aTraiter } = await supabase
+    .from("demandes_validation_client")
+    .select("id, client_nom, site, objet, jours, date_proposee, moment, commentaire, destinataire_nom, destinataire_email, creneau_ids")
+    .eq("statut", "autre_date")
+    .is("traite_le", null)
+    .order("reponse_le");
+  const reponses: ReponseClient[] = (aTraiter ?? []).map((d) => ({
+    id: d.id,
+    client_nom: d.client_nom,
+    site: d.site,
+    objet: d.objet,
+    jours: (d.jours as JourDemande[]) ?? [],
+    date_proposee: d.date_proposee ?? "",
+    moment: d.moment,
+    commentaire: d.commentaire,
+    destinataire: [d.destinataire_nom, d.destinataire_email].filter(Boolean).join(" — "),
+    premierCreneauId: (d.creneau_ids as string[])[0] ?? "",
+  }));
   const depannages = await chargerDepannagesPlanning(supabase, lundi, vendredi);
 
   return (
@@ -65,6 +91,7 @@ export default async function PlanificationPage({
           </Link>
         </div>
       </div>
+      <ReponsesClients reponses={reponses} />
       <GrilleSemaine
         key={`${lundi}-${creneau ?? ""}-${devis ?? ""}`}
         lundiSemaine={lundi}

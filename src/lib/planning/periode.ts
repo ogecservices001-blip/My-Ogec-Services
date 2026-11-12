@@ -1,4 +1,4 @@
-import { ajouterJours, jourSemaineUTC } from "./dates";
+import { ajouterJours, formaterJourLong, jourSemaineUTC } from "./dates";
 
 /// Journée type par technicien : 7h30 du lundi au jeudi, 5h le vendredi.
 export function journeeType(dateISO: string): number {
@@ -72,4 +72,10 @@ export function proposerVisiteSuivante(
 export function formaterHeures(h: number): string {
   const arrondi = Math.round(h * 100) / 100;
   return `${String(arrondi).replace(".", ",")} h`;
+}
+
+export type JourDemande = { date: string; heure: string | null };
+
+export function libelleJours(jours: JourDemande[]): string[] {
+  return jours.map((j) => `${formaterJourLong(j.date)} ${j.date.slice(0, 4)}${j.heure ? `, à partir de ${j.heure.slice(0, 5)}` : ""}`);
 }

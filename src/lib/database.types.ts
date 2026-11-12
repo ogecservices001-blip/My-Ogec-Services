@@ -736,6 +736,90 @@ export type Database = {
           },
         ]
       }
+      demandes_validation_client: {
+        Row: {
+          cle_intervention: string
+          client_nom: string
+          commentaire: string
+          copies: string[]
+          creneau_ids: string[]
+          created_by: string | null
+          date_proposee: string | null
+          destinataire_email: string
+          destinataire_nom: string
+          envoye_le: string
+          id: string
+          jours: Json
+          message: string
+          moment: string
+          motif_remplacement: string
+          objet: string
+          relance1_le: string | null
+          relance2_le: string | null
+          reponse_le: string | null
+          sans_reponse_le: string | null
+          site: string
+          site_id: string | null
+          statut: string
+          token: string
+          traite_le: string | null
+        }
+        Insert: {
+          cle_intervention: string
+          client_nom?: string
+          commentaire?: string
+          copies?: string[]
+          creneau_ids?: string[]
+          created_by?: string | null
+          date_proposee?: string | null
+          destinataire_email: string
+          destinataire_nom?: string
+          envoye_le?: string
+          id?: string
+          jours?: Json
+          message?: string
+          moment?: string
+          motif_remplacement?: string
+          objet?: string
+          relance1_le?: string | null
+          relance2_le?: string | null
+          reponse_le?: string | null
+          sans_reponse_le?: string | null
+          site?: string
+          site_id?: string | null
+          statut?: string
+          token?: string
+          traite_le?: string | null
+        }
+        Update: {
+          cle_intervention?: string
+          client_nom?: string
+          commentaire?: string
+          copies?: string[]
+          creneau_ids?: string[]
+          created_by?: string | null
+          date_proposee?: string | null
+          destinataire_email?: string
+          destinataire_nom?: string
+          envoye_le?: string
+          id?: string
+          jours?: Json
+          message?: string
+          moment?: string
+          motif_remplacement?: string
+          objet?: string
+          relance1_le?: string | null
+          relance2_le?: string | null
+          reponse_le?: string | null
+          sans_reponse_le?: string | null
+          site?: string
+          site_id?: string | null
+          statut?: string
+          token?: string
+          traite_le?: string | null
+        }
+        Relationships: []
+      }
       devis: {
         Row: {
           annule: boolean

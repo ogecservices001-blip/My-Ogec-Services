@@ -228,7 +228,7 @@ export async function creerCreneaux(
   return { ok: true, ids };
 }
 
-export async function modifierCreneau(id: string, input: CreneauInput): Promise<ActionResult> {
+export async function modifierCreneau(id: string, input: CreneauInput): Promise<ActionResult & { demandeAnnulee?: boolean }> {
   await requireAdmin();
   const parsed = creneauSchema.safeParse(input);
   if (!parsed.success) {
@@ -237,6 +237,7 @@ export async function modifierCreneau(id: string, input: CreneauInput): Promise<
   const v = parsed.data;
 
   const supabase = await createClient();
+  const { data: avant } = await supabase.from("creneaux_planning").select("date, heure_debut").eq("id", id).single();
   const { error } = await supabase
     .from("creneaux_planning")
     .update({
@@ -260,9 +261,20 @@ export async function modifierCreneau(id: string, input: CreneauInput): Promise<
   const erreurTech = await enregistrerTechniciens(supabase, id, v.technicien_ids);
   if (erreurTech) return { ok: false, erreur: erreurTech };
 
+  let demandeAnnulee = false;
+  if (avant && (avant.date !== v.date || (avant.heure_debut ?? "").slice(0, 5) !== (v.heure_debut ?? "").slice(0, 5))) {
+    const { data: annulees } = await supabase
+      .from("demandes_validation_client")
+      .update({ statut: "remplacee", motif_remplacement: "modification", traite_le: new Date().toISOString() })
+      .contains("creneau_ids", [id])
+      .neq("statut", "remplacee")
+      .select("id");
+    demandeAnnulee = (annulees ?? []).length > 0;
+  }
+
   revalidatePath("/planning");
   revalidatePath("/planning/mon-planning");
-  return { ok: true };
+  return { ok: true, demandeAnnulee };
 }
 
 export async function supprimerCreneau(id: string): Promise<ActionResult> {

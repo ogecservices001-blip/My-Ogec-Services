@@ -8,11 +8,9 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CalendarClock, CheckCircle2, Mail, X } from "lucide-react";
 import {
-  chargerEmailSite,
   chargerInfoVisiteSite,
   chercherConflitsAbsence,
   creerCreneaux,
-  envoyerMailPlanning,
   modifierCreneau,
   verifierQuotaJours,
   type ConflitAbsence,
@@ -21,6 +19,7 @@ import {
 } from "./actions";
 import type { DevisARealiser } from "@/app/(app)/bi/nouveau/actions";
 import type { CreneauAffiche } from "./creneau-carte";
+import { DemandeValidation } from "./demande-validation";
 import { formaterJourLong } from "@/lib/planning/dates";
 import { formaterHeures, joursDeLaPeriode, journeeType, proposerVisiteSuivante } from "@/lib/planning/periode";
 
@@ -104,6 +103,7 @@ export function NouveauCreneauForm({
   const [infoBrut, setInfoBrut] = useState<{ cle: string; data: InfoVisiteSite | null } | null>(null);
 
   const [erreur, setErreur] = useState<string | null>(null);
+  const [accordAnnule, setAccordAnnule] = useState(false);
   const [alertesQuota, setAlertesQuota] = useState<string[] | null>(null);
   const [conflits, setConflits] = useState<ConflitAbsence[] | null>(null);
 
@@ -112,10 +112,6 @@ export function NouveauCreneauForm({
     jours: { date: string; heures: number }[];
     visite: Visite | null;
   } | null>(null);
-  const [email, setEmail] = useState("");
-  const [envoi, startEnvoi] = useTransition();
-  const [mailEnvoye, setMailEnvoye] = useState(false);
-  const [erreurMail, setErreurMail] = useState<string | null>(null);
 
   const sitesSousContrat = useMemo(
     () => sites.filter((s) => !s.hors_contrat || s.id === creneauAModifier?.site_id),
@@ -257,6 +253,7 @@ export function NouveauCreneauForm({
         const res = await modifierCreneau(creneauAModifier.id, { ...base, date: jours[0].date, heures_prevues: jours[0].heures });
         if (!res.ok) return setErreur(res.erreur);
         ids = [creneauAModifier.id];
+        setAccordAnnule(Boolean(res.demandeAnnulee));
       } else {
         const res = await creerCreneaux(base, jours);
         if (!res.ok) return setErreur(res.erreur);
@@ -266,9 +263,6 @@ export function NouveauCreneauForm({
       if (onglet === "prestation") onEnregistre?.();
       if (onglet === "hors_client") return onFerme();
       setEnregistre({ ids, jours, visite: onglet === "sous_contrat" ? visite : null });
-      setMailEnvoye(false);
-      setErreurMail(null);
-      setEmail(info?.email || (siteId ? await chargerEmailSite(siteId) : ""));
     });
   }
 
@@ -287,16 +281,6 @@ export function NouveauCreneauForm({
     setAlertesQuota(null);
     setConflits(null);
     setEnregistre(null);
-  }
-
-  function envoyerMail() {
-    if (!enregistre) return;
-    setErreurMail(null);
-    startEnvoi(async () => {
-      const res = await envoyerMailPlanning(enregistre.ids, email);
-      if (!res.ok) setErreurMail(res.erreur);
-      else setMailEnvoye(true);
-    });
   }
 
   function champVisite(cle: keyof Visite, valeur: string) {
@@ -337,31 +321,18 @@ export function NouveauCreneauForm({
             <div className="rounded-xl border border-slate-200 p-4">
               <p className="mb-2 flex items-center gap-1.5 text-sm font-bold text-slate-900">
                 <Mail className="h-4 w-4" strokeWidth={2.25} />
-                Prévenir le client par mail
+                Demander l&apos;accord du client
               </p>
-              <p className="mb-2 text-xs text-slate-500">Le mail donne le site et les dates de passage, sans les noms des techniciens.</p>
-              {mailEnvoye ? (
-                <p className="text-sm font-semibold text-brand-green-dark">Mail envoyé à {email}.</p>
-              ) : (
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
-                    id="planning-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email du client"
-                    className={CHAMP}
-                  />
-                  <button
-                    onClick={() => (email.trim() ? envoyerMail() : signaler("Renseigne l'email du client", "planning-email"))}
-                    disabled={envoi}
-                    className="shrink-0 rounded-lg bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-brand-green-dark disabled:opacity-60"
-                  >
-                    {envoi ? "Envoi..." : "Envoyer le mail"}
-                  </button>
-                </div>
+              <p className="mb-3 text-xs text-slate-500">
+                Le client reçoit un lien pour confirmer ces dates ou en proposer d&apos;autres (jamais les noms des techniciens). Sans réponse, il
+                est relancé automatiquement.
+              </p>
+              {accordAnnule && (
+                <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                  La date a changé : l&apos;accord précédent du client est annulé. Envoie-lui la nouvelle date ci-dessous.
+                </p>
               )}
-              {erreurMail && <p className="mt-2 text-xs text-red-600">{erreurMail}</p>}
+              <DemandeValidation creneauId={enregistre.ids[0]} />
             </div>
 
             {suivante && (

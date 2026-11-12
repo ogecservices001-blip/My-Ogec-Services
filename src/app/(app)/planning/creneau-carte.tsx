@@ -1,6 +1,7 @@
 "use client";
 
 import { ClipboardCheck, Clock, Users } from "lucide-react";
+import { LIBELLE_VALIDATION, type EtatValidation } from "@/lib/planning/validation";
 
 export type CreneauAffiche = {
   id: string;
@@ -15,6 +16,14 @@ export type CreneauAffiche = {
   visite_total?: number | null;
   techniciens?: { id: string; name: string }[];
   bi?: { id: string; numero: string; statut: string } | null;
+  validation?: EtatValidation | null;
+};
+
+const STYLE_VALIDATION: Record<string, string> = {
+  attente: "bg-orange-100 text-orange-700",
+  valide: "bg-green-100 text-green-700",
+  autre_date: "bg-purple-100 text-purple-700",
+  a_reproposer: "bg-red-100 text-red-700",
 };
 
 /// Carte compacte, purement informative — les actions (Modifier,
@@ -58,6 +67,13 @@ export function CreneauCarte({
         <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
           <Users className="h-3 w-3" strokeWidth={2} />
           {creneau.techniciens.map((t) => t.name).join(", ")}
+        </p>
+      )}
+      {creneau.validation && (
+        <p className={`mt-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${STYLE_VALIDATION[creneau.validation.statut]}`}>
+          {LIBELLE_VALIDATION[creneau.validation.statut]}
+          {creneau.validation.statut === "autre_date" && creneau.validation.datePropose &&
+            ` : ${creneau.validation.datePropose.split("-").reverse().slice(0, 2).join("/")}`}
         </p>
       )}
       {creneau.observations && <p className="mt-1 text-xs text-slate-400">{creneau.observations}</p>}

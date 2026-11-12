@@ -123,13 +123,14 @@ export function construireModules(isAdmin: boolean): Module[] {
       ],
     },
     {
-      nom: "Planning Maintenance",
+      nom: "Planning",
       actif: true,
       icone: ClipboardList,
       couleur: "bg-cyan-100 text-cyan-600",
       sousMenus: isAdmin
         ? [
             { nom: "Planification", href: "/planning" },
+            { nom: "Heures Planifiées", href: "/planning/heures-planifiees" },
             { nom: "Audit Heures", href: "/planning/audit-heures" },
             { nom: "Heures par pôle", href: "/planning/heures-par-pole" },
           ]

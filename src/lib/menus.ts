@@ -189,10 +189,10 @@ export function construireModules(isAdmin: boolean): Module[] {
       ? [
           {
             nom: "Ressources Humaines",
-            actif: true,
+            actif: false,
             icone: Users,
             couleur: "bg-rose-100 text-rose-600",
-            sousMenus: [{ nom: "Pointage des heures", href: "/ressources-humaines" }],
+            sousMenus: [],
           },
         ]
       : []),

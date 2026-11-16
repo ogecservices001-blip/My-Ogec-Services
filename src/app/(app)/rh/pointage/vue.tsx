@@ -8,7 +8,6 @@ import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { useFiltreClientSite } from "@/components/filtre-client-site";
 import { ListeRecherche } from "@/components/liste-recherche";
 import { nomFichierAvecDate } from "@/lib/excel-export";
-import { labelPole } from "@/lib/bi/constants";
 import type { LignePointage } from "@/lib/rh/pointage";
 import { basculerVehiculePersonnel, cloturerMois, exporterPointage, rouvrirMois } from "../actions";
 
@@ -16,7 +15,6 @@ const COLONNES: ColonneTableur[] = [
   { titre: "Date", largeur: "90px" },
   { titre: "Salarié" },
   { titre: "Client — Site" },
-  { titre: "N° affaire" },
   { titre: "Pôle" },
   { titre: "Commune" },
   { titre: "Source" },
@@ -155,8 +153,7 @@ export function PointageVue({ mois, lignes, cloture }: { mois: string; lignes: L
           <Link key="cs" href={l.lien} className="hover:underline">
             {[l.client, l.site].filter(Boolean).join(" — ")}
           </Link>,
-          l.nAffaire,
-          l.pole ? labelPole(l.pole) : "",
+          l.pole,
           l.commune ? (
             <span key="c" className={l.communeConnue ? "" : "font-semibold text-amber-700"}>
               {l.commune}
@@ -193,7 +190,7 @@ export function PointageVue({ mois, lignes, cloture }: { mois: string; lignes: L
           ),
           eur(l.transport),
         ])}
-        valeurs={visibles.map((l) => [l.date, l.salarie, `${l.client} ${l.site}`, l.nAffaire, l.pole ? labelPole(l.pole) : "", l.commune, l.libelleSource])}
+        valeurs={visibles.map((l) => [l.date, l.salarie, `${l.client} ${l.site}`, l.pole, l.commune, l.libelleSource])}
         vide="Aucune heure ce mois-ci"
       />
     </div>

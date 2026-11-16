@@ -206,6 +206,19 @@ export function construireModules(isAdmin: boolean): Module[] {
             couleur: "bg-cyan-100 text-cyan-600",
             sousMenus: [{ nom: "Postes hors client", href: "/planning/referentiel" }],
           },
+          {
+            nom: "Référentiel RH",
+            actif: true,
+            icone: Users,
+            couleur: "bg-rose-100 text-rose-600",
+            sousMenus: [
+              { nom: "Paramètres de paie", href: "/rh/referentiel/parametres" },
+              { nom: "Barème trajets et transports", href: "/rh/referentiel/bareme" },
+              { nom: "Salariés", href: "/rh/referentiel/salaries" },
+              { nom: "Motifs d'absence", href: "/rh/referentiel/absences" },
+              { nom: "Jours fériés", href: "/rh/referentiel/jours-feries" },
+            ],
+          },
         ]
       : []),
   ];

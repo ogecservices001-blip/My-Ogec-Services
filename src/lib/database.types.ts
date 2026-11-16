@@ -1550,6 +1550,141 @@ export type Database = {
           },
         ]
       }
+      rh_bareme_communes: {
+        Row: {
+          commune: string
+          created_at: string
+          date_valeur: string | null
+          id: string
+          prime_transport: number
+          prime_trajet: number
+          updated_at: string
+        }
+        Insert: {
+          commune: string
+          created_at?: string
+          date_valeur?: string | null
+          id?: string
+          prime_transport?: number
+          prime_trajet?: number
+          updated_at?: string
+        }
+        Update: {
+          commune?: string
+          created_at?: string
+          date_valeur?: string | null
+          id?: string
+          prime_transport?: number
+          prime_trajet?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rh_motifs_absence: {
+        Row: {
+          code_paie: string
+          created_at: string
+          exclu_comptage_heures: boolean
+          exclu_panier: boolean
+          id: string
+          motif: string
+          ordre: number
+          poste_hors_client_id: string | null
+        }
+        Insert: {
+          code_paie?: string
+          created_at?: string
+          exclu_comptage_heures?: boolean
+          exclu_panier?: boolean
+          id?: string
+          motif: string
+          ordre?: number
+          poste_hors_client_id?: string | null
+        }
+        Update: {
+          code_paie?: string
+          created_at?: string
+          exclu_comptage_heures?: boolean
+          exclu_panier?: boolean
+          id?: string
+          motif?: string
+          ordre?: number
+          poste_hors_client_id?: string | null
+        }
+        Relationships: []
+      }
+      rh_parametres: {
+        Row: {
+          duree_legale_hebdo: number
+          horaire_jeudi: number
+          horaire_lundi: number
+          horaire_mardi: number
+          horaire_mercredi: number
+          horaire_vendredi: number
+          id: number
+          panier_montant: number
+          panier_seuil_heures: number
+          plafond_hs25_hebdo: number
+          updated_at: string
+        }
+        Insert: {
+          duree_legale_hebdo?: number
+          horaire_jeudi?: number
+          horaire_lundi?: number
+          horaire_mardi?: number
+          horaire_mercredi?: number
+          horaire_vendredi?: number
+          id?: number
+          panier_montant?: number
+          panier_seuil_heures?: number
+          plafond_hs25_hebdo?: number
+          updated_at?: string
+        }
+        Update: {
+          duree_legale_hebdo?: number
+          horaire_jeudi?: number
+          horaire_lundi?: number
+          horaire_mardi?: number
+          horaire_mercredi?: number
+          horaire_vendredi?: number
+          id?: number
+          panier_montant?: number
+          panier_seuil_heures?: number
+          plafond_hs25_hebdo?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rh_salaries: {
+        Row: {
+          actif: boolean
+          categorie: string
+          created_at: string
+          id: string
+          nom_paie: string
+          profile_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          categorie?: string
+          created_at?: string
+          id?: string
+          nom_paie: string
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          categorie?: string
+          created_at?: string
+          id?: string
+          nom_paie?: string
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sites: {
         Row: {
           adresse: string

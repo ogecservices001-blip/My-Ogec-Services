@@ -1,4 +1,5 @@
 import { readFile } from "fs/promises";
+import { chargerSuiviPieces } from "./suivi-pieces";
 import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { Tables } from "@/lib/types";
@@ -17,7 +18,23 @@ export type DonneesRapportVisite = {
   nonDesservis: { nom: string; motif: string }[];
   /// Rattrapage : équipements déjà entretenus pour cette visite par un autre BI.
   dejaFaits: { nom: string; bi: string }[];
+  /// Pièces / travaux dont le devis a été envoyé et attend l'accord du client.
+  piecesEnAttente?: { equipement: string; travaux: string; devis: string; envoyeLe: string }[];
 };
+
+async function piecesEnAttenteDe(supabase: Supabase, equipements: { id: string; nom: string; localisation?: string }[]) {
+  const suivi = await chargerSuiviPieces(supabase, equipements.map((e) => e.id));
+  return equipements.flatMap((e) =>
+    (suivi.get(e.id) ?? [])
+      .filter((s) => s.attenteAccordClient)
+      .map((s) => ({
+        equipement: [e.nom, e.localisation].filter(Boolean).join(" — "),
+        travaux: s.titre,
+        devis: s.devisNumero,
+        envoyeLe: s.devisEnvoyeLe,
+      })),
+  );
+}
 
 /// Rapport technique d'une visite d'entretien : le BI Entretien sous contrat
 /// validé et les relevés qui lui sont rattachés.
@@ -74,6 +91,7 @@ export async function chargerRapportVisite(
       nonDesservis: ((bi.entretien_non_desservis as { nom?: string; motif?: string }[] | null) ?? [])
         .filter((n) => n.nom)
         .map((n) => ({ nom: n.nom ?? "", motif: n.motif ?? "" })),
+      piecesEnAttente: await piecesEnAttenteDe(supabase, tous.map((e) => ({ id: e.id, nom: e.nom, localisation: equipementParId.get(e.id)?.localisation }))),
     },
   };
 }
@@ -256,7 +274,7 @@ function FicheEquipement({ fiche }: { fiche: DonneesRapportVisite["fiches"][numb
 }
 
 function RapportDocument({ donnees, logo }: { donnees: DonneesRapportVisite; logo: Buffer | null }) {
-  const { bi, fiches, sansReleve, nonDesservis, dejaFaits } = donnees;
+  const { bi, fiches, sansReleve, nonDesservis, dejaFaits, piecesEnAttente = [] } = donnees;
   const visite = libelleVisite({ numero: bi.visite_numero, total: bi.visite_total, annee: bi.visite_annee });
   const periode = bi.date_debut && bi.date_fin && bi.date_debut !== bi.date_fin ? `du ${bi.date_debut} au ${bi.date_fin}` : bi.date_debut || bi.date_fin;
   const sousTitre = [[bi.client_nom, bi.site].filter(Boolean).join(" — "), visite].filter(Boolean).join(" · ");
@@ -323,6 +341,19 @@ function RapportDocument({ donnees, logo }: { donnees: DonneesRapportVisite; log
             <Text style={styles.blocTitre}>Équipements non entretenus</Text>
             {nonDesservis.map((n) => (
               <Ligne key={n.nom} cle={n.nom} valeur={n.motif || "—"} rouge />
+            ))}
+          </View>
+        )}
+
+        {piecesEnAttente.length > 0 && (
+          <View style={styles.bloc}>
+            <Text style={styles.blocTitre}>Pièces et travaux en attente de votre accord</Text>
+            {piecesEnAttente.map((p, i) => (
+              <Ligne
+                key={`${p.devis}-${i}`}
+                cle={p.equipement}
+                valeur={`${p.travaux}${p.devis ? ` (devis ${p.devis}${p.envoyeLe ? ` envoyé le ${p.envoyeLe}` : ""})` : ""}`}
+              />
             ))}
           </View>
         )}

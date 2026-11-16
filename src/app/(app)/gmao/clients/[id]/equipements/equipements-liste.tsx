@@ -34,6 +34,7 @@ export function EquipementsListe({
   freqCouranteParEquipement,
   siteSousContrat,
   isAdmin,
+  piecesEnCours = {},
 }: {
   siteId: string;
   equipements: Equipement[];
@@ -42,6 +43,7 @@ export function EquipementsListe({
   freqCouranteParEquipement: Map<string, number | null>;
   siteSousContrat: boolean;
   isAdmin: boolean;
+  piecesEnCours?: Record<string, number>;
 }) {
   const [qrOuvert, setQrOuvert] = useState<Equipement | null>(null);
 
@@ -88,6 +90,7 @@ export function EquipementsListe({
           isAdmin={isAdmin}
           siteId={siteId}
           onQr={setQrOuvert}
+          piecesEnCours={piecesEnCours}
           ouvertParDefaut={groupesTries.length === 1}
         />
       ))}
@@ -129,6 +132,7 @@ function Groupe({
   isAdmin,
   siteId,
   onQr,
+  piecesEnCours,
   ouvertParDefaut,
 }: {
   siteSousContrat: boolean;
@@ -141,6 +145,7 @@ function Groupe({
   isAdmin: boolean;
   siteId: string;
   onQr: (eq: Equipement) => void;
+  piecesEnCours: Record<string, number>;
   ouvertParDefaut: boolean;
 }) {
   const [ouvert, setOuvert] = useState(ouvertParDefaut);
@@ -176,6 +181,7 @@ function Groupe({
               isAdmin={isAdmin}
               siteId={siteId}
               onQr={onQr}
+              nbPieces={piecesEnCours[eq.id] ?? 0}
             />
           ))}
         </div>
@@ -192,6 +198,7 @@ function CarteEquipement({
   isAdmin,
   siteId,
   onQr,
+  nbPieces,
 }: {
   eq: Equipement;
   type: TypeEquipement | undefined;
@@ -200,6 +207,7 @@ function CarteEquipement({
   isAdmin: boolean;
   siteId: string;
   onQr: (eq: Equipement) => void;
+  nbPieces: number;
 }) {
   const sousTitre = [type?.code ?? "Famille inconnue", eq.numero_equipement, eq.localisation]
     .filter((s) => s)
@@ -220,6 +228,11 @@ function CarteEquipement({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="truncate text-sm font-semibold text-slate-900">{eq.nom}</p>
+            {nbPieces > 0 && (
+              <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-700">
+                🔧 {nbPieces} pièce{nbPieces > 1 ? "s" : ""} en attente
+              </span>
+            )}
             {eq.hors_contrat && (
               <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-700">
                 Hors contrat

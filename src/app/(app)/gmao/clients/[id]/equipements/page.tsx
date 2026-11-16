@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { chargerSuiviPieces, nombreEnCours } from "@/lib/gmao/suivi-pieces";
 import Link from "next/link";
 import { Plus, Upload, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -37,6 +38,13 @@ export default async function EquipementsSitePage({
     supabase,
     (equipements ?? []).map((e) => e.id),
   );
+
+  const suivi = await chargerSuiviPieces(supabase, (equipements ?? []).map((e) => e.id));
+  const piecesEnCours: Record<string, number> = {};
+  for (const [id, sujets] of suivi) {
+    const n = nombreEnCours(sujets);
+    if (n > 0) piecesEnCours[id] = n;
+  }
 
   return (
     <div>
@@ -93,6 +101,7 @@ export default async function EquipementsSitePage({
         freqCouranteParEquipement={freqCouranteParEquipement}
         siteSousContrat={!site.hors_contrat}
         isAdmin={isAdmin}
+        piecesEnCours={piecesEnCours}
       />
     </div>
   );

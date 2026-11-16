@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { chargerSuiviPieces } from "@/lib/gmao/suivi-pieces";
+import { SuiviPieces } from "@/components/gmao/suivi-pieces";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -8,7 +10,6 @@ import { concatTypeEquipement, analyserReference } from "@/lib/gmao/suggestion-r
 import { calculerHeuresVisite, heuresCumulAnnee } from "@/lib/gmao/calcul-heures-visite";
 import { freqCouranteCalculee } from "@/lib/gmao/releve-service";
 import { chargerDevisEnCoursParEquipement } from "@/lib/devis/en-cours";
-import { LABEL_STATUT_DEVIS, TEINTE_STATUT_DEVIS } from "@/app/(app)/devis/statut";
 import { chargerBonsInterventionParEquipement } from "@/lib/bi/bons-par-equipement";
 import { ETATS_EQUIPEMENT } from "@/lib/bi/format";
 import { StatutBadge } from "@/components/bi/statut-badge";
@@ -49,7 +50,7 @@ export default async function VisualiserEquipementPage({
 
   const resultatReference = analyserReference(c, references ?? []);
   const freqCourante = await freqCouranteCalculee(supabase, equipementId);
-  const [devisEnCours, { data: depannagesOuverts }, bonsIntervention] = await Promise.all([
+  const [devisEnCours, { data: depannagesOuverts }, bonsIntervention, suiviPieces] = await Promise.all([
     chargerDevisEnCoursParEquipement().then((parEquipement) => parEquipement[equipementId] ?? []),
     supabase
       .from("demandes_depannage")
@@ -58,6 +59,7 @@ export default async function VisualiserEquipementPage({
       .neq("statut", "traitee")
       .order("date_creation", { ascending: false }),
     chargerBonsInterventionParEquipement(equipementId),
+    chargerSuiviPieces(supabase, [equipementId]).then((m) => m.get(equipementId) ?? []),
   ]);
   const cumul =
     resultatReference.reference && Number.isFinite(freqAnnuelleNum)
@@ -140,19 +142,10 @@ export default async function VisualiserEquipementPage({
         {typeConcat && <p className="mt-1 text-sm font-semibold text-brand-green-dark">{typeConcat}</p>}
       </div>
 
-      {(devisEnCours.length > 0 || (depannagesOuverts ?? []).length > 0 || bonsIntervention.length > 0) && (
+      <SuiviPieces sujets={suiviPieces} isAdmin={isAdmin} />
+
+      {((depannagesOuverts ?? []).length > 0 || bonsIntervention.length > 0) && (
         <div className="mb-5 space-y-1.5 border-t border-slate-100 pt-3">
-          {devisEnCours.map((d, i) => (
-            <p key={`devis-${i}`} className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-red-700">
-              {d.numero}
-              <span
-                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${TEINTE_STATUT_DEVIS[d.statut]}`}
-              >
-                {LABEL_STATUT_DEVIS[d.statut]}
-              </span>
-              — {d.libelle}
-            </p>
-          ))}
           {(depannagesOuverts ?? []).map((d) => (
             <p key={`dep-${d.id}`} className="text-sm font-semibold text-blue-700">
               N°{d.numero} — {d.message}

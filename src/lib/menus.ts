@@ -6,7 +6,6 @@ import {
   FileCheck,
   FileSignature,
   Flag,
-  BookOpen,
   ShoppingCart,
   Users,
   type LucideIcon,
@@ -89,6 +88,12 @@ export function construireModules(isAdmin: boolean): Module[] {
       sousMenus: [
         { nom: "Clients", href: "/gmao/clients?horsContrat=0" },
         { nom: "Scanner QR", href: "/gmao/scanner" },
+        ...(isAdmin
+          ? [
+              { nom: "Référentiel Heures", href: "/gmao/referentiel/heures" },
+              { nom: "Référentiel équipements", href: "/gmao/referentiel/familles" },
+            ]
+          : []),
       ],
     },
     {
@@ -134,6 +139,7 @@ export function construireModules(isAdmin: boolean): Module[] {
             { nom: "Point RDV Client", href: "/planning/point-rdv-client" },
             { nom: "Audit Heures", href: "/planning/audit-heures" },
             { nom: "Heures par pôle", href: "/planning/heures-par-pole" },
+            { nom: "Postes hors client", href: "/planning/referentiel" },
           ]
         : [{ nom: "Mon planning", href: "/planning/mon-planning" }],
     },
@@ -175,20 +181,6 @@ export function construireModules(isAdmin: boolean): Module[] {
     ...(isAdmin
       ? [
           {
-            nom: "Référentiel GMAO",
-            actif: true,
-            icone: BookOpen,
-            couleur: "bg-cyan-100 text-cyan-600",
-            sousMenus: [
-              { nom: "Référentiel Heures", href: "/gmao/referentiel/heures" },
-              { nom: "Référentiel Gammes de maintenance", href: "/gmao/referentiel/familles" },
-            ],
-          },
-        ]
-      : []),
-    ...(isAdmin
-      ? [
-          {
             nom: "Ressources Humaines",
             actif: true,
             icone: Users,
@@ -197,25 +189,6 @@ export function construireModules(isAdmin: boolean): Module[] {
               { nom: "Contrôle du mois", href: "/rh/controle" },
               { nom: "Pointage mensuel", href: "/rh/pointage" },
               { nom: "Absences des administratifs", href: "/rh/referentiel/absences-admin" },
-            ],
-          },
-        ]
-      : []),
-    ...(isAdmin
-      ? [
-          {
-            nom: "Référentiel Planning",
-            actif: true,
-            icone: ClipboardList,
-            couleur: "bg-cyan-100 text-cyan-600",
-            sousMenus: [{ nom: "Postes hors client", href: "/planning/referentiel" }],
-          },
-          {
-            nom: "Référentiel RH",
-            actif: true,
-            icone: Users,
-            couleur: "bg-rose-100 text-rose-600",
-            sousMenus: [
               { nom: "Paramètres de paie", href: "/rh/referentiel/parametres" },
               { nom: "Barème trajets et transports", href: "/rh/referentiel/bareme" },
               { nom: "Salariés", href: "/rh/referentiel/salaries" },

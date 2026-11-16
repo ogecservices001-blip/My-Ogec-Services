@@ -195,7 +195,7 @@ export function StatutDevisForm({
       equipementsLies.length > 1 ? "Équipements liés" : "Équipement lié",
       equipementsLies
         .map((e) =>
-          [[e.nom, e.numero_equipement ? `(${e.numero_equipement})` : ""].filter(Boolean).join(" "), e.localisation]
+          [e.nom, e.localisation]
             .filter(Boolean)
             .join(" — "),
         )
@@ -494,7 +494,7 @@ export function StatutDevisForm({
                 .filter((e) => e.id === equipementIds[i] || !equipementIds.includes(e.id))
                 .map((e) => ({
                   valeur: e.id,
-                  label: e.numero_equipement ? `${e.nom} (${e.numero_equipement})` : e.nom,
+                  label: e.nom,
                   detail: e.localisation || undefined,
                 }))}
             />

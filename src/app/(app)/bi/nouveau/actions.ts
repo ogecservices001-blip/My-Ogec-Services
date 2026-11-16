@@ -343,11 +343,12 @@ export async function chargerBrouillonBI(id: string): Promise<BrouillonBI | null
 
   // BI à plusieurs pages : l'assistant reprend sur la dernière page saisie,
   // les précédentes redevenant des pages déjà faites.
-  const pages = data.pole === NATURE_MULTIPLE ? interventionsDuBon(data) : [];
+  const toutes = interventionsDuBon(data);
+  const pages = data.pole === NATURE_MULTIPLE || (data.devis_id && toutes.length > 1) ? toutes : [];
   const derniere = pages[pages.length - 1];
   const reprisePage = derniere
     ? {
-        pole: derniere.pole ?? "",
+        pole: derniere.pole || data.pole,
         equipement_id: derniere.equipement_id,
         equipement_nom: derniere.equipement_nom,
         equipement_groupe: derniere.equipement_groupe,

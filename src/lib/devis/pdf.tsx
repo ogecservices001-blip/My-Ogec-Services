@@ -166,7 +166,10 @@ function DevisDocument({
   const tva = Math.round(totalNet * 0.085 * 100) / 100;
   const ttc = totalNet + tva;
 
-  const nomsEquipements = paves.map((p) => p.equipementNom).filter(Boolean).join(", ");
+  // Pour le client : nom de l'équipement et localisation, jamais le numéro interne (405-02-08).
+  const equipementClient = (p: { equipementNom: string; localisation: string }) =>
+    [p.equipementNom.split(" — ")[0].trim(), p.localisation.trim()].filter(Boolean).join(" — ");
+  const nomsEquipements = paves.map(equipementClient).filter(Boolean).join(", ");
   const libelleDevis = plusieursPaves ? nomsEquipements || "Plusieurs équipements" : devis.libelle;
   const objet = [site?.site, libelleDevis].filter(Boolean).join(" - ");
   const rangDesLignes = new Map(lignesValides.filter((l) => l.quantite.trim()).map((l, i) => [l, i + 1]));
@@ -212,7 +215,7 @@ function DevisDocument({
           {paves.map((pave, p) => (
             <View key={p}>
               {plusieursPaves && (
-                <LigneTexte texte={[pave.equipementNom, pave.libelle].filter(Boolean).join(" — ")} gras />
+                <LigneTexte texte={[equipementClient(pave), pave.libelle].filter(Boolean).join(" — ")} gras />
               )}
               {pave.lignes.map((l, i) => {
                 const estTitre = !l.quantite.trim();

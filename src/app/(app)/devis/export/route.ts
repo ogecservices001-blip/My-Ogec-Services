@@ -89,7 +89,7 @@ export async function GET(request: Request) {
       site?.nom ?? "",
       site?.site ?? "",
       equipementsDuDevis
-        .map((e) => [e.nom, e.numero_equipement ? `(${e.numero_equipement})` : ""].filter(Boolean).join(" "))
+        .map((e) => [e.nom, e.localisation].filter(Boolean).join(" — "))
         .join(" ; "),
       d.localisation || equipement?.localisation || "",
       d.redacteur,

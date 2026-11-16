@@ -93,7 +93,7 @@ export async function listerEquipementsDuSite(
   return (data ?? []).map((e) => {
     return {
       id: e.id,
-      libelle: [e.nom, e.numero_equipement].filter(Boolean).join(" — "),
+      libelle: e.nom,
       localisation: e.localisation,
       groupe: e.groupe,
     };
@@ -378,7 +378,7 @@ export async function lierEquipementsPaves(id: string, equipementIds: string[]):
     return {
       ...pave,
       equipementId: equipement?.id ?? null,
-      equipementNom: equipement ? [equipement.nom, equipement.numero_equipement].filter(Boolean).join(" — ") : "",
+      equipementNom: equipement?.nom ?? "",
     };
   });
 

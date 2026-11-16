@@ -84,11 +84,12 @@ function champTexte(champs: ChampsEnTeteEquipement, cle: string): string {
   return typeof v === "string" ? v : "";
 }
 
-/// Pages d'un devis à plusieurs natures, une par pavé ; null sinon.
+/// Pages d'un devis à plusieurs pavés (ou à plusieurs natures), une par pavé
+/// dans l'ordre du devis ; null pour un devis à un seul pavé.
 function pagesDuDevis(d: { nature: string; paves: unknown }): PaveDevis[] | null {
-  if (d.nature !== NATURE_MULTIPLE) return null;
   const paves = (d.paves as PaveDevis[] | null) ?? [];
-  return paves.length > 0 ? paves : null;
+  if (paves.length > 1 || (d.nature === NATURE_MULTIPLE && paves.length > 0)) return paves;
+  return null;
 }
 
 function etatsDepuisReponses(devisAEtablir: boolean | null, horsService: boolean | null): string[] {
@@ -962,10 +963,12 @@ export function BiWizard({
     // BI à plusieurs pages : la première page dans les champs du bon, les
     // suivantes (chacune avec son type) dans interventions_supplementaires.
     const [premiere, ...suivantes] = [...interventionsSupplementaires, pageActuelle()];
+    // Même type sur toutes les pages : le BI garde ce type (BI-15-…), sinon PN.
+    const typeCommun = [premiere, ...suivantes].every((p) => p.pole === premiere.pole) ? premiere.pole : "";
     return {
       ...input,
-      pole: NATURE_MULTIPLE,
-      pole_principal: premiere.pole ?? "",
+      pole: typeCommun || NATURE_MULTIPLE,
+      pole_principal: typeCommun ? "" : (premiere.pole ?? ""),
       equipement_id: premiere.equipement_id,
       equipement_nom: premiere.equipement_nom,
       equipement_groupe: premiere.equipement_groupe,

@@ -266,6 +266,7 @@ export type ParametresPaie = {
   horaire_mercredi: number;
   horaire_jeudi: number;
   horaire_vendredi: number;
+  jour_arrete: number;
 };
 
 export async function enregistrerParametresPaie(p: Record<keyof ParametresPaie, string>): Promise<ActionResult> {
@@ -276,6 +277,9 @@ export async function enregistrerParametresPaie(p: Record<keyof ParametresPaie, 
     if (!Number.isFinite(n) || n < 0) return { ok: false, erreur: "Toutes les valeurs doivent être des nombres positifs.", champs: { [k]: "Nombre attendu" } };
     valeurs[k] = n;
   }
+  if (!Number.isInteger(valeurs.jour_arrete) || (valeurs.jour_arrete ?? 0) < 1 || (valeurs.jour_arrete ?? 0) > 28) {
+    return { ok: false, erreur: "Le jour d'arrêté doit être un jour du mois entre 1 et 28.", champs: { jour_arrete: "Entre 1 et 28" } };
+  }
   if ((valeurs.plafond_hs25_hebdo ?? 0) < (valeurs.duree_legale_hebdo ?? 0)) {
     return { ok: false, erreur: "Le plafond des heures à 25 % doit être supérieur ou égal à la durée légale.", champs: { plafond_hs25_hebdo: "Trop bas" } };
   }
@@ -283,5 +287,6 @@ export async function enregistrerParametresPaie(p: Record<keyof ParametresPaie, 
   const { error } = await supabase.from("rh_parametres").update({ ...valeurs, updated_at: new Date().toISOString() }).eq("id", 1);
   if (error) return { ok: false, erreur: error.message };
   revalidatePath("/rh/referentiel/parametres");
+  revalidatePath("/rh/etat");
   return { ok: true };
 }

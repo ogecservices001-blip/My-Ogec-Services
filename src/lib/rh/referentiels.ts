@@ -68,6 +68,7 @@ export const REFERENTIELS: Record<CodeReferentiel, DefinitionReferentiel> = {
           { valeur: "administratif", label: "Administratif" },
         ],
       },
+      { cle: "sans_indemnites", entete: "Cadre — sans paniers ni déplacements", type: "booleen" },
       { cle: "actif", entete: "Actif", type: "booleen" },
     ],
   },

@@ -1582,18 +1582,24 @@ export type Database = {
       }
       rh_clotures: {
         Row: {
+          date_arrete: string | null
+          etat: Json | null
           cloture_le: string
           cloture_par: string
           lignes: Json
           mois: string
         }
         Insert: {
+          date_arrete?: string | null
+          etat?: Json | null
           cloture_le?: string
           cloture_par?: string
           lignes?: Json
           mois: string
         }
         Update: {
+          date_arrete?: string | null
+          etat?: Json | null
           cloture_le?: string
           cloture_par?: string
           lignes?: Json
@@ -1658,6 +1664,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rh_etats_preparatoires: {
+        Row: {
+          date_arrete: string | null
+          mois: string
+          observations: Json
+          updated_at: string
+        }
+        Insert: {
+          date_arrete?: string | null
+          mois: string
+          observations?: Json
+          updated_at?: string
+        }
+        Update: {
+          date_arrete?: string | null
+          mois?: string
+          observations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rh_motifs_absence: {
         Row: {
           code_paie: string
@@ -1693,6 +1720,7 @@ export type Database = {
       }
       rh_parametres: {
         Row: {
+          jour_arrete: number
           duree_legale_hebdo: number
           horaire_jeudi: number
           horaire_lundi: number
@@ -1706,6 +1734,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          jour_arrete?: number
           duree_legale_hebdo?: number
           horaire_jeudi?: number
           horaire_lundi?: number
@@ -1719,6 +1748,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          jour_arrete?: number
           duree_legale_hebdo?: number
           horaire_jeudi?: number
           horaire_lundi?: number
@@ -1735,6 +1765,7 @@ export type Database = {
       }
       rh_salaries: {
         Row: {
+          sans_indemnites: boolean
           actif: boolean
           categorie: string
           created_at: string
@@ -1744,6 +1775,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          sans_indemnites?: boolean
           actif?: boolean
           categorie?: string
           created_at?: string
@@ -1753,6 +1785,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          sans_indemnites?: boolean
           actif?: boolean
           categorie?: string
           created_at?: string

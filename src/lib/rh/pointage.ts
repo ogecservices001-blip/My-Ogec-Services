@@ -104,7 +104,7 @@ export async function calculerPointage(
   const [{ data: param }, { data: bareme }, { data: salaries }, { data: motifs }, { data: feries }, { data: profils }, { data: postes }] = await Promise.all([
     supabase.from("rh_parametres").select("*").eq("id", 1).single(),
     supabase.from("rh_bareme_communes").select("commune, prime_trajet, prime_transport"),
-    supabase.from("rh_salaries").select("profile_id, nom_paie, actif"),
+    supabase.from("rh_salaries").select("profile_id, nom_paie, actif, sans_indemnites"),
     supabase.from("rh_motifs_absence").select("motif, poste_hors_client_id, exclu_panier"),
     supabase.from("jours_feries").select("date").gte("date", debut).lte("date", finMois),
     supabase.from("profiles").select("id, name, role"),
@@ -114,6 +114,7 @@ export async function calculerPointage(
   const joursFeries = (feries ?? []).map((f: { date: string }) => f.date);
   const tarif = new Map(((bareme ?? []) as { commune: string; prime_trajet: number; prime_transport: number }[]).map((b) => [normaliserCle(b.commune), b]));
   const salarieParProfil = new Map(((salaries ?? []) as { profile_id: string | null; nom_paie: string }[]).filter((s) => s.profile_id).map((s) => [s.profile_id as string, s.nom_paie]));
+  const sansIndemnites = new Set(((salaries ?? []) as { profile_id: string | null; sans_indemnites: boolean }[]).filter((s) => s.profile_id && s.sans_indemnites).map((s) => s.profile_id as string));
   const profilParId = new Map(((profils ?? []) as { id: string; name: string; role: string }[]).map((p) => [p.id, p]));
   const profilParNom = new Map(((profils ?? []) as { id: string; name: string }[]).map((p) => [p.name.trim().toLowerCase(), p.id]));
   const motifParPoste = new Map(((motifs ?? []) as { motif: string; poste_hors_client_id: string | null; exclu_panier: boolean }[]).filter((x) => x.poste_hors_client_id).map((x) => [x.poste_hors_client_id as string, x]));
@@ -307,7 +308,7 @@ export async function calculerPointage(
       }
     }
     let panierNb = 0;
-    if (!b.exclusPanier) {
+    if (!b.exclusPanier && !sansIndemnites.has(b.profileId)) {
       const cumul = (travailJour.get(cleJour) ?? 0) + b.heures;
       travailJour.set(cleJour, cumul);
       if (cumul > parametres.panier_seuil_heures && !panierJour.has(cleJour)) {
@@ -350,6 +351,7 @@ export async function calculerPointage(
   const parJour = new Map<string, LignePointage[]>();
   for (const l of resultat) parJour.set(`${l.profileId}|${l.date}`, [...(parJour.get(`${l.profileId}|${l.date}`) ?? []), l]);
   for (const lignes of parJour.values()) {
+    if (sansIndemnites.has(lignes[0].profileId)) continue;
     let meilleure: LignePointage | null = null;
     let montant = 0;
     for (const l of lignes) {

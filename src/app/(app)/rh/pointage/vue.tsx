@@ -3,12 +3,13 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Download, Lock, LockOpen } from "lucide-react";
+import { Download, FileSpreadsheet, Lock, LockOpen } from "lucide-react";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
 import { useFiltreClientSite } from "@/components/filtre-client-site";
 import { ListeRecherche } from "@/components/liste-recherche";
 import { nomFichierAvecDate } from "@/lib/excel-export";
 import type { LignePointage } from "@/lib/rh/pointage";
+import { finDuMois } from "@/lib/rh/mois";
 import { basculerVehiculePersonnel, cloturerMois, exporterPointage, rouvrirMois } from "../actions";
 
 const COLONNES: ColonneTableur[] = [
@@ -31,7 +32,7 @@ const COLONNES: ColonneTableur[] = [
 const h = (n: number) => (n ? n.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) : "");
 const eur = (n: number) => (n ? n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €" : "");
 
-export function PointageVue({ mois, lignes, cloture }: { mois: string; lignes: LignePointage[]; cloture: { le: string; par: string } | null }) {
+export function PointageVue({ mois, lignes, cloture }: { mois: string; lignes: LignePointage[]; cloture: { le: string; par: string; dateArrete: string } | null }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
@@ -86,6 +87,10 @@ export function PointageVue({ mois, lignes, cloture }: { mois: string; lignes: L
             onChange={(e) => e.target.value && router.push(`/rh/pointage?mois=${e.target.value}`)}
             className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold shadow-sm"
           />
+          <Link href={`/rh/etat?mois=${mois}`} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-dark">
+            <FileSpreadsheet className="h-4 w-4" />
+            État préparatoire
+          </Link>
           <button onClick={exporter} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50">
             <Download className="h-4 w-4" />
             Export Excel
@@ -106,7 +111,11 @@ export function PointageVue({ mois, lignes, cloture }: { mois: string; lignes: L
 
       {cloture && (
         <p className="mb-3 rounded-xl bg-slate-100 px-4 py-2 text-sm text-slate-700">
-          <Lock className="mr-1 inline h-4 w-4" /> Mois clôturé le {new Date(cloture.le).toLocaleDateString("fr-FR")} par {cloture.par} : le pointage est figé.
+          <Lock className="mr-1 inline h-4 w-4" /> Mois clôturé le {new Date(cloture.le).toLocaleDateString("fr-FR")} par {cloture.par} : le pointage est figé jusqu&apos;au{" "}
+          {cloture.dateArrete.split("-").reverse().join("/")}
+          {cloture.dateArrete < finDuMois(mois)
+            ? " ; les jours suivants restent modifiables et seront régularisés le mois prochain."
+            : "."}
         </p>
       )}
       {confirmer && (
@@ -182,7 +191,7 @@ export function PointageVue({ mois, lignes, cloture }: { mois: string; lignes: L
               key="v"
               type="checkbox"
               checked={l.vehiculePerso}
-              disabled={Boolean(cloture) || pending}
+              disabled={(Boolean(cloture) && l.date <= (cloture?.dateArrete ?? "")) || pending}
               onChange={(e) => agir(() => basculerVehiculePersonnel(l.profileId, l.date, e.target.checked))}
               className="h-4 w-4 accent-brand-green"
               title="Véhicule personnel ce jour-là (prime de transport)"

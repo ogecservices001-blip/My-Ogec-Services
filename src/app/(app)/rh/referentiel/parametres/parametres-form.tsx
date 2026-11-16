@@ -21,6 +21,10 @@ const GROUPES: { titre: string; champs: { cle: keyof ParametresPaie; libelle: st
     ],
   },
   {
+    titre: "Envoi à la RH",
+    champs: [{ cle: "jour_arrete", libelle: "Jour d'arrêté du pointage (paie le 24, envoi 48 h avant)", unite: "" }],
+  },
+  {
     titre: "Horaires journaliers attendus",
     champs: [
       { cle: "horaire_lundi", libelle: "Lundi", unite: "h" },
@@ -60,7 +64,7 @@ export function ParametresForm({ valeurs }: { valeurs: ParametresPaie }) {
   return (
     <div className="space-y-4">
       {fenetre}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
         {GROUPES.map((g) => (
           <div key={g.titre} className="rounded-2xl bg-white p-4 shadow-sm">
             <p className="mb-3 text-sm font-bold text-slate-900">{g.titre}</p>

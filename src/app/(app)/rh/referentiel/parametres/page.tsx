@@ -9,7 +9,7 @@ export default async function ParametresPaiePage() {
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Paramètres de paie</h1>
-      <p className="mb-5 text-sm text-slate-500">Règles de calcul du pointage : heures supplémentaires, panier, horaires journaliers.</p>
+      <p className="mb-5 text-sm text-slate-500">Règles de calcul du pointage : heures supplémentaires, panier, date d&apos;arrêté, horaires journaliers.</p>
       {data ? <ParametresForm valeurs={data} /> : <p className="text-sm text-red-600">Paramètres introuvables.</p>}
     </div>
   );

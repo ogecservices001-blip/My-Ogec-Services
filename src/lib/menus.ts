@@ -188,6 +188,7 @@ export function construireModules(isAdmin: boolean): Module[] {
             sousMenus: [
               { nom: "Contrôle du mois", href: "/rh/controle" },
               { nom: "Pointage mensuel", href: "/rh/pointage" },
+              { nom: "État préparatoire (envoi RH)", href: "/rh/etat" },
               { nom: "Absences des administratifs", href: "/rh/referentiel/absences-admin" },
               { nom: "Paramètres de paie", href: "/rh/referentiel/parametres" },
               { nom: "Barème trajets et transports", href: "/rh/referentiel/bareme" },

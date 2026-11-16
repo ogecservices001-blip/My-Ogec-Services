@@ -162,26 +162,50 @@ export function SignalementsEcran({
         <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
         Retour
       </Link>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
-        Signalement retour terrain
-      </h1>
-      <p className="mb-5 text-sm text-slate-500">
-        Un bug, une idée, une remarque sur l&apos;appli — dis-le nous.
-      </p>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Signalement retour terrain</h1>
+          <p className="text-sm text-slate-500">Un bug, une idée, une remarque sur l&apos;appli — dis-le nous.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {TYPES.map(({ valeur, label, icone: Icone, couleur }) => (
+            <button
+              key={valeur}
+              onClick={() => choisirType(valeur)}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition ${
+                type === valeur ? "bg-slate-900 text-white" : "bg-white text-slate-800 hover:bg-slate-50"
+              }`}
+            >
+              <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${couleur}`}>
+                <Icone className="h-4 w-4" strokeWidth={2} />
+              </span>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
+      {confirmation && !type && <p className="mb-6 rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">{confirmation}</p>}
+
+      {type && (
       <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
-        <Etape
-          titre="Type"
-          valeurActuelle={type ? LABEL_TYPE[type] : null}
-          options={TYPES}
-          onChoisir={choisirType}
-          onChanger={() => {
-            setType(null);
-            setMenu(null);
-            setSousMenu(null);
-            setNature(null);
-          }}
-        />
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 py-2.5">
+          <p className="text-sm">
+            <span className="text-slate-400">Type : </span>
+            <span className="font-semibold text-slate-900">{LABEL_TYPE[type]}</span>
+          </p>
+          <button
+            onClick={() => {
+              setType(null);
+              setMenu(null);
+              setSousMenu(null);
+              setNature(null);
+            }}
+            className="shrink-0 text-xs font-semibold text-brand-green-dark hover:underline"
+          >
+            Annuler
+          </button>
+        </div>
 
         {type && (
           <Etape
@@ -257,10 +281,8 @@ export function SignalementsEcran({
           </div>
         )}
 
-        {confirmation && (
-          <p className="pt-3 text-sm font-medium text-brand-green-dark">{confirmation}</p>
-        )}
       </div>
+      )}
 
       {isAdmin && <ListeAdmin signalements={signalements} />}
     </div>

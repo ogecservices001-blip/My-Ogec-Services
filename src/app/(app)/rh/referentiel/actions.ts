@@ -78,6 +78,16 @@ export async function enregistrerLigne(code: CodeReferentiel, idExistant: string
   const prep = preparer(code, brut, options, options.communesSites.map((c) => c.valeur));
   if (!prep.ok) return { ok: false, erreur: prep.erreur };
 
+  // Barème : code postal repris de l'adresse des sites quand il n'est pas saisi.
+  if (code === "bareme" && !String(prep.valeurs.code_postal ?? "").trim()) {
+    const { data: sites } = await supabase.from("sites").select("commune, code_postal").neq("code_postal", "");
+    const compte = new Map<string, number>();
+    for (const s of (sites ?? []) as { commune: string; code_postal: string }[]) {
+      if (normaliserCle(s.commune) === normaliserCle(prep.valeurs.commune)) compte.set(s.code_postal.trim(), (compte.get(s.code_postal.trim()) ?? 0) + 1);
+    }
+    const plusFrequent = [...compte.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (plusFrequent) prep.valeurs.code_postal = plusFrequent;
+  }
   if (code === "absences-admin" && String(prep.valeurs.date_fin) < String(prep.valeurs.date_debut)) {
     return { ok: false, erreur: "La date de fin est avant la date de début." };
   }

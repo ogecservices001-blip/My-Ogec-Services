@@ -41,6 +41,7 @@ export const REFERENTIELS: Record<CodeReferentiel, DefinitionReferentiel> = {
     tri: { colonne: "commune", asc: true },
     colonnes: [
       { cle: "commune", entete: "Commune", type: "commune", obligatoire: true },
+      { cle: "code_postal", entete: "Code postal", type: "texte" },
       { cle: "prime_trajet", entete: "Prime trajet (€)", type: "euros" },
       { cle: "prime_transport", entete: "Prime transport (€)", type: "euros" },
       { cle: "date_valeur", entete: "Date de valeur", type: "date" },

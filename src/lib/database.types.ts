@@ -1627,6 +1627,7 @@ export type Database = {
       }
       rh_bareme_communes: {
         Row: {
+          code_postal: string
           commune: string
           created_at: string
           date_valeur: string | null
@@ -1636,6 +1637,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          code_postal?: string
           commune: string
           created_at?: string
           date_valeur?: string | null
@@ -1645,6 +1647,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          code_postal?: string
           commune?: string
           created_at?: string
           date_valeur?: string | null

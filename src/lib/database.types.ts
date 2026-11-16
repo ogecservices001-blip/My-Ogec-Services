@@ -1550,6 +1550,81 @@ export type Database = {
           },
         ]
       }
+      rh_absences_admin: {
+        Row: {
+          created_at: string
+          date_debut: string
+          date_fin: string
+          id: string
+          motif_id: string
+          observations: string
+          salarie_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_debut: string
+          date_fin: string
+          id?: string
+          motif_id: string
+          observations?: string
+          salarie_id: string
+        }
+        Update: {
+          created_at?: string
+          date_debut?: string
+          date_fin?: string
+          id?: string
+          motif_id?: string
+          observations?: string
+          salarie_id?: string
+        }
+        Relationships: []
+      }
+      rh_clotures: {
+        Row: {
+          cloture_le: string
+          cloture_par: string
+          lignes: Json
+          mois: string
+        }
+        Insert: {
+          cloture_le?: string
+          cloture_par?: string
+          lignes?: Json
+          mois: string
+        }
+        Update: {
+          cloture_le?: string
+          cloture_par?: string
+          lignes?: Json
+          mois?: string
+        }
+        Relationships: []
+      }
+      rh_pointage_ajustements: {
+        Row: {
+          date: string
+          observations: string
+          profile_id: string
+          updated_at: string
+          vehicule_personnel: boolean
+        }
+        Insert: {
+          date: string
+          observations?: string
+          profile_id: string
+          updated_at?: string
+          vehicule_personnel?: boolean
+        }
+        Update: {
+          date?: string
+          observations?: string
+          profile_id?: string
+          updated_at?: string
+          vehicule_personnel?: boolean
+        }
+        Relationships: []
+      }
       rh_bareme_communes: {
         Row: {
           commune: string

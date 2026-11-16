@@ -66,7 +66,11 @@ export async function chargerDepannagesPlanning(
       client_nom: b.client_nom,
       site: b.site,
       equipement: b.equipement_nom,
-      heures: dureeEnHeures(b.temps_passe ?? ""),
+      // Le temps du BI est le total de tous les techniciens : la part de chacun.
+      heures: (() => {
+        const total = dureeEnHeures(b.temps_passe ?? "");
+        return total === null ? null : Math.round((total / Math.max(1, ((b.techniciens as string[] | null) ?? []).length)) * 100) / 100;
+      })(),
       numero: b.numero,
       biId: b.id,
     });

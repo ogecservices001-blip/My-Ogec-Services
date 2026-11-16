@@ -138,10 +138,12 @@ export function TableReferentiel({
           <Plus className="h-4 w-4" strokeWidth={2.25} />
           Ajouter
         </button>
-        <button onClick={() => setImportOuvert(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50">
-          <Upload className="h-4 w-4" strokeWidth={2.25} />
-          Import Excel
-        </button>
+        {def.importable !== false && (
+          <button onClick={() => setImportOuvert(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50">
+            <Upload className="h-4 w-4" strokeWidth={2.25} />
+            Import Excel
+          </button>
+        )}
         <button onClick={exporter} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50">
           <Download className="h-4 w-4" strokeWidth={2.25} />
           Export Excel

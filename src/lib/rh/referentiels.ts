@@ -10,16 +10,18 @@ export type ColonneRef = {
   obligatoire?: boolean;
   /// Options d'une colonne "choix" (ou fournies à l'exécution, voir optionsDynamiques).
   options?: { valeur: string; label: string }[];
-  optionsDynamiques?: "profils" | "postes_absence";
+  optionsDynamiques?: "profils" | "postes_absence" | "salaries_admin" | "motifs";
 };
 
-export type CodeReferentiel = "bareme" | "salaries" | "absences" | "jours-feries";
+export type CodeReferentiel = "bareme" | "salaries" | "absences" | "jours-feries" | "absences-admin";
 
 export type DefinitionReferentiel = {
   code: CodeReferentiel;
   titre: string;
   description: string;
-  table: "rh_bareme_communes" | "rh_salaries" | "rh_motifs_absence" | "jours_feries";
+  table: "rh_bareme_communes" | "rh_salaries" | "rh_motifs_absence" | "jours_feries" | "rh_absences_admin";
+  /// false : pas d'import Excel (lignes sans clé métier unique).
+  importable?: boolean;
   /// Colonne identifiant une ligne en base (clé primaire).
   id: string;
   /// Colonne métier unique, qui sert à rapprocher les lignes d'un import.
@@ -95,6 +97,23 @@ export const REFERENTIELS: Record<CodeReferentiel, DefinitionReferentiel> = {
     colonnes: [
       { cle: "date", entete: "Date", type: "date", obligatoire: true },
       { cle: "libelle", entete: "Jour férié", type: "texte", obligatoire: true },
+    ],
+  },
+  "absences-admin": {
+    code: "absences-admin",
+    titre: "Absences des administratifs",
+    description: "Congés, maladie… du personnel administratif (les techniciens posent leurs absences dans le planning).",
+    table: "rh_absences_admin",
+    id: "id",
+    cle: "id",
+    importable: false,
+    tri: { colonne: "date_debut", asc: false },
+    colonnes: [
+      { cle: "salarie_id", entete: "Salarié", type: "choix", obligatoire: true, optionsDynamiques: "salaries_admin" },
+      { cle: "motif_id", entete: "Motif", type: "choix", obligatoire: true, optionsDynamiques: "motifs" },
+      { cle: "date_debut", entete: "Du", type: "date", obligatoire: true },
+      { cle: "date_fin", entete: "Au (inclus)", type: "date", obligatoire: true },
+      { cle: "observations", entete: "Observations", type: "texte" },
     ],
   },
 };

@@ -69,7 +69,7 @@ export default async function ReferentielRhPage({ params }: { params: Promise<{ 
       <TableReferentiel
         code={def.code}
         lignes={lignes}
-        options={{ profils: options.profils, postes_absence: options.postes_absence }}
+        options={{ profils: options.profils, postes_absence: options.postes_absence, salaries_admin: options.salaries_admin, motifs: options.motifs }}
         communesSites={options.communesSites}
       />
     </div>

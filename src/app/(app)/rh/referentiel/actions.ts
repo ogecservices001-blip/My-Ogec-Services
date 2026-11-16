@@ -22,10 +22,12 @@ type Options = Record<string, { valeur: string; label: string }[]>;
 type Supa = any;
 
 export async function chargerOptions(supabase: Supa): Promise<Options & { communesSites: { valeur: string; label: string }[] }> {
-  const [{ data: profils }, { data: postes }, { data: sites }] = await Promise.all([
+  const [{ data: profils }, { data: postes }, { data: sites }, { data: salaries }, { data: motifs }] = await Promise.all([
     supabase.from("profiles").select("id, name").in("role", ["admin", "technicien", "en_attente"]).order("name"),
     supabase.from("postes_hors_client").select("id, client, site").eq("client", "Absence").order("item"),
     supabase.from("sites").select("commune"),
+    supabase.from("rh_salaries").select("id, nom_paie").eq("categorie", "administratif").order("nom_paie"),
+    supabase.from("rh_motifs_absence").select("id, motif").order("ordre"),
   ]);
   const communes = [...new Set(((sites ?? []) as { commune: string }[]).map((s) => s.commune.trim()).filter(Boolean))].sort((a, b) =>
     a.localeCompare(b, "fr"),
@@ -33,6 +35,8 @@ export async function chargerOptions(supabase: Supa): Promise<Options & { commun
   return {
     profils: ((profils ?? []) as { id: string; name: string }[]).map((p) => ({ valeur: p.id, label: p.name })),
     postes_absence: ((postes ?? []) as { id: string; site: string }[]).map((p) => ({ valeur: p.id, label: `Absence — ${p.site}` })),
+    salaries_admin: ((salaries ?? []) as { id: string; nom_paie: string }[]).map((s) => ({ valeur: s.id, label: s.nom_paie })),
+    motifs: ((motifs ?? []) as { id: string; motif: string }[]).map((m) => ({ valeur: m.id, label: m.motif })),
     communesSites: communes.map((c) => ({ valeur: c, label: c })),
   };
 }
@@ -74,7 +78,10 @@ export async function enregistrerLigne(code: CodeReferentiel, idExistant: string
   const prep = preparer(code, brut, options, options.communesSites.map((c) => c.valeur));
   if (!prep.ok) return { ok: false, erreur: prep.erreur };
 
-  const existantes = await chargerLignes(supabase, code);
+  if (code === "absences-admin" && String(prep.valeurs.date_fin) < String(prep.valeurs.date_debut)) {
+    return { ok: false, erreur: "La date de fin est avant la date de début." };
+  }
+  const existantes = def.cle === def.id ? [] : await chargerLignes(supabase, code);
   const doublon = existantes.find(
     (l) => normaliserCle(l[def.cle]) === normaliserCle(prep.valeurs[def.cle]) && String(l[def.id]) !== String(idExistant ?? ""),
   );

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Download, Upload } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Download, Upload } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { chargerCreneauxSemaine, chargerTechniciens, chargerPostesHorsClient } from "./actions";
@@ -9,8 +9,6 @@ import { ajouterJours, lundiDeLaSemaine } from "@/lib/planning/dates";
 import { biDesInterventions, cleIntervention, creneauxDesInterventions } from "@/lib/planning/intervention";
 import { chargerDepannagesPlanning } from "@/lib/planning/depannages";
 import { chargerEtatsValidation } from "@/lib/planning/validation";
-import { ReponsesClients, type ReponseClient } from "./reponses-clients";
-import type { DateProposee, JourDemande } from "@/lib/planning/periode";
 
 export default async function PlanificationPage({
   searchParams,
@@ -40,26 +38,15 @@ export default async function PlanificationPage({
     bi: c.site_id ? (bis.get(cleIntervention(c)) ?? null) : null,
     validation: validations.get(c.id) ?? null,
   }));
-  const { data: aTraiter } = await supabase
-    .from("demandes_validation_client")
-    .select("id, client_nom, site, objet, jours, date_proposee, moment, dates_proposees, commentaire, destinataire_nom, destinataire_email, creneau_ids")
-    .eq("statut", "autre_date")
-    .is("traite_le", null)
-    .order("reponse_le");
-  const reponses: ReponseClient[] = (aTraiter ?? []).map((d) => ({
-    id: d.id,
-    client_nom: d.client_nom,
-    site: d.site,
-    objet: d.objet,
-    jours: (d.jours as JourDemande[]) ?? [],
-    proposees:
-      ((d.dates_proposees as DateProposee[] | null) ?? []).length > 0
-        ? (d.dates_proposees as DateProposee[])
-        : [{ date: d.date_proposee ?? "", moment: d.moment }],
-    commentaire: d.commentaire,
-    destinataire: [d.destinataire_nom, d.destinataire_email].filter(Boolean).join(" — "),
-    premierCreneauId: (d.creneau_ids as string[])[0] ?? "",
-  }));
+  const [{ count: nbATraiter }, { count: nbAReproposer }] = await Promise.all([
+    supabase.from("demandes_validation_client").select("id", { count: "exact", head: true }).eq("statut", "autre_date").is("traite_le", null),
+    supabase
+      .from("demandes_validation_client")
+      .select("id", { count: "exact", head: true })
+      .eq("statut", "remplacee")
+      .in("motif_remplacement", ["modification", "replanification"]),
+  ]);
+  const aFaire = (nbATraiter ?? 0) + (nbAReproposer ?? 0);
   const depannages = await chargerDepannagesPlanning(supabase, lundi, vendredi);
 
   return (
@@ -77,6 +64,17 @@ export default async function PlanificationPage({
           <p className="text-sm text-slate-500">Pose les créneaux de la semaine pour chaque technicien</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href="/planning/point-rdv-client"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
+            title="Validation des dates par les clients"
+          >
+            <CalendarCheck className="h-4 w-4" strokeWidth={2.25} />
+            Point RDV Client
+            {aFaire > 0 && (
+              <span className="rounded-full bg-purple-600 px-1.5 py-0.5 text-[11px] font-bold text-white">{aFaire}</span>
+            )}
+          </Link>
           <a
             href="/planning/export"
             className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
@@ -93,7 +91,6 @@ export default async function PlanificationPage({
           </Link>
         </div>
       </div>
-      <ReponsesClients reponses={reponses} />
       <GrilleSemaine
         key={`${lundi}-${creneau ?? ""}-${devis ?? ""}`}
         lundiSemaine={lundi}

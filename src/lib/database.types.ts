@@ -749,6 +749,7 @@ export type Database = {
           destinataire_email: string
           destinataire_nom: string
           envoye_le: string
+          historique: Json
           id: string
           jours: Json
           message: string
@@ -777,6 +778,7 @@ export type Database = {
           destinataire_email: string
           destinataire_nom?: string
           envoye_le?: string
+          historique?: Json
           id?: string
           jours?: Json
           message?: string
@@ -805,6 +807,7 @@ export type Database = {
           destinataire_email?: string
           destinataire_nom?: string
           envoye_le?: string
+          historique?: Json
           id?: string
           jours?: Json
           message?: string

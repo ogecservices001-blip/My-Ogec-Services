@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { estJourOuvre, type DateProposee } from "@/lib/planning/periode";
+import { ajouterHistorique } from "@/lib/planning/validation-historique";
 import { envoyerAccuseClient, envoyerAlerteBureau, type InfosDemande, type JourDemande } from "@/lib/planning/validation-email";
 
 /// Page publique de validation d'un créneau par le client : seul le jeton
@@ -93,6 +94,16 @@ export async function repondreDemande(
       .eq("statut", "attente");
     if (error) return { ok: false, erreur: "Enregistrement impossible, réessayez plus tard." };
   }
+
+  await ajouterHistorique(admin, d.id, {
+    evenement: reponse.accepte ? "reponse_valide" : "reponse_autre_date",
+    par: [d.destinataire_nom, "client"].filter(Boolean).join(", "),
+    detail: reponse.accepte
+      ? undefined
+      : [reponse.dates.map((x) => x.date.split("-").reverse().join("/") + (x.moment ? ` (${x.moment === "matin" ? "matin" : "après-midi"})` : "")).join(", "), reponse.commentaire.trim()]
+          .filter(Boolean)
+          .join(" — "),
+  });
 
   try {
     await envoyerAccuseClient({

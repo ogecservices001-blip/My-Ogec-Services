@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { joursOuvresEcoules, lienValidation } from "@/lib/planning/validation";
+import { ajouterHistorique } from "@/lib/planning/validation-historique";
 import { envoyerAlerteBureau, envoyerRelance, type InfosDemande, type JourDemande } from "@/lib/planning/validation-email";
 
 const DELAI_JOURS_OUVRES = 3;
@@ -32,10 +33,12 @@ export async function GET(request: NextRequest) {
       if (!d.relance1_le && ecoules(d.envoye_le) >= DELAI_JOURS_OUVRES) {
         await envoyerRelance({ destinataire: d.destinataire_email, nom: d.destinataire_nom, lien: lienValidation(d.token), infos, numero: 1 });
         await admin.from("demandes_validation_client").update({ relance1_le: maintenant.toISOString() }).eq("id", d.id);
+        await ajouterHistorique(admin, d.id, { evenement: "relance_auto", par: "Automatique", detail: `1re relance — ${d.destinataire_email}` });
         bilan.relance1++;
       } else if (d.relance1_le && !d.relance2_le && ecoules(d.relance1_le) >= DELAI_JOURS_OUVRES) {
         await envoyerRelance({ destinataire: d.destinataire_email, nom: d.destinataire_nom, lien: lienValidation(d.token), infos, numero: 2 });
         await admin.from("demandes_validation_client").update({ relance2_le: maintenant.toISOString() }).eq("id", d.id);
+        await ajouterHistorique(admin, d.id, { evenement: "relance_auto", par: "Automatique", detail: `2e relance — ${d.destinataire_email}` });
         bilan.relance2++;
       } else if (d.relance2_le && !d.sans_reponse_le && ecoules(d.relance2_le) >= DELAI_JOURS_OUVRES) {
         await envoyerAlerteBureau({
@@ -44,6 +47,7 @@ export async function GET(request: NextRequest) {
           destinataire: [d.destinataire_nom, d.destinataire_email].filter(Boolean).join(" — "),
         });
         await admin.from("demandes_validation_client").update({ sans_reponse_le: maintenant.toISOString() }).eq("id", d.id);
+        await ajouterHistorique(admin, d.id, { evenement: "sans_reponse", par: "Automatique" });
         bilan.sansReponse++;
       }
     } catch {

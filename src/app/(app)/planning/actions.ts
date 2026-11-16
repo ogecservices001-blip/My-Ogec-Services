@@ -7,6 +7,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { creneauSchema, type CreneauInput } from "@/lib/validation/creneau";
 import { quotaJournalier } from "@/lib/planning/quota";
 import { envoyerAnnoncePassage } from "@/lib/planning/email";
+import { ajouterHistorique } from "@/lib/planning/validation-historique";
 import { chargerDepannagesPlanning, heuresDepannageDuJour } from "@/lib/planning/depannages";
 import { analyserReference } from "@/lib/gmao/suggestion-reference-horaire";
 import { heuresEquipementVisiteSite } from "@/lib/gmao/calcul-heures-visite";
@@ -229,7 +230,7 @@ export async function creerCreneaux(
 }
 
 export async function modifierCreneau(id: string, input: CreneauInput): Promise<ActionResult & { demandeAnnulee?: boolean }> {
-  await requireAdmin();
+  const profile = await requireAdmin();
   const parsed = creneauSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, erreur: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
@@ -270,6 +271,13 @@ export async function modifierCreneau(id: string, input: CreneauInput): Promise<
       .neq("statut", "remplacee")
       .select("id");
     demandeAnnulee = (annulees ?? []).length > 0;
+    for (const a of annulees ?? []) {
+      await ajouterHistorique(supabase, a.id, {
+        evenement: "date_modifiee",
+        par: profile.name,
+        detail: `${avant.date.split("-").reverse().join("/")} → ${v.date.split("-").reverse().join("/")}`,
+      });
+    }
   }
 
   revalidatePath("/planning");

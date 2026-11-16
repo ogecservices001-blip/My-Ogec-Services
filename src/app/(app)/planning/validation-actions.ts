@@ -7,10 +7,12 @@ import { requireAdmin } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
 import { cleIntervention, creneauxDesInterventions, type CreneauIntervention } from "@/lib/planning/intervention";
 import { joursOuvresAPartirDe, lienValidation } from "@/lib/planning/validation";
+import { ajouterHistorique } from "@/lib/planning/validation-historique";
 import {
   envoyerConfirmationNouvelleDate,
   envoyerCopieInformation,
   envoyerDemande,
+  envoyerRelance,
   messageParDefaut,
   type InfosDemande,
   type JourDemande,
@@ -125,11 +127,13 @@ export async function envoyerDemandeValidation(p: {
   const g = await groupeDuCreneau(p.creneauId);
   if (!g) return { ok: false, erreur: "Créneau introuvable ou sans site." };
 
-  await g.supabase
+  const { data: remplacees } = await g.supabase
     .from("demandes_validation_client")
     .update({ statut: "remplacee", motif_remplacement: "nouvelle_demande", traite_le: new Date().toISOString() })
     .eq("cle_intervention", g.cle)
-    .neq("statut", "remplacee");
+    .neq("statut", "remplacee")
+    .select("id");
+  for (const r of remplacees ?? []) await ajouterHistorique(g.supabase, r.id, { evenement: "remplacee", par: profile.name });
   await g.supabase
     .from("demandes_validation_client")
     .update({ motif_remplacement: "nouvelle_demande" })
@@ -151,6 +155,10 @@ export async function envoyerDemandeValidation(p: {
       copies,
       message: p.message.trim(),
       created_by: profile.id,
+      historique: [
+        { le: new Date().toISOString(), evenement: "envoi", par: profile.name, detail: email },
+        ...(copies.length ? [{ le: new Date().toISOString(), evenement: "copie", par: profile.name, detail: copies.join(", ") }] : []),
+      ],
     })
     .select("id, token")
     .single();
@@ -173,7 +181,7 @@ export type ConflitDate = { date: string; technicien: string; motif: string };
 /// techniciens sont libres (aucun autre client, aucune absence), puis déplace
 /// les créneaux de l'intervention et confirme au client.
 export async function accepterDateClient(demandeId: string): Promise<{ ok: true } | { ok: false; erreur: string; conflits?: ConflitDate[] }> {
-  await requireAdmin();
+  const profile = await requireAdmin();
   const supabase = await createClient();
   const { data: d } = await supabase.from("demandes_validation_client").select("*").eq("id", demandeId).single();
   if (!d || d.statut !== "autre_date" || !d.date_proposee) return { ok: false, erreur: "Cette demande n'a pas de date proposée à traiter." };
@@ -229,6 +237,11 @@ export async function accepterDateClient(demandeId: string): Promise<{ ok: true 
     .from("demandes_validation_client")
     .update({ statut: "valide", traite_le: new Date().toISOString(), jours })
     .eq("id", demandeId);
+  await ajouterHistorique(supabase, demandeId, {
+    evenement: "accepte_bureau",
+    par: profile.name,
+    detail: nouvelles.map((x) => x.split("-").reverse().join("/")).join(", "),
+  });
   try {
     await envoyerConfirmationNouvelleDate({
       destinataire: d.destinataire_email,
@@ -246,13 +259,40 @@ export async function accepterDateClient(demandeId: string): Promise<{ ok: true 
 /// Le bureau ne retient pas la date du client : la demande est close, le
 /// bureau déplace lui-même les créneaux puis renvoie une demande.
 export async function replanifierDemande(demandeId: string): Promise<ActionResult> {
-  await requireAdmin();
+  const profile = await requireAdmin();
   const supabase = await createClient();
   const { error } = await supabase
     .from("demandes_validation_client")
     .update({ statut: "remplacee", motif_remplacement: "replanification", traite_le: new Date().toISOString() })
     .eq("id", demandeId);
   if (error) return { ok: false, erreur: error.message };
+  await ajouterHistorique(supabase, demandeId, { evenement: "replanifie", par: profile.name });
   revalidatePath("/planning");
+  return { ok: true };
+}
+
+/// Relance envoyée à la main par le bureau. Elle compte comme une relance :
+/// le calendrier des relances automatiques repart de sa date.
+export async function relancerMaintenant(demandeId: string): Promise<ActionResult> {
+  const profile = await requireAdmin();
+  const supabase = await createClient();
+  const { data: d } = await supabase.from("demandes_validation_client").select("*").eq("id", demandeId).single();
+  if (!d || d.statut !== "attente") return { ok: false, erreur: "Cette demande n'attend plus de réponse du client." };
+  const maintenant = new Date().toISOString();
+  try {
+    await envoyerRelance({
+      destinataire: d.destinataire_email,
+      nom: d.destinataire_nom,
+      lien: lienValidation(d.token, await urlBase()),
+      infos: { client_nom: d.client_nom, site: d.site, objet: d.objet, jours: (d.jours as JourDemande[]) ?? [] },
+      numero: d.relance1_le ? 2 : 1,
+    });
+  } catch (e) {
+    return { ok: false, erreur: e instanceof Error ? e.message : "Échec de l'envoi." };
+  }
+  const maj = !d.relance1_le ? { relance1_le: maintenant } : !d.relance2_le ? { relance2_le: maintenant } : {};
+  if (Object.keys(maj).length) await supabase.from("demandes_validation_client").update(maj).eq("id", demandeId);
+  await ajouterHistorique(supabase, demandeId, { evenement: "relance_manuelle", par: profile.name, le: maintenant, detail: d.destinataire_email });
+  revalidatePath("/planning/point-rdv-client");
   return { ok: true };
 }

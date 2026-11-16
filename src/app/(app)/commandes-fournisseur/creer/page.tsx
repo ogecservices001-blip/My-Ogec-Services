@@ -46,6 +46,8 @@ export default async function CreerCommandePage() {
         id: d.id,
         numero: d.numero,
         clientNom: [site?.nom, site?.site].filter(Boolean).join(" — "),
+        client: site?.nom ?? "",
+        siteNom: site?.site ?? "",
         libelle: d.libelle,
       };
     });

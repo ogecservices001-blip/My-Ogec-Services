@@ -1,5 +1,6 @@
 "use client";
 
+import { useFiltreClientSite } from "@/components/filtre-client-site";
 import Link from "next/link";
 import { Download } from "lucide-react";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
@@ -49,7 +50,8 @@ const COLONNES: ColonneTableur[] = [
 /// tableau façon classeur — le filtre par colonne (client, site, BI,
 /// classement...) vient du composant Tableur lui-même, pas d'onglets
 /// ni de sélecteur séparé.
-export function BonsValidesTableau({ bons }: { bons: BonResume[] }) {
+export function BonsValidesTableau({ bons: tous }: { bons: BonResume[] }) {
+  const { filtrees: bons, bloc } = useFiltreClientSite(tous, (b) => ({ client: b.client_nom, site: b.site }), "bons-valides");
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-2">
@@ -66,6 +68,7 @@ export function BonsValidesTableau({ bons }: { bons: BonResume[] }) {
           <Download className="h-4 w-4" strokeWidth={2.25} />
         </a>
       </div>
+      {bloc}
       <Tableur
         colonnes={COLONNES}
         lignes={bons.map((b) => [

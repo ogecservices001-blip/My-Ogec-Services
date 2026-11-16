@@ -1,5 +1,6 @@
 "use client";
 
+import { useFiltreClientSite } from "@/components/filtre-client-site";
 import Link from "next/link";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { Tableur } from "@/components/tableur";
@@ -26,13 +27,15 @@ const COLONNES = [
   { titre: "Mis à jour le", largeur: "14%" },
 ];
 
-export function BiListe({ bons, titre, vide }: { bons: BonResume[]; titre: string; vide: string }) {
+export function BiListe({ bons: tous, titre, vide }: { bons: BonResume[]; titre: string; vide: string }) {
+  const { filtrees: bons, bloc } = useFiltreClientSite(tous, (b) => ({ client: b.client_nom, site: b.site }), "bi");
   return (
     <div>
       <div className="mb-4">
         <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">{titre}</h1>
         <p className="text-sm text-slate-500">Petits travaux, maintenance, dépannage</p>
       </div>
+      {bloc}
 
       <Tableur
         colonnes={COLONNES}

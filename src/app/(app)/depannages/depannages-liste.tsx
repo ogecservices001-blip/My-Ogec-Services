@@ -1,12 +1,12 @@
 "use client";
 
+import { useFiltreClientSite } from "@/components/filtre-client-site";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Download, MessageCircle, Mail, X, Wrench, Pencil } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
-import { FiltreSelect } from "@/components/filtre-select";
 import { envoyerConfirmation, marquerWhatsappEnvoye } from "./actions";
 import type { DevisEnCours } from "@/lib/devis/en-cours";
 import { LABEL_STATUT_DEVIS } from "@/app/(app)/devis/statut";
@@ -87,9 +87,7 @@ export function DepannagesListe({
 }) {
   const enCours = demandes.filter((d) => d.statut !== "traitee");
   const traitees = demandes.filter((d) => d.statut === "traitee");
-  const [client, setClient] = useState("");
-  const clients = [...new Set(traitees.map((d) => d.client_nom).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  const filtrees = (vue === "en_cours" ? enCours : traitees).filter((d) => !client || d.client_nom === client);
+  const { filtrees, bloc } = useFiltreClientSite(vue === "en_cours" ? enCours : traitees, (d) => ({ client: d.client_nom, site: d.client_site }), "depannages");
   const [modaleId, setModaleId] = useState<string | null>(null);
   const demandeModale = demandes.find((d) => d.id === modaleId);
   const router = useRouter();
@@ -112,14 +110,6 @@ export function DepannagesListe({
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          {vue === "traitees" && (
-            <FiltreSelect
-              valeur={client}
-              onChange={setClient}
-              toutes="Tous les clients"
-              options={clients.map((c) => ({ valeur: c, label: c }))}
-            />
-          )}
           {isAdmin && (
             // eslint-disable-next-line @next/next/no-html-link-for-pages -- téléchargement de fichier, pas une page interne
             <a
@@ -133,6 +123,7 @@ export function DepannagesListe({
         </div>
       </div>
 
+      {bloc}
       {vue === "traitees" ? (
         <Tableur
           colonnes={COLONNES_TRAITEES}

@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useFiltreClientSite } from "@/components/filtre-client-site";
 import Link from "next/link";
-import { Search, ClipboardList, Wrench, Download } from "lucide-react";
+import {ClipboardList, Wrench, Download } from "lucide-react";
 import { labelNatureDevis } from "@/lib/devis/constants";
 import { avecAffaire } from "@/lib/bi/constants";
 import { Tableur } from "@/components/tableur";
-import { FiltreSelect } from "@/components/filtre-select";
 import type { PrestationLigne } from "@/lib/prestations/charger-lignes";
 
 export function PrestationsListe({
@@ -18,22 +17,13 @@ export function PrestationsListe({
   isAdmin: boolean;
   vue: "a_realiser" | "realisees" | "annulees";
 }) {
-  const [recherche, setRecherche] = useState("");
 
   const parVue: Record<typeof vue, PrestationLigne[]> = {
     a_realiser: lignes.filter((l) => !l.annulee && !l.realisee),
     realisees: lignes.filter((l) => !l.annulee && l.realisee),
     annulees: lignes.filter((l) => l.annulee),
   };
-  const [client, setClient] = useState("");
-  const clients = [...new Set(parVue[vue].map((l) => l.clientNom).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b),
-  );
-  const filtrees = parVue[vue].filter(
-    (l) =>
-      (!client || l.clientNom === client) &&
-      `${l.clientNom} ${l.clientSite} ${l.libelle}`.toLowerCase().includes(recherche.toLowerCase()),
-  );
+  const { filtrees, bloc } = useFiltreClientSite(parVue[vue], (l) => ({ client: l.clientNom, site: l.clientSite }), "prestations");
 
   return (
     <div>
@@ -53,26 +43,10 @@ export function PrestationsListe({
       </div>
       <p className="mb-5 text-sm text-slate-500">Devis commandés — Suivi de la réalisation</p>
 
-      <div className="relative mb-4">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          placeholder="Rechercher un client, un site..."
-          value={recherche}
-          onChange={(e) => setRecherche(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-        />
-      </div>
+      {bloc}
 
       {vue !== "a_realiser" ? (
         <>
-        <div className="mb-3 flex justify-end">
-          <FiltreSelect
-            valeur={client}
-            onChange={setClient}
-            toutes="Tous les clients"
-            options={clients.map((c) => ({ valeur: c, label: c }))}
-          />
-        </div>
         <Tableur
           colonnes={[
             { titre: "N°", largeur: "9%" },

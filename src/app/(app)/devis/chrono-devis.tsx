@@ -1,5 +1,6 @@
 "use client";
 
+import { useFiltreClientSite } from "@/components/filtre-client-site";
 import { useMemo } from "react";
 import { DevisEntete } from "./entete";
 import { TableauRegistreDevis, eur, type DevisRegistreLigne } from "./registre-liste";
@@ -11,6 +12,7 @@ export function ChronoDevis({
   registre: DevisRegistreLigne[];
   isAdmin: boolean;
 }) {
+  const { filtrees: registreFiltre, bloc } = useFiltreClientSite(registre, (d) => ({ client: d.clientNom, site: d.clientSite }), "devis");
   const stats = useMemo(() => {
     const actifs = registre.filter((d) => !d.annule);
     const commandes = actifs.filter((d) => d.commande);
@@ -58,7 +60,10 @@ export function ChronoDevis({
       {registre.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">Aucun devis pour l&apos;instant</p>
       ) : (
-        <TableauRegistreDevis lignes={registre} isAdmin={isAdmin} />
+        <>
+          {bloc}
+          <TableauRegistreDevis lignes={registreFiltre} isAdmin={isAdmin} />
+        </>
       )}
     </div>
   );

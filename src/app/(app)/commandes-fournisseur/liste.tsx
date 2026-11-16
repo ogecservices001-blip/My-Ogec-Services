@@ -1,5 +1,6 @@
 "use client";
 
+import { useFiltreClientSite } from "@/components/filtre-client-site";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
@@ -13,6 +14,8 @@ export type CommandeResume = {
   fournisseurNom: string;
   devisNumero: string;
   clientNom: string;
+  client: string;
+  siteNom: string;
   dateCommande: string;
   lignes: unknown;
   tauxTva: number;
@@ -35,20 +38,20 @@ type FiltreType = "" | "affaire" | "consommables";
 export function CommandesFournisseurListe({ commandes }: { commandes: CommandeResume[] }) {
   const [recherche, setRecherche] = useState("");
   const [type, setType] = useState<FiltreType>("");
+  const { filtrees: duClient, bloc } = useFiltreClientSite(commandes, (c) => ({ client: c.client, site: c.siteNom }), "commandes");
 
   const filtres = useMemo(
     () =>
-      commandes.filter((c) => {
+      duClient.filter((c) => {
         if (type === "affaire" && c.consommables) return false;
         if (type === "consommables" && !c.consommables) return false;
         const cible = recherche.toLowerCase();
         return (
           c.numero.toLowerCase().includes(cible) ||
-          c.fournisseurNom.toLowerCase().includes(cible) ||
-          c.clientNom.toLowerCase().includes(cible)
+          c.fournisseurNom.toLowerCase().includes(cible)
         );
       }),
-    [commandes, recherche, type],
+    [duClient, recherche, type],
   );
   const totalTtc = filtres.reduce((s, c) => s + calculerTotaux((c.lignes as LigneCommande[]) ?? [], c.tauxTva).ttc, 0);
 
@@ -81,10 +84,11 @@ export function CommandesFournisseurListe({ commandes }: { commandes: CommandeRe
         </div>
       </div>
 
+      {bloc}
       <div className="relative mb-4">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
-          placeholder="Rechercher un n°, un fournisseur, un client..."
+          placeholder="Rechercher un n° de commande ou un fournisseur..."
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
           className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"

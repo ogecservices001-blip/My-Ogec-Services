@@ -30,6 +30,8 @@ export default async function CommandesFournisseurPage() {
       fournisseurNom: fournisseurParId.get(c.fournisseur_id) ?? "",
       devisNumero: d?.numero ?? "",
       clientNom: [site?.nom, site?.site].filter(Boolean).join(" — "),
+      client: site?.nom ?? "",
+      siteNom: site?.site ?? "",
       dateCommande: c.date_commande,
       lignes: c.lignes,
       tauxTva: c.taux_tva,

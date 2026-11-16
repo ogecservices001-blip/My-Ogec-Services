@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useFiltreClientSite } from "@/components/filtre-client-site";
+import { useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, Search, Download } from "lucide-react";
+import {ArrowLeft, Download } from "lucide-react";
 import type { LigneAuditHeures } from "./calcul";
 
 function fmtH(h: number): string {
@@ -18,17 +19,7 @@ function Entete({ titre, teinte }: { titre: string; teinte: string }) {
 }
 
 export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
-  const [recherche, setRecherche] = useState("");
-
-  const filtrees = useMemo(
-    () =>
-      lignes.filter(
-        (l) =>
-          l.clientNom.toLowerCase().includes(recherche.toLowerCase()) ||
-          l.clientSite.toLowerCase().includes(recherche.toLowerCase()),
-      ),
-    [lignes, recherche],
-  );
+  const { filtrees, bloc } = useFiltreClientSite(lignes, (l) => ({ client: l.clientNom, site: l.clientSite }), "heures");
 
   const totaux = useMemo(
     () =>
@@ -84,15 +75,7 @@ export function AuditHeuresTableau({ lignes }: { lignes: LigneAuditHeures[] }) {
         {filtrees.length} site(s) — classé par numéro de client et de site
       </p>
 
-      <div className="relative mb-4">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          placeholder="Rechercher un client ou un site..."
-          value={recherche}
-          onChange={(e) => setRecherche(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-        />
-      </div>
+      {bloc}
 
       {filtrees.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">Aucun résultat</p>

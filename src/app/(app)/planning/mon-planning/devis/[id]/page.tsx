@@ -70,7 +70,7 @@ export default async function DevisTechnicienPage({ params }: { params: Promise<
   ];
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       <Link
         href="/planning/mon-planning"
         className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"

@@ -47,8 +47,14 @@ const LARGEUR_PLEINE = [
   "/depannages/nouveau",
   "/depannages/traitees",
   "/depannages/statistiques",
+  "/prestations",
   "/prestations/realisees",
   "/prestations/annulees",
+  "/signalements",
+  "/planning/mon-planning",
+  "/planning/referentiel",
+  "/planning/importer",
+  "/gmao/importer",
 ];
 /// Sections entières (toutes les sous-pages : listing, fiche détail,
 /// modifier, groupe, importer...).
@@ -69,6 +75,8 @@ const LARGEUR_PLEINE_PATTERNS = [
   /^\/depannages\/[0-9a-f-]{20,}$/i,
   /^\/depannages\/[0-9a-f-]{20,}\/modifier$/i,
   /^\/bi\/[0-9a-f-]{20,}$/i,
+  /^\/signalements\/[0-9a-f-]{20,}$/i,
+  /^\/planning\/mon-planning\/devis\/[0-9a-f-]{20,}$/i,
 ];
 
 /// Écrans qui se passent entièrement de la sidebar (grille dense où

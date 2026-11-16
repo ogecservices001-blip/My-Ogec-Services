@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { estJourOuvre } from "@/lib/planning/periode";
+import { estJourOuvre, type DateProposee } from "@/lib/planning/periode";
 import { envoyerAccuseClient, envoyerAlerteBureau, type InfosDemande, type JourDemande } from "@/lib/planning/validation-email";
 
 /// Page publique de validation d'un créneau par le client : seul le jeton
@@ -50,7 +50,7 @@ export async function chargerDemandePublique(token: string): Promise<DemandePubl
 
 export async function repondreDemande(
   token: string,
-  reponse: { accepte: true } | { accepte: false; date: string; moment: string; commentaire: string },
+  reponse: { accepte: true } | { accepte: false; dates: DateProposee[]; commentaire: string },
 ): Promise<{ ok: true } | { ok: false; erreur: string }> {
   const r = await charger(token);
   if (!r) return { ok: false, erreur: "Lien introuvable." };
@@ -68,17 +68,25 @@ export async function repondreDemande(
       .eq("statut", "attente");
     if (error) return { ok: false, erreur: "Enregistrement impossible, réessayez plus tard." };
   } else {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(reponse.date) || reponse.date <= aujourdhui()) return { ok: false, erreur: "Choisissez une date à venir." };
-    const { data: feries } = await admin.from("jours_feries").select("date").eq("date", reponse.date);
-    if (!estJourOuvre(reponse.date, (feries ?? []).map((f) => f.date))) return { ok: false, erreur: "Choisissez un jour de semaine, hors jour férié." };
-    const moment = ["matin", "apres_midi"].includes(reponse.moment) ? reponse.moment : "";
+    const nbJours = Math.max(1, infos.jours.length);
+    if (reponse.dates.length !== nbJours) return { ok: false, erreur: `Proposez ${nbJours} date${nbJours > 1 ? "s" : ""}.` };
+    const { data: feries } = await admin.from("jours_feries").select("date").gte("date", aujourdhui());
+    const listeFeries = (feries ?? []).map((f) => f.date);
+    const dates: DateProposee[] = [];
+    for (const [i, d] of reponse.dates.entries()) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date) || d.date <= aujourdhui()) return { ok: false, erreur: `Jour ${i + 1} : choisissez une date à venir.` };
+      if (!estJourOuvre(d.date, listeFeries)) return { ok: false, erreur: `Jour ${i + 1} : choisissez un jour de semaine, hors jour férié.` };
+      if (i > 0 && d.date <= dates[i - 1].date) return { ok: false, erreur: `Le jour ${i + 1} doit être après le jour ${i}.` };
+      dates.push({ date: d.date, moment: ["matin", "apres_midi"].includes(d.moment) ? d.moment : "" });
+    }
     const { error } = await admin
       .from("demandes_validation_client")
       .update({
         statut: "autre_date",
         reponse_le: new Date().toISOString(),
-        date_proposee: reponse.date,
-        moment,
+        date_proposee: dates[0].date,
+        moment: dates[0].moment,
+        dates_proposees: dates,
         commentaire: reponse.commentaire.trim().slice(0, 1000),
       })
       .eq("id", d.id)
@@ -92,15 +100,13 @@ export async function repondreDemande(
       nom: d.destinataire_nom,
       infos,
       reponse: reponse.accepte ? "valide" : "autre_date",
-      dateProposee: reponse.accepte ? undefined : reponse.date,
-      moment: reponse.accepte ? undefined : reponse.moment,
+      proposees: reponse.accepte ? undefined : reponse.dates,
     });
     await envoyerAlerteBureau({
       infos,
       evenement: reponse.accepte ? "valide" : "autre_date",
       destinataire: [d.destinataire_nom, d.destinataire_email].filter(Boolean).join(" — "),
-      dateProposee: reponse.accepte ? null : reponse.date,
-      moment: reponse.accepte ? undefined : reponse.moment,
+      proposees: reponse.accepte ? undefined : reponse.dates,
       commentaire: reponse.accepte ? undefined : reponse.commentaire,
     });
   } catch {

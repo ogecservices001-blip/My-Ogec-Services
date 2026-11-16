@@ -10,7 +10,7 @@ import { biDesInterventions, cleIntervention, creneauxDesInterventions } from "@
 import { chargerDepannagesPlanning } from "@/lib/planning/depannages";
 import { chargerEtatsValidation } from "@/lib/planning/validation";
 import { ReponsesClients, type ReponseClient } from "./reponses-clients";
-import type { JourDemande } from "@/lib/planning/periode";
+import type { DateProposee, JourDemande } from "@/lib/planning/periode";
 
 export default async function PlanificationPage({
   searchParams,
@@ -42,7 +42,7 @@ export default async function PlanificationPage({
   }));
   const { data: aTraiter } = await supabase
     .from("demandes_validation_client")
-    .select("id, client_nom, site, objet, jours, date_proposee, moment, commentaire, destinataire_nom, destinataire_email, creneau_ids")
+    .select("id, client_nom, site, objet, jours, date_proposee, moment, dates_proposees, commentaire, destinataire_nom, destinataire_email, creneau_ids")
     .eq("statut", "autre_date")
     .is("traite_le", null)
     .order("reponse_le");
@@ -52,8 +52,10 @@ export default async function PlanificationPage({
     site: d.site,
     objet: d.objet,
     jours: (d.jours as JourDemande[]) ?? [],
-    date_proposee: d.date_proposee ?? "",
-    moment: d.moment,
+    proposees:
+      ((d.dates_proposees as DateProposee[] | null) ?? []).length > 0
+        ? (d.dates_proposees as DateProposee[])
+        : [{ date: d.date_proposee ?? "", moment: d.moment }],
     commentaire: d.commentaire,
     destinataire: [d.destinataire_nom, d.destinataire_email].filter(Boolean).join(" — "),
     premierCreneauId: (d.creneau_ids as string[])[0] ?? "",

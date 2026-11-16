@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Download } from "lucide-react";
 import { ChoixClientSite } from "@/components/choix-client-site";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
-import type { ResultatHeuresPlanifiees, TypeLigne } from "@/lib/planning/heures-planifiees";
+import { FILTRES_POLE, typesDuFiltre, type FiltrePole, type ResultatHeuresPlanifiees, type TypeLigne } from "@/lib/planning/heures-planifiees";
 
 const COLONNES: ColonneTableur[] = [
   { titre: "Type" },
@@ -33,23 +33,28 @@ export function HeuresPlanifieesVue({
   client,
   siteId,
   annee,
+  pole,
   resultat,
 }: {
   sites: { id: string; nom: string; site: string }[];
   client: string;
   siteId: string;
   annee: number;
+  pole: FiltrePole;
   resultat: ResultatHeuresPlanifiees | null;
 }) {
+  const types = typesDuFiltre(pole);
+  const lignes = (resultat?.lignes ?? []).filter((l) => types.includes(l.type));
   const router = useRouter();
-  const aller = (c: string, s: string, a: number) => {
+  const aller = (c: string, s: string, a: number, f: FiltrePole = pole) => {
     const p = new URLSearchParams();
     if (c) p.set("client", c);
     if (s) p.set("site", s);
     p.set("annee", String(a));
+    if (f !== "tous") p.set("pole", f);
     router.push(`/planning/heures-planifiees?${p.toString()}`);
   };
-  const lienExport = `/planning/heures-planifiees/export?${new URLSearchParams({ client, site: siteId, annee: String(annee) }).toString()}`;
+  const lienExport = `/planning/heures-planifiees/export?${new URLSearchParams({ client, site: siteId, annee: String(annee), pole }).toString()}`;
   const anneeCourante = new Date().getFullYear();
   const annees = Array.from({ length: 6 }, (_, i) => anneeCourante + 1 - i);
 
@@ -92,6 +97,21 @@ export function HeuresPlanifieesVue({
         </div>
       </div>
 
+      <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-xl bg-slate-100 p-1 sm:grid-cols-4">
+        {FILTRES_POLE.map((f) => (
+          <button
+            key={f.valeur}
+            type="button"
+            onClick={() => aller(client, siteId, annee, f.valeur)}
+            className={`rounded-lg px-2 py-2 text-xs font-semibold sm:text-sm ${
+              pole === f.valeur ? "bg-brand-green text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            {f.libelle}
+          </button>
+        ))}
+      </div>
+
       <div className="mb-5 rounded-2xl bg-white p-4 shadow-sm">
         <ChoixClientSite
           sites={sites}
@@ -109,7 +129,7 @@ export function HeuresPlanifieesVue({
         <p className="rounded-2xl bg-white p-8 text-center text-sm text-slate-400 shadow-sm">Choisis un client ou un site.</p>
       ) : (
         <>
-          <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={`mb-5 grid gap-3 ${types.length > 1 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:max-w-xs"}`}>
             {(
               [
                 ["entretien", "Visites d'entretien"],
@@ -117,7 +137,9 @@ export function HeuresPlanifieesVue({
                 ["depannage", "Dépannages"],
                 ["autre", "Autres BI"],
               ] as [TypeLigne, string][]
-            ).map(([type, titre]) => (
+            )
+              .filter(([type]) => types.includes(type))
+              .map(([type, titre]) => (
               <div key={type} className="rounded-2xl bg-white p-4 shadow-sm">
                 <p className={`mb-2 inline-flex rounded-full px-2 py-0.5 text-xs font-bold ${COULEUR[type]}`}>
                   {titre} ({resultat.totaux[type].nombre})
@@ -137,7 +159,7 @@ export function HeuresPlanifieesVue({
 
           <Tableur
             colonnes={COLONNES}
-            lignes={resultat.lignes.map((l) => [
+            lignes={lignes.map((l) => [
               <span key="type" className={`rounded-full px-2 py-0.5 text-xs font-bold ${COULEUR[l.type]}`}>
                 {l.libelleType}
               </span>,
@@ -157,7 +179,7 @@ export function HeuresPlanifieesVue({
                 </span>
               ),
             ])}
-            valeurs={resultat.lignes.map((l) => [l.libelleType, l.debut, l.site, l.detail, l.techniciens.join(", "), "", "", l.etat])}
+            valeurs={lignes.map((l) => [l.libelleType, l.debut, l.site, l.detail, l.techniciens.join(", "), "", "", l.etat])}
             vide={`Rien de prévu ni de fait en ${annee}`}
           />
         </>

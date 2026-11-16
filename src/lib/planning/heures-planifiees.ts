@@ -198,3 +198,21 @@ export async function calculerHeuresPlanifiees(
   const heuresContrat = (sites ?? []).reduce((t, s) => t + (parseFloat(String(s.nb_heures_vendues ?? "").replace(",", ".")) || 0), 0);
   return { lignes, totaux, heuresContrat };
 }
+
+export type FiltrePole = "tous" | "entretien" | "devis" | "depannage";
+
+export const FILTRES_POLE: { valeur: FiltrePole; libelle: string }[] = [
+  { valeur: "tous", libelle: "Tous les pôles" },
+  { valeur: "entretien", libelle: "Sous contrat" },
+  { valeur: "devis", libelle: "Prestation sur commande" },
+  { valeur: "depannage", libelle: "Dépannage" },
+];
+
+export function lireFiltrePole(v: string | null | undefined): FiltrePole {
+  return FILTRES_POLE.some((f) => f.valeur === v) ? (v as FiltrePole) : "tous";
+}
+
+/// Types de lignes affichés pour un filtre ("Autres BI" seulement avec "Tous les pôles").
+export function typesDuFiltre(f: FiltrePole): TypeLigne[] {
+  return f === "tous" ? ["entretien", "devis", "depannage", "autre"] : [f];
+}

@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { libelleJours } from "./periode";
+import { libelleDatesProposees, libelleJours, type DateProposee } from "./periode";
 
 export { libelleJours };
 
@@ -89,13 +89,12 @@ export async function envoyerAccuseClient(p: {
   nom: string;
   infos: InfosDemande;
   reponse: "valide" | "autre_date";
-  dateProposee?: string;
-  moment?: string;
+  proposees?: DateProposee[];
 }) {
   const corps =
     p.reponse === "valide"
       ? "<p>Nous avons bien reçu votre confirmation. Notre passage est donc confirmé aux dates ci-dessous.</p>"
-      : `<p>Nous avons bien reçu votre demande de changement de date${p.dateProposee ? ` (à partir du ${echapper(libelleJours([{ date: p.dateProposee, heure: null }])[0])}${p.moment ? `, ${p.moment === "matin" ? "le matin" : "l'après-midi"}` : ""})` : ""}. Nous revenons vers vous rapidement pour vous confirmer la nouvelle date.</p>`;
+      : `<p>Nous avons bien reçu votre demande de changement de date${p.proposees?.length ? ` : ${libelleDatesProposees(p.proposees).map(echapper).join(", ")}` : ""}. Nous revenons vers vous rapidement pour vous confirmer la nouvelle date.</p>`;
   await envoyer(
     p.destinataire,
     sujet(p.infos, p.reponse === "valide" ? "Passage confirmé" : "Demande de changement de date reçue"),
@@ -107,8 +106,7 @@ export async function envoyerAlerteBureau(p: {
   infos: InfosDemande;
   evenement: "valide" | "autre_date" | "sans_reponse";
   destinataire: string;
-  dateProposee?: string | null;
-  moment?: string;
+  proposees?: DateProposee[];
   commentaire?: string;
 }) {
   const titre =
@@ -119,7 +117,7 @@ export async function envoyerAlerteBureau(p: {
         : "Sans réponse du client après 2 relances";
   const details =
     p.evenement === "autre_date"
-      ? `<p><strong>Date proposée :</strong> à partir du ${echapper(libelleJours([{ date: p.dateProposee ?? "", heure: null }])[0])}${p.moment ? ` (${p.moment === "matin" ? "matin" : "après-midi"})` : ""}</p>${p.commentaire ? `<p><strong>Commentaire :</strong> ${echapper(p.commentaire)}</p>` : ""}<p>À traiter dans Planning → Planification (« Réponses clients à traiter »).</p>`
+      ? `<p><strong>${(p.proposees?.length ?? 0) > 1 ? "Dates proposées" : "Date proposée"} :</strong><br>${libelleDatesProposees(p.proposees ?? []).map(echapper).join("<br>")}</p>${p.commentaire ? `<p><strong>Commentaire :</strong> ${echapper(p.commentaire)}</p>` : ""}<p>À traiter dans Planning → Planification (« Réponses clients à traiter »).</p>`
       : p.evenement === "sans_reponse"
         ? `<p>${echapper(p.destinataire)} n'a pas répondu malgré deux relances. L'intervention reste en attente de validation.</p>`
         : `<p>Confirmé par ${echapper(p.destinataire)}.</p>`;

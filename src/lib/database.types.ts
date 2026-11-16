@@ -745,6 +745,7 @@ export type Database = {
           creneau_ids: string[]
           created_by: string | null
           date_proposee: string | null
+          dates_proposees: Json
           destinataire_email: string
           destinataire_nom: string
           envoye_le: string
@@ -772,6 +773,7 @@ export type Database = {
           creneau_ids?: string[]
           created_by?: string | null
           date_proposee?: string | null
+          dates_proposees?: Json
           destinataire_email: string
           destinataire_nom?: string
           envoye_le?: string
@@ -799,6 +801,7 @@ export type Database = {
           creneau_ids?: string[]
           created_by?: string | null
           date_proposee?: string | null
+          dates_proposees?: Json
           destinataire_email?: string
           destinataire_nom?: string
           envoye_le?: string

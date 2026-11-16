@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock } from "lucide-react";
 import { accepterDateClient, replanifierDemande, type ConflitDate } from "./validation-actions";
-import { libelleJours, type JourDemande } from "@/lib/planning/periode";
+import { libelleDatesProposees, libelleJours, type DateProposee, type JourDemande } from "@/lib/planning/periode";
 import { lundiDeLaSemaine } from "@/lib/planning/dates";
 
 export type ReponseClient = {
@@ -13,8 +13,7 @@ export type ReponseClient = {
   site: string;
   objet: string;
   jours: JourDemande[];
-  date_proposee: string;
-  moment: string;
+  proposees: DateProposee[];
   commentaire: string;
   destinataire: string;
   premierCreneauId: string;
@@ -74,8 +73,8 @@ function Reponse({ r }: { r: ReponseClient }) {
         {r.client_nom} — {r.site} <span className="font-normal text-slate-500">· {r.objet}</span>
       </p>
       <p className="text-sm text-slate-600">
-        Proposé : {libelleJours(r.jours).join(", ")} → <strong className="text-purple-800">le client demande à partir du {dateFr(r.date_proposee)}</strong>
-        {r.moment && ` (${r.moment === "matin" ? "matin" : "après-midi"})`}
+        Proposé : {libelleJours(r.jours).join(", ")} →{" "}
+        <strong className="text-purple-800">le client demande : {libelleDatesProposees(r.proposees).join(", ")}</strong>
       </p>
       {r.commentaire && <p className="text-sm italic text-slate-500">« {r.commentaire} »</p>}
       <p className="text-xs text-slate-400">Réponse de {r.destinataire}</p>
@@ -96,7 +95,7 @@ function Reponse({ r }: { r: ReponseClient }) {
           disabled={pending}
           className="rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-green-dark disabled:opacity-60"
         >
-          {pending ? "..." : "Accepter cette date"}
+          {pending ? "..." : r.proposees.length > 1 ? "Accepter ces dates" : "Accepter cette date"}
         </button>
         <button
           onClick={replanifier}

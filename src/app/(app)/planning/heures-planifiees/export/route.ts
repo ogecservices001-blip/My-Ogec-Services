@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
-import { calculerHeuresPlanifiees } from "@/lib/planning/heures-planifiees";
+import { calculerHeuresPlanifiees, FILTRES_POLE, lireFiltrePole, typesDuFiltre } from "@/lib/planning/heures-planifiees";
 
 export async function GET(request: NextRequest) {
   await requireAdmin();
@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
   const client = params.get("client") ?? "";
   const site = params.get("site") ?? "";
   const annee = Number(params.get("annee")) || new Date().getFullYear();
+  const pole = lireFiltrePole(params.get("pole"));
+  const types = typesDuFiltre(pole);
 
   const supabase = await createClient();
   const { data: sites } = await supabase.from("sites_view").select("id, nom");
@@ -21,18 +23,17 @@ export async function GET(request: NextRequest) {
   const workbook = new ExcelJS.Workbook();
   const feuille = workbook.addWorksheet(`Heures ${annee}`);
   feuille.addRow(["Type", "Début", "Fin", "Site", "Détail", "Techniciens", "Heures prévues", "Heures réalisées", "État"]);
-  for (const l of lignes) {
+  for (const l of lignes.filter((x) => types.includes(x.type))) {
     feuille.addRow([l.libelleType, fr(l.debut), fr(l.fin), l.site, l.detail, l.techniciens.join(", "), l.heuresPrevues ?? "", l.heuresRealisees ?? "", l.etat]);
   }
 
   const synthese = workbook.addWorksheet("Totaux");
   synthese.addRow(["Type", "Nombre", "Heures prévues", "Heures réalisées"]);
-  synthese.addRow(["Visites d'entretien", totaux.entretien.nombre, totaux.entretien.prevues, totaux.entretien.realisees]);
-  synthese.addRow(["Travaux sur devis", totaux.devis.nombre, totaux.devis.prevues, totaux.devis.realisees]);
-  synthese.addRow(["Dépannages", totaux.depannage.nombre, totaux.depannage.prevues, totaux.depannage.realisees]);
-  synthese.addRow(["Autres BI", totaux.autre.nombre, totaux.autre.prevues, totaux.autre.realisees]);
+  const libelles = { entretien: "Visites d'entretien", devis: "Travaux sur devis", depannage: "Dépannages", autre: "Autres BI" } as const;
+  for (const t of types) synthese.addRow([libelles[t], totaux[t].nombre, totaux[t].prevues, totaux[t].realisees]);
   synthese.addRow([]);
-  synthese.addRow(["Heures vendues au contrat (par an)", "", heuresContrat, ""]);
+  if (types.includes("entretien")) synthese.addRow(["Heures vendues au contrat (par an)", "", heuresContrat, ""]);
+  synthese.addRow(["Filtre", FILTRES_POLE.find((f) => f.valeur === pole)?.libelle ?? ""]);
 
   for (const f of [feuille, synthese]) finaliserFeuille(f);
   const nom = (site ? "Site" : client || "Heures").replace(/[^\w-]+/g, "_");

@@ -188,7 +188,9 @@ export async function accepterDateClient(demandeId: string): Promise<{ ok: true 
 
   const { data: feries } = await supabase.from("jours_feries").select("date");
   const anciennes = [...new Set(creneaux.map((c) => c.date))].sort();
-  const nouvelles = joursOuvresAPartirDe(d.date_proposee, anciennes.length, (feries ?? []).map((f) => f.date));
+  const proposees = ((d.dates_proposees as { date: string }[] | null) ?? []).map((x) => x.date);
+  const nouvelles =
+    proposees.length === anciennes.length ? proposees : joursOuvresAPartirDe(d.date_proposee, anciennes.length, (feries ?? []).map((f) => f.date));
   if (nouvelles.length < anciennes.length) return { ok: false, erreur: "Impossible de trouver des jours ouvrés à partir de cette date." };
   const correspondance = new Map(anciennes.map((a, i) => [a, nouvelles[i]]));
 

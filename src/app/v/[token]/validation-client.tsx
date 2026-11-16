@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { CalendarCheck, CalendarClock, CheckCircle2, XCircle } from "lucide-react";
 import { repondreDemande, type DemandePublique } from "./actions";
-import { estJourOuvre, libelleJours } from "@/lib/planning/periode";
+import { estJourOuvre, libelleJours, prochainJourOuvre, type DateProposee } from "@/lib/planning/periode";
+import { ajouterJours } from "@/lib/planning/dates";
+
+const prochainJourOuvreApres = (d: string, feries: string[]) => prochainJourOuvre(ajouterJours(d, 1), feries);
 
 function Cadre({ children }: { children: React.ReactNode }) {
   return (
@@ -22,8 +25,9 @@ function Cadre({ children }: { children: React.ReactNode }) {
 export function ValidationClient({ token, demande }: { token: string; demande: DemandePublique | null }) {
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<"choix" | "autre">("choix");
-  const [date, setDate] = useState("");
-  const [moment, setMoment] = useState("");
+  const nbJours = Math.max(1, demande?.infos.jours.length ?? 1);
+  const [proposees, setProposees] = useState<DateProposee[]>(() => Array.from({ length: nbJours }, () => ({ date: "", moment: "" })));
+  const joursModifies = useRef<Set<number>>(new Set());
   const [commentaire, setCommentaire] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [termine, setTermine] = useState<"valide" | "autre_date" | null>(null);
@@ -42,16 +46,41 @@ export function ValidationClient({ token, demande }: { token: string; demande: D
   const dates = libelleJours(demande.infos.jours);
   const statut = termine ?? demande.statut;
   const demain = demande.demain;
-  const dateInvalide = date !== "" && (date < demain || !estJourOuvre(date, demande.joursFeries));
+  const invalide = (d: string) => d !== "" && (d < demain || !estJourOuvre(d, demande.joursFeries));
+
+  function changerDate(i: number, valeur: string) {
+    if (i > 0) joursModifies.current.add(i);
+    setProposees((ps) => {
+      const suivantes = ps.map((p) => ({ ...p }));
+      suivantes[i].date = valeur;
+      if (i === 0 && valeur) {
+        let d = valeur;
+        for (let k = 1; k < suivantes.length; k++) {
+          d = prochainJourOuvreApres(d, demande!.joursFeries);
+          if (!joursModifies.current.has(k)) suivantes[k].date = d;
+          else d = suivantes[k].date || d;
+        }
+      }
+      return suivantes;
+    });
+  }
+
+  function changerMoment(i: number, valeur: string) {
+    setProposees((ps) => ps.map((p, k) => (k === i ? { ...p, moment: valeur } : p)));
+  }
 
   function repondre(accepte: boolean) {
     setErreur(null);
     if (!accepte) {
-      if (!date) return setErreur("Choisissez une date.");
-      if (dateInvalide) return setErreur("Choisissez un jour de semaine à venir, hors jour férié.");
+      for (const [i, p] of proposees.entries()) {
+        const nom = nbJours > 1 ? `Jour ${i + 1} : ` : "";
+        if (!p.date) return setErreur(`${nom}choisissez une date.`);
+        if (invalide(p.date)) return setErreur(`${nom}choisissez un jour de semaine à venir, hors jour férié.`);
+        if (i > 0 && p.date <= proposees[i - 1].date) return setErreur(`Le jour ${i + 1} doit être après le jour ${i}.`);
+      }
     }
     startTransition(async () => {
-      const res = await repondreDemande(token, accepte ? { accepte: true } : { accepte: false, date, moment, commentaire });
+      const res = await repondreDemande(token, accepte ? { accepte: true } : { accepte: false, dates: proposees, commentaire });
       if (!res.ok) return setErreur(res.erreur);
       setTermine(accepte ? "valide" : "autre_date");
     });
@@ -116,34 +145,37 @@ export function ValidationClient({ token, demande }: { token: string; demande: D
       ) : (
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <p className="mb-3 text-sm font-bold text-slate-900">Proposer une autre date</p>
-          <label className="mb-1 block text-xs font-medium text-slate-600">
-            {demande.infos.jours.length > 1 ? `Date de début (intervention sur ${demande.infos.jours.length} jours)` : "Date souhaitée"}
-          </label>
-          <input
-            type="date"
-            min={demain}
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="mb-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-base"
-          />
-          {dateInvalide && <p className="mb-2 text-xs text-red-600">Jour de semaine à venir uniquement, hors jour férié.</p>}
-          <label className="mb-1 mt-3 block text-xs font-medium text-slate-600">Moment de la journée (facultatif)</label>
-          <div className="mb-3 grid grid-cols-3 gap-2">
-            {[
-              ["", "Indifférent"],
-              ["matin", "Matin"],
-              ["apres_midi", "Après-midi"],
-            ].map(([v, l]) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setMoment(v)}
-                className={`rounded-lg px-3 py-2 text-sm font-semibold ${moment === v ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"}`}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
+          {proposees.map((p, i) => (
+            <div key={i} className={nbJours > 1 ? "mb-4 rounded-xl border border-slate-200 p-3" : "mb-3"}>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                {nbJours > 1 ? `${i === 0 ? "1er" : `${i + 1}e`} jour` : "Date souhaitée"}
+              </label>
+              <input
+                type="date"
+                min={i > 0 && proposees[i - 1].date ? proposees[i - 1].date : demain}
+                value={p.date}
+                onChange={(e) => changerDate(i, e.target.value)}
+                className="mb-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-base"
+              />
+              {invalide(p.date) && <p className="mb-2 text-xs text-red-600">Jour de semaine à venir uniquement, hors jour férié.</p>}
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {[
+                  ["", "Indifférent"],
+                  ["matin", "Matin"],
+                  ["apres_midi", "Après-midi"],
+                ].map(([v, l]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => changerMoment(i, v)}
+                    className={`rounded-lg px-2 py-2 text-sm font-semibold ${p.moment === v ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"}`}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
           <label className="mb-1 block text-xs font-medium text-slate-600">Commentaire (facultatif)</label>
           <textarea
             value={commentaire}

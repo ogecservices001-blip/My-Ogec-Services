@@ -79,3 +79,11 @@ export type JourDemande = { date: string; heure: string | null };
 export function libelleJours(jours: JourDemande[]): string[] {
   return jours.map((j) => `${formaterJourLong(j.date)} ${j.date.slice(0, 4)}${j.heure ? `, à partir de ${j.heure.slice(0, 5)}` : ""}`);
 }
+
+export type DateProposee = { date: string; moment: string };
+
+export function libelleDatesProposees(dates: DateProposee[]): string[] {
+  return dates.map(
+    (d) => `${libelleJours([{ date: d.date, heure: null }])[0]}${d.moment ? ` (${d.moment === "matin" ? "matin" : "après-midi"})` : ""}`,
+  );
+}

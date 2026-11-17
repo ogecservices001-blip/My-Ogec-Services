@@ -65,7 +65,7 @@ export function ChoixSiteDepannage({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
-            {horsContrat ? "Dépannage — Clients hors contrat" : "Dépannage — Clients sous contrat"}
+            {horsContrat ? "Dépannage et Divers — Clients hors contrat" : "Dépannage et Divers — Clients sous contrat"}
           </h1>
           <p className="text-sm text-slate-500">
             {nbClients} client(s) — {sites.length} site(s)

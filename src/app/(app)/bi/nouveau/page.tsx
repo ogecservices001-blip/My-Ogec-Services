@@ -28,6 +28,9 @@ export default async function NouveauBiPage({
   if (!pole && !devisId && !depannageId && !brouillonId) redirect("/");
   const supabase = await createClient();
 
+  // L'entretien sous contrat part toujours d'un créneau du planning (Audit Heures).
+  if (pole === "20" && !creneauId && !brouillonId) redirect("/planning/mon-planning");
+
   // Dépannage depuis le menu : on choisit d'abord le site (écran en pleine largeur).
   if (pole === "60" && !siteId && !depannageId && !brouillonId) {
     redirect(`/bi/depannage?horsContrat=${horsContrat === "1" ? 1 : 0}`);

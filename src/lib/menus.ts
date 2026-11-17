@@ -29,9 +29,10 @@ export type Module = {
 /// les boutons contextuels (carte devis dans Prestation sur commande,
 /// carte ticket dans Suivi Dépannages) ou, pour un appel SAV non
 /// encore enregistré en ticket, via "Dépannage" ici. Le bureau (admin)
-/// ne crée jamais de BI lui-même : "Dépannage" et "Entretien sous
-/// contrat" ne lui sont pas montrés, seul "Tous les bons" (vérification)
-/// l'est.
+/// ne crée jamais de BI lui-même : "Dépannage" ne lui est pas montré,
+/// seuls les bons à vérifier et validés le sont. Le BI d'entretien sous
+/// contrat se fait uniquement depuis le créneau de Mon planning, pour
+/// que l'Audit Heures ne compte jamais deux fois la même visite.
 ///
 /// Même source utilisée par la sidebar et par le menu guidé du
 /// Signalement retour terrain (Niveaux 2/3) — pour que le choix
@@ -75,10 +76,7 @@ export function construireModules(isAdmin: boolean): Module[] {
             { nom: "Bon à vérifier", href: "/bi" },
             { nom: "Bons validés", href: "/bi/valides" },
           ]
-        : [
-            { nom: "Dépannage", href: "/bi/depannage?horsContrat=0" },
-            { nom: "Entretien sous contrat", href: "/bi/nouveau?pole=20" },
-          ],
+        : [{ nom: "Dépannage et Divers", href: "/bi/depannage?horsContrat=0" }],
     },
     {
       nom: "GMAO",

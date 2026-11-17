@@ -5,14 +5,17 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Upload, FileSpreadsheet, Download } from "lucide-react";
-import type { ResultatDiff } from "@/lib/gmao/equipement-import";
-import { previsualiserImportEquipements, appliquerImportEquipements, genererRapportImportEquipements } from "./import-shared";
+import {
+  previsualiserImportEquipements,
+  appliquerImportEquipements,
+  genererRapportImportEquipements,
+  type ApercuImport,
+} from "./import-shared";
 import { nomFichierAvecDate } from "@/lib/excel-export";
 
-// Au-delà de ce nombre, afficher chaque ligne individuellement (carte +
-// case à cocher) sature le navigateur sur un import "tous clients"
-// (plusieurs milliers de lignes) — toutes les lignes restent sélectionnées
-// et appliquées normalement, seul l'affichage détaillé est tronqué.
+// Le serveur n'envoie que les 300 premières lignes de chaque catégorie
+// (limite de 4,5 Mo par échange sur Vercel) : toutes les autres restent
+// sélectionnées et sont appliquées normalement.
 const LIMITE_AFFICHAGE = 300;
 
 /// Écran d'import "Sommaire" générique, réutilisé pour un import par
@@ -36,8 +39,9 @@ export function ImporterEquipementsClient({
   const [analyse, startAnalyse] = useTransition();
   const [application, startApplication] = useTransition();
   const [rapport, startRapport] = useTransition();
-  const [diff, setDiff] = useState<ResultatDiff | null>(null);
-  const [diffApplique, setDiffApplique] = useState<ResultatDiff | null>(null);
+  const [diff, setDiff] = useState<ApercuImport | null>(null);
+  const [fichier, setFichier] = useState<File | null>(null);
+  const [rapportApplique, setRapportApplique] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [cochesAjouts, setCochesAjouts] = useState<boolean[]>([]);
   const [cochesModifications, setCochesModifications] = useState<boolean[]>([]);
@@ -54,23 +58,38 @@ export function ImporterEquipementsClient({
         setDiff(null);
         return;
       }
-      setDiff(res.diff);
-      setCochesAjouts(res.diff.ajouts.map(() => true));
-      setCochesModifications(res.diff.modifications.map(() => true));
+      const f = formData.get("fichier");
+      setFichier(f instanceof File ? f : null);
+      setDiff(res.apercu);
+      setCochesAjouts(res.apercu.ajouts.map(() => true));
+      setCochesModifications(res.apercu.modifications.map(() => true));
       // Les suppressions ne sont jamais cochées par défaut — action
       // destructive, opt-in explicite requis (garde-fou que Flutter
       // lui-même n'avait pas).
-      setCochesSuppressions(res.diff.suppressions.map(() => false));
+      setCochesSuppressions(res.apercu.suppressions.map(() => false));
     });
   }
 
+  const indices = (coches: boolean[], valeur: boolean) => coches.flatMap((c, i) => (c === valeur ? [i] : []));
+  const avecFichier = () => {
+    const fd = new FormData();
+    if (fichier) fd.set("fichier", fichier);
+    return fd;
+  };
+
   function appliquer() {
-    if (!diff) return;
+    if (!diff || !fichier) return;
     setErreur(null);
     startApplication(async () => {
       const res = await appliquerImportEquipements(
-        diff,
-        { ajouts: cochesAjouts, modifications: cochesModifications, suppressions: cochesSuppressions },
+        siteIds,
+        avecFichier(),
+        {
+          ajoutsDecoches: indices(cochesAjouts, false),
+          modificationsDecochees: indices(cochesModifications, false),
+          suppressionsCochees: indices(cochesSuppressions, true),
+        },
+        diff.empreinte,
         cheminsARevalider,
       );
       if (!res.ok) {
@@ -78,22 +97,14 @@ export function ImporterEquipementsClient({
         return;
       }
       setResultat({ ajoutes: res.ajoutes ?? 0, modifies: res.modifies ?? 0, supprimes: res.supprimes ?? 0 });
-      setDiffApplique(diff);
+      setRapportApplique(res.rapport ?? null);
       setDiff(null);
       router.refresh();
     });
   }
 
-  function telechargerRapport(diffATelecharger: ResultatDiff | null) {
-    if (!diffATelecharger) return;
-    setErreur(null);
-    startRapport(async () => {
-      const res = await genererRapportImportEquipements(diffATelecharger);
-      if (!res.ok || !res.base64) {
-        setErreur(!res.ok ? res.erreur : "Rapport indisponible.");
-        return;
-      }
-      const octets = atob(res.base64);
+  function telecharger(base64: string) {
+    const octets = atob(base64);
       const tampon = new Uint8Array(octets.length);
       for (let i = 0; i < octets.length; i++) tampon[i] = octets.charCodeAt(i);
       const url = URL.createObjectURL(
@@ -104,6 +115,18 @@ export function ImporterEquipementsClient({
       lien.download = nomFichierAvecDate("rapport_import_equipements.xlsx");
       lien.click();
       URL.revokeObjectURL(url);
+  }
+
+  function telechargerRapport() {
+    if (!fichier) return;
+    setErreur(null);
+    startRapport(async () => {
+      const res = await genererRapportImportEquipements(siteIds, avecFichier());
+      if (!res.ok || !res.base64) {
+        setErreur(!res.ok ? res.erreur : "Rapport indisponible.");
+        return;
+      }
+      telecharger(res.base64);
     });
   }
 
@@ -113,10 +136,13 @@ export function ImporterEquipementsClient({
     setListe(copie);
   }
 
-  const totalCoches =
-    cochesAjouts.filter(Boolean).length +
-    cochesModifications.filter(Boolean).length +
-    cochesSuppressions.filter(Boolean).length;
+  const totalCoches = diff
+    ? diff.nbAjouts -
+      indices(cochesAjouts, false).length +
+      diff.nbModifications -
+      indices(cochesModifications, false).length +
+      cochesSuppressions.filter(Boolean).length
+    : 0;
 
   return (
     <div>
@@ -137,12 +163,12 @@ export function ImporterEquipementsClient({
             supprimé(s).
           </p>
           <button
-            onClick={() => telechargerRapport(diffApplique)}
-            disabled={rapport}
+            onClick={() => rapportApplique && telecharger(rapportApplique)}
+            disabled={!rapportApplique}
             className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-brand-green-dark shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
           >
             <Download className="h-3.5 w-3.5" strokeWidth={2.25} />
-            {rapport ? "Génération..." : "Télécharger le rapport (.xlsx)"}
+            Télécharger le rapport (.xlsx)
           </button>
         </div>
       )}
@@ -178,12 +204,12 @@ export function ImporterEquipementsClient({
         <>
           <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3">
             <p className="text-sm text-slate-600">
-              {diff.ajouts.length === 0 && diff.modifications.length === 0 && diff.suppressions.length === 0
+              {diff.nbAjouts === 0 && diff.nbModifications === 0 && diff.nbSuppressions === 0
                 ? "Aucun changement détecté — le parc est déjà à jour."
-                : `${diff.ajouts.length} ajout(s), ${diff.modifications.length} modification(s).`}
+                : `${diff.nbAjouts} ajout(s), ${diff.nbModifications} modification(s).`}
             </p>
             <button
-              onClick={() => telechargerRapport(diff)}
+              onClick={telechargerRapport}
               disabled={rapport}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:opacity-60"
             >
@@ -200,68 +226,53 @@ export function ImporterEquipementsClient({
               <div className="max-h-40 space-y-1 overflow-y-auto">
                 {diff.avertissements.map((a, i) => (
                   <p key={i} className="text-xs text-amber-800">
-                    {a.message}
+                    {a}
                   </p>
                 ))}
               </div>
             </div>
           )}
 
-          {diff.ajouts.length > 0 && (
-            <Section titre={`Ajouts (${diff.ajouts.length})`} couleur="text-brand-green-dark">
-              {diff.ajouts.slice(0, LIMITE_AFFICHAGE).map((a, i) => (
-                <Ligne
-                  key={i}
-                  cochee={cochesAjouts[i]}
-                  onToggle={() => bascule(cochesAjouts, setCochesAjouts, i)}
-                  titre={a.ligne.nom}
-                  sousTitre={[a.ligne.typeDeReleveBrut, a.ligne.numeroEquipement, a.ligne.localisation]
-                    .filter(Boolean)
-                    .join(" — ")}
-                />
+          {diff.nbAjouts > 0 && (
+            <Section titre={`Ajouts (${diff.nbAjouts})`} couleur="text-brand-green-dark">
+              {diff.ajouts.map((a, i) => (
+                <Ligne key={i} cochee={cochesAjouts[i]} onToggle={() => bascule(cochesAjouts, setCochesAjouts, i)} titre={a.nom} sousTitre={a.sousTitre} />
               ))}
-              {diff.ajouts.length > LIMITE_AFFICHAGE && (
-                <NoteTropDeLignes total={diff.ajouts.length} affiches={LIMITE_AFFICHAGE} />
-              )}
+              {diff.nbAjouts > LIMITE_AFFICHAGE && <NoteTropDeLignes total={diff.nbAjouts} affiches={LIMITE_AFFICHAGE} />}
             </Section>
           )}
 
-          {diff.modifications.length > 0 && (
-            <Section titre={`Modifications (${diff.modifications.length})`} couleur="text-amber-600">
-              {diff.modifications.slice(0, LIMITE_AFFICHAGE).map((m, i) => (
+          {diff.nbModifications > 0 && (
+            <Section titre={`Modifications (${diff.nbModifications})`} couleur="text-amber-600">
+              {diff.modifications.map((m, i) => (
                 <Ligne
                   key={i}
                   cochee={cochesModifications[i]}
                   onToggle={() => bascule(cochesModifications, setCochesModifications, i)}
-                  titre={m.existant.nom}
-                  sousTitre={m.champs.map((c) => `${c.label} : "${c.ancienne}" → "${c.nouvelle}"`).join("\n")}
+                  titre={m.nom}
+                  sousTitre={m.sousTitre}
                   multiline
                 />
               ))}
-              {diff.modifications.length > LIMITE_AFFICHAGE && (
-                <NoteTropDeLignes total={diff.modifications.length} affiches={LIMITE_AFFICHAGE} />
-              )}
+              {diff.nbModifications > LIMITE_AFFICHAGE && <NoteTropDeLignes total={diff.nbModifications} affiches={LIMITE_AFFICHAGE} />}
             </Section>
           )}
 
-          {diff.suppressions.length > 0 && (
-            <Section titre={`Suppressions proposées (${diff.suppressions.length})`} couleur="text-red-600">
-              {diff.suppressions.slice(0, LIMITE_AFFICHAGE).map((s, i) => (
-                <Ligne
-                  key={i}
-                  cochee={cochesSuppressions[i]}
-                  onToggle={() => bascule(cochesSuppressions, setCochesSuppressions, i)}
-                  titre={s.existant.nom}
-                  sousTitre={`Absent du fichier importé — ${s.existant.numero_equipement}`}
-                />
+          {diff.nbSuppressions > 0 && (
+            <Section titre={`Suppressions proposées (${diff.nbSuppressions})`} couleur="text-red-600">
+              {diff.suppressions.map((s, i) => (
+                <Ligne key={i} cochee={cochesSuppressions[i]} onToggle={() => bascule(cochesSuppressions, setCochesSuppressions, i)} titre={s.nom} sousTitre={s.sousTitre} />
               ))}
-              {diff.suppressions.length > LIMITE_AFFICHAGE && (
-                <NoteTropDeLignes total={diff.suppressions.length} affiches={LIMITE_AFFICHAGE} />
+              {diff.nbSuppressions > LIMITE_AFFICHAGE && (
+                <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-500">
+                  + {diff.nbSuppressions - LIMITE_AFFICHAGE} autre(s) suppression(s) proposée(s) non affichée(s) — jamais appliquées sans être cochées. Détail
+                  dans le rapport (.xlsx).
+                </p>
               )}
             </Section>
           )}
 
-          {(diff.ajouts.length > 0 || diff.modifications.length > 0 || diff.suppressions.length > 0) && (
+          {(diff.nbAjouts > 0 || diff.nbModifications > 0 || diff.nbSuppressions > 0) && (
             <div className="sticky bottom-4 mt-4 flex justify-end">
               <button
                 onClick={appliquer}

@@ -1,6 +1,7 @@
 "use server";
 
 import ExcelJS from "exceljs";
+import { createHash } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
@@ -113,19 +114,32 @@ async function parserSommaire(fichier: File): Promise<LigneImportEquipement[] | 
   return lignes;
 }
 
-export type ResultatPreviewEquipements =
-  | { ok: true; diff: ResultatDiff }
-  | { ok: false; erreur: string };
+/// Ce que l'écran affiche : compteurs, 300 premières lignes de chaque
+/// catégorie, avertissements. L'analyse complète ne quitte jamais le
+/// serveur (Vercel refuse tout échange de plus de 4,5 Mo) : le fichier
+/// est renvoyé à l'application et au rapport, et réanalysé à l'identique.
+const LIMITE_APERCU = 300;
 
-/// Analyse le classeur "Sommaire" pour les sites donnés (un, tous ceux
-/// d'un client, ou le parc entier) — port de `calculerDiff`
-/// (equipement_import_service.dart).
-export async function previsualiserImportEquipements(
-  siteIds: string[],
-  formData: FormData,
-): Promise<ResultatPreviewEquipements> {
-  await requireAdmin();
+export type ApercuImport = {
+  empreinte: string;
+  nbAjouts: number;
+  nbModifications: number;
+  nbSuppressions: number;
+  ajouts: { nom: string; sousTitre: string }[];
+  modifications: { nom: string; sousTitre: string }[];
+  suppressions: { nom: string; sousTitre: string }[];
+  avertissements: string[];
+};
 
+export type ChoixImport = {
+  ajoutsDecoches: number[];
+  modificationsDecochees: number[];
+  suppressionsCochees: number[];
+};
+
+export type ResultatPreviewEquipements = { ok: true; apercu: ApercuImport } | { ok: false; erreur: string };
+
+async function analyserFichier(siteIds: string[], formData: FormData): Promise<{ ok: true; diff: ResultatDiff } | { ok: false; erreur: string }> {
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) {
     return { ok: false, erreur: "Aucun fichier sélectionné." };
@@ -166,27 +180,81 @@ export async function previsualiserImportEquipements(
     existantsParSite.set(e.site_id, liste);
   }
 
-  const diff = calculerDiff(lignes, sites, existantsParSite, typesById);
-  return { ok: true, diff };
+  return { ok: true, diff: calculerDiff(lignes, sites, existantsParSite, typesById) };
 }
 
-/// Applique les lignes cochées (déjà rattachées à leur site via
-/// `DiffAjout.siteId` / `DiffModification.existant.site_id`) — jamais
-/// un nouveau parsing du fichier.
-export async function appliquerImportEquipements(
-  diff: ResultatDiff,
-  selection: { ajouts: boolean[]; modifications: boolean[]; suppressions: boolean[] },
-  cheminsARevalider: string[],
-): Promise<ActionResult & { ajoutes?: number; modifies?: number; supprimes?: number }> {
+/// Signature de l'analyse : si le parc ou le fichier a changé entre
+/// l'aperçu et l'application, on refuse d'appliquer.
+function empreinteDiff(diff: ResultatDiff): string {
+  const contenu = JSON.stringify([
+    diff.ajouts.map((a) => [a.siteId, a.ligne.numeroEquipement]),
+    diff.modifications.map((m) => [m.existant.id, m.existant.updated_at, m.champs]),
+    diff.suppressions.map((x) => [x.existant.id, x.existant.updated_at]),
+  ]);
+  return createHash("sha256").update(contenu).digest("hex");
+}
+
+/// Analyse le classeur "Sommaire" pour les sites donnés (un, tous ceux
+/// d'un client, ou le parc entier) — port de `calculerDiff`
+/// (equipement_import_service.dart).
+export async function previsualiserImportEquipements(siteIds: string[], formData: FormData): Promise<ResultatPreviewEquipements> {
   await requireAdmin();
+  const res = await analyserFichier(siteIds, formData);
+  if (!res.ok) return res;
+  const { diff } = res;
+  return {
+    ok: true,
+    apercu: {
+      empreinte: empreinteDiff(diff),
+      nbAjouts: diff.ajouts.length,
+      nbModifications: diff.modifications.length,
+      nbSuppressions: diff.suppressions.length,
+      ajouts: diff.ajouts.slice(0, LIMITE_APERCU).map((a) => ({
+        nom: a.ligne.nom,
+        sousTitre: [a.ligne.typeDeReleveBrut, a.ligne.numeroEquipement, a.ligne.localisation].filter(Boolean).join(" — "),
+      })),
+      modifications: diff.modifications.slice(0, LIMITE_APERCU).map((m) => ({
+        nom: m.existant.nom,
+        sousTitre: m.champs.map((c) => `${c.label} : "${c.ancienne}" → "${c.nouvelle}"`).join("\n"),
+      })),
+      suppressions: diff.suppressions.slice(0, LIMITE_APERCU).map((x) => ({
+        nom: x.existant.nom,
+        sousTitre: `Absent du fichier importé — ${x.existant.numero_equipement}`,
+      })),
+      avertissements: diff.avertissements.map((a) => a.message),
+    },
+  };
+}
+
+/// Applique les lignes cochées : le fichier est réanalysé à l'identique
+/// (empreinte vérifiée), puis le rapport est produit sur cette même
+/// analyse avant écriture.
+export async function appliquerImportEquipements(
+  siteIds: string[],
+  formData: FormData,
+  choix: ChoixImport,
+  empreinte: string,
+  cheminsARevalider: string[],
+): Promise<ActionResult & { ajoutes?: number; modifies?: number; supprimes?: number; rapport?: string }> {
+  await requireAdmin();
+  const res = await analyserFichier(siteIds, formData);
+  if (!res.ok) return res;
+  const { diff } = res;
+  if (empreinteDiff(diff) !== empreinte) {
+    return { ok: false, erreur: "Le parc ou le fichier a changé depuis l'analyse : relance l'analyse avant d'appliquer." };
+  }
+  const ajoutsDecoches = new Set(choix.ajoutsDecoches);
+  const modificationsDecochees = new Set(choix.modificationsDecochees);
+  const suppressionsCochees = new Set(choix.suppressionsCochees);
 
   const supabase = await createClient();
+  const rapport = await rapportDepuisDiff(supabase, diff);
   let ajoutes = 0;
   let modifies = 0;
   let supprimes = 0;
 
   const aInserer = diff.ajouts
-    .filter((_, i) => selection.ajouts[i])
+    .filter((_, i) => !ajoutsDecoches.has(i))
     .map((a) => ({
       site_id: a.siteId,
       type_equipement_id: a.ligne.typeEquipementId!,
@@ -198,9 +266,6 @@ export async function appliquerImportEquipements(
       remarques_techniciens: a.ligne.remarquesTechniciens,
       champs_en_tete: a.ligne.champsEnTete,
     }));
-  // Insert par lots : un envoi unique de plusieurs milliers de lignes
-  // (import "tous clients") peut dépasser la taille de requête acceptée
-  // et fait échouer tout le lot d'un coup.
   const TAILLE_LOT = 500;
   for (let i = 0; i < aInserer.length; i += TAILLE_LOT) {
     const lot = aInserer.slice(i, i + TAILLE_LOT);
@@ -209,34 +274,48 @@ export async function appliquerImportEquipements(
     ajoutes += lot.length;
   }
 
-  for (let i = 0; i < diff.modifications.length; i++) {
-    if (!selection.modifications[i]) continue;
-    const mod = diff.modifications[i];
-    const champsEnTeteFusionnes = { ...mod.existant.champs_en_tete, ...mod.ligne.champsEnTete };
-    const { error } = await supabase
-      .from("equipements")
-      .update({
-        nom: mod.ligne.nom || mod.existant.nom,
-        localisation: mod.ligne.localisation || mod.existant.localisation,
-        groupe: mod.ligne.groupe || mod.existant.groupe,
-        informations_internes: mod.ligne.informationsInternes || mod.existant.informations_internes,
-        remarques_techniciens: mod.ligne.remarquesTechniciens || mod.existant.remarques_techniciens,
-        champs_en_tete: champsEnTeteFusionnes,
-      })
-      .eq("id", mod.existant.id);
-    if (error) return { ok: false, erreur: error.message };
-    modifies++;
+  const aModifier = diff.modifications.filter((_, i) => !modificationsDecochees.has(i));
+  const EN_PARALLELE = 20;
+  for (let i = 0; i < aModifier.length; i += EN_PARALLELE) {
+    const resultats = await Promise.all(
+      aModifier.slice(i, i + EN_PARALLELE).map((mod) =>
+        supabase
+          .from("equipements")
+          .update({
+            nom: mod.ligne.nom || mod.existant.nom,
+            localisation: mod.ligne.localisation || mod.existant.localisation,
+            groupe: mod.ligne.groupe || mod.existant.groupe,
+            informations_internes: mod.ligne.informationsInternes || mod.existant.informations_internes,
+            remarques_techniciens: mod.ligne.remarquesTechniciens || mod.existant.remarques_techniciens,
+            champs_en_tete: { ...mod.existant.champs_en_tete, ...mod.ligne.champsEnTete },
+          })
+          .eq("id", mod.existant.id),
+      ),
+    );
+    const echec = resultats.find((r) => r.error);
+    if (echec?.error) return { ok: false, erreur: `${echec.error.message} (après ${ajoutes} ajout(s) et ${modifies} modification(s))` };
+    modifies += resultats.length;
   }
 
-  for (let i = 0; i < diff.suppressions.length; i++) {
-    if (!selection.suppressions[i]) continue;
-    const { error } = await supabase.from("equipements").delete().eq("id", diff.suppressions[i].existant.id);
+  const aSupprimer = diff.suppressions.filter((_, i) => suppressionsCochees.has(i)).map((x) => x.existant.id);
+  for (let i = 0; i < aSupprimer.length; i += TAILLE_LOT) {
+    const lot = aSupprimer.slice(i, i + TAILLE_LOT);
+    const { error } = await supabase.from("equipements").delete().in("id", lot);
     if (error) return { ok: false, erreur: error.message };
-    supprimes++;
+    supprimes += lot.length;
   }
 
   for (const chemin of cheminsARevalider) revalidatePath(chemin);
-  return { ok: true, ajoutes, modifies, supprimes };
+  return { ok: true, ajoutes, modifies, supprimes, rapport };
+}
+
+/// Rapport de l'analyse en cours, depuis le fichier renvoyé (même analyse
+/// que l'aperçu).
+export async function genererRapportImportEquipements(siteIds: string[], formData: FormData): Promise<ActionResult & { base64?: string }> {
+  await requireAdmin();
+  const res = await analyserFichier(siteIds, formData);
+  if (!res.ok) return res;
+  return { ok: true, base64: await rapportDepuisDiff(await createClient(), res.diff) };
 }
 
 /// Calcule les heures Tech/Assistant par an d'une ligne (ajout ou
@@ -274,8 +353,7 @@ function calculerHeuresLigne(
   };
 }
 
-/// Rapport .xlsx de l'import analysé (diff déjà calculé côté client,
-/// jamais un nouveau parsing du fichier) — scopé aux seuls équipements
+/// Rapport .xlsx de l'import analysé — scopé aux seuls équipements
 /// ajoutés ou modifiés par CET import (jamais le reste du classeur
 /// pour d'autres clients, ni les lignes inchangées du site) :
 /// - équipement pas encore en GMAO → ligne entière en rouge ;
@@ -283,9 +361,7 @@ function calculerHeuresLigne(
 ///   affichant "nouvelle valeur (était : ancienne valeur)" ;
 /// - heures Tech/Assistant par an affectées à chaque équipement,
 ///   recalculées depuis le catalogue Référentiel Heures.
-export async function genererRapportImportEquipements(diff: ResultatDiff): Promise<ActionResult & { base64?: string }> {
-  await requireAdmin();
-  const supabase = await createClient();
+async function rapportDepuisDiff(supabase: Awaited<ReturnType<typeof createClient>>, diff: ResultatDiff): Promise<string> {
 
   const { data: types } = await supabase.from("types_equipement").select("*");
   const { data: references } = await supabase.from("references_horaires").select("*");
@@ -401,5 +477,5 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
   finaliserFeuille(feuille);
 
   const buffer = await workbook.xlsx.writeBuffer();
-  return { ok: true, base64: Buffer.from(buffer).toString("base64") };
+  return Buffer.from(buffer).toString("base64");
 }

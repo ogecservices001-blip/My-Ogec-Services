@@ -183,7 +183,7 @@ export function StatutDevisForm({
           ? `${String(devis.remise_valeur).replace(".", ",")} %`
           : eur(devis.remise_valeur ?? 0),
     ],
-    ["Heures prévues", devis.heures_prevues !== null ? String(devis.heures_prevues) : ""],
+    ["Heures prévues", devis.heures_prevues !== null ? `${(Math.round(Number(devis.heures_prevues) * 10) / 10).toLocaleString("fr-FR")} h` : ""],
     ["Débours matériel prévu", devis.debours_materiel_prevu !== null ? eur(devis.debours_materiel_prevu) : ""],
     ["Date commande client", devis.date_commande_client],
     ["Référence client", devis.reference_client],

@@ -129,7 +129,7 @@ const CLES_R5: (keyof CoutRevient)[] = [
 /// sinon R1 ne correspond plus à ce qui est réellement facturé.
 export function calculerPrixRevient(lignes: LigneDevis[], c: CoutRevient): CalculPrixRevient {
   const materiel = lignes.reduce((s, l) => s + n(l.matiere) * n(l.quantite), 0);
-  const heuresMO = lignes.reduce((s, l) => s + n(l.moHeures) * n(l.quantite), 0);
+  const heuresMO = Math.round(lignes.reduce((s, l) => s + n(l.moHeures) * n(l.quantite), 0) * 10) / 10;
   const tauxHoraire = n(c.r2TauxHoraire);
 
   const r1Total = materiel + n(c.r1SousTraitance) + n(c.r1Divers);

@@ -415,7 +415,7 @@ export function NouveauDevisForm({
               </p>
             )}
             <BlocCout titre="R2 — Montage">
-              <ChampLecture label="Heures (somme des lignes)" valeur={`${prixRevient.heuresMO} h`} />
+              <ChampLecture label="Heures (somme des lignes)" valeur={`${formatNombrePU(prixRevient.heuresMO, 1)} h`} />
               <ChampLecture
                 label={tauxFige ? "Taux horaire (figé à la création)" : "Taux horaire (Référentiel PU)"}
                 valeur={`${formatNombrePU(prixRevient.tauxHoraire)} €/h`}

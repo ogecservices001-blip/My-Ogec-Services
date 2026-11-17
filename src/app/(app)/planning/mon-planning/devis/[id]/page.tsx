@@ -64,7 +64,7 @@ export default async function DevisTechnicienPage({ params }: { params: Promise<
     ["Nature", labelNatureDevis(devis.nature)],
     ["Objet", devis.libelle],
     ["Localisation", devis.localisation],
-    ["Heures prévues", devis.heures_prevues ? `${String(devis.heures_prevues).replace(".", ",")} h` : ""],
+    ["Heures prévues", devis.heures_prevues ? `${(Math.round(Number(devis.heures_prevues) * 10) / 10).toLocaleString("fr-FR")} h` : ""],
     ["Commande client", [devis.date_commande_client && `le ${devis.date_commande_client}`, devis.reference_client].filter(Boolean).join(" — ")],
     ["Mise à disposition fourniture", devis.date_mise_a_disposition_fourniture],
   ];

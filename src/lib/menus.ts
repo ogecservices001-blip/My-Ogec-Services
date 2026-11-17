@@ -138,7 +138,6 @@ export function construireModules(isAdmin: boolean): Module[] {
             { nom: "Heures Planifiées", href: "/planning/heures-planifiees" },
             { nom: "Point RDV Client", href: "/planning/point-rdv-client" },
             { nom: "Audit Heures", href: "/planning/audit-heures" },
-            { nom: "Heures par pôle", href: "/planning/heures-par-pole" },
             { nom: "Postes hors client", href: "/planning/referentiel" },
           ]
         : [{ nom: "Mon planning", href: "/planning/mon-planning" }],
@@ -189,6 +188,8 @@ export function construireModules(isAdmin: boolean): Module[] {
               { nom: "Contrôle du mois", href: "/rh/controle" },
               { nom: "Pointage mensuel", href: "/rh/pointage" },
               { nom: "État préparatoire (envoi RH)", href: "/rh/etat" },
+              { nom: "Heures par pôle", href: "/rh/heures-par-pole" },
+              { nom: "Récapitulatif annuel", href: "/rh/recap-annuel" },
               { nom: "Absences des administratifs", href: "/rh/referentiel/absences-admin" },
               { nom: "Paramètres de paie", href: "/rh/referentiel/parametres" },
               { nom: "Barème trajets et transports", href: "/rh/referentiel/bareme" },

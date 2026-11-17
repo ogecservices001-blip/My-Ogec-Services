@@ -8,23 +8,13 @@ import type { ActionResult } from "@/lib/action-result";
 import { finaliserFeuille } from "@/lib/excel-export";
 import { calculerPointage, type LignePointage } from "@/lib/rh/pointage";
 import { chargerEtatPreparatoire, finDuMois } from "@/lib/rh/etat";
+import { chargerLignesPointage, type ClotureMois } from "@/lib/rh/lignes";
 
 const moisValide = (m: string) => /^\d{4}-(0[1-9]|1[0-2])$/.test(m);
 
-/// Pointage du mois : figé jusqu'à la date d'arrêté s'il est clôturé (les jours
-/// suivants restent recalculés, pour les régularisations du mois d'après).
-export async function lignesDuMois(mois: string): Promise<{ lignes: LignePointage[]; cloture: { le: string; par: string; dateArrete: string } | null }> {
+export async function lignesDuMois(mois: string): Promise<{ lignes: LignePointage[]; cloture: ClotureMois | null }> {
   await requireAdmin();
-  const supabase = await createClient();
-  const { data: cloture } = await supabase.from("rh_clotures").select("*").eq("mois", mois).maybeSingle();
-  if (!cloture) return { lignes: (await calculerPointage(supabase, mois)).lignes, cloture: null };
-  const dateArrete = cloture.date_arrete ?? finDuMois(mois);
-  const figees = ((cloture.lignes as LignePointage[]) ?? []).filter((l) => l.date <= dateArrete);
-  const suivantes = dateArrete < finDuMois(mois) ? (await calculerPointage(supabase, mois)).lignes.filter((l) => l.date > dateArrete) : [];
-  return {
-    lignes: [...figees, ...suivantes].sort((a, b) => a.salarie.localeCompare(b.salarie, "fr") || a.date.localeCompare(b.date)),
-    cloture: { le: cloture.cloture_le, par: cloture.cloture_par, dateArrete },
-  };
+  return chargerLignesPointage(await createClient(), mois);
 }
 
 export async function basculerVehiculePersonnel(profileId: string, date: string, valeur: boolean): Promise<ActionResult> {

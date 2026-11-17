@@ -15,8 +15,8 @@ export default async function HeuresPlanifieesPage({
   const supabase = await createClient();
   const { data: sites } = await supabase.from("sites_view").select("id, nom, site").order("nom");
 
-  const siteIds = site ? [site] : client ? (sites ?? []).filter((s) => s.nom === client).map((s) => s.id) : [];
-  const resultat = siteIds.length ? await calculerHeuresPlanifiees(supabase, siteIds, annee) : null;
+  const siteIds = site ? [site] : client ? (sites ?? []).filter((s) => s.nom === client).map((s) => s.id) : null;
+  const resultat = await calculerHeuresPlanifiees(supabase, siteIds, annee);
 
   return (
     <HeuresPlanifieesVue

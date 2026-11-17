@@ -10,6 +10,7 @@ import { FILTRES_POLE, typesDuFiltre, type FiltrePole, type ResultatHeuresPlanif
 const COLONNES: ColonneTableur[] = [
   { titre: "Type" },
   { titre: "Date(s)", largeur: "130px" },
+  { titre: "Client" },
   { titre: "Site" },
   { titre: "Détail" },
   { titre: "Techniciens" },
@@ -56,7 +57,8 @@ export function HeuresPlanifieesVue({
   };
   const lienExport = `/planning/heures-planifiees/export?${new URLSearchParams({ client, site: siteId, annee: String(annee), pole }).toString()}`;
   const anneeCourante = new Date().getFullYear();
-  const annees = Array.from({ length: 6 }, (_, i) => anneeCourante + 1 - i);
+  const PREMIERE_ANNEE = 2026;
+  const annees = Array.from({ length: Math.max(1, anneeCourante + 2 - PREMIERE_ANNEE) }, (_, i) => anneeCourante + 1 - i);
 
   return (
     <div>
@@ -70,7 +72,9 @@ export function HeuresPlanifieesVue({
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Heures Planifiées</h1>
-          <p className="text-sm text-slate-500">Visites d&apos;entretien, travaux sur devis et dépannages d&apos;un client ou d&apos;un site</p>
+          <p className="text-sm text-slate-500">
+            Visites d&apos;entretien, travaux sur devis et dépannages — {client ? (siteId ? "site choisi" : client) : "tout le parc"}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <select
@@ -123,11 +127,10 @@ export function HeuresPlanifieesVue({
           onChange={(choix) => aller(choix.clientNom, choix.siteId, annee)}
         />
         {client && !siteId && <p className="mt-2 text-xs text-slate-500">Tous les sites de {client}. Choisis un site pour n&apos;en voir qu&apos;un.</p>}
+        {!client && !siteId && <p className="mt-2 text-xs text-slate-500">Tout le parc. Choisis un client ou un site pour cibler.</p>}
       </div>
 
-      {!resultat ? (
-        <p className="rounded-2xl bg-white p-8 text-center text-sm text-slate-400 shadow-sm">Choisis un client ou un site.</p>
-      ) : (
+      {!resultat ? null : (
         <>
           <div className={`mb-5 grid gap-3 ${types.length > 1 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:max-w-xs"}`}>
             {(
@@ -164,6 +167,7 @@ export function HeuresPlanifieesVue({
                 {l.libelleType}
               </span>,
               l.debut === l.fin ? jour(l.debut) : `${jour(l.debut)} → ${jour(l.fin)}`,
+              l.client,
               l.site,
               l.detail,
               l.techniciens.join(", "),
@@ -179,7 +183,7 @@ export function HeuresPlanifieesVue({
                 </span>
               ),
             ])}
-            valeurs={lignes.map((l) => [l.libelleType, l.debut, l.site, l.detail, l.techniciens.join(", "), "", "", l.etat])}
+            valeurs={lignes.map((l) => [l.libelleType, l.debut, l.client, l.site, l.detail, l.techniciens.join(", "), "", "", l.etat])}
             vide={`Rien de prévu ni de fait en ${annee}`}
           />
         </>

@@ -2,8 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { dureeEnHeures } from "@/lib/bi/format";
 import { labelPole, Poles } from "@/lib/bi/constants";
 import { cleIntervention, type CreneauIntervention } from "./intervention";
+import { recupererToutesLesLignes } from "@/lib/supabase/pagination";
 
-/// Heures Planifiées : pour un client ou un site et une année, une ligne par
+/// Heures Planifiées : pour tout le parc (siteIds null), un client ou un site
+/// et une année, une ligne par
 /// intervention (visite d'entretien, travaux sur devis, dépannage, autre BI),
 /// heures prévues au planning et heures réalisées (temps passé des BI).
 
@@ -15,6 +17,7 @@ export type LigneHeuresPlanifiees = {
   libelleType: string;
   debut: string;
   fin: string;
+  client: string;
   site: string;
   detail: string;
   techniciens: string[];
@@ -47,7 +50,7 @@ const STATUTS_LIBELLES: Record<string, string> = { averif: "à vérifier", valid
 export async function calculerHeuresPlanifiees(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: SupabaseClient<any>,
-  siteIds: string[],
+  siteIds: string[] | null,
   annee: number,
 ): Promise<ResultatHeuresPlanifiees> {
   const totaux: ResultatHeuresPlanifiees["totaux"] = {
@@ -56,33 +59,54 @@ export async function calculerHeuresPlanifiees(
     depannage: { prevues: 0, realisees: 0, nombre: 0 },
     autre: { prevues: 0, realisees: 0, nombre: 0 },
   };
-  if (siteIds.length === 0) return { lignes: [], totaux, heuresContrat: 0 };
+  if (siteIds && siteIds.length === 0) return { lignes: [], totaux, heuresContrat: 0 };
   const debutAn = `${annee}-01-01`;
   const finAn = `${annee}-12-31`;
+  type Ligne = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const requete = (table: string, colonnes: string, colonneSite = "site_id") => {
+    let q = supabase.from(table).select(colonnes);
+    if (siteIds) q = q.in(colonneSite, siteIds);
+    return q;
+  };
+  const tout = (construire: (debut: number, fin: number) => PromiseLike<{ data: unknown; error: { message: string } | null }>) =>
+    recupererToutesLesLignes<Ligne>(construire as (debut: number, fin: number) => PromiseLike<{ data: Ligne[] | null; error: { message: string } | null }>);
 
-  const [{ data: creneaux }, { data: bons }, { data: tickets }, { data: sites }, { data: devis }] = await Promise.all([
-    supabase
-      .from("creneaux_planning")
-      .select("id, site_id, devis_id, visite_numero, visite_total, visite_annee, date, heures_prevues, site, creneau_techniciens(profiles(name))")
-      .in("site_id", siteIds)
-      .eq("annule", false)
-      .gte("date", debutAn)
-      .lte("date", finAn),
-    supabase
-      .from("bons_intervention")
-      .select("id, numero, statut, pole, devis_id, devis_numero, creneau_id, temps_passe, techniciens, date_intervention, date_debut, date_fin, site, equipement_nom, visite_numero, visite_total, visite_annee")
-      .in("site_id", siteIds)
-      .neq("statut", "brouillon"),
-    supabase
-      .from("demandes_depannage")
-      .select("id, numero, client_site, equipement_nom, date_intervention_prevue, intervenant_id, profiles:intervenant_id(name)")
-      .in("site_id", siteIds)
-      .neq("statut", "traitee")
-      .gte("date_intervention_prevue", debutAn)
-      .lte("date_intervention_prevue", finAn),
-    supabase.from("sites").select("id, nb_heures_vendues").in("id", siteIds),
-    supabase.from("devis").select("id, numero, libelle").in("site_id", siteIds),
+  const [creneaux, bons, tickets, sites, devis] = await Promise.all([
+    tout((d, f) =>
+      requete(
+        "creneaux_planning",
+        "id, site_id, devis_id, visite_numero, visite_total, visite_annee, date, heures_prevues, site, creneau_techniciens(profiles(name))",
+      )
+        .eq("annule", false)
+        .gte("date", debutAn)
+        .lte("date", finAn)
+        .order("id")
+        .range(d, f),
+    ),
+    tout((d, f) =>
+      requete(
+        "bons_intervention",
+        "id, site_id, numero, statut, pole, devis_id, devis_numero, creneau_id, temps_passe, techniciens, date_intervention, date_debut, date_fin, site, equipement_nom, visite_numero, visite_total, visite_annee",
+      )
+        .neq("statut", "brouillon")
+        .order("id")
+        .range(d, f),
+    ),
+    tout((d, f) =>
+      requete(
+        "demandes_depannage",
+        "id, site_id, numero, client_site, equipement_nom, date_intervention_prevue, intervenant_id, profiles:intervenant_id(name)",
+      )
+        .neq("statut", "traitee")
+        .gte("date_intervention_prevue", debutAn)
+        .lte("date_intervention_prevue", finAn)
+        .order("id")
+        .range(d, f),
+    ),
+    tout((d, f) => requete("sites_view", "id, nom, nb_heures_vendues", "id").order("id").range(d, f)),
+    tout((d, f) => requete("devis", "id, numero, libelle").order("id").range(d, f)),
   ]);
+  const clientParSite = new Map<string, string>(sites.map((s) => [s.id as string, (s.nom as string) ?? ""]));
 
   const devisParId = new Map((devis ?? []).map((d) => [d.id, d]));
   const lignes: LigneHeuresPlanifiees[] = [];
@@ -128,6 +152,7 @@ export async function calculerHeuresPlanifiees(
       libelleType: LIBELLES[type],
       debut: dates[0],
       fin: dates[dates.length - 1],
+      client: clientParSite.get(premier.site_id ?? "") ?? "",
       site: premier.site,
       detail,
       techniciens,
@@ -160,6 +185,7 @@ export async function calculerHeuresPlanifiees(
       libelleType: LIBELLES[type],
       debut: date,
       fin: fin >= date ? fin : date,
+      client: clientParSite.get(b.site_id) ?? "",
       site: b.site,
       detail,
       techniciens: (b.techniciens as string[] | null) ?? [],
@@ -179,6 +205,7 @@ export async function calculerHeuresPlanifiees(
       libelleType: LIBELLES.depannage,
       debut: t.date_intervention_prevue as string,
       fin: t.date_intervention_prevue as string,
+      client: clientParSite.get(t.site_id) ?? "",
       site: t.client_site,
       detail: [t.numero, t.equipement_nom].filter(Boolean).join(" — "),
       techniciens: nom ? [nom] : [],
@@ -189,7 +216,7 @@ export async function calculerHeuresPlanifiees(
     });
   }
 
-  lignes.sort((a, b) => a.debut.localeCompare(b.debut) || a.site.localeCompare(b.site, "fr"));
+  lignes.sort((a, b) => a.debut.localeCompare(b.debut) || a.client.localeCompare(b.client, "fr") || a.site.localeCompare(b.site, "fr"));
   for (const l of lignes) {
     totaux[l.type].nombre++;
     totaux[l.type].prevues += l.heuresPrevues ?? 0;

@@ -8,5 +8,6 @@ export const equipementSchema = z.object({
   localisation: z.string().trim().default(""),
   groupe: z.string().trim().default(""),
   informations_internes: z.string().trim().default(""),
+  remarques_techniciens: z.string().trim().default(""),
 });
 export type EquipementInput = z.infer<typeof equipementSchema>;

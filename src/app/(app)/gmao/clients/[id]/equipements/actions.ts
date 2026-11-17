@@ -126,6 +126,19 @@ export async function modifierEquipement(
   return { ok: true };
 }
 
+/// Remarques techniciens : texte libre interne, modifiable sur place par
+/// le bureau et les techniciens (jamais visible du client).
+export async function modifierRemarquesTechniciens(id: string, siteId: string, texte: string): Promise<ActionResult> {
+  const profile = await requireProfile();
+  if (profile.role !== "admin" && profile.role !== "technicien") return { ok: false, erreur: "Action réservée au bureau et aux techniciens." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("equipements").update({ remarques_techniciens: texte.trim() }).eq("id", id);
+  if (error) return { ok: false, erreur: error.message };
+  revalidatePath(`/gmao/clients/${siteId}/equipements`);
+  revalidatePath(`/gmao/clients/${siteId}/equipements/${id}`);
+  return { ok: true };
+}
+
 export async function supprimerEquipement(id: string, siteId: string): Promise<ActionResult> {
   await requireAdmin();
 

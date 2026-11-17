@@ -101,6 +101,7 @@ async function parserSommaire(fichier: File): Promise<LigneImportEquipement[] | 
       localisation: valeur(row, "localisation"),
       groupe: valeur(row, "groupe"),
       informationsInternes: valeur(row, "informations internes"),
+      remarquesTechniciens: valeur(row, "remarques techniciens"),
       typeDeReleveBrut,
       typeEquipementId,
       champsEnTete,
@@ -194,6 +195,7 @@ export async function appliquerImportEquipements(
       localisation: a.ligne.localisation,
       groupe: a.ligne.groupe,
       informations_internes: a.ligne.informationsInternes,
+      remarques_techniciens: a.ligne.remarquesTechniciens,
       champs_en_tete: a.ligne.champsEnTete,
     }));
   // Insert par lots : un envoi unique de plusieurs milliers de lignes
@@ -218,6 +220,7 @@ export async function appliquerImportEquipements(
         localisation: mod.ligne.localisation || mod.existant.localisation,
         groupe: mod.ligne.groupe || mod.existant.groupe,
         informations_internes: mod.ligne.informationsInternes || mod.existant.informations_internes,
+        remarques_techniciens: mod.ligne.remarquesTechniciens || mod.existant.remarques_techniciens,
         champs_en_tete: champsEnTeteFusionnes,
       })
       .eq("id", mod.existant.id);
@@ -313,12 +316,13 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
     "Localisation",
     "Groupe",
     "Informations internes",
+    "Remarques techniciens",
     ...champsOrdre.map((cle) => CHAMPS_CONNUS_LABELS[cle]),
     "Heures Tech / an",
     "Heures Assistant / an",
     "Statut heures",
   ]);
-  const premiereColonneChamps = 9;
+  const premiereColonneChamps = 10;
   const colonneStatutHeures = premiereColonneChamps + champsOrdre.length + 2;
   const ROUGE = { color: { argb: "FFCC0000" }, bold: true };
 
@@ -333,6 +337,7 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
       a.ligne.localisation,
       a.ligne.groupe,
       a.ligne.informationsInternes,
+      a.ligne.remarquesTechniciens,
       ...champsOrdre.map((cle) => a.ligne.champsEnTete[cle] ?? ""),
       heures.heuresTech,
       heures.heuresAssistant,
@@ -347,6 +352,8 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
     const valeurAvantParLabel = new Map(m.champs.map((c) => [c.label, c.ancienne] as const));
     const heures = calculerHeuresLigne(champsApres, (references ?? []) as ReferenceHoraire[]);
 
+    const texteModifie = (label: string, apres: string) =>
+      champsModifies.has(label) ? `${apres} (était : ${valeurAvantParLabel.get(label) || "vide"})` : apres;
     const valeursChamps = champsOrdre.map((cle) => {
       const label = CHAMPS_CONNUS_LABELS[cle];
       const apres = champsApres[cle] ?? "";
@@ -365,12 +372,15 @@ export async function genererRapportImportEquipements(diff: ResultatDiff): Promi
       m.existant.numero_equipement,
       m.ligne.localisation || m.existant.localisation,
       m.ligne.groupe || m.existant.groupe,
-      m.ligne.informationsInternes || m.existant.informations_internes,
+      texteModifie("Informations internes", m.ligne.informationsInternes || m.existant.informations_internes),
+      texteModifie("Remarques techniciens", m.ligne.remarquesTechniciens || m.existant.remarques_techniciens),
       ...valeursChamps,
       heures.heuresTech,
       heures.heuresAssistant,
       heures.statut,
     ]);
+    if (champsModifies.has("Informations internes")) ligneAjoutee.getCell(premiereColonneChamps - 2).font = ROUGE;
+    if (champsModifies.has("Remarques techniciens")) ligneAjoutee.getCell(premiereColonneChamps - 1).font = ROUGE;
     champsOrdre.forEach((cle, i) => {
       if (champsModifies.has(CHAMPS_CONNUS_LABELS[cle])) {
         ligneAjoutee.getCell(premiereColonneChamps + i).font = ROUGE;

@@ -16,6 +16,7 @@ import { StatutBadge } from "@/components/bi/statut-badge";
 import { getCurrentProfile } from "@/lib/profile";
 import { ValiderBouton } from "./valider-bouton";
 import { ContratBouton } from "./contrat-bouton";
+import { RemarquesTechniciens } from "./remarques-techniciens";
 
 export default async function VisualiserEquipementPage({
   params,
@@ -232,12 +233,22 @@ export default async function VisualiserEquipementPage({
         )}
       </div>
 
-      {(eq.remarque_technicien || eq.informations_internes) && (
+      {(eq.remarque_technicien || eq.informations_internes || eq.remarques_techniciens || profile?.role === "admin" || profile?.role === "technicien") && (
         <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+          {(profile?.role === "admin" || profile?.role === "technicien") ? (
+            <RemarquesTechniciens equipementId={eq.id} siteId={eq.site_id} texte={eq.remarques_techniciens} />
+          ) : (
+            eq.remarques_techniciens && (
+              <p className="text-sm text-slate-700">
+                <span className="font-bold uppercase tracking-wide text-teal-700">Remarques techniciens : </span>
+                <span className="whitespace-pre-line">{eq.remarques_techniciens}</span>
+              </p>
+            )
+          )}
           {eq.remarque_technicien && (
             <p className="text-sm text-slate-700">
-              <span className="font-bold uppercase tracking-wide text-amber-600">Remarque technicien : </span>
-              {eq.remarque_technicien}
+              <span className="font-bold uppercase tracking-wide text-amber-600">Notes de suivi (automatiques) : </span>
+              <span className="whitespace-pre-line">{eq.remarque_technicien}</span>
             </p>
           )}
           {eq.informations_internes && (

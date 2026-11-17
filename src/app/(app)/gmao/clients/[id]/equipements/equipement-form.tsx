@@ -112,6 +112,11 @@ export function EquipementForm({
           name="informations_internes"
           defaultValue={equipementExistant?.informations_internes}
         />
+        <ChampTexteLong
+          label="Remarques techniciens (jamais visibles du client)"
+          name="remarques_techniciens"
+          defaultValue={equipementExistant?.remarques_techniciens}
+        />
 
         {type && type.type_equipement1_fixe && (
           <TypeEquipementSelects

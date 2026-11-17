@@ -1011,6 +1011,7 @@ export type Database = {
       }
       equipements: {
         Row: {
+          remarques_techniciens: string
           a_valider: boolean
           champs_en_tete: Json
           code_qr: string
@@ -1029,6 +1030,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          remarques_techniciens?: string
           a_valider?: boolean
           champs_en_tete?: Json
           code_qr?: string
@@ -1047,6 +1049,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          remarques_techniciens?: string
           a_valider?: boolean
           champs_en_tete?: Json
           code_qr?: string

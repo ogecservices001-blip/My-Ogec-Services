@@ -8,6 +8,7 @@ export type LigneImportEquipement = {
   localisation: string;
   groupe: string;
   informationsInternes: string;
+  remarquesTechniciens: string;
   typeDeReleveBrut: string;
   typeEquipementId: string | null;
   champsEnTete: Record<string, string>;
@@ -141,6 +142,13 @@ export function calculerDiffPourSite(
         label: "Informations internes",
         ancienne: existant.informations_internes,
         nouvelle: ligne.informationsInternes,
+      });
+    }
+    if (ligne.remarquesTechniciens && ligne.remarquesTechniciens !== existant.remarques_techniciens) {
+      champsDiff.push({
+        label: "Remarques techniciens",
+        ancienne: existant.remarques_techniciens,
+        nouvelle: ligne.remarquesTechniciens,
       });
     }
 

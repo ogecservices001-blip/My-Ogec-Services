@@ -288,6 +288,13 @@ function CarteEquipement({
         </div>
       )}
 
+      {eq.remarques_techniciens && (
+        <div className="mt-2 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-2 text-xs text-teal-900">
+          <span className="font-semibold">Remarques techniciens : </span>
+          {eq.remarques_techniciens}
+        </div>
+      )}
+
       {eq.informations_internes && (
         <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-600">
           <span className="font-semibold">Infos internes : </span>

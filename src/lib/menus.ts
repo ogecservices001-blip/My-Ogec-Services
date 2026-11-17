@@ -153,6 +153,7 @@ export function construireModules(isAdmin: boolean): Module[] {
               { nom: "Liste des devis", href: "/devis" },
               { nom: "Devis en cours", href: "/devis/en-cours" },
               { nom: "Devis à établir", href: "/devis/a-etablir" },
+              { nom: "Référentiel PU", href: "/devis/referentiel-pu" },
             ],
           },
           {

@@ -1389,6 +1389,60 @@ export type Database = {
         }
         Relationships: []
       }
+      referentiel_pu: {
+        Row: {
+          created_at: string
+          date_maj_tarif: string | null
+          donnee1: string
+          donnee2: string
+          donnee3: string
+          donnee4: string
+          donnee5: string
+          donnee6: string
+          famille: string
+          id: string
+          mo_heures: number | null
+          ordre: number
+          tarif_net_ht: number | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_maj_tarif?: string | null
+          donnee1?: string
+          donnee2?: string
+          donnee3?: string
+          donnee4?: string
+          donnee5?: string
+          donnee6?: string
+          famille?: string
+          id?: string
+          mo_heures?: number | null
+          ordre?: number
+          tarif_net_ht?: number | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_maj_tarif?: string | null
+          donnee1?: string
+          donnee2?: string
+          donnee3?: string
+          donnee4?: string
+          donnee5?: string
+          donnee6?: string
+          famille?: string
+          id?: string
+          mo_heures?: number | null
+          ordre?: number
+          tarif_net_ht?: number | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       releves: {
         Row: {
           checklist_values: Json

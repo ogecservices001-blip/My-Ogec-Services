@@ -5,7 +5,7 @@ import { ChoixClientSite } from "@/components/choix-client-site";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookmarkPlus, Lock, Plus, Trash2 } from "lucide-react";
+import { BookmarkPlus, ListTree, Lock, Plus, Trash2, X } from "lucide-react";
 import { creerDevis, enregistrerBrouillonDevis, listerEquipementsDuSite, reviserDevis } from "../actions";
 import {
   ligneDevisVide,
@@ -29,8 +29,9 @@ import {
   aujourdhuiISO,
   designationArticlePU,
   estLigneMainOeuvre,
+  affichageDonneePU,
   formatNombrePU,
-  rechercheArticlesPU,
+  TITRES_PU,
   uniteArticleDepuisDevis,
   uniteDevisDepuisArticle,
   type ArticlePU,
@@ -590,6 +591,8 @@ function BlocPave({
   onRetirer: () => void;
 }) {
   const [ajoutReferentiel, setAjoutReferentiel] = useState<number | null>(null);
+  const [cascadeOuverte, setCascadeOuverte] = useState<number | null>(null);
+  const [libres, setLibres] = useState<Set<number>>(new Set());
   const { groupeFiltre, localisation, equipementId, lignes } = pave;
   const groupesExistants = [...new Set(equipements.map((e) => e.groupe).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"));
   const equipementsDuGroupe = groupeFiltre ? equipements.filter((e) => e.groupe === groupeFiltre) : equipements;
@@ -626,6 +629,13 @@ function BlocPave({
       moHeures: String(a.mo_heures ?? 0),
       type: "normal",
     });
+    setCascadeOuverte(null);
+  }
+
+  function retirerLigne(i: number) {
+    onChange({ lignes: lignes.filter((_, idx) => idx !== i) });
+    setCascadeOuverte(null);
+    setLibres(new Set());
   }
 
   const ligneAAjouter = ajoutReferentiel !== null ? lignes[ajoutReferentiel] : null;
@@ -732,7 +742,7 @@ function BlocPave({
 
         <div className="space-y-2">
           <div className="hidden grid-cols-[3fr_0.7fr_0.6fr_0.8fr_0.7fr_0.9fr_0.9fr_auto] gap-1.5 px-1 text-[11px] font-semibold text-slate-400 sm:grid">
-            <span>Désignation (tape pour chercher dans le Référentiel PU)</span>
+            <span>Désignation</span>
             <span>Unité</span>
             <span>Qté</span>
             <span>Déboursé fourniture €</span>
@@ -745,7 +755,8 @@ function BlocPave({
             const pu = prixUniteLigne(l, coefficient, tauxHoraire);
             const montant = montantLigneDevis(l, coefficient, tauxHoraire);
             return (
-              <div key={i} className="grid grid-cols-[3fr_0.7fr_0.6fr_0.8fr_0.7fr_0.9fr_0.9fr_auto] items-center gap-1.5">
+              <div key={i}>
+              <div className="grid grid-cols-[3fr_0.7fr_0.6fr_0.8fr_0.7fr_0.9fr_0.9fr_auto] items-center gap-1.5">
                 {l.articleId ? (
                   <div
                     id={`pave-${pave.cle}-ligne-${i}`}
@@ -755,14 +766,29 @@ function BlocPave({
                     <Lock className="h-3.5 w-3.5 shrink-0 text-emerald-600" strokeWidth={2} />
                     <span className="truncate">{l.designation}</span>
                   </div>
+                ) : !l.designation.trim() && !libres.has(i) ? (
+                  <button
+                    id={`pave-${pave.cle}-ligne-${i}`}
+                    type="button"
+                    onClick={() => setCascadeOuverte(cascadeOuverte === i ? null : i)}
+                    className={`flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left text-sm transition ${
+                      cascadeOuverte === i
+                        ? "border-brand-green bg-green-50 text-brand-green-dark"
+                        : "border-dashed border-slate-300 bg-white text-slate-500 hover:border-brand-green hover:text-brand-green-dark"
+                    }`}
+                  >
+                    <ListTree className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+                    <span className="truncate">Choisir un article…</span>
+                  </button>
                 ) : (
                   <div className="flex min-w-0 items-center gap-1">
-                    <ChampDesignation
+                    <input
                       id={`pave-${pave.cle}-ligne-${i}`}
-                      valeur={l.designation}
-                      articles={articles}
-                      onChange={(v) => majLigne(i, { designation: v })}
-                      onChoisir={(a) => choisirArticle(i, a)}
+                      value={l.designation}
+                      onChange={(e) => majLigne(i, { designation: e.target.value })}
+                      placeholder="Désignation libre"
+                      autoFocus={libres.has(i) && !l.designation}
+                      className={CHAMP_SM}
                     />
                     {l.designation.trim() && (
                       <button
@@ -803,12 +829,24 @@ function BlocPave({
                 <p className="truncate text-right text-sm font-medium text-slate-900">{montant !== null ? eur(montant) : ""}</p>
                 <button
                   type="button"
-                  onClick={() => onChange({ lignes: lignes.filter((_, idx) => idx !== i) })}
+                  onClick={() => retirerLigne(i)}
                   disabled={lignes.length === 1}
                   className="text-red-500 transition hover:text-red-700 disabled:opacity-30"
                 >
                   <Trash2 className="h-4 w-4" strokeWidth={2} />
                 </button>
+              </div>
+              {cascadeOuverte === i && !l.articleId && (
+                <ChoixArticleCascade
+                  articles={articles}
+                  onChoisir={(a) => choisirArticle(i, a)}
+                  onLigneLibre={() => {
+                    setLibres((prev) => new Set(prev).add(i));
+                    setCascadeOuverte(null);
+                  }}
+                  onFermer={() => setCascadeOuverte(null)}
+                />
+              )}
               </div>
             );
           })}
@@ -843,85 +881,100 @@ function BlocPave({
 
 const VERROU = "truncate rounded-lg border border-slate-100 bg-slate-50 px-2 py-1.5 text-sm text-slate-600";
 
-function ChampDesignation({
-  id,
-  valeur,
-  articles,
-  onChange,
-  onChoisir,
-}: {
-  id: string;
-  valeur: string;
-  articles: ArticlePU[];
-  onChange: (v: string) => void;
-  onChoisir: (a: ArticlePU) => void;
-}) {
-  const [ouvert, setOuvert] = useState(false);
-  const [actif, setActif] = useState(0);
-  const suggestions = useMemo(
-    () => (ouvert && valeur.trim().length >= 2 ? rechercheArticlesPU(articles, valeur, 8) : []),
-    [articles, valeur, ouvert],
-  );
+const LIGNE_LIBRE = "__ligne_libre__";
+const VIDE = "__vide__";
+const NIVEAUX = TITRES_PU.filter((t) => t.cle !== "tarif_net_ht" && t.cle !== "mo_heures" && t.cle !== "date_maj_tarif").map(
+  (t) => ({ cle: t.cle as "famille" | "type" | "donnee1" | "donnee2" | "donnee3" | "donnee4" | "donnee5" | "donnee6", titre: t.titre }),
+);
 
-  function choisir(a: ArticlePU) {
-    onChoisir(a);
-    setOuvert(false);
+type EtapeCascade = {
+  cle: (typeof NIVEAUX)[number]["cle"];
+  titre: string;
+  valeurs: string[];
+  choisie: string | null;
+  automatique: boolean;
+};
+
+/// Famille → Type → Donnée 1 → … : chaque liste ne propose que les valeurs
+/// encore possibles ; un niveau à une seule valeur se remplit tout seul.
+function analyserCascade(articles: ArticlePU[], choix: Record<string, string>) {
+  let restants = articles;
+  const etapes: EtapeCascade[] = [];
+  for (const n of NIVEAUX) {
+    const valeurs = [...new Set(restants.map((a) => (a[n.cle] ?? "").trim()))];
+    const choisie = choix[n.cle] !== undefined && valeurs.includes(choix[n.cle]) ? choix[n.cle] : valeurs.length === 1 ? valeurs[0] : null;
+    etapes.push({ cle: n.cle, titre: n.titre, valeurs, choisie, automatique: valeurs.length === 1 });
+    if (choisie === null) return { etapes, restants, article: null };
+    restants = restants.filter((a) => (a[n.cle] ?? "").trim() === choisie);
+  }
+  return { etapes, restants, article: restants.length === 1 ? restants[0] : null };
+}
+
+function ChoixArticleCascade({
+  articles,
+  onChoisir,
+  onLigneLibre,
+  onFermer,
+}: {
+  articles: ArticlePU[];
+  onChoisir: (a: ArticlePU) => void;
+  onLigneLibre: () => void;
+  onFermer: () => void;
+}) {
+  const [choix, setChoix] = useState<Record<string, string>>({});
+  const { etapes } = analyserCascade(articles, choix);
+
+  function choisir(cle: string, valeur: string) {
+    if (valeur === LIGNE_LIBRE) {
+      onLigneLibre();
+      return;
+    }
+    const index = NIVEAUX.findIndex((n) => n.cle === cle);
+    const suivant: Record<string, string> = {};
+    for (const n of NIVEAUX.slice(0, index)) if (choix[n.cle] !== undefined) suivant[n.cle] = choix[n.cle];
+    suivant[cle] = valeur === VIDE ? "" : valeur;
+    const resultat = analyserCascade(articles, suivant);
+    if (resultat.article) onChoisir(resultat.article);
+    else setChoix(suivant);
   }
 
   return (
-    <div className="relative min-w-0 flex-1">
-      <input
-        id={id}
-        value={valeur}
-        onChange={(e) => {
-          onChange(e.target.value);
-          setOuvert(true);
-          setActif(0);
-        }}
-        onFocus={() => setOuvert(true)}
-        onBlur={() => setOuvert(false)}
-        onKeyDown={(e) => {
-          if (suggestions.length === 0) return;
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setActif((a) => Math.min(a + 1, suggestions.length - 1));
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setActif((a) => Math.max(a - 1, 0));
-          } else if (e.key === "Enter") {
-            e.preventDefault();
-            choisir(suggestions[Math.min(actif, suggestions.length - 1)]);
-          } else if (e.key === "Escape") {
-            setOuvert(false);
-          }
-        }}
-        placeholder="Désignation ou recherche"
-        autoComplete="off"
-        className={CHAMP_SM}
-      />
-      {suggestions.length > 0 && (
-        <div className="absolute left-0 top-full z-20 mt-1 max-h-72 w-[min(36rem,85vw)] overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
-          {suggestions.map((a, idx) => (
-            <button
-              key={a.id}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                choisir(a);
-              }}
-              onMouseEnter={() => setActif(idx)}
-              className={`block w-full px-3 py-1.5 text-left text-sm ${idx === actif ? "bg-green-50" : "hover:bg-slate-50"}`}
-            >
-              <span className="block truncate font-medium text-slate-900">{designationArticlePU(a)}</span>
-              <span className="block truncate text-xs text-slate-500">
-                {a.famille} — {uniteDevisDepuisArticle(a.donnee2)} —{" "}
-                {estLigneMainOeuvre(a) ? "main d'œuvre" : a.tarif_net_ht === null ? "sans tarif" : `${formatNombrePU(a.tarif_net_ht)} €`} — MO{" "}
-                {a.mo_heures === null ? "—" : `${formatNombrePU(a.mo_heures)} h`}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="mt-1.5 rounded-xl border border-green-200 bg-green-50/50 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-semibold text-slate-600">
+          {articles.length === 0
+            ? "Le Référentiel PU est vide : importe-le dans Devis > Référentiel PU, ou fais une ligne libre."
+            : "Choisis de gauche à droite — les niveaux à un seul choix se remplissent tout seuls."}
+        </p>
+        <button type="button" onClick={onFermer} className="text-slate-400 hover:text-slate-700" title="Fermer">
+          <X className="h-4 w-4" strokeWidth={2} />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+        {etapes.map((e, idx) =>
+          e.automatique && idx > 0 ? (
+            e.choisie ? (
+              <div key={e.cle}>
+                <p className="mb-1 text-[11px] font-medium text-slate-500">{e.titre}</p>
+                <p className="truncate rounded-lg bg-white/70 px-3 py-2 text-sm text-slate-600">{affichageDonneePU(e.choisie)}</p>
+              </div>
+            ) : null
+          ) : (
+            <div key={e.cle}>
+              <p className="mb-1 text-[11px] font-medium text-slate-500">{e.titre}</p>
+              <ListeRecherche
+                valeur={e.choisie === null ? "" : e.choisie === "" ? VIDE : e.choisie}
+                onChange={(v) => choisir(e.cle, v)}
+                placeholder="— Choisir —"
+                options={[
+                  ...(idx === 0 ? [{ valeur: LIGNE_LIBRE, label: "— Ligne libre (hors référentiel) —" }] : []),
+                  ...e.valeurs.map((v) => ({ valeur: v === "" ? VIDE : v, label: v === "" ? "(vide)" : affichageDonneePU(v) })),
+                ]}
+              />
+            </div>
+          ),
+        )}
+      </div>
     </div>
   );
 }

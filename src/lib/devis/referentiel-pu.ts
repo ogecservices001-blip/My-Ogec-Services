@@ -159,17 +159,3 @@ export function uniteDevisDepuisArticle(donnee2: string): string {
 export function uniteArticleDepuisDevis(unite: string): string {
   return unite.trim() === "U" ? "Un" : unite.trim();
 }
-
-export function rechercheArticlesPU<T extends Pick<ArticlePU, ChampTextePU>>(articles: T[], texte: string, max = 10): T[] {
-  const mots = normaliserLibelle(texte).replace(",", ".").split(" ").filter(Boolean);
-  if (mots.length === 0) return [];
-  const trouves: T[] = [];
-  for (const a of articles) {
-    const contenu = normaliserLibelle(CHAMPS_TEXTE.map((c) => a[c]).join(" "));
-    if (mots.every((m) => contenu.includes(m))) {
-      trouves.push(a);
-      if (trouves.length >= max) break;
-    }
-  }
-  return trouves;
-}

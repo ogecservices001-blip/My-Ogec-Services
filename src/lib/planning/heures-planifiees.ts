@@ -17,6 +17,7 @@ export type LigneHeuresPlanifiees = {
   libelleType: string;
   debut: string;
   fin: string;
+  siteId: string;
   client: string;
   site: string;
   detail: string;
@@ -52,6 +53,7 @@ export async function calculerHeuresPlanifiees(
   supabase: SupabaseClient<any>,
   siteIds: string[] | null,
   annee: number,
+  contrat: FiltreContrat = null,
 ): Promise<ResultatHeuresPlanifiees> {
   const totaux: ResultatHeuresPlanifiees["totaux"] = {
     entretien: { prevues: 0, realisees: 0, nombre: 0 },
@@ -103,10 +105,13 @@ export async function calculerHeuresPlanifiees(
         .order("id")
         .range(d, f),
     ),
-    tout((d, f) => requete("sites_view", "id, nom, nb_heures_vendues", "id").order("id").range(d, f)),
+    tout((d, f) => requete("sites_view", "id, nom, nb_heures_vendues, hors_contrat", "id").order("id").range(d, f)),
     tout((d, f) => requete("devis", "id, numero, libelle").order("id").range(d, f)),
   ]);
   const clientParSite = new Map<string, string>(sites.map((s) => [s.id as string, (s.nom as string) ?? ""]));
+  const sitesRetenus = new Set<string>(
+    sites.filter((s) => contrat === null || Boolean(s.hors_contrat) === (contrat === "hors")).map((s) => s.id as string),
+  );
 
   const devisParId = new Map((devis ?? []).map((d) => [d.id, d]));
   const lignes: LigneHeuresPlanifiees[] = [];
@@ -152,6 +157,7 @@ export async function calculerHeuresPlanifiees(
       libelleType: LIBELLES[type],
       debut: dates[0],
       fin: dates[dates.length - 1],
+      siteId: premier.site_id ?? "",
       client: clientParSite.get(premier.site_id ?? "") ?? "",
       site: premier.site,
       detail,
@@ -185,6 +191,7 @@ export async function calculerHeuresPlanifiees(
       libelleType: LIBELLES[type],
       debut: date,
       fin: fin >= date ? fin : date,
+      siteId: b.site_id ?? "",
       client: clientParSite.get(b.site_id) ?? "",
       site: b.site,
       detail,
@@ -205,6 +212,7 @@ export async function calculerHeuresPlanifiees(
       libelleType: LIBELLES.depannage,
       debut: t.date_intervention_prevue as string,
       fin: t.date_intervention_prevue as string,
+      siteId: t.site_id ?? "",
       client: clientParSite.get(t.site_id) ?? "",
       site: t.client_site,
       detail: [t.numero, t.equipement_nom].filter(Boolean).join(" — "),
@@ -216,24 +224,35 @@ export async function calculerHeuresPlanifiees(
     });
   }
 
-  lignes.sort((a, b) => a.debut.localeCompare(b.debut) || a.client.localeCompare(b.client, "fr") || a.site.localeCompare(b.site, "fr"));
-  for (const l of lignes) {
+  const retenues = contrat === null ? lignes : lignes.filter((l) => sitesRetenus.has(l.siteId));
+  retenues.sort((a, b) => a.debut.localeCompare(b.debut) || a.client.localeCompare(b.client, "fr") || a.site.localeCompare(b.site, "fr"));
+  for (const l of retenues) {
     totaux[l.type].nombre++;
     totaux[l.type].prevues += l.heuresPrevues ?? 0;
     totaux[l.type].realisees += l.heuresRealisees ?? 0;
   }
-  const heuresContrat = (sites ?? []).reduce((t, s) => t + (parseFloat(String(s.nb_heures_vendues ?? "").replace(",", ".")) || 0), 0);
-  return { lignes, totaux, heuresContrat };
+  const heuresContrat = sites
+    .filter((s) => sitesRetenus.has(s.id as string))
+    .reduce((t, s) => t + (parseFloat(String(s.nb_heures_vendues ?? "").replace(",", ".")) || 0), 0);
+  return { lignes: retenues, totaux, heuresContrat };
 }
 
-export type FiltrePole = "tous" | "entretien" | "devis" | "depannage";
+export type FiltrePole = "tous" | "entretien" | "devis" | "depannage_sous" | "depannage_hors";
 
-export const FILTRES_POLE: { valeur: FiltrePole; libelle: string }[] = [
-  { valeur: "tous", libelle: "Tous les pôles" },
-  { valeur: "entretien", libelle: "Sous contrat" },
-  { valeur: "devis", libelle: "Prestation sur commande" },
-  { valeur: "depannage", libelle: "Dépannage" },
+/// null = tous les clients ; "sous" / "hors" = seulement les sites sous / hors contrat.
+export type FiltreContrat = "sous" | "hors" | null;
+
+export const FILTRES_POLE: { valeur: FiltrePole; libelle: string; contrat: FiltreContrat }[] = [
+  { valeur: "tous", libelle: "Tous les pôles", contrat: null },
+  { valeur: "entretien", libelle: "Sous contrat", contrat: "sous" },
+  { valeur: "devis", libelle: "Prestation sur commande", contrat: null },
+  { valeur: "depannage_sous", libelle: "Dépannage sous contrat", contrat: "sous" },
+  { valeur: "depannage_hors", libelle: "Dépannage hors contrat", contrat: "hors" },
 ];
+
+export function contratDuFiltre(f: FiltrePole): FiltreContrat {
+  return FILTRES_POLE.find((x) => x.valeur === f)?.contrat ?? null;
+}
 
 export function lireFiltrePole(v: string | null | undefined): FiltrePole {
   return FILTRES_POLE.some((f) => f.valeur === v) ? (v as FiltrePole) : "tous";
@@ -241,5 +260,7 @@ export function lireFiltrePole(v: string | null | undefined): FiltrePole {
 
 /// Types de lignes affichés pour un filtre ("Autres BI" seulement avec "Tous les pôles").
 export function typesDuFiltre(f: FiltrePole): TypeLigne[] {
-  return f === "tous" ? ["entretien", "devis", "depannage", "autre"] : [f];
+  if (f === "tous") return ["entretien", "devis", "depannage", "autre"];
+  if (f === "depannage_sous" || f === "depannage_hors") return ["depannage"];
+  return [f];
 }

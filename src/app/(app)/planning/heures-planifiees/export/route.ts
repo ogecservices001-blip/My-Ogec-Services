@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { finaliserFeuille, nomFichierAvecDate } from "@/lib/excel-export";
-import { calculerHeuresPlanifiees, FILTRES_POLE, lireFiltrePole, typesDuFiltre } from "@/lib/planning/heures-planifiees";
+import { calculerHeuresPlanifiees, contratDuFiltre, FILTRES_POLE, lireFiltrePole, typesDuFiltre } from "@/lib/planning/heures-planifiees";
 
 export async function GET(request: NextRequest) {
   await requireAdmin();
@@ -15,9 +15,10 @@ export async function GET(request: NextRequest) {
   const types = typesDuFiltre(pole);
 
   const supabase = await createClient();
+  const contrat = contratDuFiltre(pole);
   const { data: sites } = await supabase.from("sites_view").select("id, nom");
-  const siteIds = site ? [site] : client ? (sites ?? []).filter((s) => s.nom === client).map((s) => s.id) : null;
-  const { lignes, totaux, heuresContrat } = await calculerHeuresPlanifiees(supabase, siteIds, annee);
+  const siteIds = site ? [site] : client ? (sites ?? []).filter((s) => s.nom === client).map((s) => s.id as string) : null;
+  const { lignes, totaux, heuresContrat } = await calculerHeuresPlanifiees(supabase, siteIds, annee, contrat);
 
   const fr = (d: string) => d.split("-").reverse().join("/");
   const workbook = new ExcelJS.Workbook();

@@ -101,7 +101,7 @@ export function HeuresPlanifieesVue({
         </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-xl bg-slate-100 p-1 sm:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-xl bg-slate-100 p-1 sm:grid-cols-5">
         {FILTRES_POLE.map((f) => (
           <button
             key={f.valeur}

@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { calculerHeuresPlanifiees, lireFiltrePole } from "@/lib/planning/heures-planifiees";
+import { calculerHeuresPlanifiees, contratDuFiltre, lireFiltrePole } from "@/lib/planning/heures-planifiees";
 import { HeuresPlanifieesVue } from "./vue";
 
 export default async function HeuresPlanifieesPage({
@@ -13,17 +13,23 @@ export default async function HeuresPlanifieesPage({
   const pole = lireFiltrePole(poleParam);
   const annee = Number(anneeParam) >= 2000 && Number(anneeParam) <= 2100 ? Number(anneeParam) : new Date().getFullYear();
   const supabase = await createClient();
-  const { data: sites } = await supabase.from("sites_view").select("id, nom, site").order("nom");
+  const contrat = contratDuFiltre(pole);
+  const { data: tousSites } = await supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom");
+  const sites = (tousSites ?? [])
+    .filter((s) => contrat === null || Boolean(s.hors_contrat) === (contrat === "hors"))
+    .map((s) => ({ id: s.id as string, nom: s.nom ?? "", site: s.site ?? "" }));
 
-  const siteIds = site ? [site] : client ? (sites ?? []).filter((s) => s.nom === client).map((s) => s.id) : null;
-  const resultat = await calculerHeuresPlanifiees(supabase, siteIds, annee);
+  const siteValide = site && sites.some((s) => s.id === site) ? site : "";
+  const clientValide = client && sites.some((s) => s.nom === client) ? client : "";
+  const siteIds = siteValide ? [siteValide] : clientValide ? sites.filter((s) => s.nom === clientValide).map((s) => s.id) : null;
+  const resultat = await calculerHeuresPlanifiees(supabase, siteIds, annee, contrat);
 
   return (
     <HeuresPlanifieesVue
       key={`${client}|${site}|${annee}|${pole}`}
-      sites={sites ?? []}
-      client={client}
-      siteId={site}
+      sites={sites}
+      client={clientValide}
+      siteId={siteValide}
       annee={annee}
       pole={pole}
       resultat={resultat}

@@ -837,6 +837,7 @@ export type Database = {
           date_commande_client: string
           date_devis: string
           date_mise_a_disposition_fourniture: string
+          delai_approvisionnement: string
           debours_materiel_prevu: number | null
           email_responsable_contrat: string
           envoyee_le: string
@@ -877,6 +878,7 @@ export type Database = {
           date_commande_client?: string
           date_devis?: string
           date_mise_a_disposition_fourniture?: string
+          delai_approvisionnement?: string
           debours_materiel_prevu?: number | null
           email_responsable_contrat?: string
           envoyee_le?: string
@@ -917,6 +919,7 @@ export type Database = {
           date_commande_client?: string
           date_devis?: string
           date_mise_a_disposition_fourniture?: string
+          delai_approvisionnement?: string
           debours_materiel_prevu?: number | null
           email_responsable_contrat?: string
           envoyee_le?: string

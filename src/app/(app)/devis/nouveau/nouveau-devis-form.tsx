@@ -38,6 +38,7 @@ import {
   type ArticlePU,
 } from "@/lib/devis/referentiel-pu";
 import { FormulaireArticlePU } from "../referentiel-pu/formulaire-article";
+import { DELAI_APPRO_DEFAUT, delaiAppro } from "@/lib/devis/constants";
 
 type Option = { valeur: string; label: string };
 type SiteOption = { id: string; nom: string; site: string; horsContrat: boolean };
@@ -73,6 +74,7 @@ type Brouillon = {
   paves: PaveDevis[];
   coutRevient: CoutRevient;
   remise?: RemiseDevis;
+  delaiApprovisionnement?: string;
 } | null;
 
 type Revision = { indiceSuivant: string; commande: boolean };
@@ -156,6 +158,8 @@ export function NouveauDevisForm({
   const tauxFige = Boolean(brouillon?.coutRevient?.r2TauxHoraire);
   const [feuilleDeVenteOuverte, setFeuilleDeVenteOuverte] = useState(true);
   const [remise, setRemise] = useState<RemiseDevis>(brouillon?.remise ?? remiseVide());
+  const [delai, setDelai] = useState(delaiAppro(brouillon?.delaiApprovisionnement));
+  const [confirmationDelai, setConfirmationDelai] = useState(false);
 
   function changerType(valeur: "" | "sous" | "hors") {
     setType(valeur);
@@ -260,9 +264,30 @@ export function NouveauDevisForm({
       signaler(manque[0], manque[1]);
       return;
     }
+    if (!delai.trim()) {
+      signaler("Renseigne le délai d'approvisionnement", "devis-delai");
+      return;
+    }
+    setConfirmationDelai(true);
+  }
+
+  function refuserDelai() {
+    setConfirmationDelai(false);
+    const champ = document.getElementById("devis-delai") as HTMLInputElement | null;
+    champ?.focus();
+    champ?.select();
+  }
+
+  function envoyerFinal() {
+    setConfirmationDelai(false);
     startTransition(async () => {
       if (revision && brouillonId) {
-        const res = await reviserDevis(brouillonId, { paves: pavesAEnregistrer(), coutRevient, remise });
+        const res = await reviserDevis(brouillonId, {
+          paves: pavesAEnregistrer(),
+          coutRevient,
+          remise,
+          delaiApprovisionnement: delai,
+        });
         if (!res.ok) {
           setErreur(res.erreur);
           return;
@@ -276,6 +301,7 @@ export function NouveauDevisForm({
         paves: pavesAEnregistrer(),
         coutRevient,
         remise,
+        delaiApprovisionnement: delai,
         brouillonId: brouillonId ?? undefined,
         signalementBi: prefill?.signalementBi,
       });
@@ -303,6 +329,7 @@ export function NouveauDevisForm({
         paves: pavesAEnregistrer(),
         coutRevient,
         remise,
+        delaiApprovisionnement: delai,
         signalementBi: prefill?.signalementBi,
       });
       if (!res.ok) {
@@ -525,6 +552,24 @@ export function NouveauDevisForm({
         </div>
       </div>
 
+      <div className="mb-4 rounded-2xl bg-white p-5 shadow-sm">
+        <label htmlFor="devis-delai" className={ETIQUETTE}>
+          Délai d&apos;approvisionnement (imprimé sur le devis)
+        </label>
+        <div className="flex gap-2">
+          <input id="devis-delai" value={delai} onChange={(e) => setDelai(e.target.value)} className={CHAMP} />
+          {delai !== DELAI_APPRO_DEFAUT && (
+            <button
+              type="button"
+              onClick={() => setDelai(DELAI_APPRO_DEFAUT)}
+              className="shrink-0 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              Texte par défaut
+            </button>
+          )}
+        </div>
+      </div>
+
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}
       {brouillonConfirme && (
         <p className="mb-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-brand-green-dark">
@@ -558,6 +603,33 @@ export function NouveauDevisForm({
         </button>
       </div>
       {fenetre}
+      {confirmationDelai && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <h2 className="mb-3 text-lg font-bold text-slate-900">Délai d&apos;approvisionnement</h2>
+            <p className="mb-1 text-sm text-slate-500">Le devis portera :</p>
+            <p className="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">« {delai.trim()} »</p>
+            <p className="mb-5 text-sm text-slate-700">Ce délai est-il correct ?</p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={refuserDelai}
+                className="rounded-xl border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Non, je le modifie
+              </button>
+              <button
+                type="button"
+                onClick={envoyerFinal}
+                autoFocus
+                className="rounded-xl bg-brand-green px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark"
+              >
+                Oui
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

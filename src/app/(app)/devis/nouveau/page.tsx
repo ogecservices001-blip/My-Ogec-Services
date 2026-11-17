@@ -90,6 +90,7 @@ async function chargerBrouillon(supabase: Awaited<ReturnType<typeof createClient
     paves: pavesDuDevis(devis),
     coutRevient: (devis.cout_revient as unknown as CoutRevient) ?? coutRevientDefaut(),
     remise: remiseDuDevis(devis),
+    delaiApprovisionnement: devis.delai_approvisionnement,
   };
 }
 

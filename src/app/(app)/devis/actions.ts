@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
-import { NATURES_DEVIS_SELECTIONNABLES } from "@/lib/devis/constants";
+import { NATURES_DEVIS_SELECTIONNABLES, delaiAppro } from "@/lib/devis/constants";
 import {
   formaterNumeroDevis,
   indiceSuivant,
@@ -36,6 +36,7 @@ export type NouveauDevisInput = {
   paves: PaveDevis[];
   coutRevient: CoutRevient;
   remise?: RemiseDevis;
+  delaiApprovisionnement?: string;
   /// Brouillon existant ("Devis en cours") qu'on finalise — le numéro
   /// officiel lui est alors attribué par mise à jour, pas par insertion
   /// d'une nouvelle ligne.
@@ -155,6 +156,7 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
       heures_prevues: prixRevient.heuresMO,
       debours_materiel_prevu: prixRevient.materiel,
       cout_revient: coutRevient,
+      delai_approvisionnement: delaiAppro(input.delaiApprovisionnement),
       date_devis: dateDevis,
       redacteur: profil.name,
       annule: false,
@@ -182,6 +184,7 @@ export type BrouillonDevisInput = {
   paves: PaveDevis[];
   coutRevient: CoutRevient;
   remise?: RemiseDevis;
+  delaiApprovisionnement?: string;
   signalementBi?: string;
 };
 
@@ -215,6 +218,7 @@ export async function enregistrerBrouillonDevis(input: BrouillonDevisInput): Pro
     heures_prevues: prixRevient.heuresMO,
     debours_materiel_prevu: prixRevient.materiel,
     cout_revient: coutRevient,
+    delai_approvisionnement: delaiAppro(input.delaiApprovisionnement),
     date_devis: new Date().toLocaleDateString("fr-FR"),
     redacteur: profil.name,
     annule: false,
@@ -240,6 +244,7 @@ export type RevisionDevisInput = {
   paves: PaveDevis[];
   coutRevient: CoutRevient;
   remise: RemiseDevis;
+  delaiApprovisionnement?: string;
 };
 
 /// Révision d'un devis pas encore commandé : la version actuelle est archivée
@@ -285,6 +290,7 @@ export async function reviserDevis(id: string, input: RevisionDevisInput): Promi
       heures_prevues: prixRevient.heuresMO,
       debours_materiel_prevu: prixRevient.materiel,
       cout_revient: coutRevient,
+      delai_approvisionnement: delaiAppro(input.delaiApprovisionnement),
       date_devis: new Date().toLocaleDateString("fr-FR"),
       envoyee_le: "",
       updated_at: new Date().toISOString(),

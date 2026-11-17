@@ -1,4 +1,5 @@
 import { readFile } from "fs/promises";
+import { delaiAppro } from "./constants";
 import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { PDFDocument } from "pdf-lib";
@@ -56,7 +57,7 @@ const styles = StyleSheet.create({
   companySub: { fontSize: 9, fontFamily: "Courier-Oblique", marginTop: 1 },
   kvBox: { width: 287 },
   kvRow: { flexDirection: "row", paddingVertical: 3 },
-  kvKey: { width: 80, fontSize: 11, fontFamily: "Times-BoldItalic", textDecoration: "underline" },
+  kvKey: { width: 80, fontSize: 11, fontFamily: "Times-BoldItalic" },
   kvVal: { flex: 1, fontSize: 10, fontFamily: "Helvetica" },
   titleBox: {
     marginTop: 12,
@@ -96,9 +97,9 @@ const styles = StyleSheet.create({
   piedRow: { flexDirection: "row", marginTop: 10, justifyContent: "space-between" },
   piedCol: { flex: 1 },
   piedLigne: { flexDirection: "row", alignItems: "baseline", minHeight: 19 },
-  piedLabel: { width: 138, fontSize: 10, textDecoration: "underline" },
+  piedLabel: { width: 138, fontSize: 10 },
   piedDisponible: { fontSize: 8, fontFamily: "Times-Bold" },
-  piedValidite: { fontSize: 10, fontFamily: "Times-Bold", textDecoration: "underline" },
+  piedValidite: { fontSize: 10, fontFamily: "Times-Bold" },
   totauxBox: { width: 230 },
   totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", minHeight: HAUTEUR_LIGNE_TOTAL },
   totalLabel: { fontSize: 11, fontFamily: "Helvetica" },
@@ -109,7 +110,6 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontFamily: "Helvetica",
     textAlign: "center",
-    textDecoration: "underline",
   },
 });
 
@@ -260,7 +260,7 @@ function DevisDocument({
             <View style={styles.piedCol}>
               <View style={styles.piedLigne}>
                 <Text style={styles.piedLabel}>Délai d&apos;approvisionnement :</Text>
-                <Text style={styles.piedDisponible}>Disponible sauf vente entre temps</Text>
+                <Text style={styles.piedDisponible}>{delaiAppro(devis.delai_approvisionnement)}</Text>
               </View>
               <View style={styles.piedLigne}>
                 <Text style={styles.piedLabel}>Validité de l&apos;offre :</Text>

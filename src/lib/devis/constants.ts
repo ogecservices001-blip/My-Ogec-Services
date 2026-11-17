@@ -26,3 +26,9 @@ export function labelNatureDevis(code: string): string {
 export const NATURES_DEVIS_SELECTIONNABLES: Record<string, string> = Object.fromEntries(
   Object.entries(NATURE_DEVIS).filter(([code]) => code !== "20" && code !== "PN"),
 );
+
+export const DELAI_APPRO_DEFAUT = "Disponible sauf vente entre temps";
+
+export function delaiAppro(texte: string | null | undefined): string {
+  return texte?.trim() || DELAI_APPRO_DEFAUT;
+}

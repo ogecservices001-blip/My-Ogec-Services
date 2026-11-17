@@ -5,6 +5,7 @@ import type { Tables } from "@/lib/types";
 import { BiDetail, type InfosVisite } from "./detail";
 import { Poles, Statuts } from "@/lib/bi/constants";
 import { equipementsEntretenus, proposerVisite, visitesDejaValidees } from "@/lib/gmao/visites";
+import { chargerInfosFacturationDevis } from "@/lib/devis/facturation";
 
 export default async function BiDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -77,8 +78,11 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
     );
   }
 
+  const facturationDevis = profile?.role === "admin" ? await chargerInfosFacturationDevis(supabase, bon) : null;
+
   return (
     <BiDetail
+      facturationDevis={facturationDevis}
       relevesRattaches={relevesRattaches}
       infosVisite={infosVisite}
       bon={bon as Tables<"bons_intervention">}

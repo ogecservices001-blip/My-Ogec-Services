@@ -17,6 +17,7 @@ import {
   type VisiteSaisie,
 } from "@/lib/gmao/visites";
 import type { ActionResult } from "@/lib/action-result";
+import { blocageFacturationDevis } from "@/lib/devis/facturation";
 import type { Tables } from "@/lib/types";
 
 export type CorrectionInput = {
@@ -450,5 +451,44 @@ export async function classerBI(id: string, classement: string, moisFacturation:
 
   revalidatePath(`/bi/${id}`);
   revalidatePath("/bi/valides");
+  return { ok: true };
+}
+
+/// Passe le devis du BI en Facturable (mois de facturation du devis), une
+/// fois le BI validé et toutes les interventions du devis faites.
+export async function facturerDevisDepuisBI(biId: string, moisFacturation: string): Promise<ActionResult> {
+  const profile = await requireAdmin();
+  const mois = moisFacturation.trim();
+  if (!FORMAT_MOIS_ANNEE.test(mois)) return { ok: false, erreur: "Mois de facturation du devis : format attendu MM-AAAA (ex : 10-2026)." };
+  const supabase = await createClient();
+  const { data: bon } = await supabase.from("bons_intervention").select("id, numero, statut, devis_id, history").eq("id", biId).single();
+  if (!bon?.devis_id) return { ok: false, erreur: "Ce BI n'est lié à aucun devis." };
+  if (bon.statut === Statuts.brouillon || bon.statut === Statuts.aVerifier) return { ok: false, erreur: "Valide d'abord le BI." };
+  const { data: devis } = await supabase
+    .from("devis")
+    .select("id, numero, montant, montant_commande, ecart_commande_confirme, annule")
+    .eq("id", bon.devis_id)
+    .single();
+  if (!devis || devis.annule) return { ok: false, erreur: "Devis introuvable ou annulé." };
+  if (devis.montant_commande !== null && devis.montant !== null && !devis.ecart_commande_confirme && Math.abs(devis.montant_commande - devis.montant) >= 0.01) {
+    return { ok: false, erreur: "Le montant de la commande diffère du devis : confirme l'écart avant de passer en facturable." };
+  }
+  const blocage = await blocageFacturationDevis(supabase, devis.id);
+  if (blocage) return { ok: false, erreur: blocage };
+
+  const { error } = await supabase
+    .from("devis")
+    .update({ mois_facturation: mois, facturable_par_bi: bon.numero, updated_at: new Date().toISOString() })
+    .eq("id", devis.id);
+  if (error) return { ok: false, erreur: error.message };
+  const history = Array.isArray(bon.history) ? bon.history : [];
+  await supabase
+    .from("bons_intervention")
+    .update({ history: [...history, { user: profile.name, date: now(), changes: [{ champ: `Devis ${devis.numero}`, avant: "", apres: `Facturable (${mois})` }] }] })
+    .eq("id", biId);
+
+  revalidatePath(`/bi/${biId}`);
+  revalidatePath(`/devis/${devis.id}/statut`);
+  revalidatePath("/devis");
   return { ok: true };
 }

@@ -596,6 +596,9 @@ export function StatutDevisForm({
             {facturationPending ? "..." : "Enregistrer"}
           </button>
         </div>
+        {devis.mois_facturation && devis.facturable_par_bi && (
+          <p className="mt-2 text-xs text-slate-500">Passé Facturable depuis le BI {devis.facturable_par_bi}.</p>
+        )}
         {erreurFacturation && <p className="mt-2 text-xs text-red-600">{erreurFacturation}</p>}
       </div>
 

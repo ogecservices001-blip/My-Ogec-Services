@@ -828,6 +828,7 @@ export type Database = {
       }
       devis: {
         Row: {
+          facturable_par_bi: string
           annule: boolean
           bi_reference_historique: string
           commande_client: Json
@@ -867,6 +868,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          facturable_par_bi?: string
           annule?: boolean
           bi_reference_historique?: string
           commande_client?: Json
@@ -906,6 +908,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          facturable_par_bi?: string
           annule?: boolean
           bi_reference_historique?: string
           commande_client?: Json

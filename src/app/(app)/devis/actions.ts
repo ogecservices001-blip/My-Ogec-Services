@@ -26,6 +26,7 @@ import {
 import { aplatirPaves, pavesDuDevis, type PaveDevis } from "@/lib/devis/paves";
 import { genererPdfDevis } from "@/lib/devis/pdf";
 import { envoyerDevis } from "@/lib/devis/email";
+import { blocageFacturationDevis } from "@/lib/devis/facturation";
 
 export type NouveauDevisInput = {
   siteId: string;
@@ -327,9 +328,13 @@ export async function modifierMoisFacturation(id: string, moisFacturation: strin
   if (moisFacturation && (await ecartCommandeNonConfirme(supabase, id))) {
     return { ok: false, erreur: "Le montant de la commande diffère du devis : confirme l'écart avant de passer en facturable." };
   }
+  if (moisFacturation) {
+    const blocage = await blocageFacturationDevis(supabase, id);
+    if (blocage) return { ok: false, erreur: blocage };
+  }
   const { error } = await supabase
     .from("devis")
-    .update({ mois_facturation: moisFacturation, updated_at: new Date().toISOString() })
+    .update({ mois_facturation: moisFacturation, facturable_par_bi: "", updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { ok: false, erreur: error.message };
 

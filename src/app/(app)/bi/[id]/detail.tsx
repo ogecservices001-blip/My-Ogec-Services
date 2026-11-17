@@ -23,7 +23,9 @@ import {
   type InterventionEquipement,
   type Presta,
 } from "@/lib/bi/format";
-import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, classerBI, type CorrectionInput, rattacherRelevesEnAttente, envoyerRapportParEmail } from "./actions";
+import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, classerBI, type CorrectionInput, rattacherRelevesEnAttente, envoyerRapportParEmail, facturerDevisDepuisBI } from "./actions";
+import { BlocFacturationDevis } from "./facturation-devis";
+import type { InfosFacturationDevis } from "@/lib/devis/facturation";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
 import { suggererNumeroEquipement } from "@/lib/gmao/numero-equipement";
 import { libelleVisite, type VisiteSaisie } from "@/lib/gmao/visites";
@@ -61,8 +63,10 @@ export function BiDetail({
   numerosEquipementSite,
   infosVisite,
   relevesRattaches,
+  facturationDevis,
 }: {
   bon: Bon;
+  facturationDevis: InfosFacturationDevis | null;
   infosVisite: InfosVisite | null;
   relevesRattaches: { nom: string; fonctionnement: string }[];
   techniciensDisponibles: string[];
@@ -78,6 +82,7 @@ export function BiDetail({
   const [archiveUrl, setArchiveUrl] = useState<string | null>(null);
   const [modaleEmailOuverte, setModaleEmailOuverte] = useState(false);
   const [modaleRapportOuverte, setModaleRapportOuverte] = useState(false);
+  const [avertissement, setAvertissement] = useState<string | null>(null);
 
   useEffect(() => {
     if (bon.pdf_storage_path) urlArchiveSignee(bon.pdf_storage_path).then(setArchiveUrl);
@@ -132,6 +137,8 @@ export function BiDetail({
         </div>
       )}
 
+      {avertissement && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800">{avertissement}</p>}
+
       {enCorrection ? (
         <div className="space-y-4">
           <BlocClient bon={bon} />
@@ -142,7 +149,11 @@ export function BiDetail({
             numeroAffaireSite={numeroAffaireSite}
             numerosEquipementSite={numerosEquipementSite}
             infosVisite={infosVisite}
-            onValide={() => router.refresh()}
+            facturationDevis={facturationDevis}
+            onValide={(message) => {
+              setAvertissement(message ?? null);
+              router.refresh();
+            }}
           />
           <BlocHistorique bon={bon} />
         </div>
@@ -218,6 +229,7 @@ export function BiDetail({
             <>
               {!sansMontant(bon.pole, bon.devis_id) && <BlocMontantFacturation bon={bon} tauxSite={tauxSite} />}
               <BlocClassement bon={bon} />
+              {facturationDevis && STATUTS_AVEC_PDF.has(bon.statut) && <BlocFacturationDevis infos={facturationDevis} biId={bon.id} enValidation={false} />}
             </>
           )}
           <BlocHistorique bon={bon} />
@@ -723,6 +735,7 @@ function VueCorrection({
   numeroAffaireSite,
   numerosEquipementSite,
   infosVisite,
+  facturationDevis,
   onValide,
 }: {
   bon: Bon;
@@ -731,8 +744,12 @@ function VueCorrection({
   numeroAffaireSite: string;
   numerosEquipementSite: string[];
   infosVisite: InfosVisite | null;
-  onValide: () => void;
+  facturationDevis: InfosFacturationDevis | null;
+  onValide: (avertissement?: string) => void;
 }) {
+  const devisAFacturer = Boolean(facturationDevis && !facturationDevis.moisFacturation && !facturationDevis.blocage);
+  const [devisTermine, setDevisTermine] = useState(devisAFacturer);
+  const [moisDevis, setMoisDevis] = useState(facturationDevis?.moisPropose ?? "");
   const [pole, setPole] = useState(bon.pole);
   const [visiteNumero, setVisiteNumero] = useState(String(bon.visite_numero ?? infosVisite?.proposition.numero ?? ""));
   const [visiteTotal, setVisiteTotal] = useState(String(bon.visite_total ?? infosVisite?.proposition.total ?? ""));
@@ -805,6 +822,11 @@ function VueCorrection({
     }
     if (classementFinal === "") return ["Choisis un classement", "bi-classement"];
     if (!moisRenseigne) return ["Saisis le mois de facturation au format MM-AAAA (ex : 10-2026)", "bi-mois"];
+    if (devisAFacturer && devisTermine) {
+      if (!/^\d{2}-\d{4}$/.test(moisDevis.trim())) return ["Saisis le mois de facturation du devis au format MM-AAAA (ex : 10-2026)", "bi-devis-mois"];
+      if (facturationDevis?.ecartAConfirmer)
+        return ["Le montant de la commande diffère du devis : confirme l'écart, ou décoche « Ce BI termine le devis »", "bi-devis-ecart"];
+    }
     if (!emailValide) return [email.trim() ? "L'email du client n'est pas valide" : "Renseigne l'email du client", "bi-email"];
     return null;
   }
@@ -843,6 +865,10 @@ function VueCorrection({
       if (!res.ok) {
         setErreur(res.erreur);
         return;
+      }
+      if (devisAFacturer && devisTermine) {
+        const fact = await facturerDevisDepuisBI(bon.id, moisDevis);
+        if (!fact.ok) return onValide(`BI validé, mais le devis n'est pas passé Facturable : ${fact.erreur}`);
       }
       onValide();
     });
@@ -1059,6 +1085,17 @@ function VueCorrection({
         )}
 
         <BlocClassement bon={bon} onChange={setClassementActuel} onMoisChange={setMoisActuel} />
+        {facturationDevis && (
+          <BlocFacturationDevis
+            infos={facturationDevis}
+            biId={bon.id}
+            enValidation
+            termine={devisTermine}
+            onTermine={setDevisTermine}
+            mois={moisDevis}
+            onMois={setMoisDevis}
+          />
+        )}
         {classementFinal === "facturer" && !sansMontant(pole, bon.devis_id) && (
           <BlocMainDoeuvreDeplacement tempsPasse={tempsPasse} nombreDeplacements={nombreDeplacements} tauxSite={tauxSite} />
         )}

@@ -8,6 +8,7 @@ import { requireAdmin } from "@/lib/auth";
 import {
   articlePUSchema,
   aujourdhuiISO,
+  CHAMP_UNITE,
   cleArticlePU,
   libelleArticlePU,
   TITRES_PU,
@@ -190,7 +191,7 @@ export async function previsualiserImportPU(formData: FormData): Promise<{ ok: t
       ajouts: analyse.ajouts.map((l) => ({
         famille: l.famille,
         libelle: libelleArticlePU(l),
-        unite: l.donnee2,
+        unite: l[CHAMP_UNITE],
         tarif: l.tarif_net_ht,
         mo: l.mo_heures,
         date: l.date_maj_tarif,

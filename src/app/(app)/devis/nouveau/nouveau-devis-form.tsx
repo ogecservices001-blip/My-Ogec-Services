@@ -27,6 +27,7 @@ import type { PaveDevis } from "@/lib/devis/paves";
 import { useChampManquant, type CibleChamp } from "@/components/champ-manquant";
 import {
   aujourdhuiISO,
+  CHAMP_UNITE,
   designationArticlePU,
   estLigneMainOeuvre,
   affichageDonneePU,
@@ -624,7 +625,7 @@ function BlocPave({
     majLigne(i, {
       articleId: a.id,
       designation: designationArticlePU(a),
-      unite: uniteDevisDepuisArticle(a.donnee2),
+      unite: uniteDevisDepuisArticle(a),
       matiere: estLigneMainOeuvre(a) ? "0" : String(a.tarif_net_ht ?? 0),
       moHeures: String(a.mo_heures ?? 0),
       type: "normal",
@@ -863,7 +864,7 @@ function BlocPave({
           familles={famillesConnues}
           initial={{
             type: ligneAAjouter.designation.trim(),
-            donnee2: uniteArticleDepuisDevis(ligneAAjouter.unite),
+            [CHAMP_UNITE]: uniteArticleDepuisDevis(ligneAAjouter.unite),
             tarif_net_ht: ligneAAjouter.matiere.trim() ? Number(ligneAAjouter.matiere.replace(",", ".")) : null,
             mo_heures: ligneAAjouter.moHeures.trim() ? Number(ligneAAjouter.moHeures.replace(",", ".")) : null,
             date_maj_tarif: aujourdhuiISO(),

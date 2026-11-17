@@ -15,8 +15,8 @@ const COLONNES: ColonneTableur[] = [
   { titre: "Famille" },
   { titre: "Type" },
   { titre: "Donnée 1" },
-  { titre: "Donnée 2", largeur: "70px" },
-  { titre: "Donnée 3", largeur: "80px" },
+  { titre: "Donnée 2", largeur: "90px" },
+  { titre: "Donnée 3", largeur: "70px" },
   { titre: "Donnée 4", largeur: "80px" },
   { titre: "Donnée 5" },
   { titre: "Donnée 6" },
@@ -93,7 +93,7 @@ export function ReferentielPUListe({ articles }: { articles: ArticlePU[] }) {
         <div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Référentiel PU</h1>
           <p className="text-sm text-slate-500">
-            {filtres.length} article(s){filtres.length !== articles.length ? ` sur ${articles.length}` : ""} — Donnée 2 = unité
+            {filtres.length} article(s){filtres.length !== articles.length ? ` sur ${articles.length}` : ""} — Donnée 3 = unité
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -184,8 +184,8 @@ export function ReferentielPUListe({ articles }: { articles: ArticlePU[] }) {
             {a.type}
           </button>,
           a.donnee1,
-          a.donnee2,
-          affichageDonneePU(a.donnee3),
+          affichageDonneePU(a.donnee2),
+          a.donnee3,
           a.donnee4,
           a.donnee5,
           a.donnee6,

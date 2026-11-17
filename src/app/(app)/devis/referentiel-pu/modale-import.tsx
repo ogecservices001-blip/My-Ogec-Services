@@ -16,19 +16,24 @@ function Section({
   couleur,
   nb,
   aide,
+  entete,
   children,
 }: {
   titre: string;
   couleur: string;
   nb: number;
   aide?: string;
+  entete?: ReactNode;
   children: ReactNode;
 }) {
   if (nb === 0) return null;
   return (
     <div className="mb-4 rounded-xl border border-slate-200">
-      <div className={`rounded-t-xl px-4 py-2 text-sm font-bold ${couleur}`}>
-        {titre} ({nb}){aide && <span className="ml-2 font-normal">{aide}</span>}
+      <div className={`flex items-center justify-between gap-2 rounded-t-xl px-4 py-2 text-sm font-bold ${couleur}`}>
+        <span>
+          {titre} ({nb}){aide && <span className="ml-2 font-normal">{aide}</span>}
+        </span>
+        {entete}
       </div>
       <div className="max-h-64 divide-y divide-slate-100 overflow-y-auto">{children}</div>
     </div>
@@ -233,6 +238,19 @@ export function ModaleImportPU({ onClose }: { onClose: () => void }) {
               couleur="bg-red-50 text-red-800"
               nb={apercu.absents.length}
               aide="— coche ceux à supprimer du référentiel"
+              entete={
+                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={apercu.absents.length > 0 && absentsCoches.size === apercu.absents.length}
+                    onChange={(e) =>
+                      setAbsentsCoches(e.target.checked ? new Set(apercu.absents.map((_, i) => i)) : new Set())
+                    }
+                    className="h-4 w-4 accent-red-600"
+                  />
+                  Tout cocher
+                </label>
+              }
             >
               {apercu.absents.map((a, i) => (
                 <Ligne key={i} coche={absentsCoches.has(i)} onChange={() => setAbsentsCoches((s) => basculer(s, i))}>

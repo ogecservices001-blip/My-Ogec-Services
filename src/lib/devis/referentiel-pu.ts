@@ -16,12 +16,14 @@ export type ArticlePU = {
   date_maj_tarif: string | null;
 };
 
+export const CHAMP_UNITE = "donnee3" as const;
+
 export const CHAMPS_TEXTE = ["famille", "type", "donnee1", "donnee2", "donnee3", "donnee4", "donnee5", "donnee6"] as const;
 export type ChampTextePU = (typeof CHAMPS_TEXTE)[number];
 
 /// Titres du classeur, dans l'ordre du fichier Réferentiel PU.xlsx —
-/// mêmes titres à l'écran, à l'export et à l'import. Donnée 2 porte
-/// toujours l'unité (Un, ml, Ft).
+/// mêmes titres à l'écran, à l'export et à l'import. Donnée 3 porte
+/// toujours l'unité (Un, ml, Ft) — voir CHAMP_UNITE.
 export const TITRES_PU: { cle: ChampTextePU | "tarif_net_ht" | "mo_heures" | "date_maj_tarif"; titre: string }[] = [
   { cle: "famille", titre: "Famille" },
   { cle: "type", titre: "Type" },
@@ -96,7 +98,7 @@ export function cleArticlePU(a: Pick<ArticlePU, ChampTextePU>): string {
 }
 
 export function libelleArticlePU(a: Pick<ArticlePU, ChampTextePU>): string {
-  return [a.type, a.donnee1, a.donnee3, a.donnee4, a.donnee5]
+  return [a.type, a.donnee1, a.donnee2, a.donnee4, a.donnee5]
     .filter((v) => v && v.trim())
     .map(affichageDonneePU)
     .join(" — ");
@@ -140,9 +142,10 @@ export function tauxHoraireDepuisArticles(
   return { taux: Number(ligne.tarif_net_ht), trouve: true };
 }
 
-/// Désignation d'une ligne de devis : « Type Donnée 1 Donnée 3 Donnée 4 — Donnée 5 ».
+/// Désignation d'une ligne de devis : « Type Donnée 1 Donnée 2 Donnée 4 — Donnée 5 »
+/// (marque, puissance, tension ; Donnée 3 = unité n'y figure pas).
 export function designationArticlePU(a: Pick<ArticlePU, ChampTextePU>): string {
-  const base = [a.type, a.donnee1, a.donnee3, a.donnee4]
+  const base = [a.type, a.donnee1, a.donnee2, a.donnee4]
     .map((v) => (v ?? "").trim())
     .filter(Boolean)
     .map(affichageDonneePU)
@@ -151,8 +154,8 @@ export function designationArticlePU(a: Pick<ArticlePU, ChampTextePU>): string {
   return reference ? `${base} — ${reference}` : base;
 }
 
-export function uniteDevisDepuisArticle(donnee2: string): string {
-  const u = donnee2.trim();
+export function uniteDevisDepuisArticle(a: Pick<ArticlePU, typeof CHAMP_UNITE>): string {
+  const u = (a[CHAMP_UNITE] ?? "").trim();
   return !u || u.toLowerCase() === "un" ? "U" : u;
 }
 

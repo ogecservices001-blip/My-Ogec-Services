@@ -8,7 +8,7 @@ import { aujourdhuiISO, TITRES_PU, type ArticlePU } from "@/lib/devis/referentie
 import { creerArticlePU, modifierArticlePU } from "./actions";
 
 const AIDES: Partial<Record<string, string>> = {
-  donnee2: "Unité : Un, ml, Ft...",
+  donnee3: "Unité : Un, ml, Ft...",
   tarif_net_ht: "€ HT",
   mo_heures: "heures",
   date_maj_tarif: "se met à jour quand le tarif change",

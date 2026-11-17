@@ -15,7 +15,11 @@ export type LigneDevis = {
   quantite: string;
   matiere: string;
   moHeures: string;
+  /// Historique : plus saisi, toutes les lignes sont calculées en Normal.
   type: TypeLigneDevis;
+  /// Article du Référentiel PU d'où vient la ligne : unité, déboursé et MO
+  /// sont alors ceux du moment où l'article a été choisi, non modifiables.
+  articleId?: string;
 };
 
 export function ligneDevisVide(): LigneDevis {
@@ -175,14 +179,11 @@ export function calculerPrixRevient(lignes: LigneDevis[], c: CoutRevient): Calcu
   };
 }
 
-/// Port de la formule partagée I13 ("Mdle Devis") : coefficient général
-/// pour une ligne normale, 1,25 pour une ligne sous-traitée, 1,15 pour
-/// une ligne "Code N°2".
+/// Port de la formule partagée I13 ("Mdle Devis") : (matière + MO × taux)
+/// × coefficient général, pour toutes les lignes.
 export function prixUniteLigne(ligne: LigneDevis, coefficient: number, tauxHoraire: number): number | null {
   if (!ligne.quantite.trim()) return null;
   const base = n(ligne.matiere) + n(ligne.moHeures) * tauxHoraire;
-  if (ligne.type === "sous_traitant") return Math.round(base * 1.25 * 100) / 100;
-  if (ligne.type === "code2") return Math.round(base * 1.15 * 100) / 100;
   return Math.round(base * coefficient * 10) / 10;
 }
 

@@ -27,6 +27,7 @@ import { aplatirPaves, pavesDuDevis, type PaveDevis } from "@/lib/devis/paves";
 import { genererPdfDevis } from "@/lib/devis/pdf";
 import { envoyerDevis } from "@/lib/devis/email";
 import { blocageFacturationDevis } from "@/lib/devis/facturation";
+import { coutAvecTauxHoraire } from "@/lib/devis/taux-horaire";
 
 export type NouveauDevisInput = {
   siteId: string;
@@ -112,9 +113,14 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
   if (erreurPaves) return { ok: false, erreur: erreurPaves };
   const champsPaves = aplatirPaves(paves);
   const remise = input.remise ?? remiseVide();
-  const { prixRevient, montant } = montantNetDevis(champsPaves.lignes, input.coutRevient, remise);
 
   const supabase = await createClient();
+  const { data: brouillon } = input.brouillonId
+    ? await supabase.from("devis").select("cout_revient").eq("id", input.brouillonId).single()
+    : { data: null };
+  const coutRevient = await coutAvecTauxHoraire(supabase, input.coutRevient, brouillon?.cout_revient ?? null);
+  const { prixRevient, montant } = montantNetDevis(champsPaves.lignes, coutRevient, remise);
+
   const { data: site } = await supabase.from("sites").select("n_affaire").eq("id", input.siteId).single();
   if (!site) return { ok: false, erreur: "Site introuvable." };
   const affaire = numeroAffaireDuSite(site.n_affaire);
@@ -148,7 +154,7 @@ export async function creerDevis(input: NouveauDevisInput): Promise<ActionResult
       ...colonnesRemise(remise),
       heures_prevues: prixRevient.heuresMO,
       debours_materiel_prevu: prixRevient.materiel,
-      cout_revient: input.coutRevient,
+      cout_revient: coutRevient,
       date_devis: dateDevis,
       redacteur: profil.name,
       annule: false,
@@ -191,11 +197,16 @@ export async function enregistrerBrouillonDevis(input: BrouillonDevisInput): Pro
   const champsPaves = aplatirPaves(nettoyerPaves(input.paves));
   const lignesValides = champsPaves.lignes;
   const remise = input.remise ?? remiseVide();
-  const net = montantNetDevis(lignesValides, input.coutRevient, remise);
+
+  const supabase = await createClient();
+  const { data: existant } = input.id
+    ? await supabase.from("devis").select("cout_revient").eq("id", input.id).single()
+    : { data: null };
+  const coutRevient = await coutAvecTauxHoraire(supabase, input.coutRevient, existant?.cout_revient ?? null);
+  const net = montantNetDevis(lignesValides, coutRevient, remise);
   const prixRevient = net.prixRevient;
   const montant = lignesValides.length > 0 ? net.montant : null;
 
-  const supabase = await createClient();
   const donnees = {
     site_id: input.siteId,
     ...champsPaves,
@@ -203,7 +214,7 @@ export async function enregistrerBrouillonDevis(input: BrouillonDevisInput): Pro
     ...colonnesRemise(remise),
     heures_prevues: prixRevient.heuresMO,
     debours_materiel_prevu: prixRevient.materiel,
-    cout_revient: input.coutRevient,
+    cout_revient: coutRevient,
     date_devis: new Date().toLocaleDateString("fr-FR"),
     redacteur: profil.name,
     annule: false,
@@ -248,7 +259,8 @@ export async function reviserDevis(id: string, input: RevisionDevisInput): Promi
   const erreurPaves = verifierPaves(paves);
   if (erreurPaves) return { ok: false, erreur: erreurPaves };
   const champsPaves = aplatirPaves(paves);
-  const { prixRevient, montant } = montantNetDevis(champsPaves.lignes, input.coutRevient, input.remise);
+  const coutRevient = await coutAvecTauxHoraire(supabase, input.coutRevient, devis.cout_revient);
+  const { prixRevient, montant } = montantNetDevis(champsPaves.lignes, coutRevient, input.remise);
 
   const indice = indiceSuivant(devis.indice_revision);
   const numero = numeroRevise(devis.numero, champsPaves.nature, indice);
@@ -272,7 +284,7 @@ export async function reviserDevis(id: string, input: RevisionDevisInput): Promi
       ...colonnesRemise(input.remise),
       heures_prevues: prixRevient.heuresMO,
       debours_materiel_prevu: prixRevient.materiel,
-      cout_revient: input.coutRevient,
+      cout_revient: coutRevient,
       date_devis: new Date().toLocaleDateString("fr-FR"),
       envoyee_le: "",
       updated_at: new Date().toISOString(),

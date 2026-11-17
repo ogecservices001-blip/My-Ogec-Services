@@ -110,3 +110,66 @@ export function formatNombrePU(v: number | null, decimales = 2): string {
   if (v === null || v === undefined) return "";
   return v.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: decimales });
 }
+
+export const TAUX_HORAIRE_SECOURS = 52;
+
+function normaliserLibelle(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/œ/gi, "oe")
+    .replace(/[’`]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+export function estLigneMainOeuvre(a: Pick<ArticlePU, "famille">): boolean {
+  return normaliserLibelle(a.famille) === "main d'oeuvre";
+}
+
+/// Taux horaire des devis : Tarif net HT de la ligne Main d'œuvre /
+/// « Mise en œuvre ». Absente ou sans tarif : 52 €/h de secours.
+export function tauxHoraireDepuisArticles(
+  articles: Pick<ArticlePU, "famille" | "type" | "tarif_net_ht">[],
+): { taux: number; trouve: boolean } {
+  const ligne = articles.find((a) => estLigneMainOeuvre(a) && normaliserLibelle(a.type) === "mise en oeuvre");
+  if (!ligne || ligne.tarif_net_ht === null || Number(ligne.tarif_net_ht) <= 0) {
+    return { taux: TAUX_HORAIRE_SECOURS, trouve: false };
+  }
+  return { taux: Number(ligne.tarif_net_ht), trouve: true };
+}
+
+/// Désignation d'une ligne de devis : « Type Donnée 1 Donnée 3 Donnée 4 — Donnée 5 ».
+export function designationArticlePU(a: Pick<ArticlePU, ChampTextePU>): string {
+  const base = [a.type, a.donnee1, a.donnee3, a.donnee4]
+    .map((v) => (v ?? "").trim())
+    .filter(Boolean)
+    .map(affichageDonneePU)
+    .join(" ");
+  const reference = (a.donnee5 ?? "").trim();
+  return reference ? `${base} — ${reference}` : base;
+}
+
+export function uniteDevisDepuisArticle(donnee2: string): string {
+  const u = donnee2.trim();
+  return !u || u.toLowerCase() === "un" ? "U" : u;
+}
+
+export function uniteArticleDepuisDevis(unite: string): string {
+  return unite.trim() === "U" ? "Un" : unite.trim();
+}
+
+export function rechercheArticlesPU<T extends Pick<ArticlePU, ChampTextePU>>(articles: T[], texte: string, max = 10): T[] {
+  const mots = normaliserLibelle(texte).replace(",", ".").split(" ").filter(Boolean);
+  if (mots.length === 0) return [];
+  const trouves: T[] = [];
+  for (const a of articles) {
+    const contenu = normaliserLibelle(CHAMPS_TEXTE.map((c) => a[c]).join(" "));
+    if (mots.every((m) => contenu.includes(m))) {
+      trouves.push(a);
+      if (trouves.length >= max) break;
+    }
+  }
+  return trouves;
+}

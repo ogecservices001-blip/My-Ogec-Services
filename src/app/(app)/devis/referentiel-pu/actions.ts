@@ -3,12 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
-import { articlePUSchema, aujourdhuiISO } from "@/lib/devis/referentiel-pu";
+import { articlePUSchema, aujourdhuiISO, type ArticlePU } from "@/lib/devis/referentiel-pu";
 import type { ActionResult } from "@/lib/action-result";
 
 const CHEMIN = "/devis/referentiel-pu";
 
-export async function creerArticlePU(_prevState: ActionResult | null, formData: FormData): Promise<ActionResult> {
+export async function creerArticlePU(
+  _prevState: (ActionResult & { article?: ArticlePU }) | null,
+  formData: FormData,
+): Promise<ActionResult & { article?: ArticlePU }> {
   await requireAdmin();
   const parsed = articlePUSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, erreur: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
@@ -21,13 +24,15 @@ export async function creerArticlePU(_prevState: ActionResult | null, formData: 
     .limit(1)
     .maybeSingle();
   const date_maj_tarif = parsed.data.date_maj_tarif ?? (parsed.data.tarif_net_ht !== null ? aujourdhuiISO() : null);
-  const { error } = await supabase
+  const { data: article, error } = await supabase
     .from("referentiel_pu")
-    .insert({ ...parsed.data, date_maj_tarif, ordre: (dernier?.ordre ?? 0) + 1 });
+    .insert({ ...parsed.data, date_maj_tarif, ordre: (dernier?.ordre ?? 0) + 1 })
+    .select("*")
+    .single();
   if (error) return { ok: false, erreur: error.message };
 
   revalidatePath(CHEMIN);
-  return { ok: true };
+  return { ok: true, article: article as ArticlePU };
 }
 
 export async function modifierArticlePU(id: string, _prevState: ActionResult | null, formData: FormData): Promise<ActionResult> {

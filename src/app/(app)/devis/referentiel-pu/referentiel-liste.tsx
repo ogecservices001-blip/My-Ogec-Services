@@ -215,6 +215,7 @@ export function ReferentielPUListe({ articles }: { articles: ArticlePU[] }) {
         <FormulaireArticlePU
           key={formulaire.existant?.id ?? "nouveau"}
           existant={formulaire.existant}
+          familles={[...new Set(articles.map((a) => a.famille).filter(Boolean))]}
           onClose={() => setFormulaire(null)}
         />
       )}

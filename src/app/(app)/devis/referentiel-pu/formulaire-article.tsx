@@ -14,20 +14,33 @@ const AIDES: Partial<Record<string, string>> = {
   date_maj_tarif: "se met à jour quand le tarif change",
 };
 
-export function FormulaireArticlePU({ existant, onClose }: { existant: ArticlePU | null; onClose: () => void }) {
+export function FormulaireArticlePU({
+  existant,
+  onClose,
+  initial,
+  familles = [],
+  onCree,
+}: {
+  existant: ArticlePU | null;
+  onClose: () => void;
+  initial?: Partial<ArticlePU>;
+  familles?: string[];
+  onCree?: (article: ArticlePU) => void;
+}) {
   const router = useRouter();
-  const action = existant ? modifierArticlePU.bind(null, existant.id) : creerArticlePU;
+  const action: typeof creerArticlePU = existant ? modifierArticlePU.bind(null, existant.id) : creerArticlePU;
   const [state, formAction, pending] = useActionState(action, null);
+  const idFamilles = "familles-referentiel-pu";
   const { signaler, surChampInvalide, fenetre } = useChampManquant();
   useSignalerRefusServeur(state, signaler);
   const dateRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (state?.ok) {
-      onClose();
-      router.refresh();
-    }
-  }, [state, onClose, router]);
+    if (!state?.ok) return;
+    if (onCree && state.article) onCree(state.article);
+    else router.refresh();
+    onClose();
+  }, [state, onClose, onCree, router]);
 
   return (
     <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4">
@@ -45,7 +58,7 @@ export function FormulaireArticlePU({ existant, onClose }: { existant: ArticlePU
 
           <div className="grid gap-3 sm:grid-cols-2">
             {TITRES_PU.map((t) => {
-              const valeur = existant ? existant[t.cle] : "";
+              const valeur = existant ? existant[t.cle] : (initial?.[t.cle] ?? "");
               const numerique = t.cle === "tarif_net_ht" || t.cle === "mo_heures";
               const estDate = t.cle === "date_maj_tarif";
               return (
@@ -60,6 +73,7 @@ export function FormulaireArticlePU({ existant, onClose }: { existant: ArticlePU
                     name={t.cle}
                     required={t.cle === "famille" || t.cle === "type"}
                     type={estDate ? "date" : "text"}
+                    list={t.cle === "famille" && familles.length > 0 ? idFamilles : undefined}
                     ref={estDate ? dateRef : undefined}
                     onChange={
                       t.cle === "tarif_net_ht"
@@ -84,6 +98,13 @@ export function FormulaireArticlePU({ existant, onClose }: { existant: ArticlePU
               );
             })}
           </div>
+          {familles.length > 0 && (
+            <datalist id={idFamilles}>
+              {familles.map((f) => (
+                <option key={f} value={f} />
+              ))}
+            </datalist>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <button

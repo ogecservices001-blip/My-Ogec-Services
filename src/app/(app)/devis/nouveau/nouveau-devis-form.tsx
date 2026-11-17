@@ -5,7 +5,7 @@ import { ChoixClientSite } from "@/components/choix-client-site";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Trash2 } from "lucide-react";
+import { BookmarkPlus, Lock, Plus, Trash2 } from "lucide-react";
 import { creerDevis, enregistrerBrouillonDevis, listerEquipementsDuSite, reviserDevis } from "../actions";
 import {
   ligneDevisVide,
@@ -19,13 +19,23 @@ import {
   remiseVide,
   libelleRemise,
   type LigneDevis,
-  type TypeLigneDevis,
   type CoutRevient,
   type RemiseDevis,
   type TypeRemise,
 } from "@/lib/devis/pricing";
 import type { PaveDevis } from "@/lib/devis/paves";
 import { useChampManquant, type CibleChamp } from "@/components/champ-manquant";
+import {
+  aujourdhuiISO,
+  designationArticlePU,
+  estLigneMainOeuvre,
+  formatNombrePU,
+  rechercheArticlesPU,
+  uniteArticleDepuisDevis,
+  uniteDevisDepuisArticle,
+  type ArticlePU,
+} from "@/lib/devis/referentiel-pu";
+import { FormulaireArticlePU } from "../referentiel-pu/formulaire-article";
 
 type Option = { valeur: string; label: string };
 type SiteOption = { id: string; nom: string; site: string; horsContrat: boolean };
@@ -41,12 +51,6 @@ function eur(v: number): string {
   const groupes = entier.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   return `${v < 0 ? "-" : ""}${groupes},${decimales} €`;
 }
-
-const LABELS_TYPE: Record<TypeLigneDevis, string> = {
-  normal: "Normal",
-  sous_traitant: "Sous-traitant ×1,25",
-  code2: "Code N°2 ×1,15",
-};
 
 const UNITES = ["U", "Ens", "Ft", "ml", "kg"];
 
@@ -84,7 +88,7 @@ function versSaisie(pave: PaveDevis, cle: number): PaveSaisie {
     cle,
     equipementId: pave.equipementId ?? "",
     groupeFiltre: "",
-    lignes: pave.lignes.length > 0 ? pave.lignes : lignesVides(),
+    lignes: pave.lignes.length > 0 ? pave.lignes.map((l) => ({ ...l, type: "normal" as const })) : lignesVides(),
   };
 }
 
@@ -98,13 +102,18 @@ export function NouveauDevisForm({
   prefill,
   brouillon,
   revision,
+  articles,
+  tauxReferentiel,
 }: {
   sites: SiteOption[];
   natures: Option[];
   prefill: Prefill;
   brouillon?: Brouillon;
   revision?: Revision;
+  articles: ArticlePU[];
+  tauxReferentiel: { taux: number; trouve: boolean };
 }) {
+  const [articlesConnus, setArticlesConnus] = useState<ArticlePU[]>(articles);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [enregistrementBrouillon, startEnregistrementBrouillon] = useTransition();
@@ -137,7 +146,12 @@ export function NouveauDevisForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [coutRevient, setCoutRevient] = useState<CoutRevient>(brouillon?.coutRevient ?? coutRevientDefaut());
+  const [coutRevient, setCoutRevient] = useState<CoutRevient>(
+    brouillon?.coutRevient?.r2TauxHoraire
+      ? brouillon.coutRevient
+      : { ...coutRevientDefaut(), ...(brouillon?.coutRevient ?? {}), r2TauxHoraire: String(tauxReferentiel.taux) },
+  );
+  const tauxFige = Boolean(brouillon?.coutRevient?.r2TauxHoraire);
   const [feuilleDeVenteOuverte, setFeuilleDeVenteOuverte] = useState(true);
   const [remise, setRemise] = useState<RemiseDevis>(brouillon?.remise ?? remiseVide());
 
@@ -360,6 +374,8 @@ export function NouveauDevisForm({
           natures={natures}
           coefficient={prixRevient.coefficientVente}
           tauxHoraire={prixRevient.tauxHoraire}
+          articles={articlesConnus}
+          onArticleCree={(a) => setArticlesConnus((prev) => [...prev, a])}
           onChange={(champs) => majPave(i, champs)}
           onRetirer={() => setPaves((prev) => prev.filter((_, idx) => idx !== i))}
         />
@@ -390,9 +406,18 @@ export function NouveauDevisForm({
               <ChampCout label="Divers (€)" valeur={coutRevient.r1Divers} onChange={(v) => majCout("r1Divers", v)} />
             </BlocCout>
 
+            {!tauxFige && !tauxReferentiel.trouve && (
+              <p className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-orange-800">
+                Ligne Main d&apos;œuvre / « Mise en œuvre » absente du Référentiel PU (ou sans tarif) : taux de secours{" "}
+                {formatNombrePU(tauxReferentiel.taux)} €/h.
+              </p>
+            )}
             <BlocCout titre="R2 — Montage">
               <ChampLecture label="Heures (somme des lignes)" valeur={`${prixRevient.heuresMO} h`} />
-              <ChampCout label="Taux horaire (€/h)" valeur={coutRevient.r2TauxHoraire} onChange={(v) => majCout("r2TauxHoraire", v)} />
+              <ChampLecture
+                label={tauxFige ? "Taux horaire (figé à la création)" : "Taux horaire (Référentiel PU)"}
+                valeur={`${formatNombrePU(prixRevient.tauxHoraire)} €/h`}
+              />
               <ChampLecture label="Synthèse (taux × heures)" valeur={eur(prixRevient.r2Total)} />
             </BlocCout>
 
@@ -545,6 +570,8 @@ function BlocPave({
   natures,
   coefficient,
   tauxHoraire,
+  articles,
+  onArticleCree,
   onChange,
   onRetirer,
 }: {
@@ -557,9 +584,12 @@ function BlocPave({
   natures: Option[];
   coefficient: number;
   tauxHoraire: number;
+  articles: ArticlePU[];
+  onArticleCree: (article: ArticlePU) => void;
   onChange: (champs: Partial<PaveSaisie>) => void;
   onRetirer: () => void;
 }) {
+  const [ajoutReferentiel, setAjoutReferentiel] = useState<number | null>(null);
   const { groupeFiltre, localisation, equipementId, lignes } = pave;
   const groupesExistants = [...new Set(equipements.map((e) => e.groupe).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"));
   const equipementsDuGroupe = groupeFiltre ? equipements.filter((e) => e.groupe === groupeFiltre) : equipements;
@@ -586,6 +616,20 @@ function BlocPave({
   function majLigne(i: number, champs: Partial<LigneDevis>) {
     onChange({ lignes: lignes.map((l, idx) => (idx === i ? { ...l, ...champs } : l)) });
   }
+
+  function choisirArticle(i: number, a: ArticlePU) {
+    majLigne(i, {
+      articleId: a.id,
+      designation: designationArticlePU(a),
+      unite: uniteDevisDepuisArticle(a.donnee2),
+      matiere: estLigneMainOeuvre(a) ? "0" : String(a.tarif_net_ht ?? 0),
+      moHeures: String(a.mo_heures ?? 0),
+      type: "normal",
+    });
+  }
+
+  const ligneAAjouter = ajoutReferentiel !== null ? lignes[ajoutReferentiel] : null;
+  const famillesConnues = [...new Set(articles.map((a) => a.famille).filter(Boolean))];
 
   return (
     <div className="mb-4 space-y-4 rounded-2xl bg-white p-5 shadow-sm">
@@ -687,13 +731,12 @@ function BlocPave({
         </div>
 
         <div className="space-y-2">
-          <div className="hidden grid-cols-[2fr_0.7fr_0.6fr_0.8fr_0.7fr_1.2fr_0.9fr_0.9fr_auto] gap-1.5 px-1 text-[11px] font-semibold text-slate-400 sm:grid">
-            <span>Désignation</span>
+          <div className="hidden grid-cols-[3fr_0.7fr_0.6fr_0.8fr_0.7fr_0.9fr_0.9fr_auto] gap-1.5 px-1 text-[11px] font-semibold text-slate-400 sm:grid">
+            <span>Désignation (tape pour chercher dans le Référentiel PU)</span>
             <span>Unité</span>
             <span>Qté</span>
             <span>Déboursé fourniture €</span>
             <span>MO (h)</span>
-            <span>Type</span>
             <span className="text-right">PU calculé</span>
             <span className="text-right">Montant</span>
             <span />
@@ -702,31 +745,60 @@ function BlocPave({
             const pu = prixUniteLigne(l, coefficient, tauxHoraire);
             const montant = montantLigneDevis(l, coefficient, tauxHoraire);
             return (
-              <div key={i} className="grid grid-cols-[2fr_0.7fr_0.6fr_0.8fr_0.7fr_1.2fr_0.9fr_0.9fr_auto] items-center gap-1.5">
-                <input
-                  id={`pave-${pave.cle}-ligne-${i}`}
-                  value={l.designation}
-                  onChange={(e) => majLigne(i, { designation: e.target.value })}
-                  placeholder="Désignation"
-                  className={CHAMP_SM}
-                />
-                <select value={l.unite} onChange={(e) => majLigne(i, { unite: e.target.value })} className={CHAMP_SM}>
-                  {UNITES.map((u) => (
-                    <option key={u} value={u}>
-                      {u}
-                    </option>
-                  ))}
-                </select>
+              <div key={i} className="grid grid-cols-[3fr_0.7fr_0.6fr_0.8fr_0.7fr_0.9fr_0.9fr_auto] items-center gap-1.5">
+                {l.articleId ? (
+                  <div
+                    id={`pave-${pave.cle}-ligne-${i}`}
+                    title={`${l.designation} — article du Référentiel PU : unité, déboursé et MO verrouillés`}
+                    className="flex min-w-0 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-sm text-slate-800"
+                  >
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-emerald-600" strokeWidth={2} />
+                    <span className="truncate">{l.designation}</span>
+                  </div>
+                ) : (
+                  <div className="flex min-w-0 items-center gap-1">
+                    <ChampDesignation
+                      id={`pave-${pave.cle}-ligne-${i}`}
+                      valeur={l.designation}
+                      articles={articles}
+                      onChange={(v) => majLigne(i, { designation: v })}
+                      onChoisir={(a) => choisirArticle(i, a)}
+                    />
+                    {l.designation.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setAjoutReferentiel(i)}
+                        title="Ajouter cette ligne au Référentiel PU"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-1.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+                      >
+                        <BookmarkPlus className="h-3.5 w-3.5" strokeWidth={2} />
+                        Réf.
+                      </button>
+                    )}
+                  </div>
+                )}
+                {l.articleId ? (
+                  <p className={VERROU}>{l.unite}</p>
+                ) : (
+                  <select value={l.unite} onChange={(e) => majLigne(i, { unite: e.target.value })} className={CHAMP_SM}>
+                    {(UNITES.includes(l.unite) ? UNITES : [l.unite, ...UNITES]).map((u) => (
+                      <option key={u} value={u}>
+                        {u}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <input value={l.quantite} onChange={(e) => majLigne(i, { quantite: e.target.value })} placeholder="Qté" className={CHAMP_SM} />
-                <input value={l.matiere} onChange={(e) => majLigne(i, { matiere: e.target.value })} placeholder="0" className={CHAMP_SM} />
-                <input value={l.moHeures} onChange={(e) => majLigne(i, { moHeures: e.target.value })} placeholder="0" className={CHAMP_SM} />
-                <select value={l.type} onChange={(e) => majLigne(i, { type: e.target.value as TypeLigneDevis })} className={CHAMP_SM}>
-                  {(Object.entries(LABELS_TYPE) as [TypeLigneDevis, string][]).map(([v, label]) => (
-                    <option key={v} value={v}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                {l.articleId ? (
+                  <p className={VERROU}>{l.matiere.replace(".", ",")}</p>
+                ) : (
+                  <input value={l.matiere} onChange={(e) => majLigne(i, { matiere: e.target.value })} placeholder="0" className={CHAMP_SM} />
+                )}
+                {l.articleId ? (
+                  <p className={VERROU}>{l.moHeures.replace(".", ",")}</p>
+                ) : (
+                  <input value={l.moHeures} onChange={(e) => majLigne(i, { moHeures: e.target.value })} placeholder="0" className={CHAMP_SM} />
+                )}
                 <p className="truncate text-right text-sm text-slate-600">{pu !== null ? eur(pu) : ""}</p>
                 <p className="truncate text-right text-sm font-medium text-slate-900">{montant !== null ? eur(montant) : ""}</p>
                 <button
@@ -746,6 +818,110 @@ function BlocPave({
           <p className="mt-3 text-right text-sm font-semibold text-slate-900">Sous-total HT : {eur(sousTotal)}</p>
         )}
       </div>
+
+      {ajoutReferentiel !== null && ligneAAjouter && (
+        <FormulaireArticlePU
+          existant={null}
+          familles={famillesConnues}
+          initial={{
+            type: ligneAAjouter.designation.trim(),
+            donnee2: uniteArticleDepuisDevis(ligneAAjouter.unite),
+            tarif_net_ht: ligneAAjouter.matiere.trim() ? Number(ligneAAjouter.matiere.replace(",", ".")) : null,
+            mo_heures: ligneAAjouter.moHeures.trim() ? Number(ligneAAjouter.moHeures.replace(",", ".")) : null,
+            date_maj_tarif: aujourdhuiISO(),
+          }}
+          onCree={(article) => {
+            onArticleCree(article);
+            choisirArticle(ajoutReferentiel, article);
+          }}
+          onClose={() => setAjoutReferentiel(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+const VERROU = "truncate rounded-lg border border-slate-100 bg-slate-50 px-2 py-1.5 text-sm text-slate-600";
+
+function ChampDesignation({
+  id,
+  valeur,
+  articles,
+  onChange,
+  onChoisir,
+}: {
+  id: string;
+  valeur: string;
+  articles: ArticlePU[];
+  onChange: (v: string) => void;
+  onChoisir: (a: ArticlePU) => void;
+}) {
+  const [ouvert, setOuvert] = useState(false);
+  const [actif, setActif] = useState(0);
+  const suggestions = useMemo(
+    () => (ouvert && valeur.trim().length >= 2 ? rechercheArticlesPU(articles, valeur, 8) : []),
+    [articles, valeur, ouvert],
+  );
+
+  function choisir(a: ArticlePU) {
+    onChoisir(a);
+    setOuvert(false);
+  }
+
+  return (
+    <div className="relative min-w-0 flex-1">
+      <input
+        id={id}
+        value={valeur}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOuvert(true);
+          setActif(0);
+        }}
+        onFocus={() => setOuvert(true)}
+        onBlur={() => setOuvert(false)}
+        onKeyDown={(e) => {
+          if (suggestions.length === 0) return;
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setActif((a) => Math.min(a + 1, suggestions.length - 1));
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setActif((a) => Math.max(a - 1, 0));
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            choisir(suggestions[Math.min(actif, suggestions.length - 1)]);
+          } else if (e.key === "Escape") {
+            setOuvert(false);
+          }
+        }}
+        placeholder="Désignation ou recherche"
+        autoComplete="off"
+        className={CHAMP_SM}
+      />
+      {suggestions.length > 0 && (
+        <div className="absolute left-0 top-full z-20 mt-1 max-h-72 w-[min(36rem,85vw)] overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+          {suggestions.map((a, idx) => (
+            <button
+              key={a.id}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                choisir(a);
+              }}
+              onMouseEnter={() => setActif(idx)}
+              className={`block w-full px-3 py-1.5 text-left text-sm ${idx === actif ? "bg-green-50" : "hover:bg-slate-50"}`}
+            >
+              <span className="block truncate font-medium text-slate-900">{designationArticlePU(a)}</span>
+              <span className="block truncate text-xs text-slate-500">
+                {a.famille} — {uniteDevisDepuisArticle(a.donnee2)} —{" "}
+                {estLigneMainOeuvre(a) ? "main d'œuvre" : a.tarif_net_ht === null ? "sans tarif" : `${formatNombrePU(a.tarif_net_ht)} €`} — MO{" "}
+                {a.mo_heures === null ? "—" : `${formatNombrePU(a.mo_heures)} h`}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

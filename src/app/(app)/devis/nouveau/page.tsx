@@ -6,6 +6,7 @@ import { coutRevientDefaut, remiseDuDevis, type CoutRevient } from "@/lib/devis/
 import { indiceSuivant } from "@/lib/devis/numerotation";
 import { chargerDevisAEtablir } from "@/lib/bi/devis-a-etablir";
 import { pavesDuDevis, type PaveDevis } from "@/lib/devis/paves";
+import { tauxHoraireDepuisArticles, type ArticlePU } from "@/lib/devis/referentiel-pu";
 import { NouveauDevisForm } from "./nouveau-devis-form";
 
 export default async function NouveauDevisPage({
@@ -22,12 +23,15 @@ export default async function NouveauDevisPage({
   const { brouillonId, reviserId, siteId, signalement } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: sites }, prefillSite, brouillon, revision] = await Promise.all([
+  const [{ data: sites }, { data: articlesBruts }, prefillSite, brouillon, revision] = await Promise.all([
     supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom"),
+    supabase.from("referentiel_pu").select("*").order("ordre").order("created_at"),
     siteId ? chargerPrefillSite(supabase, siteId) : Promise.resolve(null),
     brouillonId ? chargerBrouillon(supabase, brouillonId) : Promise.resolve(null),
     reviserId ? chargerBrouillon(supabase, reviserId) : Promise.resolve(null),
   ]);
+  const articles = (articlesBruts as ArticlePU[] | null) ?? [];
+  const tauxReferentiel = tauxHoraireDepuisArticles(articles);
   if (revision) {
     return (
       <ModalEcran titre={`Réviser le devis ${revision.numero}`} hrefFermer={`/devis/${revision.id}/statut`} large>
@@ -35,6 +39,8 @@ export default async function NouveauDevisPage({
           sites={(sites ?? []).map((s) => ({ id: s.id, nom: s.nom, site: s.site, horsContrat: s.hors_contrat }))}
           natures={Object.entries(NATURES_DEVIS_SELECTIONNABLES).map(([valeur, label]) => ({ valeur, label }))}
           prefill={null}
+          articles={articles}
+          tauxReferentiel={tauxReferentiel}
           brouillon={revision}
           revision={{ indiceSuivant: indiceSuivant(revision.indiceRevision), commande: revision.commande }}
         />
@@ -60,6 +66,8 @@ export default async function NouveauDevisPage({
         sites={(sites ?? []).map((s) => ({ id: s.id, nom: s.nom, site: s.site, horsContrat: s.hors_contrat }))}
         natures={Object.entries(NATURES_DEVIS_SELECTIONNABLES).map(([valeur, label]) => ({ valeur, label }))}
         prefill={prefill}
+        articles={articles}
+        tauxReferentiel={tauxReferentiel}
         brouillon={brouillon}
       />
     </ModalEcran>

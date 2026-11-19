@@ -1,6 +1,7 @@
 "use server";
 
 import ExcelJS from "exceljs";
+import { valeurSimpleCellule } from "@/lib/excel-import";
 import { createHash } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -71,7 +72,7 @@ async function parserSommaire(fichier: File): Promise<LigneImportEquipement[] | 
   const valeur = (row: ExcelJS.Row, enteteNormalise: string): string => {
     const col = indexParCle.get(enteteNormalise);
     if (!col) return "";
-    const v = row.getCell(col).value;
+    const v = valeurSimpleCellule(row.getCell(col).value);
     if (v === null || v === undefined) return "";
     if (v instanceof Date) return `${deuxChiffres(v.getUTCDate())}/${deuxChiffres(v.getUTCMonth() + 1)}/${v.getUTCFullYear()}`;
     if (typeof v === "object" && "text" in v) return String((v as { text: unknown }).text ?? "").trim();

@@ -1,11 +1,12 @@
 "use server";
 
 import ExcelJS from "exceljs";
+import { valeurSimpleCellule } from "@/lib/excel-import";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { siteSchema, type SiteInput } from "@/lib/validation/site";
-import { COLONNES_SITES, normaliserValeurImportSite } from "@/lib/repertoire/sites-excel";
+import { CHAMPS_SITES_EXCEL, indexColonnesSites, normaliserValeurImportSite } from "@/lib/repertoire/sites-excel";
 import type { ActionResult } from "@/lib/action-result";
 
 export type LigneDiffSite = {
@@ -38,6 +39,18 @@ const LABELS: Record<keyof SiteInput, string> = {
   tel_fixe_interlocuteur_site: "Tel Fixe interlocuteur site",
   portable_interlocuteur_site: "Portable interlocuteur site",
   courriel_interlocuteur_site: "Courriel interlocuteur site",
+  interlocuteur_site_2: "Interlocuteur site 2",
+  tel_fixe_interlocuteur_site_2: "Tel Fixe interlocuteur site 2",
+  portable_interlocuteur_site_2: "Portable interlocuteur site 2",
+  courriel_interlocuteur_site_2: "Courriel interlocuteur site 2",
+  interlocuteur_site_3: "Interlocuteur site 3",
+  tel_fixe_interlocuteur_site_3: "Tel Fixe interlocuteur site 3",
+  portable_interlocuteur_site_3: "Portable interlocuteur site 3",
+  courriel_interlocuteur_site_3: "Courriel interlocuteur site 3",
+  interlocuteur_site_4: "Interlocuteur site 4",
+  tel_fixe_interlocuteur_site_4: "Tel Fixe interlocuteur site 4",
+  portable_interlocuteur_site_4: "Portable interlocuteur site 4",
+  courriel_interlocuteur_site_4: "Courriel interlocuteur site 4",
   freq_entretien_an: "Fréq. entretien / an",
   interlocuteur_tiers: "Interlocuteur Tiers",
   tel_fixe_tiers: "Tel Fixe Tiers",
@@ -125,19 +138,34 @@ export async function previsualiserImportSites(
   const avertissements: string[] = [];
   const vus = new Set<string>();
 
+  const texte = (cellule: ExcelJS.Cell): string => {
+    const v = valeurSimpleCellule(cellule.value);
+    if (v === null || v === undefined) return "";
+    return String(v).trim();
+  };
+  const titres: string[] = [];
+  feuille.getRow(1).eachCell({ includeEmpty: true }, (cellule, col) => {
+    titres[col - 1] = texte(cellule);
+  });
+  const { colonnes, inconnus } = indexColonnesSites(Array.from(titres, (t) => t ?? ""));
+  if (!colonnes.has("n_affaire")) {
+    return { ok: false, erreur: 'Colonne "N°Affaire" introuvable sur la 1re ligne de la feuille "SITES".' };
+  }
+  if (inconnus.length > 0) {
+    avertissements.push(`Colonnes non reconnues, ignorées : ${inconnus.join(", ")}.`);
+  }
+  const champsLus = CHAMPS_SITES_EXCEL.filter((c) => colonnes.has(c));
+
   feuille.eachRow((row, numeroLigne) => {
     if (numeroLigne === 1) return; // en-tête
 
-    const valeur = (index: number): string => {
-      const cellule = row.getCell(index + 1); // exceljs 1-based
-      const v = cellule.value;
-      if (v === null || v === undefined) return "";
-      if (typeof v === "object" && "text" in v) return String((v as { text: unknown }).text ?? "").trim();
-      return String(v).trim();
+    const valeur = (champ: keyof SiteInput): string => {
+      const col = colonnes.get(champ);
+      return col ? texte(row.getCell(col)) : "";
     };
 
-    const nAffaire = valeur(5);
-    const nom = valeur(1);
+    const nAffaire = valeur("n_affaire");
+    const nom = valeur("nom");
     if (!nAffaire) {
       if (nom) avertissements.push(`Ligne ${numeroLigne} ("${nom}") ignorée : N° Affaire vide.`);
       return;
@@ -149,7 +177,7 @@ export async function previsualiserImportSites(
     vus.add(nAffaire);
 
     const brut: Record<string, string> = {};
-    for (const { index, champ } of COLONNES_SITES) brut[champ] = normaliserValeurImportSite(champ, valeur(index));
+    for (const champ of champsLus) brut[champ] = normaliserValeurImportSite(champ, valeur(champ));
     const parsed = siteSchema.safeParse(brut);
     if (!parsed.success) {
       avertissements.push(`Ligne ${numeroLigne} ("${nom}") ignorée : ${parsed.error.issues[0]?.message}`);
@@ -164,7 +192,7 @@ export async function previsualiserImportSites(
     }
 
     const differences: [string, string, string][] = [];
-    for (const { champ } of COLONNES_SITES) {
+    for (const champ of champsLus) {
       const nouvelle = donnees[champ];
       const ancienne = String(existant[champ as keyof typeof existant] ?? "");
       if (nouvelle && nouvelle !== ancienne) {
@@ -200,10 +228,11 @@ export async function appliquerImportSites(
 
   for (const ligne of lignes) {
     if (ligne.statut !== "modification" || !ligne.siteExistantId) continue;
-    // Champs ajoutés après le fichier maître (lecture des commandes) : un
-    // ancien fichier ne les contient pas, une cellule vide ne les efface pas.
+    // Une cellule vide (ou une colonne absente d'un ancien fichier) n'efface
+    // jamais la valeur en base : seules les différences montrées à
+    // l'aperçu sont écrites.
     const donnees: Partial<SiteInput> = { ...ligne.donnees };
-    for (const champ of ["siret", "tva_intracom", "conditions_paiement"] as const) {
+    for (const champ of Object.keys(donnees) as (keyof SiteInput)[]) {
       if (!donnees[champ]) delete donnees[champ];
     }
     const { error } = await supabase.from("sites").update(donnees).eq("id", ligne.siteExistantId);

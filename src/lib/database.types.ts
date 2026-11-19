@@ -1874,6 +1874,18 @@ export type Database = {
           complement_adresse_facturation: string
           courriel_interlocuteur_facturation: string
           courriel_interlocuteur_site: string
+          interlocuteur_site_2: string
+          tel_fixe_interlocuteur_site_2: string
+          portable_interlocuteur_site_2: string
+          courriel_interlocuteur_site_2: string
+          interlocuteur_site_3: string
+          tel_fixe_interlocuteur_site_3: string
+          portable_interlocuteur_site_3: string
+          courriel_interlocuteur_site_3: string
+          interlocuteur_site_4: string
+          tel_fixe_interlocuteur_site_4: string
+          portable_interlocuteur_site_4: string
+          courriel_interlocuteur_site_4: string
           courriel_responsable: string
           courriel_tiers: string
           created_at: string
@@ -1947,6 +1959,18 @@ export type Database = {
           complement_adresse_facturation?: string
           courriel_interlocuteur_facturation?: string
           courriel_interlocuteur_site?: string
+          interlocuteur_site_2?: string
+          tel_fixe_interlocuteur_site_2?: string
+          portable_interlocuteur_site_2?: string
+          courriel_interlocuteur_site_2?: string
+          interlocuteur_site_3?: string
+          tel_fixe_interlocuteur_site_3?: string
+          portable_interlocuteur_site_3?: string
+          courriel_interlocuteur_site_3?: string
+          interlocuteur_site_4?: string
+          tel_fixe_interlocuteur_site_4?: string
+          portable_interlocuteur_site_4?: string
+          courriel_interlocuteur_site_4?: string
           courriel_responsable?: string
           courriel_tiers?: string
           created_at?: string
@@ -2020,6 +2044,18 @@ export type Database = {
           complement_adresse_facturation?: string
           courriel_interlocuteur_facturation?: string
           courriel_interlocuteur_site?: string
+          interlocuteur_site_2?: string
+          tel_fixe_interlocuteur_site_2?: string
+          portable_interlocuteur_site_2?: string
+          courriel_interlocuteur_site_2?: string
+          interlocuteur_site_3?: string
+          tel_fixe_interlocuteur_site_3?: string
+          portable_interlocuteur_site_3?: string
+          courriel_interlocuteur_site_3?: string
+          interlocuteur_site_4?: string
+          tel_fixe_interlocuteur_site_4?: string
+          portable_interlocuteur_site_4?: string
+          courriel_interlocuteur_site_4?: string
           courriel_responsable?: string
           courriel_tiers?: string
           created_at?: string
@@ -2173,6 +2209,18 @@ export type Database = {
           complement_adresse_facturation: string | null
           courriel_interlocuteur_facturation: string | null
           courriel_interlocuteur_site: string | null
+          interlocuteur_site_2: string | null
+          tel_fixe_interlocuteur_site_2: string | null
+          portable_interlocuteur_site_2: string | null
+          courriel_interlocuteur_site_2: string | null
+          interlocuteur_site_3: string | null
+          tel_fixe_interlocuteur_site_3: string | null
+          portable_interlocuteur_site_3: string | null
+          courriel_interlocuteur_site_3: string | null
+          interlocuteur_site_4: string | null
+          tel_fixe_interlocuteur_site_4: string | null
+          portable_interlocuteur_site_4: string | null
+          courriel_interlocuteur_site_4: string | null
           courriel_responsable: string | null
           courriel_tiers: string | null
           created_at: string | null
@@ -2247,6 +2295,18 @@ export type Database = {
           complement_adresse_facturation?: string | null
           courriel_interlocuteur_facturation?: string | null
           courriel_interlocuteur_site?: string | null
+          interlocuteur_site_2?: string | null
+          tel_fixe_interlocuteur_site_2?: string | null
+          portable_interlocuteur_site_2?: string | null
+          courriel_interlocuteur_site_2?: string | null
+          interlocuteur_site_3?: string | null
+          tel_fixe_interlocuteur_site_3?: string | null
+          portable_interlocuteur_site_3?: string | null
+          courriel_interlocuteur_site_3?: string | null
+          interlocuteur_site_4?: string | null
+          tel_fixe_interlocuteur_site_4?: string | null
+          portable_interlocuteur_site_4?: string | null
+          courriel_interlocuteur_site_4?: string | null
           courriel_responsable?: string | null
           courriel_tiers?: string | null
           created_at?: string | null
@@ -2321,6 +2381,18 @@ export type Database = {
           complement_adresse_facturation?: string | null
           courriel_interlocuteur_facturation?: string | null
           courriel_interlocuteur_site?: string | null
+          interlocuteur_site_2?: string | null
+          tel_fixe_interlocuteur_site_2?: string | null
+          portable_interlocuteur_site_2?: string | null
+          courriel_interlocuteur_site_2?: string | null
+          interlocuteur_site_3?: string | null
+          tel_fixe_interlocuteur_site_3?: string | null
+          portable_interlocuteur_site_3?: string | null
+          courriel_interlocuteur_site_3?: string | null
+          interlocuteur_site_4?: string | null
+          tel_fixe_interlocuteur_site_4?: string | null
+          portable_interlocuteur_site_4?: string | null
+          courriel_interlocuteur_site_4?: string | null
           courriel_responsable?: string | null
           courriel_tiers?: string | null
           created_at?: string | null

@@ -1,6 +1,7 @@
 "use server";
 
 import ExcelJS from "exceljs";
+import { valeurSimpleCellule } from "@/lib/excel-import";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
@@ -76,7 +77,7 @@ export async function previsualiserImportHeures(formData: FormData): Promise<Res
     const valeur = (champ: keyof ReferenceHoraireInput): string => {
       const col = colonnesParChamp.get(champ);
       if (!col) return "";
-      const v = row.getCell(col).value;
+      const v = valeurSimpleCellule(row.getCell(col).value);
       if (v === null || v === undefined) return "";
       if (typeof v === "object" && "text" in v) {
         return String((v as { text: unknown }).text ?? "").trim();

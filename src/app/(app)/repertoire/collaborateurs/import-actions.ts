@@ -1,6 +1,7 @@
 "use server";
 
 import ExcelJS from "exceljs";
+import { valeurSimpleCellule } from "@/lib/excel-import";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
@@ -109,7 +110,7 @@ export async function previsualiserImportProfils(
 
     const valeur = (index0: number): string => {
       const cellule = row.getCell(index0 + 1); // exceljs 1-based
-      const v = cellule.value;
+      const v = valeurSimpleCellule(cellule.value);
       if (v === null || v === undefined) return "";
       if (typeof v === "object" && "text" in v) return String((v as { text: unknown }).text ?? "").trim();
       return String(v).trim();

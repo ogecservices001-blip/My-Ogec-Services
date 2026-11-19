@@ -65,7 +65,7 @@ export default async function NouveauBiPage({
       supabase
         .from("sites_view")
         .select(
-          "id, nom, site, hors_contrat, adresse, code_postal, commune, interlocuteur_site, tel_fixe_interlocuteur_site, portable_interlocuteur_site, courriel_interlocuteur_site",
+          "id, nom, site, hors_contrat, adresse, code_postal, commune, interlocuteur_site, tel_fixe_interlocuteur_site, portable_interlocuteur_site, courriel_interlocuteur_site, interlocuteur_site_2, tel_fixe_interlocuteur_site_2, portable_interlocuteur_site_2, courriel_interlocuteur_site_2, interlocuteur_site_3, tel_fixe_interlocuteur_site_3, portable_interlocuteur_site_3, courriel_interlocuteur_site_3, interlocuteur_site_4, tel_fixe_interlocuteur_site_4, portable_interlocuteur_site_4, courriel_interlocuteur_site_4",
         )
         .order("nom"),
       supabase.from("profiles").select("id, name").in("role", ["technicien", "en_attente"]).order("name"),

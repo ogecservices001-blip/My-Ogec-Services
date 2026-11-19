@@ -2,156 +2,173 @@ import type { SiteInput } from "@/lib/validation/site";
 import { formaterDate, dateFrVersIso, telInternational, telLocal } from "@/lib/format";
 import { eur } from "@/lib/commandes-fournisseur/format";
 
-/// Position (colonne, 0-based) de chaque champ dans la feuille "SITES"
-/// du classeur maître — même mapping que
-/// DatabaseService.importClientsFromExcelRows / RepertoireExportService
-/// côté Flutter, pour rester réimportable avec le même fichier. Les
-/// index absents (0, 3, 4) sont des colonnes du fichier maître non
-/// reprises dans le modèle.
-export const COLONNES_SITES: { index: number; champ: keyof SiteInput }[] = [
-  { index: 1, champ: "nom" },
-  { index: 2, champ: "site" },
-  { index: 5, champ: "n_affaire" },
-  { index: 6, champ: "nb_heures_vendues" },
-  { index: 7, champ: "nb_heures_vendues_assistant" },
-  { index: 8, champ: "qte_heures_programmees" },
-  { index: 9, champ: "qte_heures_restantes" },
-  { index: 10, champ: "freq_entretien_an" },
-  { index: 11, champ: "commune" },
-  { index: 12, champ: "code_postal" },
-  { index: 13, champ: "adresse" },
-  { index: 14, champ: "complement_adresse" },
-  { index: 15, champ: "interlocuteur_site" },
-  { index: 16, champ: "tel_fixe_interlocuteur_site" },
-  { index: 17, champ: "portable_interlocuteur_site" },
-  { index: 18, champ: "courriel_interlocuteur_site" },
-  { index: 19, champ: "responsable_contrat" },
-  { index: 20, champ: "tel_fixe_responsable" },
-  { index: 21, champ: "portable_responsable" },
-  { index: 22, champ: "courriel_responsable" },
-  { index: 23, champ: "commune_facturation" },
-  { index: 24, champ: "code_postal_facturation" },
-  { index: 25, champ: "adresse_facturation" },
-  { index: 26, champ: "complement_adresse_facturation" },
-  { index: 27, champ: "interlocuteur_facturation" },
-  { index: 28, champ: "tel_fixe_interlocuteur_facturation" },
-  { index: 29, champ: "portable_interlocuteur_facturation" },
-  { index: 30, champ: "courriel_interlocuteur_facturation" },
-  { index: 31, champ: "interlocuteur_tiers" },
-  { index: 32, champ: "tel_fixe_tiers" },
-  { index: 33, champ: "portable_tiers" },
-  { index: 34, champ: "courriel_tiers" },
-  { index: 35, champ: "epi_specifique" },
-  { index: 36, champ: "habilitation_specifique" },
-  { index: 37, champ: "moyen_acces" },
-  { index: 38, champ: "jour_acces" },
-  { index: 39, champ: "heures_acces" },
-  { index: 40, champ: "date_offre" },
-  { index: 41, champ: "date_prise_effet_contrat" },
-  { index: 42, champ: "duree_contrat" },
-  { index: 43, champ: "montant_contrat_av" },
-  { index: 44, champ: "date_fin_contrat" },
-  { index: 45, champ: "date_indice_s_prime" },
-  { index: 46, champ: "date_indice_ch_prime" },
-  { index: 47, champ: "taux_horaire_vendu" },
-  { index: 48, champ: "taux_horaire_regie" },
-  { index: 49, champ: "forfait_deplacement" },
-  { index: 50, champ: "reference_offre_ogs" },
-  { index: 51, champ: "valeur_indice_s_prime" },
-  { index: 52, champ: "valeur_indice_ch_prime" },
-  { index: 53, champ: "freq_factu_annuelle" },
-  { index: 54, champ: "delai_intervention" },
-  { index: 55, champ: "formule_revision_entretien" },
-  { index: 56, champ: "formule_revision_depannage" },
-  { index: 57, champ: "date_revision" },
-  { index: 58, champ: "date_indice_s" },
-  { index: 59, champ: "valeur_indice_s" },
-  { index: 60, champ: "date_indice_ch" },
-  { index: 61, champ: "valeur_indice_ch" },
-  { index: 62, champ: "montant_contrat_av_revise" },
-  { index: 63, champ: "taux_horaire_revise" },
-  { index: 64, champ: "forfait_deplacement_revise" },
-  { index: 65, champ: "modif_ri_ou_bg" },
-  { index: 66, champ: "remarques_libres" },
-  { index: 67, champ: "siret" },
-  { index: 68, champ: "tva_intracom" },
-  { index: 69, champ: "conditions_paiement" },
-];
-
-export const ENTETES_SITES: Record<number, string> = {
-  0: "ITEM",
-  1: "Nom",
-  3: "N° Client",
-  4: "N° Site",
-  2: "Site",
-  5: "N° Affaire",
-  6: "Nb Heures Vendues",
-  7: "Nb Heures Vendues Assistant",
-  8: "Qté Heures Programmées",
-  9: "Qté Heures Restantes à Planifier",
-  10: "Fréq. Entretien/an",
-  11: "Commune",
-  12: "Code Postal",
-  13: "Adresse",
-  14: "Complément Adresse",
-  15: "Interlocuteur Site",
-  16: "Tél Fixe Interlocuteur Site",
-  17: "Portable Interlocuteur Site",
-  18: "Courriel Interlocuteur Site",
-  19: "Responsable Contrat",
-  20: "Tél Fixe Responsable",
-  21: "Portable Responsable",
-  22: "Courriel Responsable",
-  23: "Commune Facturation",
-  24: "Code Postal Facturation",
-  25: "Adresse Facturation",
-  26: "Complément Adresse Facturation",
-  27: "Interlocuteur Facturation",
-  28: "Tél Fixe Interlocuteur Facturation",
-  29: "Portable Interlocuteur Facturation",
-  30: "Courriel Interlocuteur Facturation",
-  31: "Interlocuteur Tiers",
-  32: "Tél Fixe Tiers",
-  33: "Portable Tiers",
-  34: "Courriel Tiers",
-  35: "EPI Spécifique",
-  36: "Habilitation Spécifique",
-  37: "Moyen Accès",
-  38: "Jour Accès",
-  39: "Heures Accès",
-  40: "Date Offre",
-  41: "Date Prise Effet Contrat",
-  42: "Durée Contrat",
-  43: "Montant Contrat AV",
-  44: "Date Fin Contrat",
-  45: "Date Indice S'",
-  46: "Date Indice Ch'",
-  47: "Taux Horaire Vendu",
-  48: "Taux Horaire Régie",
-  49: "Forfait Déplacement",
-  50: "Référence Offre OGS",
-  51: "Valeur Indice S'",
-  52: "Valeur Indice Ch'",
-  53: "Fréq. Factu. Annuelle",
-  54: "Délai Intervention",
-  55: "Formule Révision Entretien",
-  56: "Formule Révision Dépannage",
-  57: "Date Révision",
-  58: "Date Indice S",
-  59: "Valeur Indice S",
-  60: "Date Indice Ch",
-  61: "Valeur Indice Ch",
-  62: "Montant Contrat AV Révisé",
-  63: "Taux Horaire Révisé",
-  64: "Forfait Déplacement Révisé",
-  65: "Modif RI ou BG",
-  66: "Remarques Libres",
-  67: "SIRET",
-  68: "N° TVA intracommunautaire",
-  69: "Conditions de paiement",
+type ColonneSite = {
+  titre: string;
+  champ: keyof SiteInput | "item" | "n_client" | "n_site";
+  alias?: string[];
 };
 
-export const NB_COLONNES_SITES = 70;
+const interlocuteur = (n: number, alias: boolean): ColonneSite[] => {
+  const suffixe = n === 1 ? "" : `_${n}`;
+  const ancien = (t: string) => (alias ? [t] : []);
+  return [
+    { titre: `Interlocuteur site ${n}`, champ: `interlocuteur_site${suffixe}` as keyof SiteInput, alias: ancien("Interlocuteur site") },
+    {
+      titre: `Tel Fixe Interlocuteur site ${n}`,
+      champ: `tel_fixe_interlocuteur_site${suffixe}` as keyof SiteInput,
+      alias: ancien("Tel Fixe Interlocuteur site"),
+    },
+    {
+      titre: `Portable Interlocuteur site ${n}`,
+      champ: `portable_interlocuteur_site${suffixe}` as keyof SiteInput,
+      alias: ancien("Portable Interlocuteur site"),
+    },
+    {
+      titre: `Courriel Interlocuteur site ${n}`,
+      champ: `courriel_interlocuteur_site${suffixe}` as keyof SiteInput,
+      alias: ancien("Courriel Interlocuteur site"),
+    },
+  ];
+};
+
+/// Colonnes de la feuille "SITES", dans l'ordre du classeur maître. L'import
+/// les retrouve par leur titre (voir indexColonnesSites), jamais par leur
+/// position : les alias couvrent les anciens titres (classeur maître avant
+/// les interlocuteurs 2 à 4, anciens exports de l'appli).
+export const COLONNES_SITES_EXCEL: ColonneSite[] = [
+  { titre: "Item", champ: "item", alias: ["ITEM"] },
+  { titre: "Client", champ: "nom", alias: ["Nom"] },
+  { titre: "Site", champ: "site" },
+  { titre: "N° Client", champ: "n_client" },
+  { titre: "N°Site", champ: "n_site" },
+  { titre: "N°Affaire", champ: "n_affaire" },
+  { titre: "Nb Heures vendues", champ: "nb_heures_vendues" },
+  { titre: "Nb Heures vendues assistant", champ: "nb_heures_vendues_assistant" },
+  { titre: "Qte Heures programmer Année en cours", champ: "qte_heures_programmees", alias: ["Qté Heures Programmées"] },
+  {
+    titre: "Qte Heures Reste à programmer Année en cours",
+    champ: "qte_heures_restantes",
+    alias: ["Qté Heures Restantes à Planifier"],
+  },
+  { titre: "Fréq Entretien / an", champ: "freq_entretien_an" },
+  { titre: "Commune site", champ: "commune", alias: ["Commune"] },
+  { titre: "Code Postal site", champ: "code_postal", alias: ["Code Postal"] },
+  { titre: "Adresse site", champ: "adresse", alias: ["Adresse"] },
+  { titre: "Complément d'adresse site", champ: "complement_adresse", alias: ["Complément Adresse"] },
+  ...interlocuteur(1, true),
+  ...interlocuteur(2, false),
+  ...interlocuteur(3, false),
+  ...interlocuteur(4, false),
+  { titre: "Responsable contrat", champ: "responsable_contrat" },
+  { titre: "Tel Fixe responsable contrat", champ: "tel_fixe_responsable", alias: ["Tél Fixe Responsable"] },
+  { titre: "Portable responsable contrat", champ: "portable_responsable", alias: ["Portable Responsable"] },
+  { titre: "Courriel responsable contrat", champ: "courriel_responsable", alias: ["Courriel Responsable"] },
+  { titre: "Commune Facturation", champ: "commune_facturation" },
+  { titre: "Code Postal Facturation", champ: "code_postal_facturation" },
+  { titre: "Adresse Facturation", champ: "adresse_facturation" },
+  {
+    titre: "Complément d'adresse Facturation",
+    champ: "complement_adresse_facturation",
+    alias: ["Complément Adresse Facturation"],
+  },
+  { titre: "Interlocuteur Facturation", champ: "interlocuteur_facturation" },
+  { titre: "Tel Fixe Interlocuteur Facturation", champ: "tel_fixe_interlocuteur_facturation" },
+  { titre: "Portable Interlocuteur Facturation", champ: "portable_interlocuteur_facturation" },
+  { titre: "Courriel Interlocuteur Facturation", champ: "courriel_interlocuteur_facturation" },
+  { titre: "Interlocuteur Tiers", champ: "interlocuteur_tiers" },
+  { titre: "Tel Fixe Tiers", champ: "tel_fixe_tiers" },
+  { titre: "Portable Tiers", champ: "portable_tiers" },
+  { titre: "Courriel Tiers", champ: "courriel_tiers" },
+  { titre: "EPI spécifique", champ: "epi_specifique" },
+  { titre: "Habilitation spécifique", champ: "habilitation_specifique" },
+  { titre: "Moyen accès Echaudage etc.", champ: "moyen_acces", alias: ["Moyen Accès"] },
+  { titre: "Jour accès", champ: "jour_acces" },
+  { titre: "Heures accès", champ: "heures_acces" },
+  { titre: "Date de l'offre", champ: "date_offre", alias: ["Date Offre"] },
+  { titre: "Date de prise d'effet du contrat", champ: "date_prise_effet_contrat", alias: ["Date Prise Effet Contrat"] },
+  { titre: "Durée", champ: "duree_contrat", alias: ["Durée Contrat"] },
+  { titre: "Montant ° Contrat + AV", champ: "montant_contrat_av", alias: ["Montant Contrat AV", "Montant Contrat + AV"] },
+  { titre: "Date fin contrat", champ: "date_fin_contrat" },
+  { titre: "Date Indice S°", champ: "date_indice_s_prime", alias: ["Date Indice S'"] },
+  { titre: "Date Indice CH°", champ: "date_indice_ch_prime", alias: ["Date Indice Ch'"] },
+  { titre: "Taux horaire vendu", champ: "taux_horaire_vendu" },
+  { titre: "Taux Horaire régie", champ: "taux_horaire_regie" },
+  { titre: "Forfait Déplacement", champ: "forfait_deplacement" },
+  { titre: "Référence offre OGS", champ: "reference_offre_ogs" },
+  { titre: "valeur indice S°", champ: "valeur_indice_s_prime", alias: ["Valeur Indice S'"] },
+  { titre: "valeur indice CH°", champ: "valeur_indice_ch_prime", alias: ["Valeur Indice Ch'"] },
+  { titre: "Fréq factu Annuelle", champ: "freq_factu_annuelle" },
+  { titre: "Délai Intervention Heure", champ: "delai_intervention", alias: ["Délai Intervention"] },
+  { titre: "Formule de révision entretien", champ: "formule_revision_entretien", alias: ["Formule Révision Entretien"] },
+  { titre: "Formule de révision dépannage", champ: "formule_revision_depannage", alias: ["Formule Révision Dépannage"] },
+  { titre: "Date de révision", champ: "date_revision", alias: ["Date Révision"] },
+  { titre: "Date Indice S", champ: "date_indice_s" },
+  { titre: "valeur indice S", champ: "valeur_indice_s" },
+  { titre: "Date Indice CH", champ: "date_indice_ch" },
+  { titre: "valeur indice CH", champ: "valeur_indice_ch" },
+  {
+    titre: "Montant Contrat + AV Applicable Révisé",
+    champ: "montant_contrat_av_revise",
+    alias: ["Montant Contrat AV Révisé"],
+  },
+  { titre: "Taux Horaire Applicable Révisé", champ: "taux_horaire_revise", alias: ["Taux Horaire Révisé"] },
+  {
+    titre: "Forfait Déplacement Horaire Applicable Révisé",
+    champ: "forfait_deplacement_revise",
+    alias: ["Forfait Déplacement Révisé"],
+  },
+  { titre: "Modif RI ou BG", champ: "modif_ri_ou_bg" },
+  { titre: "Remarques Libres", champ: "remarques_libres" },
+  { titre: "SIRET", champ: "siret" },
+  { titre: "N° TVA intracommunautaire", champ: "tva_intracom" },
+  { titre: "Conditions de paiement", champ: "conditions_paiement" },
+];
+
+/// Champs du site présents dans la feuille (hors Item / N° Client / N° Site,
+/// dérivés de n_affaire).
+export const CHAMPS_SITES_EXCEL: (keyof SiteInput)[] = COLONNES_SITES_EXCEL.map((c) => c.champ).filter(
+  (c): c is keyof SiteInput => c !== "item" && c !== "n_client" && c !== "n_site",
+);
+
+export const ENTETES_SITES: string[] = COLONNES_SITES_EXCEL.map((c) => c.titre);
+
+export const NB_COLONNES_SITES = ENTETES_SITES.length;
+
+/// "N°Affaire", "N° Affaire", "n° affaire" → même clé ; ° et ' comptent
+/// comme « prime » pour distinguer « Date Indice S° » de « Date Indice S ».
+export function cleEnteteSite(titre: string): string {
+  return titre
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[°'’]/g, "prime")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+const CHAMP_PAR_CLE = new Map<string, ColonneSite["champ"]>(
+  COLONNES_SITES_EXCEL.flatMap((c) => [c.titre, ...(c.alias ?? [])].map((t) => [cleEnteteSite(t), c.champ] as const)),
+);
+
+/// Lit la ligne d'en-tête : champ → n° de colonne (base 1), plus les
+/// titres non reconnus (signalés à l'import, jamais importés).
+export function indexColonnesSites(titres: string[]): {
+  colonnes: Map<keyof SiteInput, number>;
+  inconnus: string[];
+} {
+  const colonnes = new Map<keyof SiteInput, number>();
+  const inconnus: string[] = [];
+  titres.forEach((titre, i) => {
+    if (!titre.trim()) return;
+    const champ = CHAMP_PAR_CLE.get(cleEnteteSite(titre));
+    if (!champ) {
+      inconnus.push(titre.trim());
+      return;
+    }
+    if (champ === "item" || champ === "n_client" || champ === "n_site") return;
+    if (!colonnes.has(champ)) colonnes.set(champ, i + 1);
+  });
+  return { colonnes, inconnus };
+}
 
 /// Numéro Client / Numéro Site tels qu'affichés dans le fichier maître
 /// (ex: "265-01" → "265" / "01") — dérivés de n_affaire, jamais stockés
@@ -161,10 +178,15 @@ function numeroClientEtSite(nAffaire: string): [string, string] {
   return [numClient ?? "", numSite ?? ""];
 }
 
-
 export const CHAMPS_TELEPHONE = new Set<keyof SiteInput>([
   "tel_fixe_interlocuteur_site",
   "portable_interlocuteur_site",
+  "tel_fixe_interlocuteur_site_2",
+  "portable_interlocuteur_site_2",
+  "tel_fixe_interlocuteur_site_3",
+  "portable_interlocuteur_site_3",
+  "tel_fixe_interlocuteur_site_4",
+  "portable_interlocuteur_site_4",
   "tel_fixe_responsable",
   "portable_responsable",
   "tel_fixe_interlocuteur_facturation",
@@ -224,24 +246,23 @@ export function normaliserValeurImportSite(champ: keyof SiteInput, valeur: strin
 }
 
 /// Construit une ligne complète de la feuille "SITES" pour un site
-/// donné (colonnes dans le même ordre que COLONNES_SITES/ENTETES_SITES) :
-/// N° Client/N° Site dérivés de n_affaire (pas de champ dédié en base),
-/// téléphones au format international, dates au format JJ/MM/AAAA.
+/// donné (colonnes dans l'ordre de COLONNES_SITES_EXCEL) : N° Client /
+/// N° Site dérivés de n_affaire (pas de champ dédié en base), téléphones
+/// au format international, dates au format JJ/MM/AAAA.
 /// `heuresRestantes`, si fourni (voir calculerLignesAuditHeures),
 /// remplace la valeur figée de qte_heures_restantes par le calcul en
 /// direct (créneaux + BI validés vs. contrat) — jamais réimportée.
 export function ligneSite(site: Record<string, unknown>, heuresRestantes?: number): string[] {
-  const ligne: string[] = new Array(NB_COLONNES_SITES).fill("");
-  for (const { index, champ } of COLONNES_SITES) {
-    const valeur = String(site[champ] ?? "");
-    if (CHAMPS_TELEPHONE.has(champ)) ligne[index] = telInternational(valeur);
-    else if (CHAMPS_DATE.has(champ)) ligne[index] = formaterDate(valeur);
-    else if (CHAMPS_MONTANT.has(champ)) ligne[index] = formaterMontantExport(valeur);
-    else ligne[index] = valeur;
-  }
   const [numClient, numSite] = numeroClientEtSite(String(site.n_affaire ?? ""));
-  ligne[3] = numClient;
-  ligne[4] = numSite;
-  if (heuresRestantes !== undefined) ligne[9] = String(heuresRestantes);
-  return ligne;
+  return COLONNES_SITES_EXCEL.map(({ champ }) => {
+    if (champ === "item") return "";
+    if (champ === "n_client") return numClient;
+    if (champ === "n_site") return numSite;
+    if (champ === "qte_heures_restantes" && heuresRestantes !== undefined) return String(heuresRestantes);
+    const valeur = String(site[champ] ?? "");
+    if (CHAMPS_TELEPHONE.has(champ)) return telInternational(valeur);
+    if (CHAMPS_DATE.has(champ)) return formaterDate(valeur);
+    if (CHAMPS_MONTANT.has(champ)) return formaterMontantExport(valeur);
+    return valeur;
+  });
 }

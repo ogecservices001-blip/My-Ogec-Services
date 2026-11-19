@@ -6,6 +6,7 @@ import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-ma
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { creerDepannage, modifierDepannage, chargerEquipementsDuSite, type EquipementDuSite } from "./actions";
+import { interlocuteursSite } from "@/lib/repertoire/interlocuteurs";
 
 type Site = {
   id: string;
@@ -14,8 +15,12 @@ type Site = {
   n_affaire: string;
   courriel_interlocuteur_site: string;
   courriel_responsable: string;
+  responsable_contrat: string;
   hors_contrat: boolean;
+  [colonne: string]: unknown;
 };
+
+const AUTRE_EMAIL = "autre";
 type Technicien = { id: string; name: string; portable: string };
 
 export type DepannageInitial = {
@@ -74,6 +79,30 @@ export function NouveauDepannageForm({
   // est resté tel qu'auto-rempli la fois précédente, ou vide).
   const [email, setEmail] = useState(initial?.email ?? "");
   const dernierAutoRempli = useRef("");
+  const emailRef = useRef<HTMLInputElement>(null);
+  const contactsDuSite = useMemo(() => {
+    const site = sites.find((s) => s.id === siteId);
+    if (!site) return [];
+    const liste = interlocuteursSite(site)
+      .filter((i) => i.courriel)
+      .map((i) => ({ nom: i.nom, courriel: i.courriel }));
+    if (site.courriel_responsable && !liste.some((c) => c.courriel === site.courriel_responsable)) {
+      liste.push({ nom: `${site.responsable_contrat || "Responsable contrat"} (responsable contrat)`, courriel: site.courriel_responsable });
+    }
+    return liste;
+  }, [sites, siteId]);
+  const choixEmail = (() => {
+    const n = contactsDuSite.findIndex((c) => c.courriel.toLowerCase() === email.trim().toLowerCase());
+    return n >= 0 ? String(n) : AUTRE_EMAIL;
+  })();
+  function choisirEmail(valeur: string) {
+    if (valeur === AUTRE_EMAIL) {
+      setEmail("");
+      setTimeout(() => emailRef.current?.focus(), 0);
+      return;
+    }
+    setEmail(contactsDuSite[Number(valeur)]?.courriel ?? "");
+  }
 
   // La Localisation (enregistrée comme lieu de la panne) restreint la
   // liste d'équipements et se remplit au choix d'un équipement, comme
@@ -288,7 +317,22 @@ export function NouveauDepannageForm({
             <label className="mb-1 block text-xs font-medium text-slate-600">
               Email du contact (pour pouvoir lui répondre)
             </label>
+            {contactsDuSite.length > 0 && (
+              <select
+                value={choixEmail}
+                onChange={(e) => choisirEmail(e.target.value)}
+                className="mb-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+              >
+                {contactsDuSite.map((c, n) => (
+                  <option key={n} value={String(n)}>
+                    {c.nom ? `${c.nom} — ${c.courriel}` : c.courriel}
+                  </option>
+                ))}
+                <option value={AUTRE_EMAIL}>Autre adresse</option>
+              </select>
+            )}
             <input
+              ref={emailRef}
               type="email"
               name="email"
               value={email}

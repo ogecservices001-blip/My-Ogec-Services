@@ -50,7 +50,7 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
       ? supabase
           .from("sites")
           .select(
-            "interlocuteur_site, courriel_interlocuteur_site, interlocuteur_tiers, courriel_tiers, interlocuteur_facturation, courriel_interlocuteur_facturation, responsable_contrat, courriel_responsable",
+            "interlocuteur_site, courriel_interlocuteur_site, interlocuteur_site_2, courriel_interlocuteur_site_2, interlocuteur_site_3, courriel_interlocuteur_site_3, interlocuteur_site_4, courriel_interlocuteur_site_4, interlocuteur_tiers, courriel_tiers, interlocuteur_facturation, courriel_interlocuteur_facturation, responsable_contrat, courriel_responsable",
           )
           .eq("id", demande.site_id)
           .single()
@@ -65,6 +65,9 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
   const contactsSite: [string, string][] = site
     ? [
         [site.interlocuteur_site, site.courriel_interlocuteur_site],
+        [site.interlocuteur_site_2, site.courriel_interlocuteur_site_2],
+        [site.interlocuteur_site_3, site.courriel_interlocuteur_site_3],
+        [site.interlocuteur_site_4, site.courriel_interlocuteur_site_4],
         [site.interlocuteur_tiers, site.courriel_tiers],
         [site.interlocuteur_facturation, site.courriel_interlocuteur_facturation],
         [site.responsable_contrat, site.courriel_responsable],

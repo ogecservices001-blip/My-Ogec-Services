@@ -66,12 +66,15 @@ export async function preparerDemandeValidation(creneauId: string): Promise<Prep
   if (!g) return null;
   const { data: site } = await g.supabase
     .from("sites")
-    .select("interlocuteur_site, courriel_interlocuteur_site, responsable_contrat, courriel_responsable, interlocuteur_facturation, courriel_interlocuteur_facturation, interlocuteur_tiers, courriel_tiers")
+    .select("interlocuteur_site, courriel_interlocuteur_site, interlocuteur_site_2, courriel_interlocuteur_site_2, interlocuteur_site_3, courriel_interlocuteur_site_3, interlocuteur_site_4, courriel_interlocuteur_site_4, responsable_contrat, courriel_responsable, interlocuteur_facturation, courriel_interlocuteur_facturation, interlocuteur_tiers, courriel_tiers")
     .eq("id", g.creneau.site_id as string)
     .single();
   const contacts: ContactClient[] = site
     ? [
         { role: "Interlocuteur sur site", nom: site.interlocuteur_site, email: site.courriel_interlocuteur_site },
+        { role: "Interlocuteur sur site 2", nom: site.interlocuteur_site_2, email: site.courriel_interlocuteur_site_2 },
+        { role: "Interlocuteur sur site 3", nom: site.interlocuteur_site_3, email: site.courriel_interlocuteur_site_3 },
+        { role: "Interlocuteur sur site 4", nom: site.interlocuteur_site_4, email: site.courriel_interlocuteur_site_4 },
         { role: "Responsable du contrat", nom: site.responsable_contrat, email: site.courriel_responsable },
         { role: "Interlocuteur facturation", nom: site.interlocuteur_facturation, email: site.courriel_interlocuteur_facturation },
         { role: "Tiers", nom: site.interlocuteur_tiers, email: site.courriel_tiers },

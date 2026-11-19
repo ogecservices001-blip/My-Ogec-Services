@@ -4,6 +4,7 @@ import { ListeRecherche } from "@/components/liste-recherche";
 import { RelevesVisite } from "@/components/bi/releves-visite";
 import { ChoixClientSite } from "@/components/choix-client-site";
 import { dateFrVersIso, formaterDate } from "@/lib/format";
+import { interlocuteursSite } from "@/lib/repertoire/interlocuteurs";
 
 import { useChampManquant, type CibleChamp } from "@/components/champ-manquant";
 import { useEffect, useMemo, useRef, useState, useTransition, type Dispatch, type SetStateAction } from "react";
@@ -43,9 +44,22 @@ type SiteOption = {
   tel_fixe_interlocuteur_site: string;
   portable_interlocuteur_site: string;
   courriel_interlocuteur_site: string;
+  interlocuteur_site_2: string;
+  tel_fixe_interlocuteur_site_2: string;
+  portable_interlocuteur_site_2: string;
+  courriel_interlocuteur_site_2: string;
+  interlocuteur_site_3: string;
+  tel_fixe_interlocuteur_site_3: string;
+  portable_interlocuteur_site_3: string;
+  courriel_interlocuteur_site_3: string;
+  interlocuteur_site_4: string;
+  tel_fixe_interlocuteur_site_4: string;
+  portable_interlocuteur_site_4: string;
+  courriel_interlocuteur_site_4: string;
 };
 
 const ACCENT = "bg-violet-600";
+const AUTRE_SIGNATAIRE = "autre";
 
 const COULEURS_POLES: Record<string, string> = {
   [Poles.depannage]: "#E53935",
@@ -718,6 +732,19 @@ export function BiWizard({
   const nombreDeplacementsRef = useRef<HTMLInputElement>(null);
   const techniciensRef = useRef<HTMLDivElement>(null);
   const signataireRef = useRef<HTMLInputElement>(null);
+  const interlocuteurs = useMemo(() => interlocuteursSite(site), [site]);
+  const choixInterlocuteur = (() => {
+    const n = interlocuteurs.findIndex((i) => (i.nom ? i.nom === signataire.trim() : i.courriel === email.trim()));
+    return n >= 0 ? String(n) : AUTRE_SIGNATAIRE;
+  })();
+  function choisirInterlocuteur(valeur: string) {
+    const i = valeur === AUTRE_SIGNATAIRE ? null : interlocuteurs[Number(valeur)];
+    setSignataire(i?.nom ?? "");
+    setSignataireTelPortable(i?.portable ?? "");
+    setSignataireTelFixe(i?.fixe ?? "");
+    setEmail(i?.courriel ?? "");
+    if (!i) setTimeout(() => signataireRef.current?.focus(), 0);
+  }
   const sigTechZoneRef = useRef<HTMLDivElement>(null);
   const sigClientZoneRef = useRef<HTMLDivElement>(null);
 
@@ -1887,6 +1914,20 @@ export function BiWizard({
 
           <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <p className="text-xs font-medium text-slate-600">Signataire client</p>
+            {interlocuteurs.length > 0 && (
+              <select
+                value={choixInterlocuteur}
+                onChange={(e) => choisirInterlocuteur(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-600"
+              >
+                {interlocuteurs.map((i, n) => (
+                  <option key={n} value={String(n)}>
+                    {i.nom || i.courriel}
+                  </option>
+                ))}
+                <option value={AUTRE_SIGNATAIRE}>Autre personne</option>
+              </select>
+            )}
             <input
               ref={signataireRef}
               value={signataire}

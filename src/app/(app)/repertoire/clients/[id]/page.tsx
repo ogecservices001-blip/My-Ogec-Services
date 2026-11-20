@@ -25,6 +25,8 @@ import { FilAjouter } from "@/components/fil-extra-context";
 import { calculerLignesAuditHeures } from "@/app/(app)/planning/audit-heures/calcul";
 import type { Site } from "@/lib/types";
 import { supprimerSite } from "../actions";
+import { BoutonContactCapture } from "./contact-capture";
+import { EMPLACEMENTS_CONTACT, contactDeLEmplacement, type ContactSite, type EmplacementContact } from "@/lib/repertoire/emplacements-contact";
 
 /// Un bloc de la fiche — jamais sa propre carte arrondie : toutes les
 /// sections s'enchaînent à plat dans un seul panneau continu fourni
@@ -146,6 +148,16 @@ export default async function SiteDetailPage({
             <Pencil className="h-4 w-4" strokeWidth={2} />
             Modifier
           </Link>
+        )}
+        {isAdmin && (
+          <BoutonContactCapture
+            siteId={id}
+            actuels={
+              Object.fromEntries(
+                EMPLACEMENTS_CONTACT.map((e) => [e.valeur, contactDeLEmplacement(site, e.valeur)]),
+              ) as Record<EmplacementContact, ContactSite>
+            }
+          />
         )}
         <Link
           href={`/repertoire/clients/${id}/devis`}

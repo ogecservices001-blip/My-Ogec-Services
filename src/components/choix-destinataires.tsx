@@ -4,14 +4,15 @@ import { useEffect, useState } from "react";
 import { chargerContactsSite } from "@/app/(app)/repertoire/clients/contact-actions";
 import { emailValide, type ContactCourriel } from "@/lib/repertoire/contacts-courriel";
 
-/// Contacts du site à cocher avant l'envoi d'un mail au client, plus des
-/// adresses ajoutées à la main. `parDefaut` : adresses cochées à l'ouverture.
-export function useDestinataires(siteId: string | null | undefined, parDefaut: string[]) {
-  const [contacts, setContacts] = useState<ContactCourriel[] | null>(siteId ? null : []);
+/// Contacts à cocher avant l'envoi d'un mail (ceux du site, chargés, ou
+/// `contactsConnus` fournis directement, ex. interlocuteurs d'un fournisseur),
+/// plus des adresses ajoutées à la main. `parDefaut` : adresses cochées à l'ouverture.
+export function useDestinataires(siteId: string | null | undefined, parDefaut: string[], contactsConnus?: ContactCourriel[]) {
+  const [contacts, setContacts] = useState<ContactCourriel[] | null>(contactsConnus ?? (siteId ? null : []));
   const [coches, setCoches] = useState<string[]>(() => parDefaut.filter(Boolean));
 
   useEffect(() => {
-    if (!siteId) return;
+    if (!siteId || contactsConnus) return;
     let annule = false;
     chargerContactsSite(siteId).then((c) => {
       if (!annule) setContacts(c);
@@ -19,6 +20,7 @@ export function useDestinataires(siteId: string | null | undefined, parDefaut: s
     return () => {
       annule = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- contactsConnus est fixé à l'ouverture de la fenêtre
   }, [siteId]);
 
   const [autre, setAutre] = useState("");
@@ -61,7 +63,7 @@ export function ChoixDestinataires({
     <div>
       <p className="mb-1 text-xs font-medium text-slate-600">Destinataires</p>
       {contacts === null ? (
-        <p className="py-1 text-sm text-slate-400">Chargement des contacts du site…</p>
+        <p className="py-1 text-sm text-slate-400">Chargement des contacts…</p>
       ) : (
         <div className="space-y-0.5">
           {contacts.map((c) => (
@@ -80,7 +82,7 @@ export function ChoixDestinataires({
             </label>
           ))}
           {contacts.length === 0 && ajoutees.length === 0 && (
-            <p className="py-1 text-xs text-slate-400">Aucun courriel sur la fiche du site — ajoute une adresse ci-dessous.</p>
+            <p className="py-1 text-xs text-slate-400">Aucun courriel connu — ajoute une adresse ci-dessous.</p>
           )}
         </div>
       )}

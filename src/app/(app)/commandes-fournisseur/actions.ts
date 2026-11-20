@@ -1,5 +1,6 @@
 "use server";
 
+import { validerDestinataires } from "@/lib/repertoire/contacts-courriel";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
@@ -177,14 +178,15 @@ export async function supprimerCommandeFournisseur(id: string): Promise<ActionRe
   return { ok: true };
 }
 
-export async function envoyerCommandeParEmail(id: string): Promise<ActionResult> {
+export async function envoyerCommandeParEmail(id: string, destinataires: string[]): Promise<ActionResult> {
   await requireAdmin();
+  const choix = validerDestinataires(destinataires);
+  if (!choix.ok) return choix;
   const supabase = await createClient();
 
   const { data: commande, error } = await supabase.from("commandes_fournisseur").select("*").eq("id", id).single();
   if (error || !commande) return { ok: false, erreur: "Commande introuvable." };
-  const interlocuteur = commande.interlocuteur as unknown as Interlocuteur;
-  if (!interlocuteur?.email) return { ok: false, erreur: "Aucun email connu pour l'interlocuteur choisi." };
+  const interlocuteur = (commande.interlocuteur as unknown as Interlocuteur | null) ?? { nom: "", tel: "", portable: "", email: "" };
 
   const [{ data: devis }, { data: fournisseur }] = await Promise.all([
     commande.devis_id
@@ -197,7 +199,7 @@ export async function envoyerCommandeParEmail(id: string): Promise<ActionResult>
   const pdfBytes = await genererPdfCommande({ commande, devis, fournisseur });
 
   try {
-    await envoyerCommandeFournisseur({ commande, fournisseur, interlocuteur, pdfBytes });
+    await envoyerCommandeFournisseur({ commande, fournisseur, interlocuteur, destinataires: choix.emails, pdfBytes });
   } catch (e) {
     return { ok: false, erreur: e instanceof Error ? e.message : "Échec de l'envoi." };
   }

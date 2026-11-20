@@ -14,14 +14,17 @@ export async function envoyerCommandeFournisseur(params: {
   commande: Commande;
   fournisseur: Fournisseur;
   interlocuteur: Interlocuteur;
+  destinataires: string[];
   pdfBytes: Buffer;
 }): Promise<void> {
-  const { commande, fournisseur, interlocuteur, pdfBytes } = params;
+  const { commande, fournisseur, interlocuteur, destinataires, pdfBytes } = params;
+  const seulInterlocuteur =
+    destinataires.length === 1 && destinataires[0].toLowerCase() === (interlocuteur.email ?? "").toLowerCase();
   const motDePasse = process.env.GMAIL_APP_PASSWORD;
   if (!motDePasse) throw new Error("Envoi email non configuré (GMAIL_APP_PASSWORD manquant).");
 
   const html = `
-    <p>Bonjour${interlocuteur.nom ? ` ${interlocuteur.nom}` : ""},</p>
+    <p>Bonjour${seulInterlocuteur && interlocuteur.nom ? ` ${interlocuteur.nom}` : ""},</p>
     <p>Nous vous prions de bien vouloir trouver ci-joint notre commande ${commande.numero}${
       commande.devis_fournisseur_numero
         ? ` correspondant à votre devis ${commande.devis_fournisseur_numero}${commande.devis_fournisseur_date ? ` du ${commande.devis_fournisseur_date}` : ""}`
@@ -39,7 +42,7 @@ export async function envoyerCommandeFournisseur(params: {
 
   await transporteur.sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
-    to: interlocuteur.email,
+    to: destinataires,
     subject: `Commande ${commande.numero} — ${fournisseur.nom}`,
     html,
     attachments: [{ filename: `${commande.numero}.pdf`, content: pdfBytes, contentType: "application/pdf" }],

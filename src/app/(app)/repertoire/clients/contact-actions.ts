@@ -3,10 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, requireProfile } from "@/lib/auth";
-import { telLocal } from "@/lib/format";
 import type { ActionResult } from "@/lib/action-result";
 import { extraireContactDepuisCapture, type ContactExtraitResultat } from "@/lib/repertoire/contact-ocr";
-import { EMPLACEMENTS_CONTACT, type ContactSite, type EmplacementContact } from "@/lib/repertoire/emplacements-contact";
+import { EMPLACEMENTS_CONTACT, telephoneContact, type ContactSite } from "@/lib/repertoire/emplacements-contact";
 import { contactsAvecCourriel, type ContactCourriel } from "@/lib/repertoire/contacts-courriel";
 
 /// Lit la capture (signature de mail) et renvoie le contact détecté —
@@ -35,16 +34,9 @@ export async function analyserContactCapture(
   }
 }
 
-function telephone(numero: string): string {
-  const local = telLocal(numero.trim());
-  const chiffres = local.replace(/\D/g, "");
-  const groupes = /^(0\d{3})(\d{2})(\d{2})(\d{2})$/.exec(chiffres);
-  return groupes ? groupes.slice(1).join(" ") : local;
-}
-
 export async function enregistrerContactSite(
   siteId: string,
-  emplacement: EmplacementContact,
+  emplacement: string,
   contact: ContactSite,
 ): Promise<ActionResult> {
   await requireAdmin();
@@ -58,8 +50,8 @@ export async function enregistrerContactSite(
   const [cNom, cFixe, cPortable, cCourriel] = e.colonnes;
   const maj: Record<string, string> = {
     [cNom]: nom,
-    [cFixe]: telephone(contact.fixe),
-    [cPortable]: telephone(contact.portable),
+    [cFixe]: telephoneContact(contact.fixe),
+    [cPortable]: telephoneContact(contact.portable),
     [cCourriel]: courriel,
   };
 

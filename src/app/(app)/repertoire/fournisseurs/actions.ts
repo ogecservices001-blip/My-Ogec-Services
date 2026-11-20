@@ -6,6 +6,8 @@ import { requireAdmin } from "@/lib/auth";
 import { fournisseurSchema, type FournisseurInput } from "@/lib/validation/fournisseur";
 import type { ActionResult } from "@/lib/action-result";
 import { extraireFournisseurDepuisDevis, type FournisseurExtraitResultat } from "@/lib/repertoire/fournisseur-ocr";
+import { telephoneContact, type ContactSite } from "@/lib/repertoire/emplacements-contact";
+import type { Interlocuteur } from "@/lib/validation/fournisseur";
 
 export async function creerFournisseur(input: FournisseurInput): Promise<ActionResult> {
   await requireAdmin();
@@ -111,6 +113,47 @@ export async function supprimerFournisseur(id: string): Promise<ActionResult> {
   const { error } = await supabase.from("fournisseurs").delete().eq("id", id);
   if (error) return { ok: false, erreur: error.message };
 
+  revalidatePath("/repertoire/fournisseurs");
+  return { ok: true };
+}
+
+/// Contact lu sur une capture : ajouté à la fin de la liste des
+/// interlocuteurs (emplacement « nouveau ») ou à la place de l'interlocuteur
+/// n° i (emplacement « i<n> », remplacement confirmé côté écran).
+export async function enregistrerContactFournisseur(
+  fournisseurId: string,
+  emplacement: string,
+  contact: ContactSite,
+): Promise<ActionResult> {
+  await requireAdmin();
+
+  const nom = contact.nom.trim();
+  const email = contact.courriel.trim();
+  if (!nom && !email) return { ok: false, erreur: "Renseigne au moins le nom ou le courriel." };
+  const nouveau: Interlocuteur = {
+    nom,
+    tel: telephoneContact(contact.fixe),
+    portable: telephoneContact(contact.portable),
+    email,
+  };
+
+  const supabase = await createClient();
+  const { data: f, error: errLecture } = await supabase.from("fournisseurs").select("interlocuteurs").eq("id", fournisseurId).single();
+  if (errLecture || !f) return { ok: false, erreur: "Fournisseur introuvable." };
+  const liste = [...((f.interlocuteurs as unknown as Interlocuteur[] | null) ?? [])];
+
+  if (emplacement === "nouveau") {
+    liste.push(nouveau);
+  } else {
+    const i = Number(emplacement.replace(/^i/, ""));
+    if (!Number.isInteger(i) || i < 0 || i >= liste.length) return { ok: false, erreur: "Interlocuteur à remplacer introuvable." };
+    liste[i] = nouveau;
+  }
+
+  const { error } = await supabase.from("fournisseurs").update({ interlocuteurs: liste }).eq("id", fournisseurId);
+  if (error) return { ok: false, erreur: error.message };
+
+  revalidatePath(`/repertoire/fournisseurs/${fournisseurId}`);
   revalidatePath("/repertoire/fournisseurs");
   return { ok: true };
 }

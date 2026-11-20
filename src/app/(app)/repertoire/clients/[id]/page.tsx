@@ -25,8 +25,9 @@ import { FilAjouter } from "@/components/fil-extra-context";
 import { calculerLignesAuditHeures } from "@/app/(app)/planning/audit-heures/calcul";
 import type { Site } from "@/lib/types";
 import { supprimerSite } from "../actions";
-import { BoutonContactCapture } from "./contact-capture";
-import { EMPLACEMENTS_CONTACT, contactDeLEmplacement, type ContactSite, type EmplacementContact } from "@/lib/repertoire/emplacements-contact";
+import { BoutonContactCapture } from "@/components/contact-capture";
+import { EMPLACEMENTS_CONTACT, contactDeLEmplacement, contactVide } from "@/lib/repertoire/emplacements-contact";
+import { enregistrerContactSite } from "../contact-actions";
 
 /// Un bloc de la fiche — jamais sa propre carte arrondie : toutes les
 /// sections s'enchaînent à plat dans un seul panneau continu fourni
@@ -85,6 +86,12 @@ export default async function SiteDetailPage({
   // recalculées en direct depuis Planning (créneaux + BI validés vs.
   // contrat) — même calcul que /planning/audit-heures. Non pertinent
   // pour un site hors contrat (pas de contrat, pas d'heures à suivre).
+  const choixContact = EMPLACEMENTS_CONTACT.map((e) => ({
+    valeur: e.valeur as string,
+    libelle: e.libelle,
+    actuel: contactDeLEmplacement(site, e.valeur),
+  }));
+
   const ligneAudit = !site.hors_contrat
     ? (await calculerLignesAuditHeures(supabase)).find((l) => l.id === id)
     : undefined;
@@ -151,12 +158,9 @@ export default async function SiteDetailPage({
         )}
         {isAdmin && (
           <BoutonContactCapture
-            siteId={id}
-            actuels={
-              Object.fromEntries(
-                EMPLACEMENTS_CONTACT.map((e) => [e.valeur, contactDeLEmplacement(site, e.valeur)]),
-              ) as Record<EmplacementContact, ContactSite>
-            }
+            choix={choixContact}
+            parDefaut={choixContact.find((c) => c.valeur.startsWith("site") && c.actuel && contactVide(c.actuel))?.valeur ?? "site1"}
+            enregistrer={enregistrerContactSite.bind(null, id)}
           />
         )}
         <Link

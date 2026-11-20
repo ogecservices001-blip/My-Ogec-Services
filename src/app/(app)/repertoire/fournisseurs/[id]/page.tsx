@@ -9,7 +9,8 @@ import type { Fournisseur } from "@/lib/types";
 import type { Interlocuteur } from "@/lib/validation/fournisseur";
 import { tvaSurFacture } from "@/lib/validation/fournisseur";
 import { telInternational, indicatifTel } from "@/lib/format";
-import { supprimerFournisseur } from "../actions";
+import { enregistrerContactFournisseur, supprimerFournisseur } from "../actions";
+import { BoutonContactCapture } from "@/components/contact-capture";
 
 export default async function FournisseurDetailPage({
   params,
@@ -72,6 +73,18 @@ export default async function FournisseurDetailPage({
             <Pencil className="h-4 w-4" strokeWidth={2} />
             Modifier
           </Link>
+          <BoutonContactCapture
+            choix={[
+              { valeur: "nouveau", libelle: "Nouvel interlocuteur", actuel: null },
+              ...interlocuteurs.map((it, i) => ({
+                valeur: `i${i}`,
+                libelle: `Remplacer l'interlocuteur ${i + 1}`,
+                actuel: { nom: it.nom, fixe: it.tel, portable: it.portable, courriel: it.email },
+              })),
+            ]}
+            parDefaut="nouveau"
+            enregistrer={enregistrerContactFournisseur.bind(null, id)}
+          />
           <BoutonSupprimer
             action={supprimerFournisseur.bind(null, id)}
             confirmation={`Supprimer définitivement le fournisseur "${f.nom}" ? Cette action est irréversible.`}

@@ -1,3 +1,5 @@
+import { telLocal } from "@/lib/format";
+
 export type EmplacementContact = "site1" | "site2" | "site3" | "site4" | "responsable" | "facturation" | "tiers";
 
 export type ContactSite = { nom: string; fixe: string; portable: string; courriel: string };
@@ -50,4 +52,12 @@ export function contactDeLEmplacement(site: Record<string, unknown>, emplacement
 
 export function contactVide(c: ContactSite): boolean {
   return !c.nom && !c.fixe && !c.portable && !c.courriel;
+}
+
+/// Numéro rangé au format des fiches : « 0692 00 33 00 ».
+export function telephoneContact(numero: string): string {
+  const local = telLocal(numero.trim());
+  const chiffres = local.replace(/\D/g, "");
+  const groupes = /^(0\d{3})(\d{2})(\d{2})(\d{2})$/.exec(chiffres);
+  return groupes ? groupes.slice(1).join(" ") : local;
 }

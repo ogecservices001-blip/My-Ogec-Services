@@ -4,25 +4,25 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ScanText, X } from "lucide-react";
 import { useChampManquant } from "@/components/champ-manquant";
-import { analyserContactCapture, enregistrerContactSite } from "../contact-actions";
-import {
-  EMPLACEMENTS_CONTACT,
-  contactVide,
-  type ContactSite,
-  type EmplacementContact,
-} from "@/lib/repertoire/emplacements-contact";
+import { analyserContactCapture } from "@/app/(app)/repertoire/clients/contact-actions";
+import { contactVide, type ContactSite } from "@/lib/repertoire/emplacements-contact";
+import type { ActionResult } from "@/lib/action-result";
+
+/// Emplacement proposé dans « C'est quel contact ? » : `actuel` null = ajout
+/// d'un nouveau contact (rien à remplacer).
+export type ChoixEmplacementContact = { valeur: string; libelle: string; actuel: ContactSite | null };
+
+type Props = {
+  choix: ChoixEmplacementContact[];
+  parDefaut: string;
+  enregistrer: (emplacement: string, contact: ContactSite) => Promise<ActionResult>;
+};
 
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20";
 const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
 const VIDE: ContactSite = { nom: "", fixe: "", portable: "", courriel: "" };
 
-export function BoutonContactCapture({
-  siteId,
-  actuels,
-}: {
-  siteId: string;
-  actuels: Record<EmplacementContact, ContactSite>;
-}) {
+export function BoutonContactCapture(props: Props) {
   const [ouvert, setOuvert] = useState(false);
   return (
     <>
@@ -34,25 +34,12 @@ export function BoutonContactCapture({
         <ScanText className="h-4 w-4" strokeWidth={2} />
         Ajouter un contact depuis une capture
       </button>
-      {ouvert && <FenetreContact siteId={siteId} actuels={actuels} onFermer={() => setOuvert(false)} />}
+      {ouvert && <FenetreContact {...props} onFermer={() => setOuvert(false)} />}
     </>
   );
 }
 
-function premierEmplacementLibre(actuels: Record<EmplacementContact, ContactSite>): EmplacementContact {
-  const libre = (["site1", "site2", "site3", "site4"] as const).find((e) => contactVide(actuels[e]));
-  return libre ?? "site1";
-}
-
-function FenetreContact({
-  siteId,
-  actuels,
-  onFermer,
-}: {
-  siteId: string;
-  actuels: Record<EmplacementContact, ContactSite>;
-  onFermer: () => void;
-}) {
+function FenetreContact({ choix, parDefaut, enregistrer: enregistrerContact, onFermer }: Props & { onFermer: () => void }) {
   const router = useRouter();
   const { signaler, fenetre } = useChampManquant();
   const [lecture, startLecture] = useTransition();
@@ -60,12 +47,12 @@ function FenetreContact({
   const [erreur, setErreur] = useState<string | null>(null);
   const [apercu, setApercu] = useState<string | null>(null);
   const [contact, setContact] = useState<ContactSite | null>(null);
-  const [emplacement, setEmplacement] = useState<EmplacementContact>(premierEmplacementLibre(actuels));
+  const [emplacement, setEmplacement] = useState(parDefaut);
   const [confirmerRemplacement, setConfirmerRemplacement] = useState(false);
   const fichierRef = useRef<HTMLInputElement>(null);
 
-  const actuel = actuels[emplacement];
-  const occupe = !contactVide(actuel);
+  const actuel = choix.find((c) => c.valeur === emplacement)?.actuel ?? null;
+  const occupe = actuel !== null && !contactVide(actuel);
 
   function lire(fichier: File) {
     setErreur(null);
@@ -111,7 +98,7 @@ function FenetreContact({
       return;
     }
     startEnregistrement(async () => {
-      const res = await enregistrerContactSite(siteId, emplacement, contact);
+      const res = await enregistrerContact(emplacement, contact);
       if (!res.ok) {
         setErreur(res.erreur);
         setConfirmerRemplacement(false);
@@ -193,26 +180,23 @@ function FenetreContact({
                 id="contact-emplacement"
                 value={emplacement}
                 onChange={(e) => {
-                  setEmplacement(e.target.value as EmplacementContact);
+                  setEmplacement(e.target.value);
                   setConfirmerRemplacement(false);
                 }}
                 className={`${CHAMP} bg-white`}
               >
-                {EMPLACEMENTS_CONTACT.map((e) => {
-                  const a = actuels[e.valeur];
-                  return (
-                    <option key={e.valeur} value={e.valeur}>
-                      {e.libelle} — {contactVide(a) ? "libre" : a.nom || a.courriel}
-                    </option>
-                  );
-                })}
+                {choix.map((c) => (
+                  <option key={c.valeur} value={c.valeur}>
+                    {c.actuel === null ? c.libelle : `${c.libelle} — ${contactVide(c.actuel) ? "libre" : c.actuel.nom || c.actuel.courriel}`}
+                  </option>
+                ))}
               </select>
             </div>
 
             {occupe && (
               <div className={`mb-4 rounded-lg px-3 py-2 text-sm ${confirmerRemplacement ? "bg-orange-50 text-orange-800" : "bg-slate-50 text-slate-600"}`}>
                 <p className="font-semibold">Cet emplacement est déjà pris :</p>
-                <p>{[actuel.nom, actuel.fixe, actuel.portable, actuel.courriel].filter(Boolean).join(" · ")}</p>
+                <p>{[actuel?.nom, actuel?.fixe, actuel?.portable, actuel?.courriel].filter(Boolean).join(" · ")}</p>
                 {confirmerRemplacement && <p className="mt-1 font-semibold">Remplacer par le nouveau contact ?</p>}
               </div>
             )}

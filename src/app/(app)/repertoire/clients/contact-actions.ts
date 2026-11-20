@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireProfile } from "@/lib/auth";
 import { telLocal } from "@/lib/format";
 import type { ActionResult } from "@/lib/action-result";
 import { extraireContactDepuisCapture, type ContactExtraitResultat } from "@/lib/repertoire/contact-ocr";
 import { EMPLACEMENTS_CONTACT, type ContactSite, type EmplacementContact } from "@/lib/repertoire/emplacements-contact";
+import { contactsAvecCourriel, type ContactCourriel } from "@/lib/repertoire/contacts-courriel";
 
 /// Lit la capture (signature de mail) et renvoie le contact détecté —
 /// jamais enregistré ici, le bureau relit et choisit l'emplacement.
@@ -68,4 +69,15 @@ export async function enregistrerContactSite(
 
   revalidatePath(`/repertoire/clients/${siteId}`);
   return { ok: true };
+}
+
+/// Contacts du site ayant un courriel, proposés à cocher avant l'envoi d'un
+/// mail au client (devis, BI, rapport de visite, confirmation de dépannage).
+/// Les contacts réservés aux admins sur la fiche site (responsable contrat,
+/// facturation) ne sont proposés qu'aux admins.
+export async function chargerContactsSite(siteId: string): Promise<ContactCourriel[]> {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { data: site } = await supabase.from("sites").select("*").eq("id", siteId).single();
+  return contactsAvecCourriel(site, profile.role === "admin" ? [] : ["responsable", "facturation"]);
 }

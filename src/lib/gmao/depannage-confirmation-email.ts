@@ -13,7 +13,7 @@ function ligne(label: string, valeur: string, style = ""): string {
 /// chaque demande (mêmes lignes, mêmes données), avec les infos déjà
 /// saisies sur le ticket plutôt que ressaisies.
 export async function envoyerConfirmationDepannage(params: {
-  destinataire: string;
+  destinataire: string | string[];
   numero: string;
   nAffaire: string;
   clientNom: string;

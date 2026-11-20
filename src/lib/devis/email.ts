@@ -11,7 +11,7 @@ const GMAIL_USER = "ogecservices001@gmail.com";
 export async function envoyerDevis(params: {
   devis: Devis;
   site: { nom: string; site: string } | null;
-  destinataire: string;
+  destinataire: string | string[];
   pdfBytes: Buffer;
 }): Promise<void> {
   const { devis, site, destinataire, pdfBytes } = params;

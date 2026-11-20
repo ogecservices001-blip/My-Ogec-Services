@@ -1,5 +1,6 @@
 "use server";
 
+import { validerDestinataires } from "@/lib/repertoire/contacts-courriel";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { envoyerConfirmationDepannage } from "@/lib/gmao/depannage-confirmation-email";
@@ -23,8 +24,14 @@ function formaterDateJour(iso: string): string {
 /// Envoie au client l'email de confirmation/prise en compte (tableau
 /// récapitulatif) — n'exige pas que le ticket soit marqué "traitée",
 /// c'est une action indépendante.
-export async function envoyerConfirmation(id: string, informationComplementaire: string): Promise<ActionResult> {
+export async function envoyerConfirmation(
+  id: string,
+  informationComplementaire: string,
+  destinataires: string[],
+): Promise<ActionResult> {
   await requireProfile();
+  const choix = validerDestinataires(destinataires);
+  if (!choix.ok) return choix;
   const supabase = await createClient();
 
   const { data: demande, error: errD } = await supabase
@@ -33,7 +40,6 @@ export async function envoyerConfirmation(id: string, informationComplementaire:
     .eq("id", id)
     .single();
   if (errD || !demande) return { ok: false, erreur: "Demande introuvable." };
-  if (!demande.email) return { ok: false, erreur: "Aucun email connu pour ce ticket." };
 
   const { data: site } = demande.site_id
     ? await supabase
@@ -55,7 +61,7 @@ export async function envoyerConfirmation(id: string, informationComplementaire:
 
   try {
     await envoyerConfirmationDepannage({
-      destinataire: demande.email,
+      destinataire: choix.emails,
       numero: demande.numero,
       nAffaire: site?.n_affaire ?? "",
       clientNom: demande.client_nom,

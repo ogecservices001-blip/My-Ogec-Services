@@ -18,10 +18,11 @@ function ligne(label: string, valeur: string): string {
 /// bureau (voir envoyerBiParEmail).
 export async function envoyerConfirmationBI(params: {
   bon: Bon;
+  destinataires: string[];
   pdfBytes: Buffer;
   informationComplementaire: string;
 }): Promise<void> {
-  const { bon, pdfBytes, informationComplementaire } = params;
+  const { bon, destinataires, pdfBytes, informationComplementaire } = params;
   const motDePasse = process.env.GMAIL_APP_PASSWORD;
   if (!motDePasse) throw new Error("Envoi email non configuré (GMAIL_APP_PASSWORD manquant).");
 
@@ -45,7 +46,7 @@ export async function envoyerConfirmationBI(params: {
 
   await transporteur.sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
-    to: bon.email,
+    to: destinataires,
     subject: `Bon d'intervention N°${bon.numero} — ${bon.client_nom}`,
     html,
     attachments: [{ filename: `${bon.numero}.pdf`, content: pdfBytes, contentType: "application/pdf" }],
@@ -56,12 +57,13 @@ export async function envoyerConfirmationBI(params: {
 /// équipements) au client, PDF en pièce jointe.
 export async function envoyerRapportVisiteEmail(params: {
   bon: Bon;
+  destinataires: string[];
   visite: string;
   pdfBytes: Buffer;
   nomFichier: string;
   informationComplementaire: string;
 }): Promise<void> {
-  const { bon, visite, pdfBytes, nomFichier, informationComplementaire } = params;
+  const { bon, destinataires, visite, pdfBytes, nomFichier, informationComplementaire } = params;
   const motDePasse = process.env.GMAIL_APP_PASSWORD;
   if (!motDePasse) throw new Error("Envoi email non configuré (GMAIL_APP_PASSWORD manquant).");
 
@@ -84,7 +86,7 @@ export async function envoyerRapportVisiteEmail(params: {
 
   await transporteur.sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
-    to: bon.email,
+    to: destinataires,
     subject: `Rapport technique d'entretien — ${visite} — ${bon.client_nom}`,
     html,
     attachments: [{ filename: nomFichier, content: pdfBytes, contentType: "application/pdf" }],

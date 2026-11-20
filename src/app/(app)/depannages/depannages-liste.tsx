@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Download, MessageCircle, Mail, X, Wrench, Pencil } from "lucide-react";
 import type { Tables } from "@/lib/types";
 import { Tableur, type ColonneTableur } from "@/components/tableur";
+import { ChoixDestinataires, useDestinataires } from "@/components/choix-destinataires";
 import { envoyerConfirmation, marquerWhatsappEnvoye } from "./actions";
 import type { DevisEnCours } from "@/lib/devis/en-cours";
 import { LABEL_STATUT_DEVIS } from "@/app/(app)/devis/statut";
@@ -270,15 +271,16 @@ function ModaleConfirmation({
   const [info, setInfo] = useState("");
   const [pending, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+  const destinataires = useDestinataires(demande.site_id, [demande.email]);
 
   return (
     <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">Répondre à {demande.email}</h2>
+          <h2 className="text-base font-bold text-slate-900">Répondre au client</h2>
           <button
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
@@ -290,6 +292,9 @@ function ModaleConfirmation({
           Envoie un email récapitulatif (client, site, motif, intervenant assigné, date prévue...) — ajoute
           une information complémentaire si besoin.
         </p>
+        <div className="mb-3">
+          <ChoixDestinataires etat={destinataires} />
+        </div>
         <textarea
           value={info}
           onChange={(e) => setInfo(e.target.value)}
@@ -309,7 +314,7 @@ function ModaleConfirmation({
           <button
             onClick={() =>
               startTransition(async () => {
-                const res = await envoyerConfirmation(demande.id, info);
+                const res = await envoyerConfirmation(demande.id, info, destinataires.destinataires());
                 if (!res.ok) {
                   setErreur(res.erreur);
                   return;

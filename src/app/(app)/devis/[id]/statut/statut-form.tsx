@@ -2,6 +2,7 @@
 
 import { ListeRecherche } from "@/components/liste-recherche";
 import { useChampManquant } from "@/components/champ-manquant";
+import { ModaleEnvoiDevis } from "./modale-envoi";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,7 +14,6 @@ import {
   changerStatutDevis,
   lierEquipementsPaves,
   modifierMoisFacturation,
-  envoyerDevisParEmail,
   type StatutDevisInput,
 } from "../../actions";
 import { calculerStatutDevis, LABEL_STATUT_DEVIS } from "../../statut";
@@ -95,31 +95,12 @@ export function StatutDevisForm({
   const [moisFacturation, setMoisFacturation] = useState(devis.mois_facturation);
   const [pending, startTransition] = useTransition();
   const [facturationPending, startFacturation] = useTransition();
-  const [envoi, startEnvoi] = useTransition();
+  const [modaleEnvoi, setModaleEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [erreurFacturation, setErreurFacturation] = useState<string | null>(null);
-  const [erreurEnvoi, setErreurEnvoi] = useState<string | null>(null);
 
   const { signaler, fenetre } = useChampManquant();
 
-  function envoyer() {
-    setErreurEnvoi(null);
-    if (!emailClient) {
-      signaler("Aucun email du responsable pour ce client", null, {
-        detail: "Renseigne le « Courriel responsable » sur la fiche client, puis reviens envoyer le devis.",
-        lien: { href: `/repertoire/clients/${devis.site_id}/modifier#courriel_responsable`, texte: "Ouvrir la fiche client" },
-      });
-      return;
-    }
-    startEnvoi(async () => {
-      const res = await envoyerDevisParEmail(devis.id);
-      if (!res.ok) {
-        setErreurEnvoi(res.erreur);
-        return;
-      }
-      router.refresh();
-    });
-  }
 
   function enregistrerFacturation() {
     setErreurFacturation(null);
@@ -298,12 +279,11 @@ export function StatutDevisForm({
             Imprimer
           </a>
           <button
-            onClick={envoyer}
-            disabled={envoi}
+            onClick={() => setModaleEnvoi(true)}
             className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-green-dark disabled:opacity-60"
           >
             <Send className="h-4 w-4" strokeWidth={2} />
-            {envoi ? "Envoi..." : devis.envoyee_le ? "Renvoyer au client" : "Envoyer au client"}
+            {devis.envoyee_le ? "Renvoyer au client" : "Envoyer au client"}
           </button>
           {isAdmin && !devis.numero && (
             <Link
@@ -336,7 +316,14 @@ export function StatutDevisForm({
         {devis.envoyee_le && (
           <p className="mt-2 text-xs text-brand-green-dark">Envoyé au client le {devis.envoyee_le}</p>
         )}
-        {erreurEnvoi && <p className="mt-2 text-xs text-red-600">{erreurEnvoi}</p>}
+        {modaleEnvoi && (
+          <ModaleEnvoiDevis
+            devisId={devis.id}
+            siteId={devis.site_id}
+            emailParDefaut={emailClient}
+            onClose={() => setModaleEnvoi(false)}
+          />
+        )}
         {revisions.length > 0 && (
           <div className="mt-3 border-t border-slate-100 pt-2">
             <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Versions précédentes</p>

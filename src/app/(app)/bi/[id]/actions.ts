@@ -1,5 +1,6 @@
 "use server";
 
+import { validerDestinataires } from "@/lib/repertoire/contacts-courriel";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, requireProfile } from "@/lib/auth";
@@ -374,17 +375,23 @@ export async function urlArchiveSignee(chemin: string): Promise<string | null> {
 /// bureau (même schéma que "Répondre par email" côté Suivi Dépannage),
 /// jamais automatique à la validation.
 /// Envoie au client le rapport technique de la visite d'entretien.
-export async function envoyerRapportParEmail(id: string, informationComplementaire: string): Promise<ActionResult> {
+export async function envoyerRapportParEmail(
+  id: string,
+  informationComplementaire: string,
+  destinataires: string[],
+): Promise<ActionResult> {
   await requireAdmin();
+  const choix = validerDestinataires(destinataires);
+  if (!choix.ok) return choix;
   const supabase = await createClient();
   const chargement = await chargerRapportVisite(supabase, id);
   if (!chargement.ok) return { ok: false, erreur: chargement.erreur };
   const { bi } = chargement.donnees;
-  if (!bi.email) return { ok: false, erreur: "Aucun email client sur ce bon." };
   try {
     const pdfBytes = await genererPdfRapportVisite(chargement.donnees);
     await envoyerRapportVisiteEmail({
       bon: bi,
+      destinataires: choix.emails,
       visite: libelleVisite({ numero: bi.visite_numero, total: bi.visite_total, annee: bi.visite_annee }) || bi.numero,
       pdfBytes,
       nomFichier: nomFichierRapport(bi),
@@ -396,13 +403,18 @@ export async function envoyerRapportParEmail(id: string, informationComplementai
   return { ok: true };
 }
 
-export async function envoyerBiParEmail(id: string, informationComplementaire: string): Promise<ActionResult> {
+export async function envoyerBiParEmail(
+  id: string,
+  informationComplementaire: string,
+  destinataires: string[],
+): Promise<ActionResult> {
   await requireAdmin();
+  const choix = validerDestinataires(destinataires);
+  if (!choix.ok) return choix;
   const supabase = await createClient();
 
   const { data: bon, error } = await supabase.from("bons_intervention").select("*").eq("id", id).single();
   if (error || !bon) return { ok: false, erreur: "Bon introuvable." };
-  if (!bon.email) return { ok: false, erreur: "Aucun email connu pour ce bon." };
 
   try {
     await archiverBiSiBesoin(supabase, bon as Bon);
@@ -417,7 +429,7 @@ export async function envoyerBiParEmail(id: string, informationComplementaire: s
   const pdfBytes = await genererPdfAvecPhotos(supabase, bonAvecPdf as Bon);
 
   try {
-    await envoyerConfirmationBI({ bon: bonAvecPdf as Bon, pdfBytes, informationComplementaire });
+    await envoyerConfirmationBI({ bon: bonAvecPdf as Bon, destinataires: choix.emails, pdfBytes, informationComplementaire });
   } catch (e) {
     return { ok: false, erreur: e instanceof Error ? e.message : "Échec de l'envoi." };
   }

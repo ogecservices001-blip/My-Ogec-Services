@@ -1,5 +1,6 @@
 "use server";
 
+import { validerDestinataires } from "@/lib/repertoire/contacts-courriel";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
@@ -436,22 +437,21 @@ export async function supprimerDevis(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function envoyerDevisParEmail(id: string): Promise<ActionResult> {
+export async function envoyerDevisParEmail(id: string, destinataires: string[]): Promise<ActionResult> {
   await requireAdmin();
+  const choix = validerDestinataires(destinataires);
+  if (!choix.ok) return choix;
   const supabase = await createClient();
 
   const { data: devis, error } = await supabase.from("devis").select("*").eq("id", id).single();
   if (error || !devis) return { ok: false, erreur: "Devis introuvable." };
 
   const { data: site } = await supabase.from("sites").select("nom, site, courriel_responsable").eq("id", devis.site_id).single();
-  // Devis importé : email repris du classeur ; devis créé dans l'appli : celui du responsable sur la fiche client.
-  const destinataire = devis.email_responsable_contrat || site?.courriel_responsable || "";
-  if (!destinataire) return { ok: false, erreur: "Aucun email du responsable sur la fiche client." };
 
   const pdfBytes = await genererPdfDevis({ devis, site: site ?? null });
 
   try {
-    await envoyerDevis({ devis, site: site ?? null, destinataire, pdfBytes });
+    await envoyerDevis({ devis, site: site ?? null, destinataire: choix.emails, pdfBytes });
   } catch (e) {
     return { ok: false, erreur: e instanceof Error ? e.message : "Échec de l'envoi." };
   }

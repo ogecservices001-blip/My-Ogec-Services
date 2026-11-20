@@ -1,6 +1,7 @@
 "use client";
 
 import { ListeRecherche } from "@/components/liste-recherche";
+import { ChoixDestinataires, useDestinataires } from "@/components/choix-destinataires";
 import { dateFrVersIso, formaterDate } from "@/lib/format";
 
 import { useChampManquant, type CibleChamp } from "@/components/champ-manquant";
@@ -237,10 +238,10 @@ export function BiDetail({
       )}
 
       {modaleRapportOuverte && (
-        <ModaleEmail biId={bon.id} destinataire={bon.email} rapport onClose={() => setModaleRapportOuverte(false)} />
+        <ModaleEmail biId={bon.id} siteId={bon.site_id} destinataire={bon.email} rapport onClose={() => setModaleRapportOuverte(false)} />
       )}
       {modaleEmailOuverte && (
-        <ModaleEmail biId={bon.id} destinataire={bon.email} onClose={() => setModaleEmailOuverte(false)} />
+        <ModaleEmail biId={bon.id} siteId={bon.site_id} destinataire={bon.email} onClose={() => setModaleEmailOuverte(false)} />
       )}
     </div>
   );
@@ -286,11 +287,13 @@ function BlocHistorique({ bon }: { bon: Bon }) {
 
 function ModaleEmail({
   biId,
+  siteId,
   destinataire,
   onClose,
   rapport,
 }: {
   biId: string;
+  siteId: string | null;
   destinataire: string;
   onClose: () => void;
   /// true : envoie le rapport technique de la visite au lieu du BI.
@@ -300,12 +303,13 @@ function ModaleEmail({
   const [info, setInfo] = useState("");
   const [pending, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+  const destinataires = useDestinataires(siteId, [destinataire]);
 
   return (
     <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">Envoyer à {destinataire}</h2>
+          <h2 className="text-base font-bold text-slate-900">Envoyer au client</h2>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
             <X className="h-4.5 w-4.5" strokeWidth={2} />
           </button>
@@ -315,6 +319,9 @@ function ModaleEmail({
             ? "Le rapport technique de la visite (PDF) sera joint à l'email."
             : "Le PDF du bon d'intervention sera joint à l'email."}
         </p>
+        <div className="mb-3">
+          <ChoixDestinataires etat={destinataires} />
+        </div>
         <textarea
           value={info}
           onChange={(e) => setInfo(e.target.value)}
@@ -334,7 +341,10 @@ function ModaleEmail({
           <button
             onClick={() =>
               startTransition(async () => {
-                const res = rapport ? await envoyerRapportParEmail(biId, info) : await envoyerBiParEmail(biId, info);
+                const liste = destinataires.destinataires();
+                const res = rapport
+                  ? await envoyerRapportParEmail(biId, info, liste)
+                  : await envoyerBiParEmail(biId, info, liste);
                 if (!res.ok) {
                   setErreur(res.erreur);
                   return;

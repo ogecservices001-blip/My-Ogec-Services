@@ -37,6 +37,7 @@ export default async function SitesDuClientPage({
     .select("*")
     .eq("nom", nomDecode)
     .eq("hors_contrat", horsContrat)
+    .order("n_affaire")
     .order("site");
   const sites = (data as Site[]) ?? [];
 

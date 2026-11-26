@@ -26,6 +26,7 @@ export async function envoyerNotificationDepannage(params: {
 
   await transporteur.sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
+    replyTo: "ogec.services@orange.fr",
     to: BUREAU_EMAIL,
     subject: `Nouvelle demande de dépannage — ${params.clientNom} ${params.clientSite}`.trim(),
     text:

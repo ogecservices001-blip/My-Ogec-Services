@@ -4,6 +4,7 @@ import { useChampManquant } from "@/components/champ-manquant";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
+  const [voirMotDePasse, setVoirMotDePasse] = useState(false);
 
   async function seConnecter(e: React.FormEvent) {
     e.preventDefault();
@@ -64,12 +66,29 @@ export default function LoginPage() {
           Mot de passe
         </label>
         <input
-          type="password"
+          type={voirMotDePasse ? "text" : "password"}
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mb-4 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+          className="mb-2 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
         />
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              checked={voirMotDePasse}
+              onChange={(e) => setVoirMotDePasse(e.target.checked)}
+              className="h-4 w-4 accent-brand-green"
+            />
+            Afficher le mot de passe
+          </label>
+          <Link
+            href={`/login/oubli${email ? `?email=${encodeURIComponent(email)}` : ""}`}
+            className="text-sm font-semibold text-brand-green-dark hover:underline"
+          >
+            Mot de passe oublié ?
+          </Link>
+        </div>
         {erreur && (
           <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {erreur}

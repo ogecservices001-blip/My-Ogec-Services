@@ -68,6 +68,7 @@ export async function envoyerConfirmationDepannage(params: {
 
   await transporteur.sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
+    replyTo: "ogec.services@orange.fr",
     to: params.destinataire,
     subject: `${params.motif} — Int. N°${params.numero}`,
     html,

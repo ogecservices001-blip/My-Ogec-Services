@@ -52,6 +52,7 @@ export async function envoyerAnnoncePassage(params: { destinataire: string; cren
   const transporteur = nodemailer.createTransport({ service: "gmail", auth: { user: GMAIL_USER, pass: motDePasse } });
   await transporteur.sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
+    replyTo: "ogec.services@orange.fr",
     to: destinataire,
     subject: `Prochain passage OGEC Services — ${premier.client_nom}${premier.site ? ` — ${premier.site}` : ""}`,
     html,

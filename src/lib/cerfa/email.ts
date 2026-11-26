@@ -30,6 +30,7 @@ export async function envoyerCerfaEmail(params: {
   `;
   await transporteur().sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
+    replyTo: "ogec.services@orange.fr",
     to: destinataires,
     subject: `CERFA 15497 – ${site} – ${equipement}`,
     html,
@@ -41,6 +42,7 @@ export async function envoyerCerfaEmail(params: {
 export async function envoyerRecapCerfa(params: { destinataire: string; objet: string; corps: string }): Promise<void> {
   await transporteur().sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
+    replyTo: "ogec.services@orange.fr",
     to: params.destinataire,
     subject: params.objet,
     text: params.corps,

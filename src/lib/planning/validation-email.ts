@@ -3,7 +3,8 @@ import { libelleDatesProposees, libelleJours, type DateProposee } from "./period
 
 export { libelleJours };
 
-export const EMAIL_BUREAU = "ogecservices001@gmail.com";
+const GMAIL_USER = "ogecservices001@gmail.com";
+export const EMAIL_BUREAU = "ogec.services@orange.fr";
 
 export type { JourDemande } from "./periode";
 import type { JourDemande } from "./periode";
@@ -42,8 +43,8 @@ const bouton = (lien: string, texte: string) =>
 async function envoyer(to: string | string[], subject: string, html: string) {
   const motDePasse = process.env.GMAIL_APP_PASSWORD;
   if (!motDePasse) throw new Error("Envoi email non configuré (GMAIL_APP_PASSWORD manquant).");
-  const transporteur = nodemailer.createTransport({ service: "gmail", auth: { user: EMAIL_BUREAU, pass: motDePasse } });
-  await transporteur.sendMail({ from: `OGEC Services <${EMAIL_BUREAU}>`, to, subject, html });
+  const transporteur = nodemailer.createTransport({ service: "gmail", auth: { user: GMAIL_USER, pass: motDePasse } });
+  await transporteur.sendMail({ from: `OGEC Services <${GMAIL_USER}>`, replyTo: EMAIL_BUREAU, to, subject, html });
 }
 
 const sujet = (infos: InfosDemande, debut: string) => `${debut} — ${infos.client_nom}${infos.site ? ` — ${infos.site}` : ""}`;

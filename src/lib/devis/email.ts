@@ -32,6 +32,7 @@ export async function envoyerDevis(params: {
 
   await transporteur.sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
+    replyTo: "ogec.services@orange.fr",
     to: destinataire,
     subject: `Devis ${devis.numero}${devis.libelle ? ` — ${devis.libelle}` : ""}`,
     html,

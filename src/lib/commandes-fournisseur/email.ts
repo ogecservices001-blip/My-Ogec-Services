@@ -42,6 +42,7 @@ export async function envoyerCommandeFournisseur(params: {
 
   await transporteur.sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
+    replyTo: "ogec.services@orange.fr",
     to: destinataires,
     subject: `Commande ${commande.numero} — ${fournisseur.nom}`,
     html,

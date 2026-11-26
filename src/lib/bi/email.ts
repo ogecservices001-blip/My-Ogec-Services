@@ -46,6 +46,7 @@ export async function envoyerConfirmationBI(params: {
 
   await transporteur.sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
+    replyTo: "ogec.services@orange.fr",
     to: destinataires,
     subject: `Bon d'intervention N°${bon.numero} — ${bon.client_nom}`,
     html,
@@ -86,6 +87,7 @@ export async function envoyerRapportVisiteEmail(params: {
 
   await transporteur.sendMail({
     from: `OGEC Services <${GMAIL_USER}>`,
+    replyTo: "ogec.services@orange.fr",
     to: destinataires,
     subject: `Rapport technique d'entretien — ${visite} — ${bon.client_nom}`,
     html,

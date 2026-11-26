@@ -91,14 +91,26 @@ export function ChoixClientSite({
     [sites, clientNom],
   );
 
-  const optionsAffaires: OptionRecherche[] = useMemo(
-    () =>
-      sites
-        .filter((s) => s.n_affaire)
-        .sort((a, b) => (a.n_affaire ?? "").localeCompare(b.n_affaire ?? "", "fr", { numeric: true }))
-        .map((s) => ({ valeur: s.id, label: s.n_affaire ?? "", detail: `${s.nom} — ${s.site || "Site sans nom"}` })),
-    [sites],
-  );
+  /// N° client = début du n° d'affaire (« 405 » pour 405-01, 405-02…).
+  const optionsNumerosClients: OptionRecherche[] = useMemo(() => {
+    const parCle = new Map<string, { numero: string; nom: string; n: number }>();
+    for (const s of sites) {
+      const numero = (s.n_affaire ?? "").split("-")[0].trim();
+      if (!numero) continue;
+      const cle = `${numero}|${s.nom}`;
+      const e = parCle.get(cle) ?? { numero, nom: s.nom, n: 0 };
+      e.n += 1;
+      parCle.set(cle, e);
+    }
+    return [...parCle.entries()]
+      .sort((a, b) => a[1].numero.localeCompare(b[1].numero, "fr", { numeric: true }) || a[1].nom.localeCompare(b[1].nom, "fr"))
+      .map(([cle, e]) => ({ valeur: cle, label: e.numero, detail: `${e.nom} — ${e.n} site${e.n > 1 ? "s" : ""}` }));
+  }, [sites]);
+  const numeroClientChoisi =
+    optionsNumerosClients.find((o) => o.valeur.endsWith(`|${clientNom}`) && sites.some((s) => s.id === siteId && `${(s.n_affaire ?? "").split("-")[0].trim()}|${s.nom}` === o.valeur))
+      ?.valeur ??
+    optionsNumerosClients.find((o) => o.valeur.endsWith(`|${clientNom}`))?.valeur ??
+    "";
 
   function choisirClient(nom: string) {
     const sitesDuClient = sites.filter((s) => s.nom === nom);
@@ -148,15 +160,15 @@ export function ChoixClientSite({
         />
       </div>
       <div>
-        <label htmlFor={`${idSite}-affaire`} className={ETIQUETTE}>
-          N° d&apos;affaire
+        <label htmlFor={`${idClient}-numero`} className={ETIQUETTE}>
+          N° client
         </label>
         <ListeRecherche
-          id={`${idSite}-affaire`}
-          options={optionsAffaires}
-          valeur={optionsAffaires.some((o) => o.valeur === siteId) ? siteId : ""}
-          onChange={choisirSite}
-          placeholder="Ex. 401-04"
+          id={`${idClient}-numero`}
+          options={optionsNumerosClients}
+          valeur={clientNom ? numeroClientChoisi : ""}
+          onChange={(cle) => choisirClient(cle ? cle.slice(cle.indexOf("|") + 1) : "")}
+          placeholder="Ex. 405"
           disabled={disabled}
           vide="Aucun n° trouvé"
         />

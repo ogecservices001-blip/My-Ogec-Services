@@ -133,7 +133,7 @@ export function MaSemaine({
   );
 }
 
-function BoutonBi({ creneau, etat }: { creneau: CreneauMonPlanning; etat?: EtatIntervention }) {
+export function BoutonBi({ creneau, etat }: { creneau: CreneauMonPlanning; etat?: EtatIntervention }) {
   const bi = etat?.bi ?? null;
   if (bi && bi.statut !== "brouillon") {
     return (

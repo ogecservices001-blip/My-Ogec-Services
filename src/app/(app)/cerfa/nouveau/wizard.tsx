@@ -30,6 +30,7 @@ import {
   type Detecteur,
   type EquipementCerfa,
 } from "../actions";
+import { BasculeContrat } from "../bascule-contrat";
 
 export type SiteCerfa = {
   id: string;
@@ -140,10 +141,12 @@ export function CerfaWizard({
   sites,
   operateurNom,
   depart,
+  horsContrat,
 }: {
   sites: SiteCerfa[];
   operateurNom: string;
   depart: { siteId: string; equipementId: string } | null;
+  horsContrat: boolean;
 }) {
   const router = useRouter();
   const { signaler, fenetre } = useChampManquant();
@@ -334,8 +337,16 @@ export function CerfaWizard({
   return (
     <div className="mx-auto max-w-3xl">
       {fenetre}
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Nouveau CERFA 15497</h1>
-      <p className="mb-4 text-sm text-slate-500">{ECRANS[etape]}</p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">Nouveau CERFA 15497</h1>
+          <p className="text-sm text-slate-500">
+            {ECRANS[etape]}
+            {etape === 0 ? ` — Clients ${horsContrat ? "hors contrat" : "sous contrat"}` : ""}
+          </p>
+        </div>
+        {etape === 0 && <BasculeContrat base="/cerfa/nouveau" horsContrat={horsContrat} />}
+      </div>
       {enCours && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">{enCours}</p>}
 
       {etape === 0 && (

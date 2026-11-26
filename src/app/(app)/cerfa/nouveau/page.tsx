@@ -5,15 +5,15 @@ import { CerfaWizard, type SiteCerfa } from "./wizard";
 export default async function NouveauCerfaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ equipementId?: string }>;
+  searchParams: Promise<{ equipementId?: string; horsContrat?: string }>;
 }) {
   const profile = await requireProfile();
-  const { equipementId } = await searchParams;
+  const { equipementId, horsContrat: horsContratParam } = await searchParams;
   const supabase = await createClient();
   const { data: sites } = await supabase
     .from("sites_view")
     .select(
-      "id, nom, site, n_affaire, adresse, complement_adresse, code_postal, commune, interlocuteur_site, qualite_interlocuteur_site, courriel_interlocuteur_site, interlocuteur_site_2, qualite_interlocuteur_site_2, courriel_interlocuteur_site_2, interlocuteur_site_3, qualite_interlocuteur_site_3, courriel_interlocuteur_site_3, interlocuteur_site_4, qualite_interlocuteur_site_4, courriel_interlocuteur_site_4",
+      "id, nom, site, n_affaire, hors_contrat, adresse, complement_adresse, code_postal, commune, interlocuteur_site, qualite_interlocuteur_site, courriel_interlocuteur_site, interlocuteur_site_2, qualite_interlocuteur_site_2, courriel_interlocuteur_site_2, interlocuteur_site_3, qualite_interlocuteur_site_3, courriel_interlocuteur_site_3, interlocuteur_site_4, qualite_interlocuteur_site_4, courriel_interlocuteur_site_4",
     )
     .order("nom");
 
@@ -23,5 +23,17 @@ export default async function NouveauCerfaPage({
     if (eq?.site_id) depart = { siteId: eq.site_id, equipementId: eq.id };
   }
 
-  return <CerfaWizard sites={(sites ?? []) as SiteCerfa[]} operateurNom={profile.name ?? ""} depart={depart} />;
+  const siteDepart = depart ? (sites ?? []).find((s) => s.id === depart.siteId) : undefined;
+  const horsContrat = siteDepart ? !!siteDepart.hors_contrat : horsContratParam === "1";
+  const sitesDuPerimetre = (sites ?? []).filter((s) => !!s.hors_contrat === horsContrat);
+
+  return (
+    <CerfaWizard
+      key={horsContrat ? "hors-contrat" : "sous-contrat"}
+      sites={sitesDuPerimetre as SiteCerfa[]}
+      operateurNom={profile.name ?? ""}
+      depart={depart}
+      horsContrat={horsContrat}
+    />
+  );
 }

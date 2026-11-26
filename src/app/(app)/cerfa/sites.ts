@@ -16,9 +16,11 @@ export function signatairesSite(s: SiteBrut): { nom: string; qualite: string; em
     .filter((x) => x.nom.trim());
 }
 
-export async function chargerSitesConsultation(): Promise<SiteConsultation[]> {
+export async function chargerSitesConsultation(horsContrat?: boolean): Promise<SiteConsultation[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("sites_view").select(COLONNES).order("nom");
+  let requete = supabase.from("sites_view").select(COLONNES).order("nom");
+  if (horsContrat !== undefined) requete = requete.eq("hors_contrat", horsContrat);
+  const { data } = await requete;
   return ((data ?? []) as unknown as SiteBrut[]).map((s) => ({
     id: s.id,
     nom: s.nom,

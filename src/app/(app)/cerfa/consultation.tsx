@@ -6,6 +6,7 @@ import { FileText, Send, PlusCircle } from "lucide-react";
 import { ChoixClientSite } from "@/components/choix-client-site";
 import { ListeRecherche, type OptionRecherche } from "@/components/liste-recherche";
 import { useChampManquant } from "@/components/champ-manquant";
+import { BasculeContrat } from "./bascule-contrat";
 import { cleReference, statutSoumission, texteChamp } from "@/lib/cerfa/regles";
 import { chargerCerfasEquipement, chargerEquipementsCerfa, envoyerCerfaParEmail, type CerfaResume, type EquipementCerfa } from "./actions";
 
@@ -44,7 +45,17 @@ function Ligne({ label, valeur }: { label: string; valeur: string }) {
 
 const fr = (iso: string | null) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "");
 
-export function ConsultationCerfa({ sites, mode }: { sites: SiteConsultation[]; mode: ModeConsultation }) {
+export function ConsultationCerfa({
+  sites,
+  mode,
+  horsContrat,
+  base,
+}: {
+  sites: SiteConsultation[];
+  mode: ModeConsultation;
+  horsContrat: boolean;
+  base: string;
+}) {
   const { signaler, fenetre } = useChampManquant();
   const [clientNom, setClientNom] = useState("");
   const [siteId, setSiteId] = useState("");
@@ -101,7 +112,17 @@ export function ConsultationCerfa({ sites, mode }: { sites: SiteConsultation[]; 
   return (
     <div>
       {fenetre}
-      <h1 className="mb-4 text-2xl font-bold tracking-tight text-slate-900">{TITRES[mode]}</h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
+            {TITRES[mode]} — Clients {horsContrat ? "hors contrat" : "sous contrat"}
+          </h1>
+          <p className="text-sm text-slate-500">
+            {new Set(sites.map((s) => s.nom)).size} client(s) — {sites.length} site(s)
+          </p>
+        </div>
+        <BasculeContrat base={base} horsContrat={horsContrat} />
+      </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
           <div className={CARTE}>

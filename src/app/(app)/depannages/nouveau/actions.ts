@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { notifierProfil } from "@/lib/notifications/push";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { prochainChrono } from "@/lib/gmao/chrono";
@@ -14,6 +16,23 @@ function deuxChiffres(n: number): string {
 
 function formaterDateJour(date: Date): string {
   return `${deuxChiffres(date.getDate())}/${deuxChiffres(date.getMonth() + 1)}/${date.getFullYear()}`;
+}
+
+/// Prévient le technicien sur son téléphone qu'un dépannage lui est affecté.
+function prevenirTechnicien(
+  technicienId: string,
+  d: { numero: string; client: string; site: string; equipement: string; date: string; message: string },
+) {
+  const date = d.date ? ` · prévu le ${d.date.split("-").reverse().join("/")}` : "";
+  const ligne = [[d.client, d.site].filter(Boolean).join(" — "), d.equipement].filter(Boolean).join(" · ");
+  after(() =>
+    notifierProfil(technicienId, {
+      titre: `Nouveau dépannage N°${d.numero}`,
+      texte: [`${ligne}${date}`, d.message.slice(0, 160)].filter(Boolean).join("\n"),
+      url: "/",
+      tag: `depannage-${d.numero}`,
+    }),
+  );
 }
 
 export type EquipementDuSite = {
@@ -101,6 +120,16 @@ export async function creerDepannage(
   if (error || !creee) return { ok: false, erreur: error?.message ?? "Échec de la création." };
 
   revalidatePath("/depannages");
+  if (intervenantId) {
+    prevenirTechnicien(intervenantId, {
+      numero: String(numero),
+      client: site.nom,
+      site: site.site,
+      equipement: equipementNom,
+      date: dateInterventionPrevue,
+      message,
+    });
+  }
 
   if (envoyerEmail && email) {
     try {
@@ -166,7 +195,7 @@ export async function modifierDepannage(
 
   const { data: existante, error: errExistante } = await supabase
     .from("demandes_depannage")
-    .select("numero")
+    .select("numero, intervenant_id")
     .eq("id", id)
     .single();
   if (errExistante || !existante) return { ok: false, erreur: "Dépannage introuvable." };
@@ -212,6 +241,16 @@ export async function modifierDepannage(
 
   revalidatePath("/depannages");
   revalidatePath(`/depannages/${id}`);
+  if (intervenantId && intervenantId !== existante.intervenant_id) {
+    prevenirTechnicien(intervenantId, {
+      numero: String(existante.numero),
+      client: site.nom,
+      site: site.site,
+      equipement: equipementNom,
+      date: dateInterventionPrevue,
+      message,
+    });
+  }
 
   if (envoyerEmail && email) {
     try {

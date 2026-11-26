@@ -9,6 +9,7 @@ import { biDesInterventions, cleIntervention, creneauxDesInterventions, periodeI
 import { chargerEtatsValidation } from "@/lib/planning/validation";
 import { formaterJourCourt, formaterJourLong } from "@/lib/planning/dates";
 import { labelPole } from "@/lib/bi/constants";
+import { ActiverNotifications } from "@/components/notifications/activer-notifications";
 
 /// Date du jour à La Réunion (le serveur tourne en UTC : avant 4 h du matin,
 /// il serait encore la veille).
@@ -76,6 +77,8 @@ export async function AccueilTechnicien({ profile, prenom }: { profile: Profile;
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">{prenom ? `Bonjour ${prenom}` : "Bonjour"}</h1>
         <p className="text-sm font-semibold text-brand-green-dark">Aujourd&apos;hui : {formaterJourLong(jour)}</p>
       </div>
+
+      <ActiverNotifications />
 
       <section>
         <p className={TITRE}>

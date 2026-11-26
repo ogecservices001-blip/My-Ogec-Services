@@ -91,6 +91,15 @@ export function ChoixClientSite({
     [sites, clientNom],
   );
 
+  const optionsAffaires: OptionRecherche[] = useMemo(
+    () =>
+      sites
+        .filter((s) => s.n_affaire)
+        .sort((a, b) => (a.n_affaire ?? "").localeCompare(b.n_affaire ?? "", "fr", { numeric: true }))
+        .map((s) => ({ valeur: s.id, label: s.n_affaire ?? "", detail: `${s.nom} — ${s.site || "Site sans nom"}` })),
+    [sites],
+  );
+
   function choisirClient(nom: string) {
     const sitesDuClient = sites.filter((s) => s.nom === nom);
     const garde = sitesDuClient.some((s) => s.id === siteId) ? siteId : "";
@@ -109,7 +118,7 @@ export function ChoixClientSite({
 
   const etoile = obligatoire ? " *" : "";
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_2fr_1fr]">
       <div>
         <label htmlFor={idClient} className={ETIQUETTE}>
           Client{etoile}
@@ -136,6 +145,20 @@ export function ChoixClientSite({
           placeholder={clientNom ? "Tape pour chercher un site" : "Site (ou commence par ici)"}
           disabled={disabled}
           vide="Aucun site trouvé"
+        />
+      </div>
+      <div>
+        <label htmlFor={`${idSite}-affaire`} className={ETIQUETTE}>
+          N° d&apos;affaire
+        </label>
+        <ListeRecherche
+          id={`${idSite}-affaire`}
+          options={optionsAffaires}
+          valeur={optionsAffaires.some((o) => o.valeur === siteId) ? siteId : ""}
+          onChange={choisirSite}
+          placeholder="Ex. 401-04"
+          disabled={disabled}
+          vide="Aucun n° trouvé"
         />
       </div>
     </div>

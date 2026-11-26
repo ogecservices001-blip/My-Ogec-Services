@@ -108,6 +108,7 @@ export function ConsultationCerfa({
   }
 
   const c = equipement?.champs_en_tete ?? {};
+  const ancienBordereau = texteChamp(c, "numDernierBordereau").trim();
 
   return (
     <div>
@@ -183,10 +184,19 @@ export function ConsultationCerfa({
         {equipement && (
           <div className={CARTE}>
             <p className={TITRE}>CERFA finalisés — {equipement.nom}</p>
+            {cerfas !== null && ancienBordereau && !cerfas.some((cf) => cf.numero === ancienBordereau) && (
+              <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
+                <p className="truncate font-semibold text-slate-800">{ancienBordereau}</p>
+                <p className="text-xs text-slate-600">
+                  Contrôle du {texteChamp(c, "dateDernierControle") || "—"} — fait avec l&apos;ancienne appli : PDF dans le dossier Google Drive du
+                  client
+                </p>
+              </div>
+            )}
             {cerfas === null ? (
               <p className="text-sm text-slate-500">Chargement…</p>
             ) : cerfas.length === 0 ? (
-              <p className="text-sm text-slate-500">Aucun CERFA trouvé pour cet équipement.</p>
+              !ancienBordereau && <p className="text-sm text-slate-500">Aucun CERFA trouvé pour cet équipement.</p>
             ) : (
               <ul className="space-y-2">
                 {cerfas.map((cf) => (

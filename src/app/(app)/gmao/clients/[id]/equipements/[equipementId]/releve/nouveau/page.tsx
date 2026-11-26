@@ -54,6 +54,7 @@ export default async function NouveauRelevePage({
       references={(references ?? []) as ReferenceHoraire[]}
       freqCourante={freqCourante}
       nomTechInitial={profile.name}
+      afficherHeures={profile.role === "admin"}
       nomsTechniciens={nomsTechniciens}
       devisEnCours={devisEnCours}
       depannagesOuverts={depannagesOuverts ?? []}

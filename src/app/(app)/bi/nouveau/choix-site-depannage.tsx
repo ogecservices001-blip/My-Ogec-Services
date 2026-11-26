@@ -10,6 +10,7 @@ export type SiteDepannage = {
   id: string;
   nom: string;
   site: string;
+  n_affaire: string;
   code_postal: string;
   commune: string;
   adresse: string;

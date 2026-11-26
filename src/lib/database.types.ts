@@ -135,8 +135,8 @@ export type Database = {
           client_nom: string
           compte_rendu: string
           created_at: string
-          creneau_id: string | null
           created_by: string
+          creneau_id: string | null
           date_debut: string
           date_fin: string
           date_intervention: string
@@ -204,8 +204,8 @@ export type Database = {
           client_nom?: string
           compte_rendu?: string
           created_at?: string
-          creneau_id?: string | null
           created_by?: string
+          creneau_id?: string | null
           date_debut?: string
           date_fin?: string
           date_intervention?: string
@@ -273,8 +273,8 @@ export type Database = {
           client_nom?: string
           compte_rendu?: string
           created_at?: string
-          creneau_id?: string | null
           created_by?: string
+          creneau_id?: string | null
           date_debut?: string
           date_fin?: string
           date_intervention?: string
@@ -336,6 +336,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "bons_intervention_creneau_id_fkey"
+            columns: ["creneau_id"]
+            isOneToOne: false
+            referencedRelation: "creneaux_planning"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bons_intervention_depannage_id_fkey"
             columns: ["depannage_id"]
             isOneToOne: false
@@ -372,6 +379,161 @@ export type Database = {
           },
           {
             foreignKeyName: "bons_intervention_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cerfa_compteurs: {
+        Row: {
+          annee: number
+          valeur: number
+        }
+        Insert: {
+          annee: number
+          valeur?: number
+        }
+        Update: {
+          annee?: number
+          valeur?: number
+        }
+        Relationships: []
+      }
+      cerfa_detecteurs: {
+        Row: {
+          created_at: string
+          date_controle: string
+          id: string
+          reference: string
+        }
+        Insert: {
+          created_at?: string
+          date_controle: string
+          id?: string
+          reference: string
+        }
+        Update: {
+          created_at?: string
+          date_controle?: string
+          id?: string
+          reference?: string
+        }
+        Relationships: []
+      }
+      cerfas: {
+        Row: {
+          annee: number
+          chrono: number
+          client_nom: string
+          created_at: string
+          created_by: string | null
+          date_controle: string
+          date_prochain_controle: string | null
+          donnees: Json
+          envoye_a: string
+          envoye_le: string | null
+          equipement_id: string | null
+          equipement_nom: string
+          fiche_no: string
+          id: string
+          n_affaire: string
+          numero: string
+          operateur_nom: string
+          pdf_path: string
+          qte_chargees_maintenance: number | null
+          qte_chargees_neufs: number | null
+          qte_recup_hors_usage: number | null
+          qte_recup_maintenance: number | null
+          signataire_email: string
+          signataire_nom: string
+          signataire_qualite: string
+          site_id: string | null
+          site_nom: string
+        }
+        Insert: {
+          annee: number
+          chrono: number
+          client_nom?: string
+          created_at?: string
+          created_by?: string | null
+          date_controle: string
+          date_prochain_controle?: string | null
+          donnees?: Json
+          envoye_a?: string
+          envoye_le?: string | null
+          equipement_id?: string | null
+          equipement_nom?: string
+          fiche_no: string
+          id?: string
+          n_affaire?: string
+          numero: string
+          operateur_nom?: string
+          pdf_path?: string
+          qte_chargees_maintenance?: number | null
+          qte_chargees_neufs?: number | null
+          qte_recup_hors_usage?: number | null
+          qte_recup_maintenance?: number | null
+          signataire_email?: string
+          signataire_nom?: string
+          signataire_qualite?: string
+          site_id?: string | null
+          site_nom?: string
+        }
+        Update: {
+          annee?: number
+          chrono?: number
+          client_nom?: string
+          created_at?: string
+          created_by?: string | null
+          date_controle?: string
+          date_prochain_controle?: string | null
+          donnees?: Json
+          envoye_a?: string
+          envoye_le?: string | null
+          equipement_id?: string | null
+          equipement_nom?: string
+          fiche_no?: string
+          id?: string
+          n_affaire?: string
+          numero?: string
+          operateur_nom?: string
+          pdf_path?: string
+          qte_chargees_maintenance?: number | null
+          qte_chargees_neufs?: number | null
+          qte_recup_hors_usage?: number | null
+          qte_recup_maintenance?: number | null
+          signataire_email?: string
+          signataire_nom?: string
+          signataire_qualite?: string
+          site_id?: string | null
+          site_nom?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cerfas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cerfas_equipement_id_fkey"
+            columns: ["equipement_id"]
+            isOneToOne: false
+            referencedRelation: "equipements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cerfas_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cerfas_site_id_fkey"
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites_view"
@@ -742,8 +904,8 @@ export type Database = {
           client_nom: string
           commentaire: string
           copies: string[]
-          creneau_ids: string[]
           created_by: string | null
+          creneau_ids: string[]
           date_proposee: string | null
           dates_proposees: Json
           destinataire_email: string
@@ -771,8 +933,8 @@ export type Database = {
           client_nom?: string
           commentaire?: string
           copies?: string[]
-          creneau_ids?: string[]
           created_by?: string | null
+          creneau_ids?: string[]
           date_proposee?: string | null
           dates_proposees?: Json
           destinataire_email: string
@@ -800,8 +962,8 @@ export type Database = {
           client_nom?: string
           commentaire?: string
           copies?: string[]
-          creneau_ids?: string[]
           created_by?: string | null
+          creneau_ids?: string[]
           date_proposee?: string | null
           dates_proposees?: Json
           destinataire_email?: string
@@ -824,11 +986,32 @@ export type Database = {
           token?: string
           traite_le?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "demandes_validation_client_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_validation_client_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_validation_client_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       devis: {
         Row: {
-          facturable_par_bi: string
           annule: boolean
           bi_reference_historique: string
           commande_client: Json
@@ -837,17 +1020,17 @@ export type Database = {
           date_commande_client: string
           date_devis: string
           date_mise_a_disposition_fourniture: string
-          delai_approvisionnement: string
           debours_materiel_prevu: number | null
+          delai_approvisionnement: string
+          ecart_commande_confirme: boolean
           email_responsable_contrat: string
           envoyee_le: string
-          equipements_supplementaires: string[]
-          ecart_commande_confirme: boolean
-          montant_commande: number | null
           equipement_id: string | null
+          equipements_supplementaires: string[]
+          facturable_par_bi: string
           heures_prevues: number | null
-          indice_revision: string
           id: string
+          indice_revision: string
           item: string
           legacy_id: string | null
           libelle: string
@@ -855,10 +1038,11 @@ export type Database = {
           localisation: string
           mois_facturation: string
           montant: number | null
+          montant_commande: number | null
           nature: string
           numero: string
-          redacteur: string
           paves: Json
+          redacteur: string
           reference_client: string
           remarques: string
           remise_type: string
@@ -869,7 +1053,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          facturable_par_bi?: string
           annule?: boolean
           bi_reference_historique?: string
           commande_client?: Json
@@ -878,17 +1061,17 @@ export type Database = {
           date_commande_client?: string
           date_devis?: string
           date_mise_a_disposition_fourniture?: string
-          delai_approvisionnement?: string
           debours_materiel_prevu?: number | null
+          delai_approvisionnement?: string
+          ecart_commande_confirme?: boolean
           email_responsable_contrat?: string
           envoyee_le?: string
-          equipements_supplementaires?: string[]
-          ecart_commande_confirme?: boolean
-          montant_commande?: number | null
           equipement_id?: string | null
+          equipements_supplementaires?: string[]
+          facturable_par_bi?: string
           heures_prevues?: number | null
-          indice_revision?: string
           id?: string
+          indice_revision?: string
           item?: string
           legacy_id?: string | null
           libelle?: string
@@ -896,10 +1079,11 @@ export type Database = {
           localisation?: string
           mois_facturation?: string
           montant?: number | null
+          montant_commande?: number | null
           nature?: string
           numero?: string
-          redacteur?: string
           paves?: Json
+          redacteur?: string
           reference_client?: string
           remarques?: string
           remise_type?: string
@@ -910,7 +1094,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          facturable_par_bi?: string
           annule?: boolean
           bi_reference_historique?: string
           commande_client?: Json
@@ -919,17 +1102,17 @@ export type Database = {
           date_commande_client?: string
           date_devis?: string
           date_mise_a_disposition_fourniture?: string
-          delai_approvisionnement?: string
           debours_materiel_prevu?: number | null
+          delai_approvisionnement?: string
+          ecart_commande_confirme?: boolean
           email_responsable_contrat?: string
           envoyee_le?: string
-          equipements_supplementaires?: string[]
-          ecart_commande_confirme?: boolean
-          montant_commande?: number | null
           equipement_id?: string | null
+          equipements_supplementaires?: string[]
+          facturable_par_bi?: string
           heures_prevues?: number | null
-          indice_revision?: string
           id?: string
+          indice_revision?: string
           item?: string
           legacy_id?: string | null
           libelle?: string
@@ -937,10 +1120,11 @@ export type Database = {
           localisation?: string
           mois_facturation?: string
           montant?: number | null
+          montant_commande?: number | null
           nature?: string
           numero?: string
-          redacteur?: string
           paves?: Json
+          redacteur?: string
           reference_client?: string
           remarques?: string
           remise_type?: string
@@ -1014,7 +1198,6 @@ export type Database = {
       }
       equipements: {
         Row: {
-          remarques_techniciens: string
           a_valider: boolean
           champs_en_tete: Json
           code_qr: string
@@ -1028,12 +1211,12 @@ export type Database = {
           nom: string
           numero_equipement: string
           remarque_technicien: string
+          remarques_techniciens: string
           site_id: string
           type_equipement_id: string
           updated_at: string
         }
         Insert: {
-          remarques_techniciens?: string
           a_valider?: boolean
           champs_en_tete?: Json
           code_qr?: string
@@ -1047,12 +1230,12 @@ export type Database = {
           nom?: string
           numero_equipement?: string
           remarque_technicien?: string
+          remarques_techniciens?: string
           site_id: string
           type_equipement_id: string
           updated_at?: string
         }
         Update: {
-          remarques_techniciens?: string
           a_valider?: boolean
           champs_en_tete?: Json
           code_qr?: string
@@ -1066,6 +1249,7 @@ export type Database = {
           nom?: string
           numero_equipement?: string
           remarque_technicien?: string
+          remarques_techniciens?: string
           site_id?: string
           type_equipement_id?: string
           updated_at?: string
@@ -1448,6 +1632,7 @@ export type Database = {
       }
       releves: {
         Row: {
+          bon_intervention_id: string | null
           checklist_values: Json
           created_at: string
           date: string
@@ -1462,12 +1647,12 @@ export type Database = {
           remarque2: string
           site_id: string
           validation_fonctionnement: string | null
-          bon_intervention_id: string | null
           visite_annee: number | null
           visite_numero: number | null
           visite_total: number | null
         }
         Insert: {
+          bon_intervention_id?: string | null
           checklist_values?: Json
           created_at?: string
           date?: string
@@ -1482,12 +1667,12 @@ export type Database = {
           remarque2?: string
           site_id: string
           validation_fonctionnement?: string | null
-          bon_intervention_id?: string | null
           visite_annee?: number | null
           visite_numero?: number | null
           visite_total?: number | null
         }
         Update: {
+          bon_intervention_id?: string | null
           checklist_values?: Json
           created_at?: string
           date?: string
@@ -1502,12 +1687,18 @@ export type Database = {
           remarque2?: string
           site_id?: string
           validation_fonctionnement?: string | null
-          bon_intervention_id?: string | null
           visite_annee?: number | null
           visite_numero?: number | null
           visite_total?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "releves_bon_intervention_id_fkey"
+            columns: ["bon_intervention_id"]
+            isOneToOne: false
+            referencedRelation: "bons_intervention"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "releves_equipement_id_fkey"
             columns: ["equipement_id"]
@@ -1527,6 +1718,291 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_absences_admin: {
+        Row: {
+          created_at: string
+          date_debut: string
+          date_fin: string
+          id: string
+          motif_id: string
+          observations: string
+          salarie_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_debut: string
+          date_fin: string
+          id?: string
+          motif_id: string
+          observations?: string
+          salarie_id: string
+        }
+        Update: {
+          created_at?: string
+          date_debut?: string
+          date_fin?: string
+          id?: string
+          motif_id?: string
+          observations?: string
+          salarie_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_absences_admin_motif_id_fkey"
+            columns: ["motif_id"]
+            isOneToOne: false
+            referencedRelation: "rh_motifs_absence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_absences_admin_salarie_id_fkey"
+            columns: ["salarie_id"]
+            isOneToOne: false
+            referencedRelation: "rh_salaries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_bareme_communes: {
+        Row: {
+          code_postal: string
+          commune: string
+          created_at: string
+          date_valeur: string | null
+          id: string
+          prime_trajet: number
+          prime_transport: number
+          updated_at: string
+        }
+        Insert: {
+          code_postal?: string
+          commune: string
+          created_at?: string
+          date_valeur?: string | null
+          id?: string
+          prime_trajet?: number
+          prime_transport?: number
+          updated_at?: string
+        }
+        Update: {
+          code_postal?: string
+          commune?: string
+          created_at?: string
+          date_valeur?: string | null
+          id?: string
+          prime_trajet?: number
+          prime_transport?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rh_clotures: {
+        Row: {
+          cloture_le: string
+          cloture_par: string
+          date_arrete: string | null
+          etat: Json | null
+          lignes: Json
+          mois: string
+        }
+        Insert: {
+          cloture_le?: string
+          cloture_par?: string
+          date_arrete?: string | null
+          etat?: Json | null
+          lignes?: Json
+          mois: string
+        }
+        Update: {
+          cloture_le?: string
+          cloture_par?: string
+          date_arrete?: string | null
+          etat?: Json | null
+          lignes?: Json
+          mois?: string
+        }
+        Relationships: []
+      }
+      rh_etats_preparatoires: {
+        Row: {
+          date_arrete: string | null
+          mois: string
+          observations: Json
+          updated_at: string
+        }
+        Insert: {
+          date_arrete?: string | null
+          mois: string
+          observations?: Json
+          updated_at?: string
+        }
+        Update: {
+          date_arrete?: string | null
+          mois?: string
+          observations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rh_motifs_absence: {
+        Row: {
+          code_paie: string
+          created_at: string
+          exclu_comptage_heures: boolean
+          exclu_panier: boolean
+          id: string
+          motif: string
+          ordre: number
+          poste_hors_client_id: string | null
+        }
+        Insert: {
+          code_paie?: string
+          created_at?: string
+          exclu_comptage_heures?: boolean
+          exclu_panier?: boolean
+          id?: string
+          motif: string
+          ordre?: number
+          poste_hors_client_id?: string | null
+        }
+        Update: {
+          code_paie?: string
+          created_at?: string
+          exclu_comptage_heures?: boolean
+          exclu_panier?: boolean
+          id?: string
+          motif?: string
+          ordre?: number
+          poste_hors_client_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_motifs_absence_poste_hors_client_id_fkey"
+            columns: ["poste_hors_client_id"]
+            isOneToOne: false
+            referencedRelation: "postes_hors_client"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_parametres: {
+        Row: {
+          duree_legale_hebdo: number
+          horaire_jeudi: number
+          horaire_lundi: number
+          horaire_mardi: number
+          horaire_mercredi: number
+          horaire_vendredi: number
+          id: number
+          jour_arrete: number
+          panier_montant: number
+          panier_seuil_heures: number
+          plafond_hs25_hebdo: number
+          updated_at: string
+        }
+        Insert: {
+          duree_legale_hebdo?: number
+          horaire_jeudi?: number
+          horaire_lundi?: number
+          horaire_mardi?: number
+          horaire_mercredi?: number
+          horaire_vendredi?: number
+          id?: number
+          jour_arrete?: number
+          panier_montant?: number
+          panier_seuil_heures?: number
+          plafond_hs25_hebdo?: number
+          updated_at?: string
+        }
+        Update: {
+          duree_legale_hebdo?: number
+          horaire_jeudi?: number
+          horaire_lundi?: number
+          horaire_mardi?: number
+          horaire_mercredi?: number
+          horaire_vendredi?: number
+          id?: number
+          jour_arrete?: number
+          panier_montant?: number
+          panier_seuil_heures?: number
+          plafond_hs25_hebdo?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rh_pointage_ajustements: {
+        Row: {
+          date: string
+          observations: string
+          profile_id: string
+          updated_at: string
+          vehicule_personnel: boolean
+        }
+        Insert: {
+          date: string
+          observations?: string
+          profile_id: string
+          updated_at?: string
+          vehicule_personnel?: boolean
+        }
+        Update: {
+          date?: string
+          observations?: string
+          profile_id?: string
+          updated_at?: string
+          vehicule_personnel?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_pointage_ajustements_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_salaries: {
+        Row: {
+          actif: boolean
+          categorie: string
+          created_at: string
+          id: string
+          nom_paie: string
+          profile_id: string | null
+          sans_indemnites: boolean
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          categorie?: string
+          created_at?: string
+          id?: string
+          nom_paie: string
+          profile_id?: string | null
+          sans_indemnites?: boolean
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          categorie?: string
+          created_at?: string
+          id?: string
+          nom_paie?: string
+          profile_id?: string | null
+          sans_indemnites?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_salaries_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1613,278 +2089,21 @@ export type Database = {
           },
         ]
       }
-      rh_absences_admin: {
-        Row: {
-          created_at: string
-          date_debut: string
-          date_fin: string
-          id: string
-          motif_id: string
-          observations: string
-          salarie_id: string
-        }
-        Insert: {
-          created_at?: string
-          date_debut: string
-          date_fin: string
-          id?: string
-          motif_id: string
-          observations?: string
-          salarie_id: string
-        }
-        Update: {
-          created_at?: string
-          date_debut?: string
-          date_fin?: string
-          id?: string
-          motif_id?: string
-          observations?: string
-          salarie_id?: string
-        }
-        Relationships: []
-      }
-      rh_clotures: {
-        Row: {
-          date_arrete: string | null
-          etat: Json | null
-          cloture_le: string
-          cloture_par: string
-          lignes: Json
-          mois: string
-        }
-        Insert: {
-          date_arrete?: string | null
-          etat?: Json | null
-          cloture_le?: string
-          cloture_par?: string
-          lignes?: Json
-          mois: string
-        }
-        Update: {
-          date_arrete?: string | null
-          etat?: Json | null
-          cloture_le?: string
-          cloture_par?: string
-          lignes?: Json
-          mois?: string
-        }
-        Relationships: []
-      }
-      rh_pointage_ajustements: {
-        Row: {
-          date: string
-          observations: string
-          profile_id: string
-          updated_at: string
-          vehicule_personnel: boolean
-        }
-        Insert: {
-          date: string
-          observations?: string
-          profile_id: string
-          updated_at?: string
-          vehicule_personnel?: boolean
-        }
-        Update: {
-          date?: string
-          observations?: string
-          profile_id?: string
-          updated_at?: string
-          vehicule_personnel?: boolean
-        }
-        Relationships: []
-      }
-      rh_bareme_communes: {
-        Row: {
-          code_postal: string
-          commune: string
-          created_at: string
-          date_valeur: string | null
-          id: string
-          prime_transport: number
-          prime_trajet: number
-          updated_at: string
-        }
-        Insert: {
-          code_postal?: string
-          commune: string
-          created_at?: string
-          date_valeur?: string | null
-          id?: string
-          prime_transport?: number
-          prime_trajet?: number
-          updated_at?: string
-        }
-        Update: {
-          code_postal?: string
-          commune?: string
-          created_at?: string
-          date_valeur?: string | null
-          id?: string
-          prime_transport?: number
-          prime_trajet?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      rh_etats_preparatoires: {
-        Row: {
-          date_arrete: string | null
-          mois: string
-          observations: Json
-          updated_at: string
-        }
-        Insert: {
-          date_arrete?: string | null
-          mois: string
-          observations?: Json
-          updated_at?: string
-        }
-        Update: {
-          date_arrete?: string | null
-          mois?: string
-          observations?: Json
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      rh_motifs_absence: {
-        Row: {
-          code_paie: string
-          created_at: string
-          exclu_comptage_heures: boolean
-          exclu_panier: boolean
-          id: string
-          motif: string
-          ordre: number
-          poste_hors_client_id: string | null
-        }
-        Insert: {
-          code_paie?: string
-          created_at?: string
-          exclu_comptage_heures?: boolean
-          exclu_panier?: boolean
-          id?: string
-          motif: string
-          ordre?: number
-          poste_hors_client_id?: string | null
-        }
-        Update: {
-          code_paie?: string
-          created_at?: string
-          exclu_comptage_heures?: boolean
-          exclu_panier?: boolean
-          id?: string
-          motif?: string
-          ordre?: number
-          poste_hors_client_id?: string | null
-        }
-        Relationships: []
-      }
-      rh_parametres: {
-        Row: {
-          jour_arrete: number
-          duree_legale_hebdo: number
-          horaire_jeudi: number
-          horaire_lundi: number
-          horaire_mardi: number
-          horaire_mercredi: number
-          horaire_vendredi: number
-          id: number
-          panier_montant: number
-          panier_seuil_heures: number
-          plafond_hs25_hebdo: number
-          updated_at: string
-        }
-        Insert: {
-          jour_arrete?: number
-          duree_legale_hebdo?: number
-          horaire_jeudi?: number
-          horaire_lundi?: number
-          horaire_mardi?: number
-          horaire_mercredi?: number
-          horaire_vendredi?: number
-          id?: number
-          panier_montant?: number
-          panier_seuil_heures?: number
-          plafond_hs25_hebdo?: number
-          updated_at?: string
-        }
-        Update: {
-          jour_arrete?: number
-          duree_legale_hebdo?: number
-          horaire_jeudi?: number
-          horaire_lundi?: number
-          horaire_mardi?: number
-          horaire_mercredi?: number
-          horaire_vendredi?: number
-          id?: number
-          panier_montant?: number
-          panier_seuil_heures?: number
-          plafond_hs25_hebdo?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      rh_salaries: {
-        Row: {
-          sans_indemnites: boolean
-          actif: boolean
-          categorie: string
-          created_at: string
-          id: string
-          nom_paie: string
-          profile_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          sans_indemnites?: boolean
-          actif?: boolean
-          categorie?: string
-          created_at?: string
-          id?: string
-          nom_paie: string
-          profile_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          sans_indemnites?: boolean
-          actif?: boolean
-          categorie?: string
-          created_at?: string
-          id?: string
-          nom_paie?: string
-          profile_id?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       sites: {
         Row: {
           adresse: string
           adresse_facturation: string
           code_postal: string
           code_postal_facturation: string
-          conditions_paiement: string
-          siret: string
-          tva_intracom: string
           commune: string
           commune_facturation: string
           complement_adresse: string
           complement_adresse_facturation: string
+          conditions_paiement: string
           courriel_interlocuteur_facturation: string
           courriel_interlocuteur_site: string
-          interlocuteur_site_2: string
-          tel_fixe_interlocuteur_site_2: string
-          portable_interlocuteur_site_2: string
           courriel_interlocuteur_site_2: string
-          interlocuteur_site_3: string
-          tel_fixe_interlocuteur_site_3: string
-          portable_interlocuteur_site_3: string
           courriel_interlocuteur_site_3: string
-          interlocuteur_site_4: string
-          tel_fixe_interlocuteur_site_4: string
-          portable_interlocuteur_site_4: string
           courriel_interlocuteur_site_4: string
           courriel_responsable: string
           courriel_tiers: string
@@ -1911,6 +2130,9 @@ export type Database = {
           id: string
           interlocuteur_facturation: string
           interlocuteur_site: string
+          interlocuteur_site_2: string
+          interlocuteur_site_3: string
+          interlocuteur_site_4: string
           interlocuteur_tiers: string
           jour_acces: string
           legacy_id: string | null
@@ -1924,21 +2146,33 @@ export type Database = {
           nom: string
           portable_interlocuteur_facturation: string
           portable_interlocuteur_site: string
+          portable_interlocuteur_site_2: string
+          portable_interlocuteur_site_3: string
+          portable_interlocuteur_site_4: string
           portable_responsable: string
           portable_tiers: string
           qte_heures_programmees: string
           qte_heures_restantes: string
+          qualite_interlocuteur_site: string
+          qualite_interlocuteur_site_2: string
+          qualite_interlocuteur_site_3: string
+          qualite_interlocuteur_site_4: string
           reference_offre_ogs: string
           remarques_libres: string
           responsable_contrat: string
+          siret: string
           site: string
           taux_horaire_regie: string
           taux_horaire_revise: string
           taux_horaire_vendu: string
           tel_fixe_interlocuteur_facturation: string
           tel_fixe_interlocuteur_site: string
+          tel_fixe_interlocuteur_site_2: string
+          tel_fixe_interlocuteur_site_3: string
+          tel_fixe_interlocuteur_site_4: string
           tel_fixe_responsable: string
           tel_fixe_tiers: string
+          tva_intracom: string
           updated_at: string
           valeur_indice_ch: string
           valeur_indice_ch_prime: string
@@ -1950,26 +2184,15 @@ export type Database = {
           adresse_facturation?: string
           code_postal?: string
           code_postal_facturation?: string
-          conditions_paiement?: string
-          siret?: string
-          tva_intracom?: string
           commune?: string
           commune_facturation?: string
           complement_adresse?: string
           complement_adresse_facturation?: string
+          conditions_paiement?: string
           courriel_interlocuteur_facturation?: string
           courriel_interlocuteur_site?: string
-          interlocuteur_site_2?: string
-          tel_fixe_interlocuteur_site_2?: string
-          portable_interlocuteur_site_2?: string
           courriel_interlocuteur_site_2?: string
-          interlocuteur_site_3?: string
-          tel_fixe_interlocuteur_site_3?: string
-          portable_interlocuteur_site_3?: string
           courriel_interlocuteur_site_3?: string
-          interlocuteur_site_4?: string
-          tel_fixe_interlocuteur_site_4?: string
-          portable_interlocuteur_site_4?: string
           courriel_interlocuteur_site_4?: string
           courriel_responsable?: string
           courriel_tiers?: string
@@ -1996,6 +2219,9 @@ export type Database = {
           id?: string
           interlocuteur_facturation?: string
           interlocuteur_site?: string
+          interlocuteur_site_2?: string
+          interlocuteur_site_3?: string
+          interlocuteur_site_4?: string
           interlocuteur_tiers?: string
           jour_acces?: string
           legacy_id?: string | null
@@ -2009,21 +2235,33 @@ export type Database = {
           nom?: string
           portable_interlocuteur_facturation?: string
           portable_interlocuteur_site?: string
+          portable_interlocuteur_site_2?: string
+          portable_interlocuteur_site_3?: string
+          portable_interlocuteur_site_4?: string
           portable_responsable?: string
           portable_tiers?: string
           qte_heures_programmees?: string
           qte_heures_restantes?: string
+          qualite_interlocuteur_site?: string
+          qualite_interlocuteur_site_2?: string
+          qualite_interlocuteur_site_3?: string
+          qualite_interlocuteur_site_4?: string
           reference_offre_ogs?: string
           remarques_libres?: string
           responsable_contrat?: string
+          siret?: string
           site?: string
           taux_horaire_regie?: string
           taux_horaire_revise?: string
           taux_horaire_vendu?: string
           tel_fixe_interlocuteur_facturation?: string
           tel_fixe_interlocuteur_site?: string
+          tel_fixe_interlocuteur_site_2?: string
+          tel_fixe_interlocuteur_site_3?: string
+          tel_fixe_interlocuteur_site_4?: string
           tel_fixe_responsable?: string
           tel_fixe_tiers?: string
+          tva_intracom?: string
           updated_at?: string
           valeur_indice_ch?: string
           valeur_indice_ch_prime?: string
@@ -2035,26 +2273,15 @@ export type Database = {
           adresse_facturation?: string
           code_postal?: string
           code_postal_facturation?: string
-          conditions_paiement?: string
-          siret?: string
-          tva_intracom?: string
           commune?: string
           commune_facturation?: string
           complement_adresse?: string
           complement_adresse_facturation?: string
+          conditions_paiement?: string
           courriel_interlocuteur_facturation?: string
           courriel_interlocuteur_site?: string
-          interlocuteur_site_2?: string
-          tel_fixe_interlocuteur_site_2?: string
-          portable_interlocuteur_site_2?: string
           courriel_interlocuteur_site_2?: string
-          interlocuteur_site_3?: string
-          tel_fixe_interlocuteur_site_3?: string
-          portable_interlocuteur_site_3?: string
           courriel_interlocuteur_site_3?: string
-          interlocuteur_site_4?: string
-          tel_fixe_interlocuteur_site_4?: string
-          portable_interlocuteur_site_4?: string
           courriel_interlocuteur_site_4?: string
           courriel_responsable?: string
           courriel_tiers?: string
@@ -2081,6 +2308,9 @@ export type Database = {
           id?: string
           interlocuteur_facturation?: string
           interlocuteur_site?: string
+          interlocuteur_site_2?: string
+          interlocuteur_site_3?: string
+          interlocuteur_site_4?: string
           interlocuteur_tiers?: string
           jour_acces?: string
           legacy_id?: string | null
@@ -2094,21 +2324,33 @@ export type Database = {
           nom?: string
           portable_interlocuteur_facturation?: string
           portable_interlocuteur_site?: string
+          portable_interlocuteur_site_2?: string
+          portable_interlocuteur_site_3?: string
+          portable_interlocuteur_site_4?: string
           portable_responsable?: string
           portable_tiers?: string
           qte_heures_programmees?: string
           qte_heures_restantes?: string
+          qualite_interlocuteur_site?: string
+          qualite_interlocuteur_site_2?: string
+          qualite_interlocuteur_site_3?: string
+          qualite_interlocuteur_site_4?: string
           reference_offre_ogs?: string
           remarques_libres?: string
           responsable_contrat?: string
+          siret?: string
           site?: string
           taux_horaire_regie?: string
           taux_horaire_revise?: string
           taux_horaire_vendu?: string
           tel_fixe_interlocuteur_facturation?: string
           tel_fixe_interlocuteur_site?: string
+          tel_fixe_interlocuteur_site_2?: string
+          tel_fixe_interlocuteur_site_3?: string
+          tel_fixe_interlocuteur_site_4?: string
           tel_fixe_responsable?: string
           tel_fixe_tiers?: string
+          tva_intracom?: string
           updated_at?: string
           valeur_indice_ch?: string
           valeur_indice_ch_prime?: string
@@ -2158,39 +2400,68 @@ export type Database = {
       }
       visites_entretien: {
         Row: {
+          annee: number
           bon_intervention_id: string
           created_at: string
           date: string
           equipement_id: string
           id: string
           site_id: string
-          annee: number
           visite_numero: number
           visite_total: number
         }
         Insert: {
+          annee: number
           bon_intervention_id: string
           created_at?: string
           date: string
           equipement_id: string
           id?: string
           site_id: string
-          annee: number
           visite_numero: number
           visite_total: number
         }
         Update: {
+          annee?: number
           bon_intervention_id?: string
           created_at?: string
           date?: string
           equipement_id?: string
           id?: string
           site_id?: string
-          annee?: number
           visite_numero?: number
           visite_total?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "visites_entretien_bon_intervention_id_fkey"
+            columns: ["bon_intervention_id"]
+            isOneToOne: false
+            referencedRelation: "bons_intervention"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visites_entretien_equipement_id_fkey"
+            columns: ["equipement_id"]
+            isOneToOne: false
+            referencedRelation: "equipements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visites_entretien_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visites_entretien_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -2200,26 +2471,15 @@ export type Database = {
           adresse_facturation: string | null
           code_postal: string | null
           code_postal_facturation: string | null
-          conditions_paiement: string | null
-          siret: string | null
-          tva_intracom: string | null
           commune: string | null
           commune_facturation: string | null
           complement_adresse: string | null
           complement_adresse_facturation: string | null
+          conditions_paiement: string | null
           courriel_interlocuteur_facturation: string | null
           courriel_interlocuteur_site: string | null
-          interlocuteur_site_2: string | null
-          tel_fixe_interlocuteur_site_2: string | null
-          portable_interlocuteur_site_2: string | null
           courriel_interlocuteur_site_2: string | null
-          interlocuteur_site_3: string | null
-          tel_fixe_interlocuteur_site_3: string | null
-          portable_interlocuteur_site_3: string | null
           courriel_interlocuteur_site_3: string | null
-          interlocuteur_site_4: string | null
-          tel_fixe_interlocuteur_site_4: string | null
-          portable_interlocuteur_site_4: string | null
           courriel_interlocuteur_site_4: string | null
           courriel_responsable: string | null
           courriel_tiers: string | null
@@ -2247,6 +2507,9 @@ export type Database = {
           id: string | null
           interlocuteur_facturation: string | null
           interlocuteur_site: string | null
+          interlocuteur_site_2: string | null
+          interlocuteur_site_3: string | null
+          interlocuteur_site_4: string | null
           interlocuteur_tiers: string | null
           jour_acces: string | null
           legacy_id: string | null
@@ -2260,21 +2523,33 @@ export type Database = {
           nom: string | null
           portable_interlocuteur_facturation: string | null
           portable_interlocuteur_site: string | null
+          portable_interlocuteur_site_2: string | null
+          portable_interlocuteur_site_3: string | null
+          portable_interlocuteur_site_4: string | null
           portable_responsable: string | null
           portable_tiers: string | null
           qte_heures_programmees: string | null
           qte_heures_restantes: string | null
+          qualite_interlocuteur_site: string | null
+          qualite_interlocuteur_site_2: string | null
+          qualite_interlocuteur_site_3: string | null
+          qualite_interlocuteur_site_4: string | null
           reference_offre_ogs: string | null
           remarques_libres: string | null
           responsable_contrat: string | null
+          siret: string | null
           site: string | null
           taux_horaire_regie: string | null
           taux_horaire_revise: string | null
           taux_horaire_vendu: string | null
           tel_fixe_interlocuteur_facturation: string | null
           tel_fixe_interlocuteur_site: string | null
+          tel_fixe_interlocuteur_site_2: string | null
+          tel_fixe_interlocuteur_site_3: string | null
+          tel_fixe_interlocuteur_site_4: string | null
           tel_fixe_responsable: string | null
           tel_fixe_tiers: string | null
+          tva_intracom: string | null
           updated_at: string | null
           valeur_indice_ch: string | null
           valeur_indice_ch_prime: string | null
@@ -2286,26 +2561,15 @@ export type Database = {
           adresse_facturation?: string | null
           code_postal?: string | null
           code_postal_facturation?: string | null
-          conditions_paiement?: string | null
-          siret?: string | null
-          tva_intracom?: string | null
           commune?: string | null
           commune_facturation?: string | null
           complement_adresse?: string | null
           complement_adresse_facturation?: string | null
+          conditions_paiement?: string | null
           courriel_interlocuteur_facturation?: string | null
           courriel_interlocuteur_site?: string | null
-          interlocuteur_site_2?: string | null
-          tel_fixe_interlocuteur_site_2?: string | null
-          portable_interlocuteur_site_2?: string | null
           courriel_interlocuteur_site_2?: string | null
-          interlocuteur_site_3?: string | null
-          tel_fixe_interlocuteur_site_3?: string | null
-          portable_interlocuteur_site_3?: string | null
           courriel_interlocuteur_site_3?: string | null
-          interlocuteur_site_4?: string | null
-          tel_fixe_interlocuteur_site_4?: string | null
-          portable_interlocuteur_site_4?: string | null
           courriel_interlocuteur_site_4?: string | null
           courriel_responsable?: string | null
           courriel_tiers?: string | null
@@ -2333,6 +2597,9 @@ export type Database = {
           id?: string | null
           interlocuteur_facturation?: string | null
           interlocuteur_site?: string | null
+          interlocuteur_site_2?: string | null
+          interlocuteur_site_3?: string | null
+          interlocuteur_site_4?: string | null
           interlocuteur_tiers?: string | null
           jour_acces?: string | null
           legacy_id?: string | null
@@ -2346,21 +2613,33 @@ export type Database = {
           nom?: string | null
           portable_interlocuteur_facturation?: string | null
           portable_interlocuteur_site?: string | null
+          portable_interlocuteur_site_2?: string | null
+          portable_interlocuteur_site_3?: string | null
+          portable_interlocuteur_site_4?: string | null
           portable_responsable?: string | null
           portable_tiers?: string | null
           qte_heures_programmees?: string | null
           qte_heures_restantes?: string | null
+          qualite_interlocuteur_site?: string | null
+          qualite_interlocuteur_site_2?: string | null
+          qualite_interlocuteur_site_3?: string | null
+          qualite_interlocuteur_site_4?: string | null
           reference_offre_ogs?: string | null
           remarques_libres?: string | null
           responsable_contrat?: string | null
+          siret?: string | null
           site?: string | null
           taux_horaire_regie?: string | null
           taux_horaire_revise?: string | null
           taux_horaire_vendu?: string | null
           tel_fixe_interlocuteur_facturation?: string | null
           tel_fixe_interlocuteur_site?: string | null
+          tel_fixe_interlocuteur_site_2?: string | null
+          tel_fixe_interlocuteur_site_3?: string | null
+          tel_fixe_interlocuteur_site_4?: string | null
           tel_fixe_responsable?: string | null
           tel_fixe_tiers?: string | null
+          tva_intracom?: string | null
           updated_at?: string | null
           valeur_indice_ch?: string | null
           valeur_indice_ch_prime?: string | null
@@ -2372,26 +2651,15 @@ export type Database = {
           adresse_facturation?: string | null
           code_postal?: string | null
           code_postal_facturation?: string | null
-          conditions_paiement?: string | null
-          siret?: string | null
-          tva_intracom?: string | null
           commune?: string | null
           commune_facturation?: string | null
           complement_adresse?: string | null
           complement_adresse_facturation?: string | null
+          conditions_paiement?: string | null
           courriel_interlocuteur_facturation?: string | null
           courriel_interlocuteur_site?: string | null
-          interlocuteur_site_2?: string | null
-          tel_fixe_interlocuteur_site_2?: string | null
-          portable_interlocuteur_site_2?: string | null
           courriel_interlocuteur_site_2?: string | null
-          interlocuteur_site_3?: string | null
-          tel_fixe_interlocuteur_site_3?: string | null
-          portable_interlocuteur_site_3?: string | null
           courriel_interlocuteur_site_3?: string | null
-          interlocuteur_site_4?: string | null
-          tel_fixe_interlocuteur_site_4?: string | null
-          portable_interlocuteur_site_4?: string | null
           courriel_interlocuteur_site_4?: string | null
           courriel_responsable?: string | null
           courriel_tiers?: string | null
@@ -2419,6 +2687,9 @@ export type Database = {
           id?: string | null
           interlocuteur_facturation?: string | null
           interlocuteur_site?: string | null
+          interlocuteur_site_2?: string | null
+          interlocuteur_site_3?: string | null
+          interlocuteur_site_4?: string | null
           interlocuteur_tiers?: string | null
           jour_acces?: string | null
           legacy_id?: string | null
@@ -2432,21 +2703,33 @@ export type Database = {
           nom?: string | null
           portable_interlocuteur_facturation?: string | null
           portable_interlocuteur_site?: string | null
+          portable_interlocuteur_site_2?: string | null
+          portable_interlocuteur_site_3?: string | null
+          portable_interlocuteur_site_4?: string | null
           portable_responsable?: string | null
           portable_tiers?: string | null
           qte_heures_programmees?: string | null
           qte_heures_restantes?: string | null
+          qualite_interlocuteur_site?: string | null
+          qualite_interlocuteur_site_2?: string | null
+          qualite_interlocuteur_site_3?: string | null
+          qualite_interlocuteur_site_4?: string | null
           reference_offre_ogs?: string | null
           remarques_libres?: string | null
           responsable_contrat?: string | null
+          siret?: string | null
           site?: string | null
           taux_horaire_regie?: string | null
           taux_horaire_revise?: string | null
           taux_horaire_vendu?: string | null
           tel_fixe_interlocuteur_facturation?: string | null
           tel_fixe_interlocuteur_site?: string | null
+          tel_fixe_interlocuteur_site_2?: string | null
+          tel_fixe_interlocuteur_site_3?: string | null
+          tel_fixe_interlocuteur_site_4?: string | null
           tel_fixe_responsable?: string | null
           tel_fixe_tiers?: string | null
+          tva_intracom?: string | null
           updated_at?: string | null
           valeur_indice_ch?: string | null
           valeur_indice_ch_prime?: string | null
@@ -2461,6 +2744,16 @@ export type Database = {
         Args: { p_marque: string; p_type_id: string }
         Returns: undefined
       }
+      cerfa_ajouter_signataire: {
+        Args: {
+          p_email: string
+          p_nom: string
+          p_qualite: string
+          p_site: string
+        }
+        Returns: number
+      }
+      cerfa_prochain_chrono: { Args: { p_annee: number }; Returns: number }
       est_technicien_du_creneau: {
         Args: { p_creneau_id: string }
         Returns: boolean

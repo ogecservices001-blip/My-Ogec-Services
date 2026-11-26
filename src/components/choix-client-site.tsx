@@ -1,9 +1,21 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ListeRecherche, type OptionRecherche } from "./liste-recherche";
+import { chargerNumerosSites, type NumeroSite } from "./numeros-sites-action";
 
-export type SiteChoisissable = { id: string; nom: string; site: string };
+let numerosEnCache: Promise<NumeroSite[]> | null = null;
+function numerosSites(): Promise<NumeroSite[]> {
+  numerosEnCache ??= chargerNumerosSites().catch(() => {
+    numerosEnCache = null;
+    return [];
+  });
+  return numerosEnCache;
+}
+
+/// n_affaire (« 401-04 ») : facultatif, permet de chercher un client par son
+/// n° (« 401 ») et un site par son n° d'affaire.
+export type SiteChoisissable = { id: string; nom: string; site: string; n_affaire?: string };
 
 const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
 
@@ -11,7 +23,7 @@ const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
 /// les sites (et prend le site d'office s'il est seul) ; on peut aussi
 /// commencer par le site, le client se remplit alors tout seul.
 export function ChoixClientSite({
-  sites,
+  sites: sitesRecus,
   clientNom,
   siteId,
   onChange,
@@ -29,12 +41,41 @@ export function ChoixClientSite({
   disabled?: boolean;
   obligatoire?: boolean;
 }) {
+  /// Les listes qui ne connaissent que les noms (BI, devis, dépannages…) ne
+  /// fournissent pas le n° d'affaire : il est retrouvé par l'id du site,
+  /// sinon par le couple client + site.
+  const [numeros, setNumeros] = useState<NumeroSite[] | null>(null);
+  const manquants = sitesRecus.some((s) => !s.n_affaire);
+  useEffect(() => {
+    if (!manquants) return;
+    let actif = true;
+    numerosSites().then((n) => actif && setNumeros(n));
+    return () => {
+      actif = false;
+    };
+  }, [manquants]);
+  const sites = useMemo(() => {
+    if (!numeros) return sitesRecus;
+    const parId = new Map(numeros.map((n) => [n.id, n.n_affaire]));
+    const parNom = new Map(numeros.map((n) => [`${n.nom}|${n.site}`, n.n_affaire]));
+    return sitesRecus.map((s) => (s.n_affaire ? s : { ...s, n_affaire: parId.get(s.id) ?? parNom.get(`${s.nom}|${s.site}`) ?? "" }));
+  }, [sitesRecus, numeros]);
+
   const optionsClients: OptionRecherche[] = useMemo(() => {
-    const comptes = new Map<string, number>();
-    for (const s of sites) comptes.set(s.nom, (comptes.get(s.nom) ?? 0) + 1);
+    const comptes = new Map<string, { n: number; numeros: Set<string> }>();
+    for (const s of sites) {
+      const c = comptes.get(s.nom) ?? { n: 0, numeros: new Set<string>() };
+      c.n += 1;
+      const numero = (s.n_affaire ?? "").split("-")[0].trim();
+      if (numero) c.numeros.add(numero);
+      comptes.set(s.nom, c);
+    }
     return [...comptes.entries()]
       .sort((a, b) => a[0].localeCompare(b[0], "fr"))
-      .map(([nom, n]) => ({ valeur: nom, label: nom, detail: n > 1 ? `${n} sites` : undefined }));
+      .map(([nom, { n, numeros }]) => {
+        const detail = [[...numeros].sort().join(", "), n > 1 ? `${n} sites` : ""].filter(Boolean).join(" — ");
+        return { valeur: nom, label: nom, detail: detail || undefined };
+      });
   }, [sites]);
 
   const optionsSites: OptionRecherche[] = useMemo(
@@ -45,7 +86,7 @@ export function ChoixClientSite({
         .map((s) => ({
           valeur: s.id,
           label: s.site || "Site sans nom",
-          detail: clientNom ? undefined : s.nom,
+          detail: [s.n_affaire, clientNom ? "" : s.nom].filter(Boolean).join(" — ") || undefined,
         })),
     [sites, clientNom],
   );

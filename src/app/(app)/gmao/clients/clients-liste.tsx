@@ -14,11 +14,13 @@ export type LigneSiteGmao = {
   id: string;
   nom: string;
   site: string;
+  n_affaire: string;
   adresse: string;
   complement_adresse: string;
   code_postal: string;
   commune: string;
-  heures: HeuresAnnee;
+  /// Absent pour les techniciens : les heures ne leur sont pas montrées.
+  heures: HeuresAnnee | null;
 };
 
 const COLONNES: ColonneTableur[] = [
@@ -28,6 +30,9 @@ const COLONNES: ColonneTableur[] = [
   { titre: "Commune" },
   { titre: "Adresse" },
   { titre: "Complément" },
+];
+
+const COLONNES_HEURES: ColonneTableur[] = [
   { titre: "Heures Tech", largeur: "110px", droite: true },
   { titre: "Heures Assistant", largeur: "140px", droite: true },
 ];
@@ -47,7 +52,7 @@ export function GmaoClientsListe({
 }) {
   const router = useRouter();
   const [clientChoisi, setClientChoisi] = useState("");
-  const sitesChoix = useMemo(() => lignes.map((l) => ({ id: l.id, nom: l.nom, site: l.site })), [lignes]);
+  const sitesChoix = useMemo(() => lignes.map((l) => ({ id: l.id, nom: l.nom, site: l.site, n_affaire: l.n_affaire })), [lignes]);
 
   // Recherche : le choix Client | Site en tête de page la remplace.
   const filtres = lignes;
@@ -139,7 +144,7 @@ export function GmaoClientsListe({
       </div>
 
       <Tableur
-        colonnes={COLONNES}
+        colonnes={isAdmin ? [...COLONNES, ...COLONNES_HEURES] : COLONNES}
         lignes={filtres.map((l) => [
           <Link
             key="payeur"
@@ -155,8 +160,7 @@ export function GmaoClientsListe({
           l.commune,
           l.adresse,
           l.complement_adresse,
-          l.heures.prevues.heuresTech || "",
-          l.heures.prevues.heuresAssistant || "",
+          ...(isAdmin ? [l.heures?.prevues.heuresTech || "", l.heures?.prevues.heuresAssistant || ""] : []),
         ])}
         valeurs={filtres.map((l) => [l.nom, l.site, l.code_postal, l.commune, l.adresse, l.complement_adresse])}
         vide="Aucun site trouvé"

@@ -26,9 +26,11 @@ export default async function GmaoClientsPage({
   const sites = (sitesData ?? []) as Site[];
 
   const siteIds = sites.map((s) => s.id);
-  const listeEquipements = await recupererToutesLesLignes<Equipement>((debut, fin) =>
-    supabase.from("equipements").select("*").in("site_id", siteIds).range(debut, fin),
-  );
+  const listeEquipements = isAdmin
+    ? await recupererToutesLesLignes<Equipement>((debut, fin) =>
+        supabase.from("equipements").select("*").in("site_id", siteIds).range(debut, fin),
+      )
+    : [];
   const freqCouranteParEquipement = await freqCouranteCalculeeBatch(
     supabase,
     listeEquipements.map((e) => e.id),
@@ -45,11 +47,12 @@ export default async function GmaoClientsPage({
     id: s.id,
     nom: s.nom,
     site: s.site,
+    n_affaire: s.n_affaire,
     adresse: s.adresse,
     complement_adresse: s.complement_adresse,
     code_postal: s.code_postal,
     commune: s.commune,
-    heures: sommeHeuresAnnee(equipementsParSite.get(s.id) ?? [], references_, freqCouranteParEquipement, !horsContrat),
+    heures: isAdmin ? sommeHeuresAnnee(equipementsParSite.get(s.id) ?? [], references_, freqCouranteParEquipement, !horsContrat) : null,
   }));
 
   return (

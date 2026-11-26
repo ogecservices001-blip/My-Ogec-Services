@@ -14,6 +14,11 @@ const interlocuteur = (n: number, alias: boolean): ColonneSite[] => {
   return [
     { titre: `Interlocuteur site ${n}`, champ: `interlocuteur_site${suffixe}` as keyof SiteInput, alias: ancien("Interlocuteur site") },
     {
+      titre: `Qualité Interlocuteur site ${n}`,
+      champ: `qualite_interlocuteur_site${suffixe}` as keyof SiteInput,
+      alias: ancien("Qualité Interlocuteur site"),
+    },
+    {
       titre: `Tel Fixe Interlocuteur site ${n}`,
       champ: `tel_fixe_interlocuteur_site${suffixe}` as keyof SiteInput,
       alias: ancien("Tel Fixe Interlocuteur site"),

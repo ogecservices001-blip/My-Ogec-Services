@@ -62,12 +62,13 @@ export default async function VisualiserEquipementPage({
     chargerBonsInterventionParEquipement(equipementId),
     chargerSuiviPieces(supabase, [equipementId]).then((m) => m.get(equipementId) ?? []),
   ]);
+  // Les heures ne sont montrées qu'au bureau.
   const cumul =
-    resultatReference.reference && Number.isFinite(freqAnnuelleNum)
+    isAdmin && resultatReference.reference && Number.isFinite(freqAnnuelleNum)
       ? heuresCumulAnnee(freqAnnuelleNum, resultatReference.reference)
       : null;
   const heuresProchaineVisite =
-    resultatReference.reference && Number.isFinite(freqAnnuelleNum) && freqCourante !== null
+    isAdmin && resultatReference.reference && Number.isFinite(freqAnnuelleNum) && freqCourante !== null
       ? calculerHeuresVisite(freqAnnuelleNum, freqCourante, resultatReference.reference)
       : null;
 
@@ -207,7 +208,7 @@ export default async function VisualiserEquipementPage({
                 <dd className="text-sm font-semibold text-slate-900">{resultatReference.reference.designation}</dd>
               </div>
             )}
-            {resultatReference.horsCatalogue && (
+            {isAdmin && resultatReference.horsCatalogue && (
               <div className="flex items-baseline gap-2 border-t border-slate-50 px-4 py-2.5">
                 <dt className="w-60 shrink-0 text-[13px] text-slate-500">Heures prévues</dt>
                 <dd className="text-sm font-semibold text-orange-700">

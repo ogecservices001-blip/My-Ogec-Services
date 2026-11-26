@@ -17,7 +17,7 @@ export default async function DepannageChoixSitePage({
   const [{ data }, { data: tickets }, { data: brouillons }] = await Promise.all([
     supabase
       .from("sites_view")
-      .select("id, nom, site, code_postal, commune, adresse, complement_adresse")
+      .select("id, nom, site, n_affaire, code_postal, commune, adresse, complement_adresse")
       .eq("hors_contrat", estHorsContrat)
       .order("nom"),
     supabase

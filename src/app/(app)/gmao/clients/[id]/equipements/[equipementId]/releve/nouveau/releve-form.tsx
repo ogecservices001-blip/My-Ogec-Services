@@ -48,6 +48,7 @@ export function ReleveForm({
   releveExistant,
   onTermine,
   onFermer,
+  afficherHeures = false,
 }: {
   siteId: string;
   site: { nom: string; site: string };
@@ -58,6 +59,8 @@ export function ReleveForm({
   nomTechInitial: string;
   nomsTechniciens: string[];
   devisEnCours: DevisEnCours[];
+  /// Heures prévues de la visite : bureau seulement.
+  afficherHeures?: boolean;
   depannagesOuverts: { id: string; numero: string; message: string }[];
   /// Relevé pas encore rattaché à une visite, rouvert pour correction.
   releveExistant?: Releve | null;
@@ -108,6 +111,7 @@ export function ReleveForm({
   const freqBrut = champsEnTete.freqEntretienAnnuelle;
   const freqAnnuelle = typeof freqBrut === "string" ? parseInt(freqBrut, 10) : NaN;
   const heuresVisite =
+    afficherHeures &&
     resultatReference.reference && Number.isFinite(freqAnnuelle) && freqCourante !== null
       ? calculerHeuresVisite(freqAnnuelle, freqCourante, resultatReference.reference)
       : null;

@@ -22,7 +22,7 @@ export default async function PlanificationPage({
 
   const supabase = await createClient();
   const [{ data: sites }, techniciens, postesHorsClient, devisARealiser, creneaux, { data: joursFeries }] = await Promise.all([
-    supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom"),
+    supabase.from("sites_view").select("id, nom, site, n_affaire, hors_contrat").order("nom"),
     chargerTechniciens(),
     chargerPostesHorsClient(),
     chargerDevisARealiser(),

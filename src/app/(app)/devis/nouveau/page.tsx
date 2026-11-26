@@ -24,7 +24,7 @@ export default async function NouveauDevisPage({
   const supabase = await createClient();
 
   const [{ data: sites }, { data: articlesBruts }, prefillSite, brouillon, revision] = await Promise.all([
-    supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom"),
+    supabase.from("sites_view").select("id, nom, site, n_affaire, hors_contrat").order("nom"),
     supabase.from("referentiel_pu").select("*").order("ordre").order("created_at"),
     siteId ? chargerPrefillSite(supabase, siteId) : Promise.resolve(null),
     brouillonId ? chargerBrouillon(supabase, brouillonId) : Promise.resolve(null),
@@ -36,7 +36,7 @@ export default async function NouveauDevisPage({
     return (
       <ModalEcran titre={`Réviser le devis ${revision.numero}`} hrefFermer={`/devis/${revision.id}/statut`} large>
         <NouveauDevisForm
-          sites={(sites ?? []).map((s) => ({ id: s.id, nom: s.nom, site: s.site, horsContrat: s.hors_contrat }))}
+          sites={(sites ?? []).map((s) => ({ id: s.id, nom: s.nom, site: s.site, n_affaire: s.n_affaire, horsContrat: s.hors_contrat }))}
           natures={Object.entries(NATURES_DEVIS_SELECTIONNABLES).map(([valeur, label]) => ({ valeur, label }))}
           prefill={null}
           articles={articles}
@@ -63,7 +63,7 @@ export default async function NouveauDevisPage({
   return (
     <ModalEcran titre={brouillon ? "Reprendre le devis en cours" : "Nouveau devis"} hrefFermer="/devis" large>
       <NouveauDevisForm
-        sites={(sites ?? []).map((s) => ({ id: s.id, nom: s.nom, site: s.site, horsContrat: s.hors_contrat }))}
+        sites={(sites ?? []).map((s) => ({ id: s.id, nom: s.nom, site: s.site, n_affaire: s.n_affaire, horsContrat: s.hors_contrat }))}
         natures={Object.entries(NATURES_DEVIS_SELECTIONNABLES).map(([valeur, label]) => ({ valeur, label }))}
         prefill={prefill}
         articles={articles}

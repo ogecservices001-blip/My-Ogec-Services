@@ -14,7 +14,7 @@ export default async function HeuresPlanifieesPage({
   const annee = Number(anneeParam) >= 2000 && Number(anneeParam) <= 2100 ? Number(anneeParam) : new Date().getFullYear();
   const supabase = await createClient();
   const contrat = contratDuFiltre(pole);
-  const { data: tousSites } = await supabase.from("sites_view").select("id, nom, site, hors_contrat").order("nom");
+  const { data: tousSites } = await supabase.from("sites_view").select("id, nom, site, n_affaire, hors_contrat").order("nom");
   const sites = (tousSites ?? [])
     .filter((s) => contrat === null || Boolean(s.hors_contrat) === (contrat === "hors"))
     .map((s) => ({ id: s.id as string, nom: s.nom ?? "", site: s.site ?? "" }));

@@ -73,7 +73,7 @@ export function EquipementsListe({
 
   return (
     <div className="space-y-3">
-      {(heuresSite.prevues.heuresTech > 0 || heuresSite.prevues.heuresAssistant > 0) && (
+      {isAdmin && (heuresSite.prevues.heuresTech > 0 || heuresSite.prevues.heuresAssistant > 0) && (
         <CarteHeures titre="Heures prévues (ce site)" heures={heuresSite} />
       )}
 
@@ -163,7 +163,7 @@ function Groupe({
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-bold text-slate-900">{nom}</span>
           <span className="block text-xs text-slate-500">{equipements.length} équipement(s)</span>
-          {(heuresGroupe.prevues.heuresTech > 0 || heuresGroupe.prevues.heuresAssistant > 0) && (
+          {isAdmin && (heuresGroupe.prevues.heuresTech > 0 || heuresGroupe.prevues.heuresAssistant > 0) && (
             <CarteHeures titre="Heures prévues" heures={heuresGroupe} compact />
           )}
         </span>
@@ -242,7 +242,7 @@ function CarteEquipement({
           {sousTitre && <p className="mt-0.5 text-xs text-slate-500">{sousTitre}</p>}
           {typeConcat && <p className="text-xs text-slate-400">{typeConcat}</p>}
 
-          {resultatReference.horsCatalogue && (
+          {isAdmin && resultatReference.horsCatalogue && (
             <p className="mt-1 text-[11px] font-semibold text-orange-700">
               Puissance &quot;{typeof eq.champs_en_tete.typeEquipement3 === "string" ? eq.champs_en_tete.typeEquipement3 : ""}
               &quot; hors catalogue — heures non calculées
@@ -253,7 +253,7 @@ function CarteEquipement({
             <div className="mt-1.5">
               {(() => {
                 const heures = calculerHeuresVisite(freqAnnuelle, freqCourante, resultatReference.reference);
-                return heures ? (
+                return isAdmin && heures ? (
                   <p className="flex items-center gap-1 text-[11px] font-semibold text-teal-700">
                     <Clock className="h-3 w-3" strokeWidth={2} />
                     Prochaine visite : {fmt(heures)}
@@ -264,7 +264,7 @@ function CarteEquipement({
                 {freqAnnuelle} visite{freqAnnuelle > 1 ? "s" : ""}/an
                 {(() => {
                   const cumul = heuresCumulAnnee(freqAnnuelle, resultatReference.reference);
-                  return cumul ? ` — ${fmt(cumul)}/an` : "";
+                  return isAdmin && cumul ? ` — ${fmt(cumul)}/an` : "";
                 })()}
               </p>
               <div className="mt-1">

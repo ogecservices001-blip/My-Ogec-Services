@@ -29,7 +29,7 @@ export function ClientsListe({
 }) {
   const router = useRouter();
   const [clientChoisi, setClientChoisi] = useState("");
-  const sitesChoix = useMemo(() => sites.map((s) => ({ id: s.id, nom: s.nom, site: s.site })), [sites]);
+  const sitesChoix = useMemo(() => sites.map((s) => ({ id: s.id, nom: s.nom, site: s.site, n_affaire: s.n_affaire })), [sites]);
 
   const nbClients = useMemo(() => new Set(sites.map((s) => s.nom)).size, [sites]);
 

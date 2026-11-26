@@ -19,6 +19,7 @@ import {
 } from "@/lib/cerfa/regles";
 import { natureRenseignee, quantitesDeclaration } from "@/lib/cerfa/calculs";
 import { genererPdfCerfa } from "@/lib/cerfa/pdf";
+import { suggererNumeroEquipement } from "@/lib/gmao/numero-equipement";
 import { envoyerCerfaEmail, envoyerRecapCerfa } from "@/lib/cerfa/email";
 import type { CerfaDonnees, SignataireCerfa } from "@/lib/cerfa/types";
 
@@ -91,8 +92,13 @@ export async function supprimerDetecteur(id: string): Promise<ActionResult> {
   return error ? { ok: false, erreur: error.message } : { ok: true };
 }
 
+export type NouvelEquipementCerfa = { typeEquipementId: string; nom: string; localisation: string };
+
 export type FinalisationCerfa = {
   equipementId: string;
+  siteId: string;
+  /// Équipement absent de la GMAO : créé « à valider » à la validation du CERFA.
+  nouvelEquipement?: NouvelEquipementCerfa | null;
   donnees: CerfaDonnees;
   operateurNom: string;
   signataire: SignataireCerfa;
@@ -141,11 +147,29 @@ export async function finaliserCerfa(
   if (!sigOp || !sigDet) return { ok: false, erreur: "Les deux signatures sont obligatoires." };
 
   const supabase = await createClient();
-  const { data: eq } = await supabase
-    .from("equipements")
-    .select("id, nom, localisation, type_equipement_id, champs_en_tete, site_id")
-    .eq("id", f.equipementId)
-    .single();
+  const nouvel = f.nouvelEquipement ?? null;
+  if (nouvel) {
+    if (!FAMILLES_CERFA.includes(nouvel.typeEquipementId)) return { ok: false, erreur: "Choisis la famille de l'équipement." };
+    if (!nouvel.nom.trim()) return { ok: false, erreur: "Indique le nom de l'équipement." };
+    if (!nouvel.localisation.trim()) return { ok: false, erreur: "Indique la localisation de l'équipement." };
+  }
+  const { data: existant } = nouvel
+    ? { data: null }
+    : await supabase
+        .from("equipements")
+        .select("id, nom, localisation, type_equipement_id, champs_en_tete, site_id")
+        .eq("id", f.equipementId)
+        .single();
+  const eq = nouvel
+    ? {
+        id: "",
+        nom: nouvel.nom.trim(),
+        localisation: nouvel.localisation.trim(),
+        type_equipement_id: nouvel.typeEquipementId,
+        champs_en_tete: {} as ChampsEnTeteEquipement,
+        site_id: f.siteId,
+      }
+    : existant;
   if (!eq) return { ok: false, erreur: "Équipement introuvable." };
   const { data: site } = await supabase
     .from("sites")
@@ -181,6 +205,34 @@ export async function finaliserCerfa(
   const chemin = `${cheminStockage(`${site.n_affaire} ${site.nom} - ${site.site}`)}/${annee}/${cheminStockage(numero)}.pdf`;
   const { error: errPdf } = await supabase.storage.from("cerfa-archives").upload(chemin, pdf, { contentType: "application/pdf" });
   if (errPdf) return { ok: false, erreur: `PDF non archivé : ${errPdf.message}` };
+
+  // Équipement absent : créé maintenant seulement (rien si le CERFA est
+  // abandonné), avec les mêmes règles qu'un ajout terrain dans la GMAO.
+  if (nouvel) {
+    const [{ data: type }, { data: numerosSite }] = await Promise.all([
+      supabase.from("types_equipement").select("type_equipement1_fixe").eq("id", nouvel.typeEquipementId).single(),
+      supabase.from("equipements").select("numero_equipement").eq("site_id", site.id),
+    ]);
+    if (type?.type_equipement1_fixe) eq.champs_en_tete = { typeEquipement1: type.type_equipement1_fixe };
+    const sousContrat = !site.n_affaire.startsWith("362-");
+    const { data: cree, error: errCree } = await supabase
+      .from("equipements")
+      .insert({
+        site_id: site.id,
+        type_equipement_id: nouvel.typeEquipementId,
+        nom: eq.nom,
+        localisation: eq.localisation,
+        numero_equipement: suggererNumeroEquipement(site.n_affaire, (numerosSite ?? []).map((e) => e.numero_equipement)),
+        champs_en_tete: eq.champs_en_tete,
+        hors_contrat: true,
+        a_valider: true,
+        remarque_technicien: `Ajouté depuis un CERFA le ${aujourdhui}${sousContrat ? " — Hors contrat, avenant à faire." : ""}`,
+      })
+      .select("id")
+      .single();
+    if (errCree || !cree) return { ok: false, erreur: `Équipement non créé : ${errCree?.message ?? "erreur inconnue"}` };
+    eq.id = cree.id;
+  }
 
   const q = quantitesDeclaration(donnees);
   const { data: cree, error: errCerfa } = await supabase

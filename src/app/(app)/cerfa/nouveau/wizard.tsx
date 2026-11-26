@@ -60,6 +60,17 @@ const ETIQUETTE = "mb-1 block text-xs font-medium text-slate-600";
 const CHAMP = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-600";
 const TITRE = "mb-3 text-sm font-bold uppercase tracking-wide text-indigo-700";
 
+/// Familles proposées pour un équipement absent de la GMAO, avec le
+/// préfixe de nom du fichier équipements.
+const FAMILLES_NOUVEL = [
+  { id: "mod_uevrv", label: "VRV (groupe extérieur)", prefixe: "VRV" },
+  { id: "mod_split", label: "SPLIT", prefixe: "SPLIT" },
+  { id: "mod_geg", label: "GEG — groupe d'eau glacée", prefixe: "GEG" },
+  { id: "mod_roof", label: "ROOF — roof-top", prefixe: "ROOF" },
+  { id: "mod_cta_dd", label: "CTA DD", prefixe: "CTA" },
+  { id: "mod_utadd", label: "UTADD — armoire", prefixe: "ARM" },
+];
+
 const ECRANS = [
   "Écran 1 : Choix de l'équipement",
   "Écran 2 : Équipement & Fluide",
@@ -165,6 +176,7 @@ export function CerfaWizard({
   const [siteId, setSiteId] = useState(siteDepart?.id ?? "");
   const [equipements, setEquipements] = useState<EquipementCerfa[]>([]);
   const [equipementId, setEquipementId] = useState(depart?.equipementId ?? "");
+  const [nouvelEq, setNouvelEq] = useState<{ typeEquipementId: string; nom: string; localisation: string } | null>(null);
   const [d, setD] = useState<CerfaDonnees>(donneesVides());
   const maj = (p: Partial<CerfaDonnees>) => setD((x) => ({ ...x, ...p }));
 
@@ -184,7 +196,24 @@ export function CerfaWizard({
   const [envoye, setEnvoye] = useState(false);
 
   const site = sites.find((s) => s.id === siteId);
-  const equipement = equipements.find((e) => e.id === equipementId);
+  const equipement: EquipementCerfa | undefined = nouvelEq
+    ? {
+        id: "",
+        nom: nouvelEq.nom,
+        numero_equipement: "",
+        localisation: nouvelEq.localisation,
+        type_equipement_id: nouvelEq.typeEquipementId,
+        champs_en_tete: {},
+      }
+    : equipements.find((e) => e.id === equipementId);
+
+  function nomPropose(typeId: string): string {
+    const prefixe = FAMILLES_NOUVEL.find((f) => f.id === typeId)?.prefixe ?? "";
+    if (!prefixe) return "";
+    const re = new RegExp(`^${prefixe}\\s*0*(\\d+)`, "i");
+    const max = equipements.reduce((m, e) => Math.max(m, Number(re.exec(e.nom.trim())?.[1] ?? 0)), 0);
+    return `${prefixe} ${String(max + 1).padStart(2, "0")}`;
+  }
   const signataires = useMemo(() => signatairesDuSite(site), [site]);
 
   const siteDemande = useRef("");
@@ -203,6 +232,7 @@ export function CerfaWizard({
     setSiteId(id);
     setEquipements([]);
     setEquipementId("");
+    setNouvelEq(null);
     setD(donneesVides());
     setFuiteChoisie(false);
     chargerSite(id, "");
@@ -235,6 +265,11 @@ export function CerfaWizard({
   const ligne3 = site ? (site.complement_adresse ? site.complement_adresse : `${site.code_postal} - ${site.commune}`) : "";
 
   function allerEtape2() {
+    if (nouvelEq) {
+      if (!nouvelEq.typeEquipementId) return signaler("Choisis la famille de l'équipement", "nouvel-famille");
+      if (!nouvelEq.nom.trim()) return signaler("Indique le nom de l'équipement", "nouvel-nom");
+      if (!nouvelEq.localisation.trim()) return signaler("Indique la localisation de l'équipement", "nouvel-localisation");
+    }
     if (!equipement) return signaler("Choisis un équipement", "choix-equipement");
     const c = equipement.champs_en_tete;
     const fluide = fluideCerfa(texteChamp(c, "typeRefrigerant"));
@@ -303,6 +338,8 @@ export function CerfaWizard({
     setEnCours("Attribution du numéro, génération et archivage du PDF…");
     const r = await finaliserCerfa({
       equipementId,
+      siteId,
+      nouvelEquipement: nouvelEq,
       donnees: d,
       operateurNom: operateur,
       signataire,
@@ -378,15 +415,80 @@ export function CerfaWizard({
                   valeur={equipementId}
                   onChange={(v) => {
                     setEquipementId(v);
+                    setNouvelEq(null);
                     setD(donneesVides());
                     setFuiteChoisie(false);
                   }}
+                  disabled={!!nouvelEq}
                   vide="Aucun équipement à fluide sur ce site"
                 />
+                {!nouvelEq ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEquipementId("");
+                      setD(donneesVides());
+                      setFuiteChoisie(false);
+                      setNouvelEq({ typeEquipementId: "", nom: "", localisation: "" });
+                    }}
+                    className="mt-2 text-sm font-semibold text-indigo-700 hover:underline"
+                  >
+                    + Équipement absent de la GMAO
+                  </button>
+                ) : (
+                  <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-sm font-bold text-indigo-800">Nouvel équipement</p>
+                      <button type="button" onClick={() => setNouvelEq(null)} className="text-xs font-semibold text-slate-600 hover:underline">
+                        Annuler
+                      </button>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div>
+                        <label className={ETIQUETTE} htmlFor="nouvel-famille">
+                          Famille
+                        </label>
+                        <select
+                          id="nouvel-famille"
+                          className={CHAMP}
+                          value={nouvelEq.typeEquipementId}
+                          onChange={(e) => setNouvelEq({ ...nouvelEq, typeEquipementId: e.target.value, nom: nomPropose(e.target.value) })}
+                        >
+                          <option value="">— Choisir —</option>
+                          {FAMILLES_NOUVEL.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={ETIQUETTE} htmlFor="nouvel-nom">
+                          Nom
+                        </label>
+                        <input id="nouvel-nom" className={CHAMP} value={nouvelEq.nom} onChange={(e) => setNouvelEq({ ...nouvelEq, nom: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className={ETIQUETTE} htmlFor="nouvel-localisation">
+                          Localisation
+                        </label>
+                        <input
+                          id="nouvel-localisation"
+                          className={CHAMP}
+                          value={nouvelEq.localisation}
+                          onChange={(e) => setNouvelEq({ ...nouvelEq, localisation: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-600">
+                      Créé à la validation du CERFA, « à valider » par le bureau et hors contrat. Son n° d&apos;équipement est attribué automatiquement.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
-          {equipement && site && (
+          {equipement && site && !nouvelEq && (
             <div className={CARTE}>
               <p className={TITRE}>Informations de l&apos;équipement</p>
               <Ligne label="N° équipement" valeur={equipement.numero_equipement} />

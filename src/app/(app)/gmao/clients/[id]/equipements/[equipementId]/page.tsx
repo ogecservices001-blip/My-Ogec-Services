@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { RepereCerfa } from "@/components/cerfa/repere-cerfa";
 import { chargerSuiviPieces } from "@/lib/gmao/suivi-pieces";
 import { SuiviPieces } from "@/components/gmao/suivi-pieces";
 import Link from "next/link";
@@ -142,6 +143,10 @@ export default async function VisualiserEquipementPage({
             .join(" · ")}
         </p>
         {typeConcat && <p className="mt-1 text-sm font-semibold text-brand-green-dark">{typeConcat}</p>}
+      </div>
+
+      <div className="mb-5 empty:hidden">
+        <RepereCerfa typeEquipementId={eq.type_equipement_id} champs={c} equipementId={eq.id} avecBouton />
       </div>
 
       <SuiviPieces sujets={suiviPieces} isAdmin={isAdmin} />

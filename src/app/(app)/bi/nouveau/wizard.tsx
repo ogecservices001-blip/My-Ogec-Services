@@ -1,6 +1,8 @@
 "use client";
 
 import { ListeRecherche } from "@/components/liste-recherche";
+import { RepereCerfa } from "@/components/cerfa/repere-cerfa";
+import { etatCerfa } from "@/lib/cerfa/regles";
 import { RelevesVisite } from "@/components/bi/releves-visite";
 import { ChoixClientSite } from "@/components/choix-client-site";
 import { dateFrVersIso, formaterDate } from "@/lib/format";
@@ -496,6 +498,7 @@ export function BiWizard({
   const [devisAEtablir, setDevisAEtablir] = useState<boolean | null>(null);
   const [etatHorsService, setEtatHorsService] = useState<boolean | null>(null);
   const [popupDevis, setPopupDevis] = useState(false);
+  const [popupFluide, setPopupFluide] = useState(false);
   const [popupEtat, setPopupEtat] = useState(false);
   const [apresQuestions, setApresQuestions] = useState<"suivant" | "autre">("suivant");
   const etatEquipement = etatsDepuisReponses(devisAEtablir, etatHorsService);
@@ -1050,6 +1053,15 @@ export function BiWizard({
   // équipement ne parte sans réponse et qu'une réponse reste corrigeable.
   function poserQuestions(apres: "suivant" | "autre") {
     setApresQuestions(apres);
+    // Fiche d'intervention CERFA obligatoire dès qu'on manipule le fluide
+    // d'un équipement soumis : on le demande avant les autres questions.
+    if (equipement && etatCerfa(equipement.type_equipement_id, equipement.champs_en_tete)) setPopupFluide(true);
+    else setPopupDevis(true);
+  }
+
+  function repondreFluide(manipule: boolean) {
+    setPopupFluide(false);
+    if (manipule && equipement) window.open(`/cerfa/nouveau?equipementId=${equipement.id}&retour=fermer`, "_blank", "noopener");
     setPopupDevis(true);
   }
 
@@ -1397,6 +1409,17 @@ export function BiWizard({
               {equipement?.localisation && (
                 <p className="mt-1.5 text-xs font-semibold text-teal-700">Localisation : {equipement.localisation}</p>
               )}
+              {equipement && (
+                <div className="mt-2">
+                  <RepereCerfa
+                    typeEquipementId={equipement.type_equipement_id}
+                    champs={equipement.champs_en_tete}
+                    equipementId={equipement.id}
+                    avecBouton
+                    nouvelOnglet
+                  />
+                </div>
+              )}
               {equipement && pole === Poles.remplacementIdentique && (
                 <div id="wizard-materiel" className="mt-3 space-y-3 border-t border-slate-100 pt-3">
                   <p className="text-xs font-medium text-slate-600">Nouveau matériel</p>
@@ -1537,6 +1560,17 @@ export function BiWizard({
               <SelectEquipement equipements={equipementsSite} value={equipementId} onChange={setEquipementId} disabled={chargementSite} />
               {equipement?.localisation && (
                 <p className="mt-1.5 text-xs font-semibold text-teal-700">Localisation : {equipement.localisation}</p>
+              )}
+              {equipement && (
+                <div className="mt-2">
+                  <RepereCerfa
+                    typeEquipementId={equipement.type_equipement_id}
+                    champs={equipement.champs_en_tete}
+                    equipementId={equipement.id}
+                    avecBouton
+                    nouvelOnglet
+                  />
+                </div>
               )}
               {avecEquipementLibre(pole) && !equipementId && (
                 <input
@@ -2114,6 +2148,16 @@ export function BiWizard({
               },
             },
             { label: "Non, je les fais", onClick: () => setPopupReleves(false) },
+          ]}
+        />
+      )}
+
+      {popupFluide && (
+        <PopupChoix
+          titre="As-tu manipulé du fluide frigorigène ?"
+          choix={[
+            { label: "Oui — faire le CERFA", onClick: () => repondreFluide(true) },
+            { label: "Non", onClick: () => repondreFluide(false) },
           ]}
         />
       )}

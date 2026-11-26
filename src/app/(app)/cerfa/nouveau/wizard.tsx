@@ -142,13 +142,21 @@ export function CerfaWizard({
   operateurNom,
   depart,
   horsContrat,
+  fermerALaFin = false,
 }: {
   sites: SiteCerfa[];
   operateurNom: string;
   depart: { siteId: string; equipementId: string } | null;
   horsContrat: boolean;
+  /// Ouvert dans un nouvel onglet depuis un BI ou un relevé : on ferme
+  /// l'onglet à la fin pour revenir à la saisie en cours.
+  fermerALaFin?: boolean;
 }) {
   const router = useRouter();
+  const quitter = () => {
+    if (fermerALaFin) window.close();
+    router.push("/");
+  };
   const { signaler, fenetre } = useChampManquant();
   const [etape, setEtape] = useState(0);
 
@@ -398,7 +406,7 @@ export function CerfaWizard({
               <Ligne label="N° dernier bordereau" valeur={texteChamp(equipement.champs_en_tete, "numDernierBordereau")} />
             </div>
           )}
-          <Boutons precedent={null} suivant={allerEtape2} occupe={!!enCours} onAbandon={() => router.push("/")} />
+          <Boutons precedent={null} suivant={allerEtape2} occupe={!!enCours} onAbandon={quitter} />
         </div>
       )}
 
@@ -474,7 +482,7 @@ export function CerfaWizard({
               </div>
             )}
           </div>
-          <Boutons precedent={() => setEtape(0)} suivant={allerEtape3} occupe={!!enCours} onAbandon={() => router.push("/")} />
+          <Boutons precedent={() => setEtape(0)} suivant={allerEtape3} occupe={!!enCours} onAbandon={quitter} />
         </div>
       )}
 
@@ -597,7 +605,7 @@ export function CerfaWizard({
               </div>
             )}
           </div>
-          <Boutons precedent={() => setEtape(1)} suivant={allerEtape4} occupe={!!enCours} onAbandon={() => router.push("/")} />
+          <Boutons precedent={() => setEtape(1)} suivant={allerEtape4} occupe={!!enCours} onAbandon={quitter} />
         </div>
       )}
 
@@ -663,7 +671,7 @@ export function CerfaWizard({
             </label>
             <textarea id="observations" rows={4} className={CHAMP} placeholder="Observations libres…" value={d.observations} onChange={(e) => maj({ observations: e.target.value })} />
           </div>
-          <Boutons precedent={() => setEtape(2)} suivant={() => setEtape(4)} occupe={!!enCours} onAbandon={() => router.push("/")} />
+          <Boutons precedent={() => setEtape(2)} suivant={() => setEtape(4)} occupe={!!enCours} onAbandon={quitter} />
         </div>
       )}
 
@@ -717,7 +725,7 @@ export function CerfaWizard({
             <Ligne label="Classification" valeur={inflammable ? "UN 3161" : "UN 1078"} />
             <Ligne label="Observations" valeur={d.observations} />
           </div>
-          <Boutons precedent={() => setEtape(3)} suivant={() => setEtape(5)} libelleSuivant="Passer aux signatures" occupe={!!enCours} onAbandon={() => router.push("/")} />
+          <Boutons precedent={() => setEtape(3)} suivant={() => setEtape(5)} libelleSuivant="Passer aux signatures" occupe={!!enCours} onAbandon={quitter} />
         </div>
       )}
 
@@ -779,7 +787,7 @@ export function CerfaWizard({
           <div className={CARTE} id="sig-detenteur">
             <SignaturePad ref={sigDetenteur} titre={`Signature du client — ${site.nom} – ${site.site}`} />
           </div>
-          <Boutons precedent={() => setEtape(4)} suivant={valider} libelleSuivant="Valider et générer le CERFA" occupe={!!enCours} onAbandon={() => router.push("/")} />
+          <Boutons precedent={() => setEtape(4)} suivant={valider} libelleSuivant="Valider et générer le CERFA" occupe={!!enCours} onAbandon={quitter} />
         </div>
       )}
 
@@ -825,9 +833,13 @@ export function CerfaWizard({
             <Link href="/cerfa/nouveau" className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50">
               Nouveau CERFA
             </Link>
-            <Link href="/" className="flex-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
-              Terminer
-            </Link>
+            <button
+              type="button"
+              onClick={quitter}
+              className="flex-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+            >
+              {fermerALaFin ? "Terminer et revenir" : "Terminer"}
+            </button>
           </div>
         </div>
       )}

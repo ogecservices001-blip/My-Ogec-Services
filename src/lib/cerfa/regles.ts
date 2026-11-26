@@ -142,6 +142,27 @@ export function ajouterMois(d: Date, mois: number): Date {
   return new Date(d.getFullYear(), d.getMonth() + mois, d.getDate());
 }
 
+export type EtatCerfa = {
+  etat: "a_jour" | "bientot" | "retard" | "jamais" | "charge_inconnue";
+  libelle: string;
+};
+
+/// État CERFA d'un équipement pour les repères GMAO / BI. null : famille
+/// sans fluide ou charge ≤ 2 kg (non soumis).
+export function etatCerfa(typeEquipementId: string, champs: ChampsEnTeteEquipement, maintenant = new Date()): EtatCerfa | null {
+  if (!FAMILLES_CERFA.includes(typeEquipementId)) return null;
+  const statut = statutSoumission(champs);
+  if (statut === "non_soumis") return null;
+  if (statut === "charge_inconnue") return { etat: "charge_inconnue", libelle: "CERFA : charge à relever" };
+  const prochainTexte = texteChamp(champs, "dateProchainControle");
+  const prochain = lireDateFr(prochainTexte);
+  if (!prochain) return { etat: "jamais", libelle: "CERFA jamais fait" };
+  const aujourdhui = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate());
+  if (prochain < aujourdhui) return { etat: "retard", libelle: `CERFA en retard (dû le ${prochainTexte})` };
+  if (prochain.getTime() - aujourdhui.getTime() <= 30 * 86400000) return { etat: "bientot", libelle: `CERFA à faire avant le ${prochainTexte}` };
+  return { etat: "a_jour", libelle: `CERFA à jour — prochain le ${prochainTexte}` };
+}
+
 /// N° du bordereau (et nom du PDF) : AA-NNN-client-site-Nom équipement,
 /// ex. « 26-080-475-01-Groupe VRV 05 ». Fiche N° : AAAA-NNN.
 export function numeroBordereau(annee: number, chrono: number, nAffaire: string, nomEquipement: string): string {

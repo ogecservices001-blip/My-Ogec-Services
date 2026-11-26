@@ -1,6 +1,7 @@
 "use client";
 
 import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
+import { RepereCerfa } from "@/components/cerfa/repere-cerfa";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -223,6 +224,13 @@ export function ReleveForm({
                 {concatTypeEquipement(champsEnTete) && (
                   <p className="text-sm font-bold text-teal-800">{concatTypeEquipement(champsEnTete)}</p>
                 )}
+                <RepereCerfa
+                  typeEquipementId={equipement.type_equipement_id}
+                  champs={champsEnTete}
+                  equipementId={equipement.id}
+                  avecBouton
+                  nouvelOnglet
+                />
                 {freqCourante !== null && Number.isFinite(freqAnnuelle) && (
                   <p className="text-sm font-bold text-blue-800">
                     Visite en cours : {freqCourante} de {freqAnnuelle} {new Date().getFullYear()}
@@ -234,7 +242,7 @@ export function ReleveForm({
                     {heuresVisite.heuresAssistant}h Assistant
                   </p>
                 )}
-                {resultatReference.horsCatalogue && (
+                {afficherHeures && resultatReference.horsCatalogue && (
                   <p className="text-xs font-semibold text-orange-700">
                     Puissance hors catalogue — heures non calculées, à ajouter aux Heures de référence.
                   </p>

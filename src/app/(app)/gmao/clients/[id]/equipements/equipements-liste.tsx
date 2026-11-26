@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { RepereCerfa } from "@/components/cerfa/repere-cerfa";
 import Link from "next/link";
 import { ChevronDown, Cog, QrCode, Eye, Play, Clock } from "lucide-react";
 import type { Equipement, TypeEquipement, ReferenceHoraire } from "@/lib/gmao/types";
@@ -241,6 +242,7 @@ function CarteEquipement({
           </div>
           {sousTitre && <p className="mt-0.5 text-xs text-slate-500">{sousTitre}</p>}
           {typeConcat && <p className="text-xs text-slate-400">{typeConcat}</p>}
+          <RepereCerfa typeEquipementId={eq.type_equipement_id} champs={eq.champs_en_tete} compact />
 
           {isAdmin && resultatReference.horsCatalogue && (
             <p className="mt-1 text-[11px] font-semibold text-orange-700">

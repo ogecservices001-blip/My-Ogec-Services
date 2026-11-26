@@ -5,10 +5,10 @@ import { CerfaWizard, type SiteCerfa } from "./wizard";
 export default async function NouveauCerfaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ equipementId?: string; horsContrat?: string }>;
+  searchParams: Promise<{ equipementId?: string; horsContrat?: string; retour?: string }>;
 }) {
   const profile = await requireProfile();
-  const { equipementId, horsContrat: horsContratParam } = await searchParams;
+  const { equipementId, horsContrat: horsContratParam, retour } = await searchParams;
   const supabase = await createClient();
   const { data: sites } = await supabase
     .from("sites_view")
@@ -34,6 +34,7 @@ export default async function NouveauCerfaPage({
       operateurNom={profile.name ?? ""}
       depart={depart}
       horsContrat={horsContrat}
+      fermerALaFin={retour === "fermer"}
     />
   );
 }

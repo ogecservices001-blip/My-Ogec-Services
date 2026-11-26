@@ -96,18 +96,21 @@ export function construireModules(isAdmin: boolean): Module[] {
     },
     {
       nom: "CERFA",
-      actif: false,
+      actif: true,
       icone: FileCheck,
       couleur: "bg-indigo-100 text-indigo-600",
       sousMenus: [
-        { nom: "Commencer nouveau CERFA" },
-        { nom: "Visualiser un équipement" },
-        { nom: "Visualiser un bordereau" },
-        { nom: "Point sur les CERFA" },
-        { nom: "Créer modèle CERFA" },
-        { nom: "Envoyer un CERFA rempli" },
-        { nom: "Ajouter un équipement" },
-        { nom: "Vérifier les dossiers clients" },
+        { nom: "Commencer nouveau CERFA", href: "/cerfa/nouveau" },
+        { nom: "Visualiser un équipement", href: "/cerfa/equipement" },
+        { nom: "Visualiser un bordereau", href: "/cerfa/bordereaux" },
+        ...(isAdmin
+          ? [
+              { nom: "Point sur les CERFA", href: "/cerfa/point" },
+              { nom: "Envoyer un CERFA rempli", href: "/cerfa/envoyer" },
+              { nom: "Ajouter un équipement", href: "/gmao/clients?horsContrat=0" },
+              { nom: "Vérifier les dossiers clients", href: "/cerfa/verifier" },
+            ]
+          : []),
       ],
     },
     {

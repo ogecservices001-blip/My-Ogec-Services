@@ -110,6 +110,21 @@ function segment(s: string): string {
   return s.replace(/[/\\]/g, "-").trim() || "-";
 }
 
+/// Le stockage Supabase refuse les accents, le tiret long « — » et la
+/// plupart des signes dans les chemins (« Invalid key ») : chemins
+/// d'archive en ASCII simple.
+function cheminStockage(s: string): string {
+  return (
+    s
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[–—]/g, "-")
+      .replace(/[^A-Za-z0-9 ._()-]/g, "_")
+      .replace(/\s+/g, " ")
+      .trim() || "-"
+  );
+}
+
 /// Validation de l'étape 5 (portage de FormSignatureScreen._onValider) :
 /// n° attribué seulement ici, PDF rempli et archivé, équipement mis à jour
 /// comme l'était la ligne du Google Sheet.
@@ -163,7 +178,7 @@ export async function finaliserCerfa(
     signatureDetenteurPng: sigDet,
   });
 
-  const chemin = `${segment(`${site.n_affaire} ${site.nom} — ${site.site}`)}/${annee}/${segment(numero)}.pdf`;
+  const chemin = `${cheminStockage(`${site.n_affaire} ${site.nom} - ${site.site}`)}/${annee}/${cheminStockage(numero)}.pdf`;
   const { error: errPdf } = await supabase.storage.from("cerfa-archives").upload(chemin, pdf, { contentType: "application/pdf" });
   if (errPdf) return { ok: false, erreur: `PDF non archivé : ${errPdf.message}` };
 

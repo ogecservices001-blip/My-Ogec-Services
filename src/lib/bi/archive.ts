@@ -6,8 +6,19 @@ import { genererPdfBI, type PhotoAnnexe } from "./pdf";
 
 type Bon = Tables<"bons_intervention">;
 
+/// Le stockage Supabase refuse les accents, le tiret long « — » et la
+/// plupart des signes dans les chemins (« Invalid key ») : segments en
+/// ASCII simple.
 function segment(s: string): string {
-  return s.replace(/[/\\]/g, "-").trim() || "—";
+  return (
+    s
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[–—]/g, "-")
+      .replace(/[^A-Za-z0-9 ._()-]/g, "_")
+      .replace(/\s+/g, " ")
+      .trim() || "-"
+  );
 }
 
 /// Arborescence d'archive — même structure que l'archivage Drive
@@ -16,7 +27,7 @@ function segment(s: string): string {
 /// (décision explicite de l'utilisateur : pas de flux OAuth admin à
 /// construire pour ce seul besoin).
 function dossierArchive(bon: Bon): string {
-  const client = segment(bon.site ? `${bon.client_nom} — ${bon.site}` : bon.client_nom);
+  const client = segment(bon.site ? `${bon.client_nom} - ${bon.site}` : bon.client_nom);
   const pole = segment(`${bon.pole} - ${labelPole(bon.pole)}`);
   return `${client}/${pole}/${currentYear()}/BI/${segment(bon.numero)}`;
 }

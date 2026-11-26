@@ -43,6 +43,14 @@ export async function creerReleve(
 
   const supabase = await createClient();
 
+  // Renvoi après coupure réseau (travail sans réseau) : le relevé est déjà
+  // enregistré, rien à refaire.
+  const cleEnvoi = String(formData.get("cle_envoi") ?? "").trim();
+  if (cleEnvoi && !String(formData.get("releve_id") ?? "")) {
+    const { data: deja } = await supabase.from("releves").select("id").eq("cle_envoi", cleEnvoi).maybeSingle();
+    if (deja) return { ok: true };
+  }
+
   const { data: equipement, error: errEq } = await supabase
     .from("equipements")
     .select("id, site_id, type_equipement_id")
@@ -95,8 +103,9 @@ export async function creerReleve(
     const { error: errInsert } = await supabase.from("releves").insert({
       equipement_id: equipementId,
       site_id: siteId,
-      date: new Date().toISOString(),
+      date: dateReleve(formData.get("date_releve")),
       ...contenu,
+      cle_envoi: cleEnvoi || null,
     });
     if (errInsert) return { ok: false, erreur: errInsert.message };
   }
@@ -104,6 +113,17 @@ export async function creerReleve(
   revalidatePath(`/gmao/clients/${siteId}/equipements`);
   revalidatePath(`/gmao/clients/${siteId}/equipements/${equipementId}`);
   return { ok: true };
+}
+
+/// Relevé saisi sans réseau : il garde l'heure de la saisie (pas celle de
+/// l'envoi), si elle est plausible.
+function dateReleve(saisie: FormDataEntryValue | null): string {
+  const maintenant = Date.now();
+  const t = typeof saisie === "string" && saisie ? Date.parse(saisie) : NaN;
+  if (Number.isFinite(t) && t <= maintenant + 5 * 60_000 && t >= maintenant - 60 * 86_400_000) {
+    return new Date(t).toISOString();
+  }
+  return new Date(maintenant).toISOString();
 }
 
 export type FicheReleve = {

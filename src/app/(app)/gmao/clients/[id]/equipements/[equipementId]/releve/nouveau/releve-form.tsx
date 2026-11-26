@@ -1,11 +1,16 @@
 "use client";
 
 import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
+import { SaisieRetrouvee } from "@/components/hors-ligne/saisie-retrouvee";
+import type { ReleveEnAttente } from "@/components/hors-ligne/traitements";
+import { useSauvegardeLocale } from "@/lib/hors-ligne/use-sauvegarde-locale";
+import { ajouterEnvoi, effacerBrouillon, estErreurReseau, lireBrouillon, type Brouillon } from "@/lib/hors-ligne/stockage";
+import type { ActionResult } from "@/lib/action-result";
 import { RepereCerfa } from "@/components/cerfa/repere-cerfa";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Cog, Clock } from "lucide-react";
+import { ArrowLeft, Cog, Clock, CloudOff } from "lucide-react";
 import type {
   Equipement,
   TypeEquipement,
@@ -29,6 +34,19 @@ const OPTIONS_VALIDATION = ["Fonctionnel", "Non Fonctionnel", "Remarque ci-desso
 function deuxChiffres(n: number): string {
   return String(n).padStart(2, "0");
 }
+
+type InstantaneReleve = {
+  champsEnTete: ChampsEnTeteEquipement;
+  checklistValues: ChecklistValues;
+  groupesMesures: GroupesMesuresReleve;
+  validation: string | null;
+  remarque1: string;
+  remarque2: string;
+  informationsInternes: string;
+  cleEnvoi: string;
+};
+
+type ResultatReleve = ActionResult | { ok: true; enAttente: true } | null;
 
 function aujourdhui(): string {
   const d = new Date();
@@ -70,8 +88,40 @@ export function ReleveForm({
   onFermer?: () => void;
 }) {
   const router = useRouter();
-  const action = creerReleve.bind(null, equipement.id, siteId);
-  const [state, formAction, pending] = useActionState(action, null);
+  const cleBrouillon = `releve:${equipement.id}:${releveExistant?.id ?? "nouveau"}`;
+  const libelleBrouillon = `Relevé — ${equipement.nom} (${[site.nom, site.site].filter(Boolean).join(" — ")})`;
+  const [cleEnvoi, setCleEnvoi] = useState(() => crypto.randomUUID());
+  const [verifie, setVerifie] = useState(false);
+  const [retrouvee, setRetrouvee] = useState<Brouillon<InstantaneReleve> | null>(null);
+
+  /// Sans réseau, l'enregistrement lève une erreur : le relevé est alors mis
+  /// en file sur le téléphone et envoyé dès le retour du réseau. Avec réseau,
+  /// rien ne change.
+  async function enregistrer(_prev: ResultatReleve, formData: FormData): Promise<ResultatReleve> {
+    try {
+      return await creerReleve(equipement.id, siteId, null, formData);
+    } catch (e) {
+      if (!estErreurReseau(e)) throw e;
+      const champs: Record<string, string> = {};
+      formData.forEach((valeur, cle) => {
+        if (typeof valeur === "string") champs[cle] = valeur;
+      });
+      champs.date_releve = new Date().toISOString();
+      try {
+        await ajouterEnvoi<ReleveEnAttente>("releve", libelleBrouillon, { equipementId: equipement.id, siteId, champs });
+      } catch {
+        return {
+          ok: false,
+          erreur: "Pas de réseau, et ce téléphone ne peut pas garder le relevé. Laisse l'écran ouvert et réessaie dès que le réseau revient.",
+        };
+      }
+      await effacerBrouillon(cleBrouillon);
+      return { ok: true, enAttente: true };
+    }
+  }
+
+  const [state, formAction, pending] = useActionState(enregistrer, null);
+  const enAttente = !!state && state.ok && "enAttente" in state;
   const { signaler, surChampInvalide, fenetre } = useChampManquant();
   useSignalerRefusServeur(state, signaler);
 
@@ -98,7 +148,52 @@ export function ReleveForm({
   const [informationsInternes, setInformationsInternes] = useState(releveExistant?.informations_internes ?? "");
 
   useEffect(() => {
-    if (!state?.ok) return;
+    lireBrouillon<InstantaneReleve>(cleBrouillon).then((b) => {
+      if (b?.donnees?.cleEnvoi) setRetrouvee(b);
+      setVerifie(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- uniquement à l'ouverture
+  }, []);
+
+  useSauvegardeLocale(
+    cleBrouillon,
+    libelleBrouillon,
+    verifie && !retrouvee && !state?.ok,
+    (): InstantaneReleve => ({
+      champsEnTete,
+      checklistValues,
+      groupesMesures,
+      validation,
+      remarque1,
+      remarque2,
+      informationsInternes,
+      cleEnvoi,
+    }),
+    [champsEnTete, checklistValues, groupesMesures, validation, remarque1, remarque2, informationsInternes, cleEnvoi],
+  );
+
+  function reprendre() {
+    if (!retrouvee) return;
+    const s = retrouvee.donnees;
+    setChampsEnTete(s.champsEnTete);
+    setChecklistValues(s.checklistValues);
+    setGroupesMesures(s.groupesMesures);
+    setValidation(s.validation);
+    setRemarque1(s.remarque1);
+    setRemarque2(s.remarque2);
+    setInformationsInternes(s.informationsInternes);
+    setCleEnvoi(s.cleEnvoi);
+    setRetrouvee(null);
+  }
+
+  function ignorer() {
+    effacerBrouillon(cleBrouillon);
+    setRetrouvee(null);
+  }
+
+  useEffect(() => {
+    if (!state?.ok || enAttente) return;
+    effacerBrouillon(cleBrouillon);
     if (onTermine) {
       onTermine();
       return;
@@ -125,8 +220,39 @@ export function ReleveForm({
     setGroupesMesures((prev) => ({ ...prev, [cle]: occurrences }));
   }
 
+  if (enAttente) {
+    return (
+      <div className="mx-auto max-w-xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-center">
+        <CloudOff className="mx-auto h-10 w-10 text-amber-600" />
+        <p className="mt-3 text-base font-bold text-amber-900">Pas de réseau : relevé gardé sur ce téléphone</p>
+        <p className="mt-1 text-sm text-amber-900">
+          {equipement.nom} — il sera envoyé tout seul dès le retour du réseau (pastille en haut de l&apos;écran).
+        </p>
+        {onFermer ? (
+          <button
+            type="button"
+            onClick={onFermer}
+            className="mt-5 rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700"
+          >
+            Retour au BI
+          </button>
+        ) : (
+          <Link
+            href={`/gmao/clients/${siteId}/equipements`}
+            className="mt-5 inline-block rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700"
+          >
+            Retour à la liste
+          </Link>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
+      {retrouvee && (
+        <SaisieRetrouvee libelle={retrouvee.libelle} majLe={retrouvee.majLe} onReprendre={reprendre} onIgnorer={ignorer} />
+      )}
       <div className="mb-4 flex items-center justify-between">
         {onFermer ? (
           <button
@@ -198,6 +324,7 @@ export function ReleveForm({
         <input type="hidden" name="remarque1" value={remarque1} />
         <input type="hidden" name="remarque2" value={remarque2} />
         <input type="hidden" name="informations_internes" value={informationsInternes} />
+        <input type="hidden" name="cle_envoi" value={cleEnvoi} />
         {releveExistant && <input type="hidden" name="releve_id" value={releveExistant.id} />}
         {releveExistant && (
           <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">

@@ -4,6 +4,8 @@ import { enregistrerTraitement } from "@/lib/hors-ligne/file-envoi";
 import { effacerBrouillon } from "@/lib/hors-ligne/stockage";
 import { envoyerCerfaParEmail, finaliserCerfa, type FinalisationCerfa } from "@/app/(app)/cerfa/actions";
 import { creerReleve } from "@/app/(app)/gmao/clients/[id]/equipements/[equipementId]/releve/actions";
+import { enregistrerBI } from "@/app/(app)/bi/nouveau/actions";
+import { effacerPhotosLocales, photosServeur, televerserPhotosLocales, type BiEnAttente } from "@/lib/hors-ligne/bi";
 
 /// CERFA validé sans réseau : finalisé (n°, PDF, fiche équipement) au retour
 /// du réseau, puis envoyé au client si le technicien l'a demandé.
@@ -32,4 +34,15 @@ enregistrerTraitement("releve", async (payload) => {
   const r = await creerReleve(p.equipementId, p.siteId, null, fd);
   if (!r.ok) return { ok: false, erreur: r.erreur };
   return { ok: true, message: "Relevé enregistré" };
+});
+
+/// BI signé sans réseau : ses photos prises hors réseau partent d'abord, puis
+/// le BI est transmis au bureau.
+enregistrerTraitement("bi", async (payload) => {
+  const p = payload as BiEnAttente;
+  const photos = await televerserPhotosLocales(p.photos);
+  const r = await enregistrerBI({ ...p.input, photos: photosServeur(photos) }, "averif", p.brouillonId ?? undefined);
+  if (!r.ok) return { ok: false, erreur: r.erreur };
+  await effacerPhotosLocales(p.photos);
+  return { ok: true, message: "BI transmis au bureau" };
 });

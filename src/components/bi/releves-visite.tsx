@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import { CheckCircle2, ClipboardList, Pencil } from "lucide-react";
+import { CheckCircle2, ClipboardList, CloudOff, Pencil } from "lucide-react";
+import { estErreurReseau } from "@/lib/hors-ligne/stockage";
 import type { ReferenceHoraire } from "@/lib/gmao/types";
 import { groupeEntretien, SANS_GROUPE } from "@/lib/bi/constants";
 import {
@@ -55,6 +56,9 @@ export function RelevesVisite({
   const [fiche, setFiche] = useState<FicheReleve | null>(null);
   const [chargement, startChargement] = useTransition();
   const [ouvertureId, setOuvertureId] = useState<string | null>(null);
+  /// Relevés faits sans réseau, encore sur le téléphone.
+  const [enAttente, setEnAttente] = useState<Set<string>>(new Set());
+  const [sansReseau, setSansReseau] = useState(false);
 
   const tries = useMemo(
     () =>
@@ -68,7 +72,13 @@ export function RelevesVisite({
   );
 
   const recharger = useCallback(() => {
-    startChargement(async () => setEtat(await etatRelevesVisite(siteId, visiteNumero, visiteAnnee)));
+    startChargement(async () => {
+      try {
+        setEtat(await etatRelevesVisite(siteId, visiteNumero, visiteAnnee));
+      } catch (e) {
+        if (!estErreurReseau(e)) throw e;
+      }
+    });
   }, [siteId, visiteNumero, visiteAnnee]);
 
   useEffect(() => {
@@ -79,24 +89,31 @@ export function RelevesVisite({
     const deja: Record<string, string> = {};
     for (const [id, e] of Object.entries(etat)) if (e.etat === "deja_fait") deja[id] = e.bi;
     onDejaFaits?.(deja);
-    onManquants(tries.filter((e) => !etat[e.id]).map((e) => e.nom));
+    onManquants(tries.filter((e) => !etat[e.id] && !enAttente.has(e.id)).map((e) => e.nom));
     onHorsContratAFacturer?.(
       equipementsHorsContrat.filter((e) => etat[e.id]?.etat === "en_attente").map((e) => ({ id: e.id, nom: e.nom })),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- rappel du parent volontairement hors dépendances
-  }, [tries, etat, equipementsHorsContrat]);
+  }, [tries, etat, equipementsHorsContrat, enAttente]);
 
   function ouvrir(equipementId: string) {
     setOuvertureId(equipementId);
+    setSansReseau(false);
     startChargement(async () => {
-      const f = await chargerFicheReleve(equipementId);
-      setOuvertureId(null);
-      setFiche(f);
+      try {
+        const f = await chargerFicheReleve(equipementId);
+        setOuvertureId(null);
+        setFiche(f);
+      } catch (e) {
+        if (!estErreurReseau(e)) throw e;
+        setOuvertureId(null);
+        setSansReseau(true);
+      }
     });
   }
 
   if (tries.length === 0 && equipementsHorsContrat.length === 0) return null;
-  const nbFaits = tries.filter((e) => etat[e.id]).length;
+  const nbFaits = tries.filter((e) => etat[e.id] || enAttente.has(e.id)).length;
 
   function ligne(e: EquipementVisite, horsContrat: boolean) {
     const etatEq = etat[e.id];
@@ -119,6 +136,17 @@ export function RelevesVisite({
             {etatEq.etat === "facture"
               ? `${fonctionnement} — BI à facturer transmis (${etatEq.bi})`
               : `${fonctionnement} — déjà fait ${etatEq.bi}`}
+          </span>
+        </div>
+      );
+    }
+    if (!etatEq && enAttente.has(e.id)) {
+      return (
+        <div key={e.id} className="flex items-center gap-2 py-2">
+          {identite}
+          <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-amber-700">
+            <CloudOff className="h-4 w-4" strokeWidth={2.25} />
+            Gardé sur le téléphone
           </span>
         </div>
       );
@@ -180,6 +208,11 @@ export function RelevesVisite({
               {nbFaits} / {tries.length} faits
             </span>
           </div>
+          {sansReseau && (
+            <p className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+              Pas de réseau : la fiche ne peut pas s&apos;ouvrir. Réessaie dès que le réseau revient.
+            </p>
+          )}
           <div className="divide-y divide-slate-100">{tries.map((e) => ligne(e, false))}</div>
         </>
       )}
@@ -214,6 +247,11 @@ export function RelevesVisite({
                 recharger();
               }}
               onFermer={() => setFiche(null)}
+              onMisEnAttente={() => {
+                const id = fiche.equipement.id;
+                setEnAttente((prev) => new Set(prev).add(id));
+                setFiche(null);
+              }}
             />
           </div>
         </div>

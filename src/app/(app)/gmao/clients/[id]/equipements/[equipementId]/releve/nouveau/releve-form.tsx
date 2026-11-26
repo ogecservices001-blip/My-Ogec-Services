@@ -67,6 +67,7 @@ export function ReleveForm({
   releveExistant,
   onTermine,
   onFermer,
+  onMisEnAttente,
   afficherHeures = false,
 }: {
   siteId: string;
@@ -86,6 +87,8 @@ export function ReleveForm({
   /// Ouvert depuis le BI Entretien : on y revient au lieu de quitter la page.
   onTermine?: () => void;
   onFermer?: () => void;
+  /// Relevé gardé sur le téléphone faute de réseau (BI Entretien).
+  onMisEnAttente?: () => void;
 }) {
   const router = useRouter();
   const cleBrouillon = `releve:${equipement.id}:${releveExistant?.id ?? "nouveau"}`;
@@ -228,10 +231,10 @@ export function ReleveForm({
         <p className="mt-1 text-sm text-amber-900">
           {equipement.nom} — il sera envoyé tout seul dès le retour du réseau (pastille en haut de l&apos;écran).
         </p>
-        {onFermer ? (
+        {onMisEnAttente || onFermer ? (
           <button
             type="button"
-            onClick={onFermer}
+            onClick={onMisEnAttente ?? onFermer}
             className="mt-5 rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700"
           >
             Retour au BI

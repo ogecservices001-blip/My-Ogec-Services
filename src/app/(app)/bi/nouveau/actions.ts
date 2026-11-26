@@ -287,6 +287,10 @@ export type BiInput = {
   /// Confirmé juste avant transmission au bureau (voir modale dans
   /// l'assistant), par défaut 1.
   nombre_deplacements: number;
+
+  /// Transmission faite sans réseau puis renvoyée : la même clé ne crée
+  /// jamais deux BI.
+  cle_envoi?: string;
 };
 
 export type BrouillonBI = {
@@ -427,6 +431,17 @@ export async function enregistrerBI(
   const profile = await requireProfile();
   const supabase = await createClient();
 
+  const cleEnvoi = statut === "averif" ? (input.cle_envoi ?? "").trim() : "";
+  if (cleEnvoi) {
+    const { data: deja } = await supabase
+      .from("bons_intervention")
+      .select("id")
+      .eq("cle_envoi", cleEnvoi)
+      .neq("statut", "brouillon")
+      .maybeSingle();
+    if (deja) return { ok: true, id: deja.id };
+  }
+
   if (!brouillonId && input.creneau_id) {
     const { data: creneau } = await supabase
       .from("creneaux_planning")
@@ -509,6 +524,7 @@ export async function enregistrerBI(
     signataire_tel_portable: input.signataire_tel_portable,
     signataire_tel_fixe: input.signataire_tel_fixe,
     nombre_deplacements: input.nombre_deplacements,
+    ...(cleEnvoi ? { cle_envoi: cleEnvoi } : {}),
     date_signature: statut === "averif" ? now() : "",
     created_by: profile.name,
     history:

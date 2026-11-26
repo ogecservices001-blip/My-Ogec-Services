@@ -3,7 +3,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { TypeEquipement, ReferenceHoraire } from "@/lib/gmao/types";
 import { chargerDepannagesEnCours, chargerDevisARealiser, chargerBrouillonBI } from "./actions";
-import { BiWizard } from "./wizard";
+import { BiWizardHorsLigne } from "./wizard-hors-ligne";
 import { biDesInterventions, cleIntervention, creneauxDesInterventions, periodeIntervention } from "@/lib/planning/intervention";
 
 /// Le bureau (admin) ne crée jamais de BI lui-même — il ne fait que
@@ -77,7 +77,7 @@ export default async function NouveauBiPage({
     ]);
 
   return (
-    <BiWizard
+    <BiWizardHorsLigne
       key={`${pole ?? ""}|${devisId ?? ""}|${depannageId ?? ""}|${horsContrat ?? ""}|${brouillonId ?? ""}|${siteId ?? ""}`}
       sites={sites ?? []}
       techniciensDisponibles={(techniciens ?? []).map((t) => t.name)}

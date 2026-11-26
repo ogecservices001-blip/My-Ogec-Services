@@ -11,8 +11,22 @@ import { interlocuteursSite } from "@/lib/repertoire/interlocuteurs";
 import { useChampManquant, type CibleChamp } from "@/components/champ-manquant";
 import { useEffect, useMemo, useRef, useState, useTransition, type Dispatch, type SetStateAction } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Camera, Eye, X, Plus, Minus } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import { ArrowLeft, Camera, CloudOff, Eye, X, Plus, Minus } from "lucide-react";
+import { ajouterEnvoi, ecrireFichier, effacerBrouillon, effacerFichier, estErreurReseau } from "@/lib/hors-ligne/stockage";
+import { useSauvegardeLocale } from "@/lib/hors-ligne/use-sauvegarde-locale";
+import {
+  CLE_BROUILLON_BI,
+  clePhoto,
+  effacerPhotosLocales,
+  photosServeur,
+  televerserPhoto,
+  televerserPhotosLocales,
+  type BiEnAttente,
+  type ExtrasLocaux,
+  type InstantaneBI,
+  type PhotoBI,
+} from "@/lib/hors-ligne/bi";
 import { ChampEnTeteField, TypeEquipementSelects } from "@/components/gmao/champs-famille";
 import { SignaturePad, type SignaturePadHandle } from "@/components/bi/signature-pad";
 import { NATURE_MULTIPLE, type PaveDevis } from "@/lib/devis/paves";
@@ -32,7 +46,7 @@ import {
   CHAMPS_MATERIEL_EXCLUS_BI,
   CHAMPS_MATERIEL_FACULTATIFS_BI, SANS_GROUPE, groupeEntretien } from "@/lib/bi/constants";
 import { today, tempsStandard, multiplierDuree, periodeOuvree, ETATS_EQUIPEMENT } from "@/lib/bi/format";
-import { chargerEquipementsDuSite, chargerDevisDuSite, chargerModeleBI, chargerInfosNouvelEquipement, enregistrerBI, type EquipementDuSite, type DevisDuSite, type DevisARealiser, type ModeleBI, type PhotoInput, type PrestaInput, type DepannageEnCours, type InterventionSupplementaireInput, type BrouillonBI, proposerVisiteBI } from "./actions";
+import { chargerEquipementsDuSite, chargerDevisDuSite, chargerModeleBI, chargerInfosNouvelEquipement, enregistrerBI, type EquipementDuSite, type DevisDuSite, type DevisARealiser, type ModeleBI, type PrestaInput, type DepannageEnCours, type InterventionSupplementaireInput, type BrouillonBI, proposerVisiteBI } from "./actions";
 
 type SiteOption = {
   id: string;
@@ -127,6 +141,8 @@ export function BiWizard({
   brouillon,
   techniciensCreneau = [],
   periodeCreneau = null,
+  local = null,
+  sauvegardeActive = false,
 }: {
   sites: SiteOption[];
   techniciensDisponibles: string[];
@@ -138,6 +154,10 @@ export function BiWizard({
   brouillon: BrouillonBI | null;
   techniciensCreneau?: string[];
   periodeCreneau?: { debut: string; fin: string } | null;
+  /// Saisie reprise depuis le téléphone (voir wizard-hors-ligne.tsx).
+  local?: ExtrasLocaux | null;
+  /// Garder la saisie sur le téléphone au fil de l'eau.
+  sauvegardeActive?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -244,10 +264,10 @@ export function BiWizard({
   // révéler une étape jamais montrée.
   const [etapeDepart] = useState(etatInitial.etape);
   // BI à facturer sans devis (hors contrat) et BI d'entretien à reprendre ensuite.
-  const sansDevis = searchParams.get("facturable") === "1";
-  const retourBrouillon = searchParams.get("retour");
+  const sansDevis = local ? local.sansDevis : searchParams.get("facturable") === "1";
+  const retourBrouillon = local ? local.retour : searchParams.get("retour");
 
-  const [etape, setEtape] = useState(etatInitial.etape);
+  const [etape, setEtape] = useState(local?.etape ?? etatInitial.etape);
   const [pole, setPole] = useState(etatInitial.pole);
   const [enregistrement, startEnregistrement] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
@@ -255,7 +275,14 @@ export function BiWizard({
   // Brouillon repris (voir /prestations "Reprendre le BI") : les
   // sauvegardes suivantes mettent à jour cette même ligne, jamais une
   // nouvelle — évite exactement le bug "3 clics = 3 BI différents".
-  const [brouillonId, setBrouillonId] = useState<string | null>(brouillon?.id ?? null);
+  const [brouillonId, setBrouillonId] = useState<string | null>(brouillon?.id || null);
+  const [cleEnvoi] = useState(() => local?.cleEnvoi ?? crypto.randomUUID());
+  const [misEnAttente, setMisEnAttente] = useState(false);
+  /// Transmis ou mis en file : plus rien à garder sur le téléphone.
+  const finiRef = useRef(false);
+  /// Dernier état enregistré au bureau en brouillon : inutile de le garder
+  /// aussi sur le téléphone tant que rien n'a changé.
+  const enregistreRef = useRef("");
   const [brouillonConfirme, setBrouillonConfirme] = useState(false);
 
   const [depannageId, setDepannageId] = useState<string | null>(etatInitial.depannageId);
@@ -287,8 +314,8 @@ export function BiWizard({
   const [groupesSelectionnes, setGroupesSelectionnes] = useState<Set<string>>(
     new Set(brouillon?.entretien_groupes ?? []),
   );
-  const [nonDesservisIds, setNonDesservisIds] = useState<Set<string>>(new Set());
-  const [motifsNonDesservi, setMotifsNonDesservi] = useState<Record<string, string>>({});
+  const [nonDesservisIds, setNonDesservisIds] = useState<Set<string>>(new Set(local?.nonDesservisIds ?? []));
+  const [motifsNonDesservi, setMotifsNonDesservi] = useState<Record<string, string>>(local?.motifs ?? {});
 
   // "Dépannage — Clients sous/hors contrat" (sidebar) : pré-filtre la
   // liste de clients proposée, pour que le technicien n'ait pas à
@@ -310,12 +337,17 @@ export function BiWizard({
       return;
     }
     startChargementSite(async () => {
-      const [eqs, dvs] = await Promise.all([
-        chargerEquipementsDuSite(siteId),
-        avecAffaire(pole) ? chargerDevisDuSite(siteId, pole) : Promise.resolve([]),
-      ]);
-      setEquipementsSite(eqs);
-      setDevisDuSite(dvs);
+      try {
+        const [eqs, dvs] = await Promise.all([
+          chargerEquipementsDuSite(siteId),
+          avecAffaire(pole) ? chargerDevisDuSite(siteId, pole) : Promise.resolve([]),
+        ]);
+        setEquipementsSite(eqs);
+        setDevisDuSite(dvs);
+      } catch (e) {
+        if (!estErreurReseau(e)) throw e;
+        setErreur("Pas de réseau : les équipements de ce site n'ont pas pu être chargés. Réessaie dès que le réseau revient.");
+      }
     });
     // Redéclenché aussi si le technicien revient à l'étape 0 pour
     // changer de pôle sans changer de client — la liste de devis est
@@ -481,7 +513,7 @@ export function BiWizard({
   compteRenduRef.current = compteRendu;
   const [obsTech, setObsTech] = useState(brouillon?.obs_tech ?? "");
   const [obsClient, setObsClient] = useState(brouillon?.obs_client ?? "");
-  const [photos, setPhotos] = useState<(PhotoInput & { preview: string; enCours: boolean })[]>(
+  const [photos, setPhotos] = useState<(PhotoBI & { preview: string; enCours: boolean })[]>(
     brouillon?.photos.map((p) => ({ ...p, enCours: false })) ?? [],
   );
   const [fourniture, setFourniture] = useState<PrestaInput[]>(
@@ -495,8 +527,8 @@ export function BiWizard({
   // État de l'équipement : répondu via 2 popups au clic sur "Suivant"
   // (jamais coché à la main) — un technicien livré à lui-même ne
   // remplit pas des cases libres. `null` = pas encore répondu.
-  const [devisAEtablir, setDevisAEtablir] = useState<boolean | null>(null);
-  const [etatHorsService, setEtatHorsService] = useState<boolean | null>(null);
+  const [devisAEtablir, setDevisAEtablir] = useState<boolean | null>(local?.devisAEtablir ?? null);
+  const [etatHorsService, setEtatHorsService] = useState<boolean | null>(local?.etatHorsService ?? null);
   const [popupDevis, setPopupDevis] = useState(false);
   const [popupFluide, setPopupFluide] = useState(false);
   const [popupEtat, setPopupEtat] = useState(false);
@@ -685,20 +717,38 @@ export function BiWizard({
     return new Promise((resolve) => canvas.toBlob((b) => resolve(b ?? fichier), "image/jpeg", 0.85));
   }
 
+  /// La photo est aussi gardée sur le téléphone : sans réseau, elle partira
+  /// avec le BI.
   async function ajouterPhoto(fichier: File) {
     if (photos.length >= 4) return;
     const preview = URL.createObjectURL(fichier);
-    const index = photos.length;
-    setPhotos((prev) => [...prev, { type: "defaut", storage_path: "", preview, enCours: true, horodatage: today() }]);
+    const localId = crypto.randomUUID();
+    const retirer = () => setPhotos((prev) => prev.filter((p) => p.local_id !== localId));
+    setPhotos((prev) => [
+      ...prev,
+      { type: "defaut", storage_path: "", preview, enCours: true, horodatage: today(), local_id: localId },
+    ]);
+    let blob: Blob;
     try {
-      const blob = await redimensionner(fichier);
-      const chemin = `${crypto.randomUUID()}.jpg`;
-      const supabase = createClient();
-      const { error } = await supabase.storage.from("bi-photos").upload(chemin, blob, { contentType: "image/jpeg" });
-      if (error) throw error;
-      setPhotos((prev) => prev.map((p, i) => (i === index ? { ...p, storage_path: chemin, enCours: false } : p)));
+      blob = await redimensionner(fichier);
     } catch {
-      setPhotos((prev) => prev.filter((_, i) => i !== index));
+      retirer();
+      return;
+    }
+    let gardee = false;
+    try {
+      await ecrireFichier(clePhoto(localId), blob);
+      gardee = true;
+    } catch {
+      // Stockage du téléphone indisponible : envoi direct seulement.
+    }
+    try {
+      const chemin = await televerserPhoto(localId, blob);
+      setPhotos((prev) => prev.map((p) => (p.local_id === localId ? { ...p, storage_path: chemin ?? "", enCours: false } : p)));
+    } catch (e) {
+      if (gardee && estErreurReseau(e)) {
+        setPhotos((prev) => prev.map((p) => (p.local_id === localId ? { ...p, enCours: false } : p)));
+      } else retirer();
     }
   }
 
@@ -714,7 +764,7 @@ export function BiWizard({
   const [tempsPasse, setTempsPasse] = useState(brouillon?.temps_passe ?? "");
   // Si un temps était déjà saisi sur le brouillon, ne pas le laisser
   // recalculer/écraser par l'effet de temps standard ci-dessous.
-  const [tempsManuel, setTempsManuel] = useState(Boolean(brouillon?.temps_passe));
+  const [tempsManuel, setTempsManuel] = useState(local ? local.tempsManuel : Boolean(brouillon?.temps_passe));
   const [signataire, setSignataire] = useState(brouillon?.signataire ?? "");
   const [signataireTelPortable, setSignataireTelPortable] = useState(brouillon?.signataire_tel_portable ?? "");
   const [signataireTelFixe, setSignataireTelFixe] = useState(brouillon?.signataire_tel_fixe ?? "");
@@ -723,7 +773,12 @@ export function BiWizard({
   const sigClientRef = useRef<SignaturePadHandle>(null);
   const [sigTechVide, setSigTechVide] = useState(true);
   const [sigClientVide, setSigClientVide] = useState(true);
-  const [nombreDeplacements, setNombreDeplacements] = useState<number | "">(brouillon?.nombre_deplacements ?? "");
+  const [nombreDeplacements, setNombreDeplacements] = useState<number | "">(
+    local ? local.nombreDeplacements : (brouillon?.nombre_deplacements ?? ""),
+  );
+  const [sigInitiales] = useState({ tech: local?.sigTech ?? "", client: local?.sigClient ?? "" });
+  /// Signatures connues, même quand les pavés ne sont pas affichés.
+  const derniereSigRef = useRef({ tech: local?.sigTech ?? "", client: local?.sigClient ?? "" });
   const [alerteHeures, setAlerteHeures] = useState(false);
   const [alerteDeplacements, setAlerteDeplacements] = useState(false);
   const [alerteTechnicien, setAlerteTechnicien] = useState(false);
@@ -769,7 +824,7 @@ export function BiWizard({
 
   // Période : un déplacement par jour ouvré (lundi au vendredi), tant que le
   // technicien n'a pas corrigé lui-même.
-  const [deplacementsManuel, setDeplacementsManuel] = useState(false);
+  const [deplacementsManuel, setDeplacementsManuel] = useState(local?.deplacementsManuel ?? false);
   useEffect(() => {
     if (!avecPeriode(pole) || deplacementsManuel) return;
     const { jours } = periodeOuvree(dateDebut, dateFin);
@@ -804,7 +859,7 @@ export function BiWizard({
   const [visiteNumero, setVisiteNumero] = useState(brouillon?.visite_numero ? String(brouillon.visite_numero) : "");
   const [visiteTotal, setVisiteTotal] = useState(brouillon?.visite_total ? String(brouillon.visite_total) : "");
   const [visiteAnnee, setVisiteAnnee] = useState(brouillon?.visite_annee ? String(brouillon.visite_annee) : "");
-  const visiteModifiee = useRef(Boolean(brouillon?.visite_numero));
+  const visiteModifiee = useRef(local ? local.visiteModifiee : Boolean(brouillon?.visite_numero));
   const clePropositionVisite = [siteId, [...groupesSelectionnes].sort().join("|"), [...nonDesservisIds].sort().join("|"), dateDebut, dateFin].join("#");
   useEffect(() => {
     if (pole !== Poles.entretienSousContrat || !siteId || groupesSelectionnes.size === 0 || visiteModifiee.current) return;
@@ -916,7 +971,7 @@ export function BiWizard({
 
   // ==================== Construction + envoi ====================
 
-  function construireInput(): Parameters<typeof enregistrerBI>[0] {
+  function construireInput(photosFinales = photos): Parameters<typeof enregistrerBI>[0] {
     const adresseParts = [site?.adresse ?? "", [site?.code_postal ?? "", site?.commune ?? ""].filter(Boolean).join(" ")].filter(
       (s) => s.trim(),
     );
@@ -951,7 +1006,7 @@ export function BiWizard({
       equipement_groupe: equipementGroupeFinal,
       equipement_localisation: equipementLocalisationFinal,
       devis_id: devis?.id ?? null,
-      creneau_id: searchParams.get("creneauId") || brouillon?.creneau_id || null,
+      creneau_id: brouillon?.creneau_id || searchParams.get("creneauId") || null,
       devis_numero: devis?.numero ?? "",
       devis_reference_client: devis?.reference_client ?? "",
       devis_date_commande_client: devis?.date_commande_client ?? "",
@@ -979,7 +1034,7 @@ export function BiWizard({
       prestas: avecFournitureMateriel(pole) ? fourniture.filter((p) => p.designation.trim()) : [],
       etat_equipement: pole === Poles.depannage ? etatEquipementAEnregistrer(etatEquipement) : [],
       interventions_supplementaires: interventionsSupplementaires,
-      photos: photos.filter((p) => !p.enCours).map(({ type, storage_path, horodatage }) => ({ type, storage_path, horodatage })),
+      photos: photosServeur(photosFinales.filter((p) => !p.enCours)),
       sig_tech: sigTechRef.current?.getDataUrl() ?? "",
       sig_client: sigClientRef.current?.getDataUrl() ?? "",
       signataire: signataire.trim(),
@@ -1110,11 +1165,25 @@ export function BiWizard({
   function ouvrirBiAFacturer() {
     setPopupHorsContrat(false);
     startEnregistrement(async () => {
-      const res = await enregistrerBI(construireInput(), "brouillon", brouillonId ?? undefined);
+      let res: Awaited<ReturnType<typeof enregistrerBI>>;
+      try {
+        const photosFinales = await televerserPhotosLocales(photos);
+        setPhotos(photosFinales);
+        res = await enregistrerBI(construireInput(photosFinales), "brouillon", brouillonId ?? undefined);
+      } catch (e) {
+        if (!estErreurReseau(e)) throw e;
+        signaler("Pas de réseau", null, {
+          detail: "Le BI à facturer ne peut pas être préparé maintenant. Ta saisie est gardée sur ce téléphone : réessaie dès que le réseau revient.",
+        });
+        return;
+      }
       if (!res.ok || !res.id) {
         setErreur(res.ok ? "Enregistrement impossible." : res.erreur);
         return;
       }
+      // Le BI d'entretien est au bureau en brouillon : rien à garder ici.
+      finiRef.current = true;
+      await effacerBrouillon(CLE_BROUILLON_BI);
       const params = new URLSearchParams({
         pole: Poles.entretienHorsContrat,
         siteId,
@@ -1172,12 +1241,30 @@ export function BiWizard({
     setErreur(null);
     setBrouillonConfirme(false);
     startEnregistrement(async () => {
-      const res = await enregistrerBI(construireInput(), statut, brouillonId ?? undefined);
+      let photosFinales = photos;
+      let res: Awaited<ReturnType<typeof enregistrerBI>>;
+      try {
+        photosFinales = await televerserPhotosLocales(photos);
+        if (photosFinales.some((p, i) => p !== photos[i]) || photosFinales.length !== photos.length) setPhotos(photosFinales);
+        res = await enregistrerBI({ ...construireInput(photosFinales), cle_envoi: cleEnvoi }, statut, brouillonId ?? undefined);
+      } catch (e) {
+        if (!estErreurReseau(e)) throw e;
+        if (statut === "brouillon") {
+          signaler("Pas de réseau : brouillon non enregistré au bureau", null, {
+            detail: "Ta saisie est gardée sur ce téléphone. Enregistre-la ou transmets-la dès que le réseau revient.",
+          });
+          return;
+        }
+        await mettreEnAttente(photosFinales);
+        return;
+      }
       if (!res.ok) {
         setErreur(res.erreur);
         return;
       }
       if (statut === "brouillon") {
+        enregistreRef.current = empreinte();
+        await effacerBrouillon(CLE_BROUILLON_BI);
         // Reste sur l'assistant : le technicien est encore sur le
         // chantier, "Enregistrer brouillon" n'est qu'une sauvegarde de
         // ce qu'il a déjà saisi, pas une sortie de l'assistant. Les
@@ -1187,12 +1274,156 @@ export function BiWizard({
         setBrouillonConfirme(true);
         return;
       }
+      finiRef.current = true;
+      await effacerBrouillon(CLE_BROUILLON_BI);
+      await effacerPhotosLocales(photosFinales);
       router.push(retourBrouillon ? `/bi/nouveau?brouillonId=${retourBrouillon}` : "/");
       router.refresh();
     });
   }
 
+  /// Signé sans réseau : le BI complet (signatures comprises) est gardé sur
+  /// le téléphone et transmis au bureau dès le retour du réseau.
+  async function mettreEnAttente(photosFinales: typeof photos) {
+    const envoi: BiEnAttente = {
+      input: { ...construireInput(photosFinales), cle_envoi: cleEnvoi },
+      photos: photosFinales.map(({ type, storage_path, horodatage, local_id }) => ({ type, storage_path, horodatage, local_id })),
+      brouillonId,
+    };
+    try {
+      await ajouterEnvoi("bi", libelleSaisie, envoi);
+    } catch {
+      signaler("Pas de réseau", null, {
+        detail: "Ce téléphone ne peut pas garder le BI. Ne quitte pas cet écran et réessaie dès que le réseau revient.",
+      });
+      return;
+    }
+    finiRef.current = true;
+    await effacerBrouillon(CLE_BROUILLON_BI);
+    setMisEnAttente(true);
+  }
+
+  // ==================== Saisie gardée sur le téléphone ====================
+
+  const libelleSaisie = `BI ${labelPole(pole)} — ${[site?.nom, site?.site].filter(Boolean).join(" — ")}`;
+
+  function instantaneBrut(): InstantaneBI {
+    if (sigTechRef.current) derniereSigRef.current.tech = sigTechRef.current.getDataUrl();
+    if (sigClientRef.current) derniereSigRef.current.client = sigClientRef.current.getDataUrl();
+    const neuve = avecNouvelEquipement(pole);
+    return {
+      brouillon: {
+        id: brouillonId ?? "",
+        pole,
+        site_id: siteId,
+        depannage_id: depannageId,
+        creneau_id: brouillon?.creneau_id || searchParams.get("creneauId") || null,
+        equipement_id: neuve ? null : equipementId || null,
+        equipement_nom: neuve ? installationNom : equipementLibre,
+        equipement_groupe: installationGroupe,
+        equipement_localisation: installationLocalisation,
+        devis_id: devisId || null,
+        materiel_type_equipement_id: typeActifId || null,
+        materiel_champs_en_tete: materielChamps,
+        entretien_groupes: [...groupesSelectionnes],
+        entretien_non_desservis: [],
+        visite_numero: visiteNumero ? Number(visiteNumero) : null,
+        visite_total: visiteTotal ? Number(visiteTotal) : null,
+        visite_annee: visiteAnnee ? Number(visiteAnnee) : null,
+        date_debut: dateDebut,
+        date_fin: dateFin,
+        date_intervention: dateIntervention,
+        temps_passe: tempsPasse,
+        techniciens,
+        compte_rendu: compteRendu,
+        obs_tech: obsTech,
+        obs_client: obsClient,
+        modele_champs: modeleChamps,
+        checklist_values: checklistValues,
+        prestas: fourniture,
+        etat_equipement: [],
+        interventions_supplementaires: interventionsSupplementaires,
+        photos: photos
+          .filter((p) => p.storage_path || p.local_id)
+          .map(({ type, storage_path, horodatage, local_id, preview }) => ({
+            type,
+            storage_path,
+            horodatage,
+            local_id,
+            preview: preview.startsWith("blob:") ? "" : preview,
+          })),
+        signataire,
+        signataire_tel_portable: signataireTelPortable,
+        signataire_tel_fixe: signataireTelFixe,
+        email,
+        nombre_deplacements: nombreDeplacements === "" ? 1 : nombreDeplacements,
+      },
+      extras: {
+        etape,
+        sansDevis,
+        retour: retourBrouillon,
+        cleEnvoi,
+        nonDesservisIds: [...nonDesservisIds],
+        motifs: motifsNonDesservi,
+        devisAEtablir,
+        etatHorsService,
+        tempsManuel,
+        deplacementsManuel,
+        visiteModifiee: visiteModifiee.current,
+        nombreDeplacements,
+        sigTech: derniereSigRef.current.tech,
+        sigClient: derniereSigRef.current.client,
+      },
+    };
+  }
+
+  function empreinte(s = instantaneBrut()): string {
+    return JSON.stringify({ ...s, brouillon: { ...s.brouillon, id: "" }, extras: { ...s.extras, etape: 0 } });
+  }
+
+  useSauvegardeLocale(
+    CLE_BROUILLON_BI,
+    libelleSaisie,
+    sauvegardeActive && !!siteId && !misEnAttente,
+    () => {
+      if (finiRef.current) return null;
+      const s = instantaneBrut();
+      if (enregistreRef.current && empreinte(s) === enregistreRef.current) return null;
+      return s;
+    },
+    [
+      etape, pole, siteId, devisId, equipementId, typeActifId, materielChamps, installationNom, installationLocalisation,
+      installationGroupe, equipementLibre, groupesSelectionnes, nonDesservisIds, motifsNonDesservi, compteRendu, obsTech,
+      obsClient, photos, fourniture, devisAEtablir, etatHorsService, interventionsSupplementaires, modeleChamps,
+      checklistValues, techniciens, dateDebut, dateFin, dateIntervention, tempsPasse, signataire, signataireTelPortable,
+      signataireTelFixe, email, nombreDeplacements, visiteNumero, visiteTotal, visiteAnnee, brouillonId, depannageId,
+      sigTechVide, sigClientVide,
+    ],
+  );
+
   // ==================== UI ====================
+
+  if (misEnAttente) {
+    return (
+      <div className="mx-auto max-w-xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-center">
+        <CloudOff className="mx-auto h-10 w-10 text-amber-600" />
+        <p className="mt-3 text-base font-bold text-amber-900">Pas de réseau : BI gardé sur ce téléphone</p>
+        <p className="mt-1 text-sm text-amber-900">
+          Il sera transmis au bureau tout seul dès le retour du réseau (pastille en haut de l&apos;écran). D&apos;ici là,
+          ne vide pas les données de l&apos;appli sur ce téléphone.
+        </p>
+        {retourBrouillon && (
+          <p className="mt-2 text-sm text-amber-900">Le BI d&apos;entretien sera à reprendre depuis ton planning.</p>
+        )}
+        <Link
+          href="/"
+          className="mt-5 inline-block rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700"
+        >
+          Retour à l&apos;accueil
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -1729,8 +1960,16 @@ export function BiWizard({
                       <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     </div>
                   )}
+                  {!p.enCours && !p.storage_path && (
+                    <span className="absolute left-1 top-1 rounded bg-amber-500 px-1 text-[9px] font-bold text-white">
+                      Sur le tél.
+                    </span>
+                  )}
                   <button
-                    onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                    onClick={() => {
+                      if (p.local_id) effacerFichier(clePhoto(p.local_id));
+                      setPhotos((prev) => prev.filter((_, idx) => idx !== i));
+                    }}
                     className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-red-600 shadow"
                   >
                     <X className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -2011,7 +2250,7 @@ export function BiWizard({
               champEnEvidence === "sigTech" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200/80"
             }`}
           >
-            <SignaturePad ref={sigTechRef} titre="Signature technicien" onChange={setSigTechVide} />
+            <SignaturePad ref={sigTechRef} titre="Signature technicien" onChange={setSigTechVide} initiale={sigInitiales.tech} />
           </div>
 
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
@@ -2030,7 +2269,7 @@ export function BiWizard({
               champEnEvidence === "sigClient" ? "border-red-500 ring-2 ring-red-300" : "border-slate-200/80"
             }`}
           >
-            <SignaturePad ref={sigClientRef} titre="Signature client" onChange={setSigClientVide} />
+            <SignaturePad ref={sigClientRef} titre="Signature client" onChange={setSigClientVide} initiale={sigInitiales.client} />
           </div>
         </div>
       )}

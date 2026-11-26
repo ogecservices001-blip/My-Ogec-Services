@@ -13,8 +13,8 @@ export type SignaturePadHandle = {
 /// doigt, stylet), export en PNG base64. Remplace `signature_pad`
 /// (Flutter) : pas besoin d'une lib externe pour un simple tracé noir
 /// sur fond blanc.
-export const SignaturePad = forwardRef<SignaturePadHandle, { titre: string; onChange?: (vide: boolean) => void }>(
-  function SignaturePad({ titre, onChange }, ref) {
+export const SignaturePad = forwardRef<SignaturePadHandle, { titre: string; onChange?: (vide: boolean) => void; initiale?: string }>(
+  function SignaturePad({ titre, onChange, initiale }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const dessineRef = useRef(false);
     const dernierPointRef = useRef<{ x: number; y: number } | null>(null);
@@ -38,6 +38,20 @@ export const SignaturePad = forwardRef<SignaturePadHandle, { titre: string; onCh
       const echelleY = canvas.height / rect.height;
       return { x: (e.clientX - rect.left) * echelleX, y: (e.clientY - rect.top) * echelleY };
     }
+
+    /// Saisie reprise après une coupure : la signature déjà faite est redessinée.
+    useEffect(() => {
+      if (!initiale) return;
+      const image = new Image();
+      image.onload = () => {
+        const ctx = canvasRef.current?.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(image, 0, 0);
+        setVide(false);
+      };
+      image.src = initiale;
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- seulement à l'ouverture
+    }, []);
 
     function debuterTrait(e: React.PointerEvent<HTMLCanvasElement>) {
       e.preventDefault();

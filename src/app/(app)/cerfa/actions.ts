@@ -105,6 +105,9 @@ export type FinalisationCerfa = {
   nouveauSignataire: boolean;
   signatureOperateur: string;
   signatureDetenteur: string;
+  /// Identifiant créé sur le téléphone : un renvoi après coupure réseau
+  /// retrouve le CERFA déjà enregistré au lieu d'en créer un second.
+  cleEnvoi?: string;
 };
 
 function pngDepuisDataUrl(dataUrl: string): Uint8Array | null {
@@ -147,6 +150,14 @@ export async function finaliserCerfa(
   if (!sigOp || !sigDet) return { ok: false, erreur: "Les deux signatures sont obligatoires." };
 
   const supabase = await createClient();
+  if (f.cleEnvoi) {
+    const { data: deja } = await supabase
+      .from("cerfas")
+      .select("id, numero, fiche_no, signataire_email")
+      .eq("cle_envoi", f.cleEnvoi)
+      .maybeSingle();
+    if (deja) return { ok: true, id: deja.id, numero: deja.numero, ficheNo: deja.fiche_no, emailClient: deja.signataire_email };
+  }
   const nouvel = f.nouvelEquipement ?? null;
   if (nouvel) {
     if (!FAMILLES_CERFA.includes(nouvel.typeEquipementId)) return { ok: false, erreur: "Choisis la famille de l'équipement." };
@@ -261,6 +272,7 @@ export async function finaliserCerfa(
       qte_recup_hors_usage: q.qteRecupHorsUsage,
       pdf_path: chemin,
       created_by: profile.id,
+      cle_envoi: f.cleEnvoi || null,
     })
     .select("id")
     .single();

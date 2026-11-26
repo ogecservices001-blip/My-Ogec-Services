@@ -132,6 +132,7 @@ export type Database = {
           checklist_values: Json
           chrono: number
           classement: string
+          cle_envoi: string | null
           client_nom: string
           compte_rendu: string
           created_at: string
@@ -201,6 +202,7 @@ export type Database = {
           checklist_values?: Json
           chrono?: number
           classement?: string
+          cle_envoi?: string | null
           client_nom?: string
           compte_rendu?: string
           created_at?: string
@@ -270,6 +272,7 @@ export type Database = {
           checklist_values?: Json
           chrono?: number
           classement?: string
+          cle_envoi?: string | null
           client_nom?: string
           compte_rendu?: string
           created_at?: string
@@ -426,6 +429,7 @@ export type Database = {
         Row: {
           annee: number
           chrono: number
+          cle_envoi: string | null
           client_nom: string
           created_at: string
           created_by: string | null
@@ -455,6 +459,7 @@ export type Database = {
         Insert: {
           annee: number
           chrono: number
+          cle_envoi?: string | null
           client_nom?: string
           created_at?: string
           created_by?: string | null
@@ -484,6 +489,7 @@ export type Database = {
         Update: {
           annee?: number
           chrono?: number
+          cle_envoi?: string | null
           client_nom?: string
           created_at?: string
           created_by?: string | null
@@ -1634,6 +1640,7 @@ export type Database = {
         Row: {
           bon_intervention_id: string | null
           checklist_values: Json
+          cle_envoi: string | null
           created_at: string
           date: string
           equipement_id: string
@@ -1654,6 +1661,7 @@ export type Database = {
         Insert: {
           bon_intervention_id?: string | null
           checklist_values?: Json
+          cle_envoi?: string | null
           created_at?: string
           date?: string
           equipement_id: string
@@ -1674,6 +1682,7 @@ export type Database = {
         Update: {
           bon_intervention_id?: string | null
           checklist_values?: Json
+          cle_envoi?: string | null
           created_at?: string
           date?: string
           equipement_id?: string

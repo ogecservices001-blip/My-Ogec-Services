@@ -29,8 +29,35 @@ import {
   supprimerDetecteur,
   type Detecteur,
   type EquipementCerfa,
+  type FinalisationCerfa,
 } from "../actions";
 import { BasculeContrat } from "../bascule-contrat";
+import { SaisieRetrouvee } from "@/components/hors-ligne/saisie-retrouvee";
+import type { CerfaEnAttente } from "@/components/hors-ligne/traitements";
+import { useSauvegardeLocale } from "@/lib/hors-ligne/use-sauvegarde-locale";
+import { ajouterEnvoi, effacerBrouillon, estErreurReseau, lireBrouillon, type Brouillon } from "@/lib/hors-ligne/stockage";
+
+/// Une seule saisie CERFA en cours par téléphone : gardée en continu pour la
+/// retrouver après une coupure ou un rechargement.
+const CLE_BROUILLON = "cerfa:en-cours";
+
+type InstantaneCerfa = {
+  etape: number;
+  horsContrat: boolean;
+  clientNom: string;
+  siteId: string;
+  equipementId: string;
+  nouvelEq: { typeEquipementId: string; nom: string; localisation: string } | null;
+  d: CerfaDonnees;
+  detecteurId: string;
+  fuiteChoisie: boolean;
+  operateur: string;
+  signataireChoisi: string;
+  signataire: { nom: string; qualite: string; email: string };
+  cleEnvoi: string;
+  sigOp: string;
+  sigDet: string;
+};
 
 export type SiteCerfa = {
   id: string;
@@ -79,6 +106,7 @@ const ECRANS = [
   "Écran 5a : Récapitulatif",
   "Écran 5b : Signatures",
   "Écran 6 : Envoi au client",
+  "Pas de réseau : envoi en attente",
 ];
 
 function signatairesDuSite(s: SiteCerfa | undefined) {
@@ -165,6 +193,7 @@ export function CerfaWizard({
 }) {
   const router = useRouter();
   const quitter = () => {
+    effacerBrouillon(CLE_BROUILLON);
     if (fermerALaFin) window.close();
     router.push("/");
   };
@@ -194,6 +223,16 @@ export function CerfaWizard({
   const [resultat, setResultat] = useState<{ id: string; numero: string; ficheNo: string; avertissement?: string } | null>(null);
   const [emailEnvoi, setEmailEnvoi] = useState("");
   const [envoye, setEnvoye] = useState(false);
+
+  const [cleEnvoi, setCleEnvoi] = useState(() => crypto.randomUUID());
+  const [verifie, setVerifie] = useState(false);
+  const [retrouvee, setRetrouvee] = useState<Brouillon<InstantaneCerfa> | null>(null);
+  const [sigInitiales, setSigInitiales] = useState({ op: "", det: "" });
+  const [versionSignatures, setVersionSignatures] = useState(0);
+  const [enAttente, setEnAttente] = useState<FinalisationCerfa | null>(null);
+  const [emailHorsLigne, setEmailHorsLigne] = useState("");
+  const [envoyerHorsLigne, setEnvoyerHorsLigne] = useState(true);
+  const [misEnAttente, setMisEnAttente] = useState(false);
 
   const site = sites.find((s) => s.id === siteId);
   const equipement: EquipementCerfa | undefined = nouvelEq
@@ -246,6 +285,71 @@ export function CerfaWizard({
   useEffect(() => {
     chargerDetecteurs().then(setDetecteurs);
   }, []);
+
+  useEffect(() => {
+    lireBrouillon<InstantaneCerfa>(CLE_BROUILLON).then((b) => {
+      if (b?.donnees && b.donnees.siteId) setRetrouvee(b);
+      setVerifie(true);
+    });
+  }, []);
+
+  function instantane(): InstantaneCerfa {
+    return {
+      etape,
+      horsContrat,
+      clientNom,
+      siteId,
+      equipementId,
+      nouvelEq,
+      d,
+      detecteurId,
+      fuiteChoisie,
+      operateur,
+      signataireChoisi,
+      signataire,
+      cleEnvoi,
+      sigOp: sigOperateur.current?.getDataUrl() || sigInitiales.op,
+      sigDet: sigDetenteur.current?.getDataUrl() || sigInitiales.det,
+    };
+  }
+
+  useSauvegardeLocale(
+    CLE_BROUILLON,
+    `CERFA — ${nouvelEq?.nom || equipements.find((e) => e.id === equipementId)?.nom || "équipement"} (${sites.find((s) => s.id === siteId)?.site ?? ""})`,
+    verifie && !retrouvee && !misEnAttente && !!siteId && etape < 6,
+    instantane,
+    [etape, clientNom, siteId, equipementId, nouvelEq, d, detecteurId, fuiteChoisie, operateur, signataireChoisi, signataire, cleEnvoi],
+  );
+
+  function reprendre() {
+    if (!retrouvee) return;
+    const s = retrouvee.donnees;
+    if (s.horsContrat !== horsContrat) {
+      router.push(`/cerfa/nouveau?horsContrat=${s.horsContrat ? 1 : 0}`);
+      return;
+    }
+    setClientNom(s.clientNom);
+    setSiteId(s.siteId);
+    setEquipements([]);
+    setNouvelEq(s.nouvelEq);
+    setD(s.d);
+    setDetecteurId(s.detecteurId);
+    setFuiteChoisie(s.fuiteChoisie);
+    setOperateur(s.operateur);
+    setSignataireChoisi(s.signataireChoisi);
+    setSignataire(s.signataire);
+    setCleEnvoi(s.cleEnvoi);
+    setSigInitiales({ op: s.sigOp, det: s.sigDet });
+    setVersionSignatures((v) => v + 1);
+    chargerSite(s.siteId, s.equipementId);
+    setEtape(Math.min(s.etape, 5));
+    setRetrouvee(null);
+  }
+
+  function ignorer() {
+    effacerBrouillon(CLE_BROUILLON);
+    setRetrouvee(null);
+  }
 
   const optionsEquipements: OptionRecherche[] = equipements.map((e) => {
     const statut = statutSoumission(e.champs_en_tete);
@@ -336,7 +440,7 @@ export function CerfaWizard({
     if (!op) return signaler("Signe dans la case « Signature du technicien »", "sig-operateur");
     if (!det) return signaler("Fais signer le client dans la case « Signature du client »", "sig-detenteur");
     setEnCours("Attribution du numéro, génération et archivage du PDF…");
-    const r = await finaliserCerfa({
+    const finalisation: FinalisationCerfa = {
       equipementId,
       siteId,
       nouvelEquipement: nouvelEq,
@@ -346,19 +450,65 @@ export function CerfaWizard({
       nouveauSignataire: signataireChoisi === "__nouveau__",
       signatureOperateur: op,
       signatureDetenteur: det,
-    });
+      cleEnvoi,
+    };
+    let r: Awaited<ReturnType<typeof finaliserCerfa>>;
+    try {
+      r = await finaliserCerfa(finalisation);
+    } catch (e) {
+      setEnCours("");
+      if (!estErreurReseau(e)) return signaler("Le CERFA n'a pas pu être finalisé", null, { detail: e instanceof Error ? e.message : String(e) });
+      // Pas de réseau : rien n'est perdu, le CERFA part plus tard.
+      setSigInitiales({ op, det });
+      setEnAttente(finalisation);
+      setEmailHorsLigne(signataire.email);
+      setEtape(7);
+      return;
+    }
     setEnCours("");
     if (!r.ok) return signaler("Le CERFA n'a pas pu être finalisé", null, { detail: r.erreur });
+    effacerBrouillon(CLE_BROUILLON);
     setResultat({ id: r.id!, numero: r.numero!, ficheNo: r.ficheNo!, avertissement: r.avertissement });
     setEmailEnvoi(r.emailClient ?? "");
     setEtape(6);
+  }
+
+  async function mettreEnAttente() {
+    if (!enAttente) return;
+    if (envoyerHorsLigne && !emailHorsLigne.trim()) return signaler("Renseigne l'email du client, ou décoche l'envoi", "email-hors-ligne");
+    const payload: CerfaEnAttente = {
+      finalisation: enAttente,
+      cleBrouillon: CLE_BROUILLON,
+      emailClient: envoyerHorsLigne ? emailHorsLigne.trim() : "",
+    };
+    try {
+      await ajouterEnvoi("cerfa", `CERFA — ${equipement?.nom ?? ""} (${site?.site ?? ""})`, payload);
+    } catch {
+      return signaler("Impossible d'enregistrer le CERFA sur ce téléphone", null, {
+        detail: "Ne quitte pas cet écran : réessaie l'envoi dès que tu as du réseau.",
+      });
+    }
+    await effacerBrouillon(CLE_BROUILLON);
+    setMisEnAttente(true);
   }
 
   async function envoyer() {
     if (!resultat) return;
     if (!emailEnvoi.trim()) return signaler("Renseigne une adresse email destinataire", "email-envoi");
     setEnCours("Envoi du mail…");
-    const r = await envoyerCerfaParEmail(resultat.id, emailEnvoi.split(/[;,]/));
+    let r: Awaited<ReturnType<typeof envoyerCerfaParEmail>>;
+    try {
+      r = await envoyerCerfaParEmail(resultat.id, emailEnvoi.split(/[;,]/));
+    } catch (e) {
+      setEnCours("");
+      return signaler(estErreurReseau(e) ? "Pas de réseau : mail non envoyé" : "Mail non envoyé", "email-envoi", {
+        detail: estErreurReseau(e)
+          ? "Le CERFA est bien enregistré. Réessaie l'envoi quand tu captes ; le bureau peut aussi l'envoyer depuis « Envoyer un CERFA rempli »."
+          : e instanceof Error
+            ? e.message
+            : String(e),
+      });
+    }
     setEnCours("");
     if (!r.ok) return signaler("Mail non envoyé", "email-envoi", { detail: r.erreur });
     setEnvoye(true);
@@ -393,6 +543,65 @@ export function CerfaWizard({
         {etape === 0 && <BasculeContrat base="/cerfa/nouveau" horsContrat={horsContrat} />}
       </div>
       {enCours && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">{enCours}</p>}
+      {retrouvee && etape === 0 && (
+        <SaisieRetrouvee libelle={retrouvee.libelle} majLe={retrouvee.majLe} onReprendre={reprendre} onIgnorer={ignorer} />
+      )}
+
+      {etape === 7 && enAttente && (
+        <div className="space-y-4">
+          {!misEnAttente ? (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm">
+              <p className="text-base font-bold text-amber-900">Pas de réseau</p>
+              <p className="mt-1 text-amber-900">
+                Ton CERFA est complet et signé. Il sera enregistré (n° attribué, PDF créé, fiche équipement mise à jour) automatiquement dès que le
+                réseau revient. Rien n&apos;est perdu.
+              </p>
+              <label className="mt-3 flex items-center gap-2 font-semibold text-amber-900">
+                <input type="checkbox" className="h-4 w-4 accent-amber-600" checked={envoyerHorsLigne} onChange={(e) => setEnvoyerHorsLigne(e.target.checked)} />
+                L&apos;envoyer ensuite au client par mail
+              </label>
+              {envoyerHorsLigne && (
+                <input
+                  id="email-hors-ligne"
+                  className={`${CHAMP} mt-2 bg-white`}
+                  placeholder="Email du client (plusieurs : séparer par une virgule)"
+                  value={emailHorsLigne}
+                  onChange={(e) => setEmailHorsLigne(e.target.value)}
+                />
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={mettreEnAttente} className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700">
+                  Mettre en attente d&apos;envoi
+                </button>
+                <button type="button" onClick={valider} disabled={!!enCours} className="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-900">
+                  Réessayer maintenant
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVersionSignatures((v) => v + 1);
+                    setEtape(5);
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600"
+                >
+                  Retour aux signatures
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm">
+              <p className="text-base font-bold text-green-800">CERFA en attente d&apos;envoi</p>
+              <p className="mt-1 text-slate-700">
+                Il est gardé sur ce téléphone et partira tout seul dès que le réseau revient (pastille « en attente » en haut de l&apos;écran). Pense à
+                ouvrir l&apos;appli quand tu captes à nouveau.
+              </p>
+              <button type="button" onClick={quitter} className="mt-3 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                {fermerALaFin ? "Terminer et revenir" : "Terminer"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {etape === 0 && (
         <div className="space-y-4">
@@ -884,10 +1093,15 @@ export function CerfaWizard({
             <p className="mt-1 text-xs text-slate-500">Qualité : Frigoriste — Date : {new Date().toLocaleDateString("fr-FR")}</p>
           </div>
           <div className={CARTE} id="sig-operateur">
-            <SignaturePad ref={sigOperateur} titre="Signature du technicien" />
+            <SignaturePad key={`op-${versionSignatures}`} ref={sigOperateur} titre="Signature du technicien" initiale={sigInitiales.op} />
           </div>
           <div className={CARTE} id="sig-detenteur">
-            <SignaturePad ref={sigDetenteur} titre={`Signature du client — ${site.nom} – ${site.site}`} />
+            <SignaturePad
+              key={`det-${versionSignatures}`}
+              ref={sigDetenteur}
+              titre={`Signature du client — ${site.nom} – ${site.site}`}
+              initiale={sigInitiales.det}
+            />
           </div>
           <Boutons precedent={() => setEtape(4)} suivant={valider} libelleSuivant="Valider et générer le CERFA" occupe={!!enCours} onAbandon={quitter} />
         </div>

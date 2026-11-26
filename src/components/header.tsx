@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { LogoutButton } from "@/components/logout-button";
 import { SidebarToggle } from "@/components/sidebar-toggle";
+import { EnvoisEnAttente } from "@/components/hors-ligne/envois-en-attente";
 
 function initiales(nom: string) {
   const parts = nom.trim().split(/\s+/).filter(Boolean);
@@ -40,6 +41,7 @@ export async function Header() {
         </span>
       </Link>
       <div className="flex items-center gap-3">
+        <EnvoisEnAttente />
         {nomAffiche && (
           <div className="hidden items-center gap-2 sm:flex">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-brand-green">

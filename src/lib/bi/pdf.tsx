@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   footer: { position: "absolute", bottom: 12, left: 28, right: 28, textAlign: "center" },
   footerText: { fontSize: 6.5, color: GRIS },
   headerRow: { flexDirection: "row", alignItems: "flex-start" },
-  logo: { width: 90 },
+  logo: { width: 96, height: 44 },
   headerInfo: { flex: 1, marginLeft: 12 },
   companyName: { fontSize: 12, fontFamily: "Helvetica-Bold" },
   companySub: { fontSize: 8, color: GRIS },
@@ -399,7 +399,7 @@ let logoCache: Buffer | null | undefined;
 async function chargerLogo(): Promise<Buffer | null> {
   if (logoCache !== undefined) return logoCache;
   try {
-    logoCache = await readFile(path.join(process.cwd(), "public", "logo.jpg"));
+    logoCache = await readFile(path.join(process.cwd(), "public", "logo-devis.jpg"));
   } catch {
     logoCache = null;
   }

@@ -66,6 +66,7 @@ const LARGEUR_PLEINE_SECTIONS = [
   "/gmao/clients",
   "/gmao/referentiel",
   "/rh",
+  "/cerfa",
 ];
 /// Fiches de détail dynamiques (/depannages/{id}, /bi/{id}) — un
 /// préfixe sur "/bi" élargirait aussi "nouveau" (assistant technicien),

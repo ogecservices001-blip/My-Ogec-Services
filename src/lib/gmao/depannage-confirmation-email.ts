@@ -35,11 +35,18 @@ export async function envoyerConfirmationDepannage(params: {
   const motDePasse = process.env.GMAIL_APP_PASSWORD;
   if (!motDePasse) throw new Error("Envoi email non configuré (GMAIL_APP_PASSWORD manquant).");
 
+  // Tant qu'aucun technicien ni aucune date n'est fixé, c'est un accusé de
+  // réception, pas une planification.
+  const planifie = Boolean(params.intervenant || params.dateInterventionPrevue);
+  const introduction = planifie
+    ? `Suite à votre demande d'intervention : ci-dessous la prise en compte et la planification de l'intervention.<br/>${
+        params.intervenant ? "Les coordonnées de l'intervenant vous sont communiquées exclusivement dans le cadre de cette demande.<br/>" : ""
+      }`
+    : "Nous avons bien reçu votre demande d'intervention. Vous trouverez ci-dessous son récapitulatif.<br/>Nous revenons vers vous très prochainement dès planification de l'intervention.<br/>";
   const html = `
     <p>Bonjour,</p>
-    <p>Suite à votre demande d'intervention : ci-dessous la prise en compte et la planification de l'intervention.<br/>
-    Les coordonnées de l'intervenant vous sont communiquées exclusivement dans le cadre de cette demande.<br/>
-    Toutes autres demandes sont à effectuées <strong style="color:#c00;">exclusivement par courriel à l'adresse "${BUREAU_EMAIL}"</strong></p>
+    <p>${introduction}
+    Toute autre demande est à effectuer <strong style="color:#c00;">exclusivement par courriel à l'adresse "${BUREAU_EMAIL}"</strong></p>
     <table style="border-collapse:collapse;font-family:sans-serif;font-size:13px;">
       ${ligne("N° Intervention", `Int. N°${params.numero}`)}
       ${ligne("N'affaire", params.nAffaire, "color:#c00;font-weight:bold;")}
@@ -70,7 +77,7 @@ export async function envoyerConfirmationDepannage(params: {
     from: `OGEC Services <${GMAIL_USER}>`,
     replyTo: "ogec.services@orange.fr",
     to: params.destinataire,
-    subject: `${params.motif} — Int. N°${params.numero}`,
+    subject: `${planifie ? "" : "Demande reçue — "}${params.motif.length > 60 ? `${params.motif.slice(0, 57)}…` : params.motif} — Int. N°${params.numero}`,
     html,
   });
 }

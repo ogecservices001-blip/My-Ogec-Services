@@ -98,7 +98,7 @@ export async function enregistrerDemandeClient(
       interlocuteurSite: s?.interlocuteur_site ?? "",
       tel1: telInternational(s?.tel_fixe_interlocuteur_site ?? ""),
       tel2: telInternational(s?.portable_interlocuteur_site ?? ""),
-      informationComplementaire: "Demande enregistrée. Nous revenons vers vous pour planifier l'intervention.",
+      informationComplementaire: "",
     });
     await admin.from("demandes_depannage").update({ accuse_envoye_le: new Date().toISOString() }).eq("id", creee.id);
     accuseEnvoye = true;

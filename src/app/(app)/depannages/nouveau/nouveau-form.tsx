@@ -265,6 +265,7 @@ export function NouveauDepannageForm({
               <label className="mb-1 block text-xs font-medium text-slate-600">Localisation</label>
               <input
                 name="lieu_panne"
+                autoComplete="off"
                 value={lieuPanne}
                 onChange={(e) => setLieuPanne(e.target.value)}
                 placeholder="Ex : Bureau 43"

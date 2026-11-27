@@ -1,12 +1,14 @@
 import Image from "next/image";
 import { getCurrentProfile } from "@/lib/profile";
 import { AccueilTechnicien } from "./accueil-technicien";
+import { TableauDeBord } from "./tableau-de-bord";
 
 export default async function AccueilPage() {
   const profile = await getCurrentProfile();
   const mots = profile?.name.trim().split(/\s+/) ?? [];
   const prenom = mots.length > 0 ? mots[mots.length - 1] : "";
   if (profile?.role === "technicien") return <AccueilTechnicien profile={profile} prenom={prenom} />;
+  if (profile?.role === "admin") return <TableauDeBord prenom={prenom} />;
 
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">

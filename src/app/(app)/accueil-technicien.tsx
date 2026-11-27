@@ -72,7 +72,7 @@ export async function AccueilTechnicien({ profile, prenom }: { profile: Profile;
   }
 
   return (
-    <div className="space-y-6 py-2">
+    <div className="mx-auto max-w-2xl space-y-6 py-2">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">{prenom ? `Bonjour ${prenom}` : "Bonjour"}</h1>
         <p className="text-sm font-semibold text-brand-green-dark">Aujourd&apos;hui : {formaterJourLong(jour)}</p>

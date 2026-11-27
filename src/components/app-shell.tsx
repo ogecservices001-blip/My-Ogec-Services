@@ -73,6 +73,7 @@ const LARGEUR_PLEINE_SECTIONS = [
 /// qui doit rester en colonne centrée ; "/bi/{id}/pdf" ne matche pas
 /// (pas une page).
 const LARGEUR_PLEINE_PATTERNS = [
+  /^\/$/,
   /^\/depannages\/[0-9a-f-]{20,}$/i,
   /^\/depannages\/[0-9a-f-]{20,}\/modifier$/i,
   /^\/bi\/[0-9a-f-]{20,}$/i,

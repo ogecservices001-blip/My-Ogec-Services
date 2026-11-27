@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+import { notifierRapportDisponible } from "@/lib/espace-client/rapport-disponible";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { messageErreur, signalerIncident, type SourceIncident } from "@/lib/incidents";
 import { validerDestinataires } from "@/lib/repertoire/contacts-courriel";
@@ -469,6 +471,9 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
   // Mise à jour GMAO et archivage : ne bloquent jamais la validation, mais
   // un échec est signalé au bureau.
   const avertissement = await suitesValidation(supabase, corrige as Bon, profile.name);
+  // Rapport de visite disponible : les contacts ouverts à Mon contrat OGEC
+  // sont prévenus, après la réponse.
+  if (corrige.pole === Poles.entretienSousContrat) after(() => notifierRapportDisponible(id));
 
   revalidatePath("/bi");
   revalidatePath(`/bi/${id}`);

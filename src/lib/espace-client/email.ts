@@ -54,3 +54,45 @@ export async function envoyerInvitation(params: { destinataire: string; nom: str
     `,
   });
 }
+
+/// Accord de devis donné en ligne : confirmation au client (PDF joint) et
+/// avis au bureau.
+export async function envoyerAccordDevis(params: {
+  client: string;
+  emailClient: string;
+  nom: string;
+  qualite: string;
+  numeroDevis: string;
+  objet: string;
+  site: string;
+  pdf: Uint8Array;
+  nomFichier: string;
+}): Promise<void> {
+  const piece = [{ filename: params.nomFichier, content: Buffer.from(params.pdf), contentType: "application/pdf" }];
+  await transporteur().sendMail({
+    from: `OGEC Services <${GMAIL_USER}>`,
+    replyTo: BUREAU_EMAIL,
+    to: params.emailClient,
+    subject: `Votre accord pour le devis ${params.numeroDevis} — OGEC Services`,
+    html: `
+      <p>Bonjour ${echapper(params.nom)},</p>
+      <p>Nous avons bien reçu votre accord pour le devis <strong>${echapper(params.numeroDevis)}</strong>${params.objet ? ` (${echapper(params.objet)})` : ""}. Merci de votre confiance.</p>
+      <p>Vous trouverez ci-joint votre bon pour accord signé. Nous revenons vers vous pour planifier les travaux.</p>
+      <p>Cordialement,<br/>L'équipe OGEC Services</p>
+    `,
+    attachments: piece,
+  });
+  await transporteur().sendMail({
+    from: `OGEC Services <${GMAIL_USER}>`,
+    replyTo: params.emailClient,
+    to: BUREAU_EMAIL,
+    subject: `Devis ${params.numeroDevis} accepté en ligne — ${params.site}`,
+    text: `Le devis ${params.numeroDevis}${params.objet ? ` (${params.objet})` : ""} a été accepté en ligne depuis Mon contrat OGEC.
+
+Site : ${params.site}
+Signé par : ${params.nom}${params.qualite ? ` (${params.qualite})` : ""} — ${params.emailClient}
+
+Le devis est passé « Commandé ». Le bon pour accord est joint et rangé dans les commandes client du devis.`,
+    attachments: piece,
+  });
+}

@@ -128,6 +128,47 @@ export type Database = {
           },
         ]
       }
+      accords_devis: {
+        Row: {
+          devis_id: string
+          email: string
+          id: string
+          nom: string
+          numero_devis: string
+          pdf_chemin: string
+          qualite: string
+          signe_le: string
+        }
+        Insert: {
+          devis_id: string
+          email: string
+          id?: string
+          nom: string
+          numero_devis: string
+          pdf_chemin?: string
+          qualite?: string
+          signe_le?: string
+        }
+        Update: {
+          devis_id?: string
+          email?: string
+          id?: string
+          nom?: string
+          numero_devis?: string
+          pdf_chemin?: string
+          qualite?: string
+          signe_le?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accords_devis_devis_id_fkey"
+            columns: ["devis_id"]
+            isOneToOne: false
+            referencedRelation: "devis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affaires: {
         Row: {
           created_at: string
@@ -270,6 +311,7 @@ export type Database = {
           pole: string
           pole_principal: string
           prestas: Json
+          rapport_client_notifie_le: string | null
           sig_client: string
           sig_tech: string
           signataire: string
@@ -340,6 +382,7 @@ export type Database = {
           pole?: string
           pole_principal?: string
           prestas?: Json
+          rapport_client_notifie_le?: string | null
           sig_client?: string
           sig_tech?: string
           signataire?: string
@@ -410,6 +453,7 @@ export type Database = {
           pole?: string
           pole_principal?: string
           prestas?: Json
+          rapport_client_notifie_le?: string | null
           sig_client?: string
           sig_tech?: string
           signataire?: string

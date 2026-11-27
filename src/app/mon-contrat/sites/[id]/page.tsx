@@ -1,61 +1,56 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, CalendarCheck, CalendarClock, ClipboardCheck, FileText, MapPin } from "lucide-react";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { emailConnecte, siteDuClient, sitesAutorises } from "@/lib/espace-client/acces";
+import { AlertTriangle, CalendarCheck, CalendarClock, ClipboardCheck, FileText } from "lucide-react";
+import { accesSite } from "@/lib/espace-client/session-site";
 import { aujourdhuiReunion, avancementAnnee, prochainsPassages, visitesRealisees } from "@/lib/espace-client/donnees";
-import { BoutonDeconnexion } from "../bouton-deconnexion";
+import { devisClient, equipementsClient } from "@/lib/espace-client/donnees-parc";
+import { Carte, jourCourt, jourLong } from "./carte";
 
 export const dynamic = "force-dynamic";
 
-const jourLong = (iso: string) => {
-  const t = new Date(`${iso}T00:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-  return t.charAt(0).toUpperCase() + t.slice(1);
-};
-const jourCourt = (iso: string) => (iso ? iso.split("-").reverse().join("/") : "—");
-
-function Carte({ titre, icone: Icone, children }: { titre: string; icone: typeof CalendarClock; children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm">
-      <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
-        <Icone className="h-4 w-4 text-[#4f9a41]" />
-        {titre}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
 export default async function SiteClientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const admin = createAdminClient();
-  const email = await emailConnecte(admin);
-  if (!email) redirect("/mon-contrat");
-  const site = await siteDuClient(admin, email, id);
-  if (!site) notFound();
-  const plusieursSites = (await sitesAutorises(admin, email)).length > 1;
+  const { admin, site } = await accesSite(id);
 
-  const [passages, visites] = await Promise.all([prochainsPassages(admin, site.id), visitesRealisees(admin, site.id)]);
+  const [passages, visites, equipements, devis] = await Promise.all([
+    prochainsPassages(admin, site.id),
+    visitesRealisees(admin, site.id),
+    equipementsClient(admin, site.id),
+    devisClient(admin, site.id),
+  ]);
   const annee = Number(aujourdhuiReunion().slice(0, 4));
   const avancement = avancementAnnee(visites, annee);
+  const horsFonction = equipements.filter((e) => e.etat && !e.etat.bon);
+  const devisEnAttente = devis.filter((d) => d.attenteAccord);
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          {plusieursSites && (
-            <Link href="/mon-contrat/sites" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-slate-800">
-              <ArrowLeft className="h-4 w-4" /> Vos sites
+      {(horsFonction.length > 0 || devisEnAttente.length > 0) && (
+        <div className="space-y-2">
+          {horsFonction.length > 0 && (
+            <Link
+              href={`/mon-contrat/sites/${site.id}/equipements`}
+              className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 hover:bg-red-100"
+            >
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <span>
+                <strong>{horsFonction.length} équipement{horsFonction.length > 1 ? "s" : ""} hors fonctionnement</strong> :{" "}
+                {horsFonction.map((e) => e.nom).join(", ")}
+              </span>
             </Link>
           )}
-          <h1 className="text-2xl font-bold text-slate-900">{site.site || site.nom}</h1>
-          <p className="flex items-center gap-1.5 text-sm text-slate-500">
-            <MapPin className="h-4 w-4" />
-            {[site.nom, site.adresse, [site.code_postal, site.commune].filter(Boolean).join(" ")].filter(Boolean).join(" · ")}
-          </p>
+          {devisEnAttente.length > 0 && (
+            <Link
+              href={`/mon-contrat/sites/${site.id}/devis`}
+              className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:bg-amber-100"
+            >
+              <FileText className="h-5 w-5 shrink-0" />
+              <span>
+                <strong>{devisEnAttente.length} devis en attente de votre accord</strong>
+              </span>
+            </Link>
+          )}
         </div>
-        <BoutonDeconnexion />
-      </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Carte titre="Prochain passage" icone={CalendarClock}>

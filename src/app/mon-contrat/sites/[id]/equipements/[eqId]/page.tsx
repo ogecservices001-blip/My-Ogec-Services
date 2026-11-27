@@ -52,7 +52,7 @@ export default async function EquipementClientPage({ params }: { params: Promise
                     {h.type} · {h.numero}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {h.type === LIBELLE_ENTRETIEN && (
                     <a href={`/mon-contrat/pdf/rapport/${h.biId}`} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-[#4f9a41] px-3 py-1.5 text-sm font-semibold text-white hover:bg-[#3d7a32]">
                       Rapport

@@ -17,9 +17,9 @@ export default async function MesSitesPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-slate-900">Vos sites</h1>
-          <p className="text-sm text-slate-500">Connecté avec {email}</p>
+          <p className="text-sm text-slate-500 [overflow-wrap:anywhere]">Connecté avec {email}</p>
         </div>
         <BoutonDeconnexion />
       </div>
@@ -28,12 +28,12 @@ export default async function MesSitesPage() {
           Aucun site n&apos;est ouvert pour cette adresse. Contactez-nous à ogec.services@orange.fr.
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {sites.map((s) => (
             <Link
               key={s.id}
               href={`/mon-contrat/sites/${s.id}`}
-              className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
+              className="flex min-w-0 items-center gap-3 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eef6ec]">
                 <Building2 className="h-5 w-5 text-[#3d7a32]" />
@@ -44,7 +44,7 @@ export default async function MesSitesPage() {
                   {[s.nom, s.commune].filter(Boolean).join(" · ")}
                 </span>
               </span>
-              <ChevronRight className="h-5 w-5 text-slate-300" />
+              <ChevronRight className="h-5 w-5 shrink-0 text-slate-300" />
             </Link>
           ))}
         </div>

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 /// menu, ni compte), textes au vouvoiement.
 export default function MonContratLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen overflow-x-clip bg-slate-100">
       <header className="bg-[#1f2a24] text-white">
         <div className="flex items-center gap-3 px-4 py-3 sm:px-8">
           <Image src="/logo-icon.png" alt="" width={36} height={36} className="h-9 w-9 rounded-lg bg-white/90 object-contain p-0.5" />

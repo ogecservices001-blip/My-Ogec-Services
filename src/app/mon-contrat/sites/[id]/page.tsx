@@ -52,7 +52,7 @@ export default async function SiteClientPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Carte titre="Prochain passage" icone={CalendarClock}>
           {passages.length === 0 ? (
             <p className="text-sm text-slate-500">Aucun passage planifié pour le moment.</p>
@@ -119,7 +119,7 @@ export default async function SiteClientPage({ params }: { params: Promise<{ id:
                     {v.annee ? ` — ${v.annee}` : ""} · {v.numero}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <a
                     href={`/mon-contrat/pdf/rapport/${v.biId}`}
                     target="_blank"

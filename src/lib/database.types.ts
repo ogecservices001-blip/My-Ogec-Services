@@ -1083,11 +1083,16 @@ export type Database = {
           mois_facturation: string
           montant: number | null
           montant_commande: number | null
+          motif_perte: string
           nature: string
           numero: string
           paves: Json
+          perdu_le: string | null
+          prochaine_relance: string | null
+          rappel_relance: boolean
           redacteur: string
           reference_client: string
+          relances: Json
           remarques: string
           remise_type: string
           remise_valeur: number | null
@@ -1095,6 +1100,7 @@ export type Database = {
           site_id: string
           statut_commande_fournisseur: string
           updated_at: string
+          validite_mois: number
         }
         Insert: {
           annule?: boolean
@@ -1124,11 +1130,16 @@ export type Database = {
           mois_facturation?: string
           montant?: number | null
           montant_commande?: number | null
+          motif_perte?: string
           nature?: string
           numero?: string
           paves?: Json
+          perdu_le?: string | null
+          prochaine_relance?: string | null
+          rappel_relance?: boolean
           redacteur?: string
           reference_client?: string
+          relances?: Json
           remarques?: string
           remise_type?: string
           remise_valeur?: number | null
@@ -1136,6 +1147,7 @@ export type Database = {
           site_id: string
           statut_commande_fournisseur?: string
           updated_at?: string
+          validite_mois?: number
         }
         Update: {
           annule?: boolean
@@ -1165,11 +1177,16 @@ export type Database = {
           mois_facturation?: string
           montant?: number | null
           montant_commande?: number | null
+          motif_perte?: string
           nature?: string
           numero?: string
           paves?: Json
+          perdu_le?: string | null
+          prochaine_relance?: string | null
+          rappel_relance?: boolean
           redacteur?: string
           reference_client?: string
+          relances?: Json
           remarques?: string
           remise_type?: string
           remise_valeur?: number | null
@@ -1177,6 +1194,7 @@ export type Database = {
           site_id?: string
           statut_commande_fournisseur?: string
           updated_at?: string
+          validite_mois?: number
         }
         Relationships: [
           {

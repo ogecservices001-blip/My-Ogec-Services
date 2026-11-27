@@ -1,5 +1,6 @@
 "use client";
 
+import { Timer } from "lucide-react";
 import { ListeRecherche } from "@/components/liste-recherche";
 import { ChoixClientSite } from "@/components/choix-client-site";
 import { useChampManquant, useSignalerRefusServeur } from "@/components/champ-manquant";
@@ -62,6 +63,7 @@ export function NouveauDepannageForm({
   );
   const [clientNom, setClientNom] = useState(initial?.clientNom ?? "");
   const [siteId, setSiteId] = useState(initial?.siteId ?? "");
+  const delaiContractuel = String(sites.find((s) => s.id === siteId)?.delai_intervention ?? "").trim();
 
   function changerType(valeur: "" | "sous" | "hors") {
     setType(valeur);
@@ -233,6 +235,12 @@ export function NouveauDepannageForm({
                 }}
               />
             </div>
+            {delaiContractuel && (
+              <p className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 sm:col-span-3">
+                <Timer className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+                Délai d&apos;intervention contractuel : {delaiContractuel}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

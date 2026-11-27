@@ -1,5 +1,6 @@
 "use server";
 
+import { CHOIX_VALIDITE_MOIS, DELAI_RELANCE_MOIS, ajouterMois, aujourdhuiReunion, frDepuisIso, type Relance } from "@/lib/devis/suivi-commercial";
 import { validerDestinataires } from "@/lib/repertoire/contacts-courriel";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -374,9 +375,12 @@ export type StatutDevisInput = {
 export async function changerStatutDevis(id: string, input: StatutDevisInput): Promise<ActionResult> {
   await requireAdmin();
   const supabase = await createClient();
+  // Commandé, annulé ou remis en attente : plus « perdu » ; une fois commandé
+  // ou annulé, plus rien à relancer.
+  const finRelance = input.date_commande_client || input.annule ? { rappel_relance: false, prochaine_relance: null } : {};
   const { error } = await supabase
     .from("devis")
-    .update({ ...input, updated_at: new Date().toISOString() })
+    .update({ ...input, perdu_le: null, motif_perte: "", ...finRelance, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { ok: false, erreur: error.message };
 
@@ -437,7 +441,7 @@ export async function supprimerDevis(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function envoyerDevisParEmail(id: string, destinataires: string[]): Promise<ActionResult> {
+export async function envoyerDevisParEmail(id: string, destinataires: string[], rappel: boolean): Promise<ActionResult> {
   await requireAdmin();
   const choix = validerDestinataires(destinataires);
   if (!choix.ok) return choix;
@@ -456,7 +460,87 @@ export async function envoyerDevisParEmail(id: string, destinataires: string[]):
     return { ok: false, erreur: e instanceof Error ? e.message : "Échec de l'envoi." };
   }
 
-  await supabase.from("devis").update({ envoyee_le: new Date().toLocaleDateString("fr-FR") }).eq("id", id);
+  const jour = aujourdhuiReunion();
+  await supabase
+    .from("devis")
+    .update({
+      envoyee_le: frDepuisIso(jour),
+      rappel_relance: rappel,
+      prochaine_relance: rappel ? ajouterMois(jour, DELAI_RELANCE_MOIS) : null,
+    })
+    .eq("id", id);
   revalidatePath(`/devis/${id}/statut`);
+  return { ok: true };
+}
+
+export type SuiviCommercialInput = { validite_mois: number; rappel_relance: boolean; prochaine_relance: string | null };
+
+/// Validité de l'offre et rappel de relance, choisis par le bureau.
+export async function majSuiviCommercial(id: string, input: SuiviCommercialInput): Promise<ActionResult> {
+  await requireAdmin();
+  if (!CHOIX_VALIDITE_MOIS.includes(input.validite_mois)) return { ok: false, erreur: "Validité invalide." };
+  if (input.rappel_relance && !/^\d{4}-\d{2}-\d{2}$/.test(input.prochaine_relance ?? "")) {
+    return { ok: false, erreur: "Indique la date du rappel de relance.", champs: { "devis-prochaine-relance": "Indique la date du rappel" } };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("devis")
+    .update({
+      validite_mois: input.validite_mois,
+      rappel_relance: input.rappel_relance,
+      prochaine_relance: input.rappel_relance ? input.prochaine_relance : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) return { ok: false, erreur: error.message };
+  revalidatePath(`/devis/${id}/statut`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/// « J'ai relancé » : noté dans l'historique ; si le rappel est actif, le
+/// suivant est repoussé d'un mois.
+export async function noterRelance(id: string, note: string): Promise<ActionResult> {
+  const profil = await requireAdmin();
+  const supabase = await createClient();
+  const { data: devis } = await supabase.from("devis").select("relances, rappel_relance").eq("id", id).single();
+  if (!devis) return { ok: false, erreur: "Devis introuvable." };
+  const jour = aujourdhuiReunion();
+  const relances = [...((devis.relances as Relance[] | null) ?? []), { date: frDepuisIso(jour), par: profil.name, note: note.trim() }];
+  const { error } = await supabase
+    .from("devis")
+    .update({
+      relances,
+      ...(devis.rappel_relance ? { prochaine_relance: ajouterMois(jour, DELAI_RELANCE_MOIS) } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) return { ok: false, erreur: error.message };
+  revalidatePath(`/devis/${id}/statut`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/// Refusé par le client ou perdu : sort des devis en attente et des relances.
+export async function marquerDevisPerdu(id: string, motif: string): Promise<ActionResult> {
+  await requireAdmin();
+  if (!motif.trim()) return { ok: false, erreur: "Choisis le motif." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("devis")
+    .update({
+      perdu_le: aujourdhuiReunion(),
+      motif_perte: motif.trim(),
+      rappel_relance: false,
+      prochaine_relance: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("annule", false)
+    .eq("date_commande_client", "");
+  if (error) return { ok: false, erreur: error.message };
+  revalidatePath("/devis");
+  revalidatePath(`/devis/${id}/statut`);
+  revalidatePath("/");
   return { ok: true };
 }

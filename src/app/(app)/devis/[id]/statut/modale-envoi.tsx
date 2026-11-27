@@ -23,11 +23,16 @@ export function ModaleEnvoiDevis({
   const [envoi, startEnvoi] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
   const destinataires = useDestinataires(siteId, [emailParDefaut]);
+  const [rappel, setRappel] = useState<boolean | null>(null);
 
   function envoyer() {
     setErreur(null);
+    if (rappel === null) {
+      setErreur("Choisis s'il faut un rappel de relance dans 1 mois (Oui ou Non).");
+      return;
+    }
     startEnvoi(async () => {
-      const res = await envoyerDevisParEmail(devisId, destinataires.destinataires());
+      const res = await envoyerDevisParEmail(devisId, destinataires.destinataires(), rappel);
       if (!res.ok) {
         setErreur(res.erreur);
         return;
@@ -48,6 +53,26 @@ export function ModaleEnvoiDevis({
         </div>
         <p className="mb-3 text-xs text-slate-500">Le PDF du devis sera joint à l&apos;email.</p>
         <ChoixDestinataires etat={destinataires} />
+        <div className="mt-4 rounded-xl border border-slate-200 p-3">
+          <p className="text-sm font-semibold text-slate-800">Me rappeler de relancer le client dans 1 mois ?</p>
+          <div className="mt-2 flex gap-2">
+            {[
+              { valeur: true, label: "Oui" },
+              { valeur: false, label: "Non" },
+            ].map((o) => (
+              <button
+                key={o.label}
+                type="button"
+                onClick={() => setRappel(o.valeur)}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  rappel === o.valeur ? "bg-brand-green text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
         {erreur && <p className="mt-2 text-sm text-red-600">{erreur}</p>}
         <div className="mt-4 flex justify-end gap-2">
           <button

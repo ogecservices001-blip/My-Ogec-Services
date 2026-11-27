@@ -21,6 +21,7 @@ import { eur } from "../../registre-liste";
 import { formaterDate, dateFrVersIso } from "@/lib/format";
 import { StatutBadge } from "@/components/bi/statut-badge";
 import { ModaleSuppressionDevis } from "./modale-devis";
+import { SuiviCommercial } from "./suivi-commercial";
 import { BlocCommandeClient, ChoixFichiersCommande, champsRetenus, ecartCommande, envoyerFichiersCommande } from "./commande-client";
 import { appliquerLectureCommande, confirmerEcartCommande, type LectureCommande } from "../../commande-client-actions";
 import { fichiersCommandeClient } from "@/lib/devis/commande-client";
@@ -143,6 +144,7 @@ export function StatutDevisForm({
       commande: Boolean(devis.date_commande_client),
       realise,
       facturable: Boolean(devis.mois_facturation),
+      perdu: Boolean(devis.perdu_le),
     })
   ];
 
@@ -369,6 +371,9 @@ export function StatutDevisForm({
       {erreur && <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}
 
       <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+      {isAdmin && devis.numero && !devis.annule && !devis.date_commande_client && !realise && !devis.mois_facturation && (
+        <SuiviCommercial devis={devis} />
+      )}
       {realise ? (
         <p className="rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-800">
           Ce devis est réalisé (le technicien a transmis son bon d&apos;intervention) — il ne peut plus être

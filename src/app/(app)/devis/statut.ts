@@ -7,7 +7,7 @@ export const STATUTS_BI_REALISE = new Set<string>(
   Object.values(Statuts).filter((s) => s !== Statuts.brouillon),
 );
 
-export type StatutDevis = "en_cours" | "attente" | "commande" | "realise" | "facturable" | "annule";
+export type StatutDevis = "en_cours" | "attente" | "perdu" | "commande" | "realise" | "facturable" | "annule";
 
 /// "Facturable" (mois de facturation saisi) prime sur "Réalisé" à
 /// l'affichage — c'est l'étape suivante dans le cycle de vie, même si
@@ -21,18 +21,22 @@ export function calculerStatutDevis(d: {
   commande: boolean;
   realise: boolean;
   facturable: boolean;
+  /// Refusé par le client ou perdu (suivi commercial).
+  perdu?: boolean;
 }): StatutDevis {
   if (d.annule) return "annule";
   if (!d.numero) return "en_cours";
   if (d.facturable) return "facturable";
   if (d.realise) return "realise";
   if (d.commande) return "commande";
+  if (d.perdu) return "perdu";
   return "attente";
 }
 
 export const LABEL_STATUT_DEVIS: Record<StatutDevis, string> = {
   en_cours: "Devis en cours",
   attente: "En attente",
+  perdu: "Refusé / perdu",
   commande: "Commandé",
   realise: "Réalisé",
   facturable: "Facturable",
@@ -42,6 +46,7 @@ export const LABEL_STATUT_DEVIS: Record<StatutDevis, string> = {
 export const TEINTE_STATUT_DEVIS: Record<StatutDevis, string> = {
   en_cours: "bg-amber-100 text-amber-700",
   attente: "bg-slate-100 text-slate-500",
+  perdu: "bg-rose-100 text-rose-700",
   commande: "bg-green-100 text-brand-green-dark",
   realise: "bg-blue-100 text-blue-700",
   facturable: "bg-teal-100 text-teal-700",

@@ -16,6 +16,8 @@ export type DevisRegistreLigne = {
   realise: boolean;
   facturable: boolean;
   annule: boolean;
+  perdu: boolean;
+  motifPerte: string;
 };
 
 export function eur(v: number): string {

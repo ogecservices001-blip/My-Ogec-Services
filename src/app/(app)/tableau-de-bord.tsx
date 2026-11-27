@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Cog,
   FileClock,
+  Percent,
   Receipt,
   Wrench,
   type LucideIcon,
@@ -13,8 +14,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Statuts, labelPole } from "@/lib/bi/constants";
 import { formaterJourCourt } from "@/lib/planning/dates";
 import { STATUTS_BI_REALISE } from "./devis/statut";
+import { motifPrincipal, transformation } from "@/lib/devis/suivi-commercial";
 
-const JOURS_RELANCE_DEVIS = 30;
 const JOURS_BROUILLON_OUBLIE = 3;
 const MAX_LIGNES = 5;
 
@@ -63,7 +64,7 @@ export async function TableauDeBord({ prenom }: { prenom: string }) {
       .order("date_creation", { ascending: true }),
     supabase
       .from("devis")
-      .select("id, numero, site_id, libelle, montant, date_devis, created_at, date_commande_client, mois_facturation, annule, bi_reference_historique"),
+      .select("id, numero, site_id, libelle, montant, date_devis, created_at, date_commande_client, mois_facturation, annule, bi_reference_historique, rappel_relance, prochaine_relance, perdu_le, motif_perte"),
     supabase.from("bons_intervention").select("devis_id, statut").not("devis_id", "is", null),
     supabase
       .from("equipements")
@@ -134,27 +135,48 @@ export async function TableauDeBord({ prenom }: { prenom: string }) {
   const montant = (m: number | null) =>
     m === null ? "" : `${m.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT`;
 
-  const aRelancer: (Ligne & { age: number })[] = devisValides
-    .filter((d) => !d.date_commande_client && !d.mois_facturation && !devisRealises.has(d.id) && !d.bi_reference_historique)
-    .map((d) => {
-      const depuis = isoDepuisFr(d.date_devis) || d.created_at.slice(0, 10);
-      return { d, age: joursDepuis(depuis, jour) };
-    })
-    .filter(({ age }) => age > JOURS_RELANCE_DEVIS)
-    .sort((a, b) => b.age - a.age)
-    .map(({ d, age }) => ({
+  // Seuls les devis dont le bureau a demandé un rappel, une fois la date
+  // arrivée.
+  const aRelancer: Ligne[] = devisValides
+    .filter(
+      (d) =>
+        d.rappel_relance &&
+        d.prochaine_relance &&
+        d.prochaine_relance <= jour &&
+        !d.perdu_le &&
+        !d.date_commande_client &&
+        !d.mois_facturation &&
+        !devisRealises.has(d.id) &&
+        !d.bi_reference_historique,
+    )
+    .sort((a, b) => (a.prochaine_relance ?? "").localeCompare(b.prochaine_relance ?? ""))
+    .map((d) => ({
       id: d.id,
-      href: `/devis/${d.id}`,
+      href: `/devis/${d.id}/statut`,
       titre: libelleDevis(d),
-      detail: [`Envoyé il y a ${age} jours`, montant(d.montant), d.libelle].filter(Boolean).join(" · "),
-      age,
+      detail: [`Relance prévue le ${formaterJourCourt(d.prochaine_relance as string)}`, montant(d.montant), d.libelle]
+        .filter(Boolean)
+        .join(" · "),
+      alerte: joursDepuis(d.prochaine_relance as string, jour) > 7,
     }));
+
+  const anneeEnCours = jour.slice(0, 4);
+  const taux = transformation(
+    devisValides.map((d) => ({
+      annee: (isoDepuisFr(d.date_devis) || d.created_at).slice(0, 4),
+      montant: d.montant,
+      gagne: Boolean(d.date_commande_client || d.mois_facturation || devisRealises.has(d.id) || d.bi_reference_historique),
+      perdu: Boolean(d.perdu_le),
+      motifPerte: motifPrincipal(d.motif_perte),
+    })),
+    anneeEnCours,
+  );
 
   const aFacturer: Ligne[] = devisValides
     .filter((d) => !d.mois_facturation && (devisRealises.has(d.id) || Boolean(d.bi_reference_historique)))
     .map((d) => ({
       id: d.id,
-      href: `/devis/${d.id}`,
+      href: `/devis/${d.id}/statut`,
       titre: libelleDevis(d),
       detail: [montant(d.montant), d.libelle].filter(Boolean).join(" · "),
     }));
@@ -248,7 +270,7 @@ export async function TableauDeBord({ prenom }: { prenom: string }) {
           icone={FileClock}
           couleur="amber"
           titre="Devis à relancer"
-          sousTitre={`En attente depuis plus de ${JOURS_RELANCE_DEVIS} jours`}
+          sousTitre="Rappels arrivés à échéance"
           lignes={aRelancer}
           lienTout="/devis"
           vide="Aucun devis à relancer."
@@ -274,6 +296,7 @@ export async function TableauDeBord({ prenom }: { prenom: string }) {
           lienTout="/gmao/clients"
           vide="Aucun équipement à valider."
         />
+        <TuileTransformation taux={taux} />
         <Tuile
           icone={ClipboardList}
           couleur="slate"
@@ -355,6 +378,40 @@ function Tuile({
         </Link>
       )}
       {!lienTout && n > MAX_LIGNES && <p className="mt-auto pt-2 text-xs text-slate-500">… et {n - MAX_LIGNES} autres</p>}
+    </section>
+  );
+}
+
+function TuileTransformation({ taux }: { taux: ReturnType<typeof transformation> }) {
+  return (
+    <section className="flex flex-col rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 text-sm font-bold text-slate-900">
+            <Percent className="h-4 w-4 text-brand-green" strokeWidth={2.25} />
+            Taux de transformation {taux.annee}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">Devis émis cette année et commandés</p>
+        </div>
+        <span className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-xl bg-brand-green px-2 text-lg font-bold text-white">
+          {taux.tauxNombre === null ? "—" : `${taux.tauxNombre} %`}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+        <p className="text-slate-500">Émis : <span className="font-semibold text-slate-800">{taux.envoyes}</span></p>
+        <p className="text-slate-500">Commandés : <span className="font-semibold text-brand-green-dark">{taux.gagnes}</span></p>
+        <p className="text-slate-500">Perdus : <span className="font-semibold text-rose-600">{taux.perdus}</span></p>
+        <p className="text-slate-500">En attente : <span className="font-semibold text-amber-600">{taux.enAttente}</span></p>
+      </div>
+      {taux.tauxMontant !== null && (
+        <p className="mt-2 text-xs text-slate-500">
+          En montant : {taux.tauxMontant} % ({taux.montantGagne.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} € sur{" "}
+          {taux.montantEnvoye.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} € HT)
+        </p>
+      )}
+      <Link href="/devis" className="mt-auto pt-2 text-sm font-semibold text-brand-green-dark hover:underline">
+        Détail dans Suivi Devis
+      </Link>
     </section>
   );
 }

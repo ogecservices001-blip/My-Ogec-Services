@@ -1,4 +1,5 @@
 import { readFile } from "fs/promises";
+import { libelleValidite } from "@/lib/devis/suivi-commercial";
 import { delaiAppro } from "./constants";
 import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
@@ -264,7 +265,7 @@ function DevisDocument({
               </View>
               <View style={styles.piedLigne}>
                 <Text style={styles.piedLabel}>Validité de l&apos;offre :</Text>
-                <Text style={styles.piedValidite}>1 mois</Text>
+                <Text style={styles.piedValidite}>{libelleValidite(devis.validite_mois)}</Text>
               </View>
               <View style={styles.piedLigne}>
                 <Text style={styles.piedLabel}>Travaux non compris :</Text>

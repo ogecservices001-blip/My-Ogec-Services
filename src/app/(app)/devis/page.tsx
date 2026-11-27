@@ -48,6 +48,8 @@ export default async function DevisChronoPage() {
         realise: devisRealises.has(d.id) || Boolean(d.bi_reference_historique),
         facturable: Boolean(d.mois_facturation),
         annule: d.annule,
+        perdu: Boolean(d.perdu_le),
+        motifPerte: d.motif_perte,
       };
     });
 

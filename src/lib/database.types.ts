@@ -839,6 +839,8 @@ export type Database = {
       }
       demandes_depannage: {
         Row: {
+          accuse_envoye_le: string | null
+          avis_intervention_envoye_le: string | null
           bon_intervention_id: string | null
           client_nom: string
           client_site: string
@@ -861,6 +863,8 @@ export type Database = {
           whatsapp_envoye_le: string | null
         }
         Insert: {
+          accuse_envoye_le?: string | null
+          avis_intervention_envoye_le?: string | null
           bon_intervention_id?: string | null
           client_nom?: string
           client_site?: string
@@ -883,6 +887,8 @@ export type Database = {
           whatsapp_envoye_le?: string | null
         }
         Update: {
+          accuse_envoye_le?: string | null
+          avis_intervention_envoye_le?: string | null
           bon_intervention_id?: string | null
           client_nom?: string
           client_site?: string

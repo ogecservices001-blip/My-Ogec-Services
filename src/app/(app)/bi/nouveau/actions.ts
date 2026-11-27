@@ -1,5 +1,10 @@
 "use server";
 
+import { after } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { labelPole } from "@/lib/bi/constants";
+import { messageErreur, signalerIncident } from "@/lib/incidents";
+import { envoyerAvisIntervention } from "@/lib/gmao/depannage-avis-email";
 import { classementParDefaut } from "@/lib/bi/constants";
 import { biDesInterventions, cleIntervention, creneauxDesInterventions } from "@/lib/planning/intervention";
 import { NATURE_MULTIPLE } from "@/lib/devis/paves";
@@ -547,11 +552,73 @@ export async function enregistrerBI(
       .update({ bon_intervention_id: bi.id, statut: "traitee", date_traitement: new Date().toISOString(), intervenant_id: profile.id })
       .eq("id", input.depannage_id);
     revalidatePath("/depannages");
+    // Le client est prévenu sans attendre la vérification du bureau.
+    if (input.pole === Poles.depannage) {
+      const demandeId = input.depannage_id;
+      after(() => envoyerAvisDepannage(demandeId, input));
+    }
   }
 
   revalidatePath("/bi");
   revalidatePath("/prestations");
   return { ok: true, id: bi.id };
+}
+
+/// Avis de fin d'intervention au client (contact de la demande + signataire
+/// du BI), une seule fois par demande. Client admin : exécuté après la
+/// réponse, hors de la requête.
+async function envoyerAvisDepannage(demandeId: string, input: BiInput) {
+  const admin = createAdminClient();
+  const { data: demande } = await admin
+    .from("demandes_depannage")
+    .select("numero, email, date_creation, site_id, avis_intervention_envoye_le")
+    .eq("id", demandeId)
+    .single();
+  if (!demande || demande.avis_intervention_envoye_le) return;
+  const destinataires = [
+    ...new Set(
+      [demande.email, input.email]
+        .flatMap((v) => (v ?? "").split(/[;,\s]+/))
+        .map((v) => v.trim().toLowerCase())
+        .filter((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)),
+    ),
+  ];
+  if (destinataires.length === 0) return;
+  const { data: site } = demande.site_id
+    ? await admin.from("sites").select("n_affaire").eq("id", demande.site_id).single()
+    : { data: null };
+  const equipements = [
+    ...input.interventions_supplementaires.map((i) => ({
+      nom: i.equipement_nom,
+      localisation: i.equipement_localisation,
+      etats: i.etat_equipement ?? [],
+    })),
+    { nom: input.equipement_nom, localisation: input.equipement_localisation, etats: input.etat_equipement },
+  ].filter((e) => e.nom.trim() || e.etats.length > 0);
+  try {
+    await envoyerAvisIntervention({
+      destinataires,
+      numero: String(demande.numero),
+      nAffaire: site?.n_affaire ?? "",
+      clientNom: input.client_nom,
+      clientSite: input.site,
+      nature: labelPole(input.pole),
+      dateDemande: new Date(demande.date_creation).toLocaleDateString("fr-FR", { timeZone: "Indian/Reunion" }),
+      dateIntervention: input.date_intervention,
+      equipements: equipements.length ? equipements : [{ nom: "", localisation: "", etats: input.etat_equipement }],
+    });
+    await admin.from("demandes_depannage").update({ avis_intervention_envoye_le: new Date().toISOString() }).eq("id", demandeId);
+  } catch (e) {
+    await signalerIncident({
+      source: "mail",
+      titre: `Avis d'intervention non envoyé au client — Int. N°${demande.numero}`,
+      detail: `${destinataires.join(", ")}
+${messageErreur(e)}`,
+      objetType: "depannage",
+      objetId: demandeId,
+      lien: `/depannages/${demandeId}`,
+    });
+  }
 }
 
 /// `prochain_chrono` est générique (clé + année) — même mécanisme que

@@ -15,14 +15,14 @@ export function EquipementPublicClient({ codeQr }: { codeQr: string }) {
 
   const [message, setMessage] = useState("");
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
-  const [demandeEnvoyee, setDemandeEnvoyee] = useState(false);
+  const [demandeEnvoyee, setDemandeEnvoyee] = useState<{ numero: string; accuseEnvoye: boolean } | null>(null);
 
   const { signaler, fenetre } = useChampManquant();
 
   async function verifier() {
     setErreur(null);
     if (!email.trim() || !email.includes("@")) {
-      signaler(email.trim() ? "Cet email n'est pas valide" : "Saisis ton email", "public-email");
+      signaler(email.trim() ? "Cette adresse email n'est pas valide" : "Saisissez votre adresse email", "public-email");
       return;
     }
     setChargement(true);
@@ -39,7 +39,7 @@ export function EquipementPublicClient({ codeQr }: { codeQr: string }) {
   async function envoyerDemande() {
     setErreur(null);
     if (!message.trim()) {
-      signaler("Décris la panne rencontrée", "public-message");
+      signaler("Décrivez la panne rencontrée", "public-message");
       return;
     }
     if (!emailValide) return;
@@ -50,7 +50,7 @@ export function EquipementPublicClient({ codeQr }: { codeQr: string }) {
       setErreur(res.erreur);
       return;
     }
-    setDemandeEnvoyee(true);
+    setDemandeEnvoyee({ numero: res.numero, accuseEnvoye: res.accuseEnvoye });
   }
 
   return (
@@ -67,8 +67,8 @@ export function EquipementPublicClient({ codeQr }: { codeQr: string }) {
               <QrCode className="mx-auto mb-3 h-12 w-12 text-teal-600" strokeWidth={1.5} />
               <p className="mb-2 text-lg font-bold text-slate-900">Consulter cet équipement</p>
               <p className="mb-5 text-sm text-slate-600">
-                Saisis l&apos;email connu d&apos;OGEC Services pour ce site afin d&apos;accéder aux
-                informations de cet équipement.
+                Saisissez l&apos;adresse email connue d&apos;OGEC Services pour ce site afin d&apos;accéder
+                aux informations de cet équipement.
               </p>
             </div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Email</label>
@@ -119,7 +119,7 @@ function ContenuEquipement({
   message: string;
   setMessage: (v: string) => void;
   envoiEnCours: boolean;
-  demandeEnvoyee: boolean;
+  demandeEnvoyee: { numero: string; accuseEnvoye: boolean } | null;
   onEnvoyer: () => void;
 }) {
   const { equipement, site, type } = donnees;
@@ -184,9 +184,14 @@ function ContenuEquipement({
       {demandeEnvoyee ? (
         <div className="flex items-center gap-3 rounded-2xl bg-green-50 p-4 shadow-sm">
           <CheckCircle2 className="h-6 w-6 shrink-0 text-brand-green-dark" strokeWidth={2} />
-          <p className="text-sm font-semibold text-brand-green-dark">
-            Ta demande de dépannage a bien été transmise à OGEC Services.
-          </p>
+          <div className="text-sm text-brand-green-dark">
+            <p className="font-semibold">Votre demande de dépannage N°{demandeEnvoyee.numero} a bien été enregistrée.</p>
+            <p className="mt-0.5">
+              {demandeEnvoyee.accuseEnvoye
+                ? "Un accusé de réception vient de vous être envoyé par email. Nous revenons vers vous pour planifier l'intervention."
+                : "Nous revenons vers vous pour planifier l'intervention. Merci de noter ce numéro."}
+            </p>
+          </div>
         </div>
       ) : (
         <div className="rounded-2xl bg-white p-4 shadow-sm">
@@ -196,7 +201,7 @@ function ContenuEquipement({
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
-            placeholder="Décris la panne rencontrée"
+            placeholder="Décrivez la panne rencontrée"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
           />
           {erreur && <p className="mt-2 text-sm text-red-600">{erreur}</p>}

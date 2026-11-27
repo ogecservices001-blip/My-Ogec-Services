@@ -13,9 +13,16 @@ function deuxChiffres(n: number): string {
   return String(n).padStart(2, "0");
 }
 
+/// Heure de La Réunion (le serveur tourne en UTC).
 function formaterDateHeure(iso: string): string {
-  const d = new Date(iso);
-  return `${deuxChiffres(d.getDate())}/${deuxChiffres(d.getMonth() + 1)}/${d.getFullYear()} ${deuxChiffres(d.getHours())}:${deuxChiffres(d.getMinutes())}`;
+  return new Date(iso).toLocaleString("fr-FR", {
+    timeZone: "Indian/Reunion",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formaterDate(iso: string): string {
@@ -97,6 +104,9 @@ export default async function DepannageDetailPage({ params }: { params: Promise<
     ["Date d'intervention prévue", demande.date_intervention_prevue ? formaterDate(demande.date_intervention_prevue) : ""],
     ["Réf. demande client", demande.numero_demande_client],
     ["Technicien assigné", intervenant?.name ?? ""],
+    ["Accusé de réception envoyé", demande.accuse_envoye_le ? formaterDateHeure(demande.accuse_envoye_le) : ""],
+    ["Prise en compte envoyée", demande.email_prise_en_compte_envoye_le ? formaterDateHeure(demande.email_prise_en_compte_envoye_le) : ""],
+    ["Avis d'intervention envoyé", demande.avis_intervention_envoye_le ? formaterDateHeure(demande.avis_intervention_envoye_le) : ""],
   ];
 
   const hrefRetour = demande.statut === "traitee" ? "/depannages/traitees" : "/depannages";

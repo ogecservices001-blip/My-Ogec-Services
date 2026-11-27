@@ -38,6 +38,7 @@ export async function enregistrerDemandeClient(
       client_nom: site.nom,
       client_site: site.site,
       equipement_nom: equipement?.nom ?? "",
+      lieu_panne: equipement?.localisation ?? "",
       email,
       message,
       statut: "nouvelle",

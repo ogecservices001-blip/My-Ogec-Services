@@ -150,6 +150,16 @@ export function NouveauDepannageForm({
     startChargementEquipements(async () => {
       const data = await chargerEquipementsDuSite(siteId);
       setEquipementsChargees(data);
+      // Dépannage rouvert avec un équipement : son groupe et sa localisation
+      // sont repris (le groupe n'est qu'un filtre, jamais enregistré).
+      const choisi = initial?.equipementId ? data.find((eq) => eq.id === initial.equipementId) : undefined;
+      if (choisi) {
+        setGroupeFiltre((g) => g || choisi.groupe || "");
+        if (choisi.localisation) {
+          setLieuPanne((l) => l || choisi.localisation);
+          dernierLieuAutoRempli.current = choisi.localisation;
+        }
+      }
     });
 
     const site = sites.find((s) => s.id === siteId);

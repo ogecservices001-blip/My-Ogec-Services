@@ -77,9 +77,9 @@ export async function soumettreDemandeDepannage(
 
   const dateLisible = new Date().toLocaleString("fr-FR", { timeZone: "Indian/Reunion" });
   const noteHistorique = `Demande de dépannage reçue le ${dateLisible} (${email})\n${messageTrim}`;
-  const nouvelleRemarque = equipement.remarque_technicien
-    ? `${equipement.remarque_technicien}\n---\n${noteHistorique}`
-    : noteHistorique;
+  const { data: remarqueActuelle } = await admin.from("equipements").select("remarque_technicien").eq("id", equipement.id).single();
+  const existante = remarqueActuelle?.remarque_technicien ?? "";
+  const nouvelleRemarque = existante ? `${existante}\n---\n${noteHistorique}` : noteHistorique;
   await admin.from("equipements").update({ remarque_technicien: nouvelleRemarque }).eq("id", equipement.id);
 
   try {

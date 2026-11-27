@@ -166,10 +166,18 @@ function ContenuEquipement({
         </div>
       )}
 
-      {equipement.remarque_technicien && (
-        <div className="rounded-2xl bg-amber-50 p-4 shadow-sm">
-          <p className="mb-1 text-xs font-bold text-amber-800">Notes de suivi</p>
-          <p className="whitespace-pre-line text-xs text-amber-900">{equipement.remarque_technicien}</p>
+      {donnees.historique.length > 0 && (
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Interventions réalisées</p>
+          <ul className="divide-y divide-slate-100">
+            {donnees.historique.map((h) => (
+              <li key={`${h.numero}-${h.date}`} className="flex items-baseline justify-between gap-3 py-1.5 text-sm">
+                <span className="font-semibold text-slate-800">{h.date ? h.date.split("-").reverse().join("/") : "—"}</span>
+                <span className="min-w-0 flex-1 truncate text-slate-600">{h.type}</span>
+                <span className="shrink-0 text-xs text-slate-400">{h.numero}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

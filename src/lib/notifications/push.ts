@@ -1,4 +1,5 @@
 import webpush from "web-push";
+import { messageErreur, signalerIncident } from "@/lib/incidents";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { URL_APPLI } from "@/lib/planning/validation";
 
@@ -36,11 +37,18 @@ export async function notifierProfil(profileId: string, notification: Notificati
           const statut = (e as { statusCode?: number }).statusCode;
           // Téléphone désabonné ou appli désinstallée : abonnement périmé.
           if (statut === 404 || statut === 410) await admin.from("abonnements_push").delete().eq("id", a.id);
-          else console.error("Notification non envoyée", statut ?? e);
+          else
+            await signalerIncident({
+              source: "notification",
+              titre: `Notification non envoyée : ${notification.titre}`,
+              detail: `Statut ${statut ?? "?"} · ${messageErreur(e)}`,
+              objetType: "profil",
+              objetId: profileId,
+            });
         }
       }),
     );
   } catch (e) {
-    console.error("Notification non envoyée", e);
+    await signalerIncident({ source: "notification", titre: `Notification non envoyée : ${notification.titre}`, detail: messageErreur(e), objetType: "profil", objetId: profileId });
   }
 }

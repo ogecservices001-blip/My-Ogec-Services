@@ -1,5 +1,6 @@
 "use server";
 
+import { messageErreur, signalerIncident } from "@/lib/incidents";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { estJourOuvre, type DateProposee } from "@/lib/planning/periode";
 import { ajouterHistorique } from "@/lib/planning/validation-historique";
@@ -120,8 +121,15 @@ export async function repondreDemande(
       proposees: reponse.accepte ? undefined : reponse.dates,
       commentaire: reponse.accepte ? undefined : reponse.commentaire,
     });
-  } catch {
+  } catch (e) {
     // La réponse est enregistrée ; seuls les mails ont échoué.
+    await signalerIncident({
+      source: "mail",
+      titre: `Réponse du client sur un créneau : mail non envoyé — ${[d.client_nom, d.site].filter(Boolean).join(" — ")}`,
+      detail: `${reponse.accepte ? "Créneau accepté" : "Autre date proposée"} par ${d.destinataire_email}
+${messageErreur(e)}`,
+      lien: "/planning/point-rdv-client",
+    });
   }
   return { ok: true };
 }

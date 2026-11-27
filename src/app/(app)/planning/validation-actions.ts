@@ -1,5 +1,6 @@
 "use server";
 
+import { messageErreur, signalerIncident } from "@/lib/incidents";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
@@ -251,8 +252,15 @@ export async function accepterDateClient(demandeId: string): Promise<{ ok: true 
       nom: d.destinataire_nom,
       infos: { client_nom: d.client_nom, site: d.site, objet: d.objet, jours },
     });
-  } catch {
+  } catch (e) {
     // Les créneaux sont déplacés ; seul le mail de confirmation a échoué.
+    await signalerIncident({
+      source: "mail",
+      titre: `Confirmation de la nouvelle date non envoyée — ${[d.client_nom, d.site].filter(Boolean).join(" — ")}`,
+      detail: `${d.destinataire_email}
+${messageErreur(e)}`,
+      lien: "/planning/point-rdv-client",
+    });
   }
   revalidatePath("/planning");
   revalidatePath("/planning/mon-planning");

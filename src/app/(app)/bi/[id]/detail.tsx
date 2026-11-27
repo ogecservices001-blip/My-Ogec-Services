@@ -24,7 +24,7 @@ import {
   type InterventionEquipement,
   type Presta,
 } from "@/lib/bi/format";
-import { validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, classerBI, type CorrectionInput, rattacherRelevesEnAttente, envoyerRapportParEmail, facturerDevisDepuisBI } from "./actions";
+import { relancerSuitesValidation, validerBI, urlPhotoSignee, urlArchiveSignee, envoyerBiParEmail, classerBI, type CorrectionInput, rattacherRelevesEnAttente, envoyerRapportParEmail, facturerDevisDepuisBI } from "./actions";
 import { BlocFacturationDevis } from "./facturation-devis";
 import type { InfosFacturationDevis } from "@/lib/devis/facturation";
 import type { ChampEnTete, ChecklistItem } from "@/lib/gmao/types";
@@ -65,7 +65,9 @@ export function BiDetail({
   infosVisite,
   relevesRattaches,
   facturationDevis,
+  incidents,
 }: {
+  incidents: { id: string; source: string; titre: string; detail: string; created_at: string }[];
   bon: Bon;
   facturationDevis: InfosFacturationDevis | null;
   infosVisite: InfosVisite | null;
@@ -139,6 +141,17 @@ export function BiDetail({
       )}
 
       {avertissement && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800">{avertissement}</p>}
+
+      {isAdmin && incidents.length > 0 && (
+        <BandeauIncidents
+          incidents={incidents}
+          onRelance={(message) => {
+            setAvertissement(message);
+            router.refresh();
+          }}
+          biId={bon.id}
+        />
+      )}
 
       {enCorrection ? (
         <div className="space-y-4">
@@ -876,11 +889,16 @@ function VueCorrection({
         setErreur(res.erreur);
         return;
       }
+      const avertissementValidation = res.avertissement;
       if (devisAFacturer && devisTermine) {
         const fact = await facturerDevisDepuisBI(bon.id, moisDevis);
-        if (!fact.ok) return onValide(`BI validé, mais le devis n'est pas passé Facturable : ${fact.erreur}`);
+        if (!fact.ok) {
+          return onValide(
+            [avertissementValidation, `Le devis n'est pas passé Facturable : ${fact.erreur}`].filter(Boolean).join(" "),
+          );
+        }
       }
-      onValide();
+      onValide(avertissementValidation);
     });
   }
 
@@ -1269,6 +1287,50 @@ function Champ({ id, label, valeur, onChange }: { id?: string; label: string; va
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-600"
       />
+    </div>
+  );
+}
+
+/// Suites de la validation en échec (mise à jour GMAO, archivage du PDF) :
+/// détail et relance, sans risque de doublon.
+function BandeauIncidents({
+  incidents,
+  biId,
+  onRelance,
+}: {
+  incidents: { id: string; source: string; titre: string; detail: string; created_at: string }[];
+  biId: string;
+  onRelance: (message: string) => void;
+}) {
+  const [enCours, startRelance] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+  return (
+    <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+      {incidents.map((i) => (
+        <div key={i.id} className="mb-2">
+          <p className="text-sm font-bold text-red-800">{i.titre}</p>
+          <p className="whitespace-pre-line text-xs text-red-700">{i.detail}</p>
+          <p className="text-[11px] text-red-500">
+            {new Date(i.created_at).toLocaleString("fr-FR", { timeZone: "Indian/Reunion", dateStyle: "short", timeStyle: "short" })}
+          </p>
+        </div>
+      ))}
+      <button
+        type="button"
+        disabled={enCours}
+        onClick={() =>
+          startRelance(async () => {
+            setErreur(null);
+            const r = await relancerSuitesValidation(biId);
+            if (!r.ok) return setErreur(r.erreur);
+            onRelance(r.avertissement ?? "Relance réussie : mise à jour GMAO et archivage du PDF sont faits.");
+          })
+        }
+        className="mt-1 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+      >
+        {enCours ? "Relance..." : "Relancer la mise à jour"}
+      </button>
+      {erreur && <p className="mt-2 text-sm text-red-700">{erreur}</p>}
     </div>
   );
 }

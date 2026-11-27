@@ -1,5 +1,6 @@
 "use server";
 
+import { messageErreur, signalerIncident } from "@/lib/incidents";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { URL_APPLI } from "@/lib/planning/validation";
@@ -22,7 +23,8 @@ export async function demanderReinitialisation(email: string): Promise<{ ok: tru
     await envoyerLienReinitialisation({ destinataire: adresse, nom: profil.name, lien });
     await signalerDemandeMotDePasse(profil.name, new Date());
   } catch (e) {
-    console.error("Mot de passe oublié : envoi impossible", e);
+    await signalerIncident({ source: "mail", titre: "Mot de passe oublié : mail non envoyé", detail: `${adresse}
+${messageErreur(e)}` });
   }
   return { ok: true };
 }

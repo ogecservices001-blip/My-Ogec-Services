@@ -79,10 +79,20 @@ export default async function BiDetailPage({ params }: { params: Promise<{ id: s
   }
 
   const facturationDevis = profile?.role === "admin" ? await chargerInfosFacturationDevis(supabase, bon) : null;
+  const { data: incidents } =
+    profile?.role === "admin"
+      ? await supabase
+          .from("incidents")
+          .select("id, source, titre, detail, created_at")
+          .eq("objet_id", bon.id)
+          .is("resolu_le", null)
+          .order("created_at", { ascending: false })
+      : { data: [] };
 
   return (
     <BiDetail
       facturationDevis={facturationDevis}
+      incidents={incidents ?? []}
       relevesRattaches={relevesRattaches}
       infosVisite={infosVisite}
       bon={bon as Tables<"bons_intervention">}

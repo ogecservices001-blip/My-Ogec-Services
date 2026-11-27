@@ -1,5 +1,6 @@
 "use server";
 
+import { messageErreur, signalerIncident } from "@/lib/incidents";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { notifierProfil } from "@/lib/notifications/push";
@@ -160,7 +161,15 @@ export async function creerDepannage(
     } catch (e) {
       // Le ticket est déjà créé — un échec d'envoi ne doit pas bloquer
       // le flux ni risquer une double création si le bureau réessaie.
-      console.error("Échec envoi email de confirmation dépannage", e);
+      await signalerIncident({
+        source: "mail",
+        titre: `Confirmation du dépannage N°${numero} non envoyée au client`,
+        detail: `${site.nom} — ${site.site} · ${email}
+${messageErreur(e)}`,
+        objetType: "depannage",
+        objetId: creee.id,
+        lien: `/depannages/${creee.id}`,
+      });
     }
   }
 
@@ -279,7 +288,15 @@ export async function modifierDepannage(
         .update({ email_prise_en_compte_envoye_le: new Date().toISOString() })
         .eq("id", id);
     } catch (e) {
-      console.error("Échec envoi email de confirmation dépannage (modification)", e);
+      await signalerIncident({
+        source: "mail",
+        titre: `Confirmation du dépannage N°${existante.numero} non envoyée au client`,
+        detail: `${site.nom} — ${site.site} · ${email}
+${messageErreur(e)}`,
+        objetType: "depannage",
+        objetId: id,
+        lien: `/depannages/${id}`,
+      });
     }
   }
 

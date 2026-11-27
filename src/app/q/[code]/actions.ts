@@ -1,5 +1,6 @@
 "use server";
 
+import { messageErreur, signalerIncident } from "@/lib/incidents";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chargerEquipementEtSite, emailConnuDuSite, type EquipementPublicDonnees } from "@/lib/gmao/depannage";
 import { envoyerNotificationDepannage } from "@/lib/gmao/depannage-email";
@@ -90,7 +91,17 @@ export async function soumettreDemandeDepannage(
       message: messageTrim,
     });
   } catch (e) {
-    console.error("Échec envoi email demande de dépannage", e);
+    await signalerIncident({
+      source: "mail",
+      titre: `Demande de dépannage N°${numero} (QR) : mail au bureau non envoyé`,
+      detail: `${site.nom} — ${site.site} · ${equipement.nom} · ${email}
+${messageTrim}
+
+${messageErreur(e)}`,
+      objetType: "equipement",
+      objetId: equipement.id,
+      lien: "/depannages",
+    });
   }
 
   return { ok: true };

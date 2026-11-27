@@ -7,6 +7,7 @@ import {
   FileClock,
   Percent,
   Receipt,
+  TriangleAlert,
   Wrench,
   type LucideIcon,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import { Statuts, labelPole } from "@/lib/bi/constants";
 import { formaterJourCourt } from "@/lib/planning/dates";
 import { STATUTS_BI_REALISE } from "./devis/statut";
 import { motifPrincipal, transformation } from "@/lib/devis/suivi-commercial";
+import { LIBELLE_SOURCE_INCIDENT, type SourceIncident } from "@/lib/incidents";
 
 const JOURS_BROUILLON_OUBLIE = 3;
 const MAX_LIGNES = 5;
@@ -82,9 +84,10 @@ export async function TableauDeBord({ prenom }: { prenom: string }) {
       .order("updated_at", { ascending: true }),
   ]);
 
-  const [{ data: profils }, { data: sites }] = await Promise.all([
+  const [{ data: profils }, { data: sites }, { data: incidents }] = await Promise.all([
     supabase.from("profiles").select("id, name"),
     supabase.from("sites").select("id, nom, site"),
+    supabase.from("incidents").select("id, titre, source, created_at").is("resolu_le", null).order("created_at", { ascending: false }),
   ]);
   const nomProfil = new Map((profils ?? []).map((p) => [p.id, p.name]));
   const siteParId = new Map((sites ?? []).map((s) => [s.id, s]));
@@ -226,7 +229,16 @@ export async function TableauDeBord({ prenom }: { prenom: string }) {
       detail: [labelPole(b.pole), b.created_by, `dernière modification il y a ${age} jours`].filter(Boolean).join(" · "),
     }));
 
+  const lignesIncidents: Ligne[] = (incidents ?? []).map((i) => ({
+    id: i.id,
+    href: "/erreurs",
+    titre: i.titre,
+    detail: `${LIBELLE_SOURCE_INCIDENT[i.source as SourceIncident] ?? i.source} · ${new Date(i.created_at).toLocaleString("fr-FR", { timeZone: "Indian/Reunion", dateStyle: "short", timeStyle: "short" })}`,
+    alerte: true,
+  }));
+
   const rien =
+    lignesIncidents.length +
     lignesBi.length + nonAffectes.length + nonFaits.length + aRelancer.length + aFacturer.length + lignesEquipements.length + lignesRdv.length + lignesBrouillons.length ===
     0;
 
@@ -240,6 +252,9 @@ export async function TableauDeBord({ prenom }: { prenom: string }) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {lignesIncidents.length > 0 && (
+          <Tuile icone={TriangleAlert} couleur="red" titre="Erreurs à traiter" lignes={lignesIncidents} lienTout="/erreurs" vide="" />
+        )}
         <Tuile icone={ClipboardCheck} couleur="violet" titre="BI à vérifier" lignes={lignesBi} lienTout="/bi" vide="Aucun BI à vérifier." />
         <Tuile
           icone={Wrench}

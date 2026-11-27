@@ -1,5 +1,7 @@
 "use server";
 
+import { createAdminClient } from "@/lib/supabase/admin";
+import { messageErreur, signalerIncident, type SourceIncident } from "@/lib/incidents";
 import { validerDestinataires } from "@/lib/repertoire/contacts-courriel";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -50,15 +52,23 @@ function diff(changes: { champ: string; avant: string; apres: string }[], label:
 }
 
 /// Automatisation GMAO déclenchée par la validation bureau d'un bon,
-/// selon le pôle — ne doit jamais bloquer la validation du bon
-/// elle-même si elle échoue (voir l'appel dans validerBI, encadré d'un
-/// try/catch silencieux).
+/// selon le pôle. Chaque écriture est contrôlée : la liste des problèmes est
+/// renvoyée (vide = tout est passé) pour être signalée au bureau, sans
+/// jamais bloquer la validation du bon. Elle peut être relancée sans
+/// doublon : une remarque déjà notée pour ce BI ou un équipement déjà créé
+/// par ce BI n'est pas refait, visites et relevés ne sont jamais recomptés.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function executerAutomatisationGmao(supabase: any, bi: Bon) {
+async function executerAutomatisationGmao(supabase: any, bi: Bon): Promise<string[]> {
+  const problemes: string[] = [];
+  const controler = (resultat: { error: { message: string } | null }, etape: string) => {
+    if (resultat.error) problemes.push(`${etape} : ${resultat.error.message}`);
+    return !resultat.error;
+  };
+
   // BI à plusieurs pages : chaque page est traitée comme un bon de son type.
   if (bi.pole === POLE_PLUSIEURS_TYPES) {
     for (const page of interventionsDuBon(bi)) {
-      await executerAutomatisationGmao(supabase, {
+      const problemesPage = await executerAutomatisationGmao(supabase, {
         ...bi,
         pole: page.pole ?? "",
         pole_principal: "",
@@ -72,33 +82,40 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
         materiel_champs_en_tete: page.materiel_champs_en_tete ?? {},
         interventions_supplementaires: [],
       });
+      problemes.push(...problemesPage.map((p) => `${page.equipement_nom || "Page"} — ${p}`));
     }
-    return;
+    return problemes;
   }
   const date = now();
+  const remarque = async (equipementId: string, nom: string, texte: string) => {
+    const message = await ajouterRemarqueEquipement(supabase, equipementId, bi.numero, texte);
+    if (message) problemes.push(`Remarque sur ${nom || "l'équipement"} : ${message}`);
+  };
+
   switch (bi.pole) {
     case Poles.reparationEquipement:
     case Poles.entretienHorsContrat: {
       const verbe = bi.pole === Poles.reparationEquipement ? "Réparé" : "Entretien effectué";
       for (const inter of interventionsDuBon(bi)) {
         if (!inter.equipement_id) continue;
-        await ajouterRemarqueEquipement(supabase, inter.equipement_id, `${verbe} le ${date} via ${bi.numero} : ${inter.compte_rendu}`);
+        await remarque(inter.equipement_id, inter.equipement_nom, `${verbe} le ${date} via ${bi.numero} : ${inter.compte_rendu}`);
       }
       // Entretien à facturer d'équipements hors contrat (sans devis) : leurs
       // relevés techniques en attente lui sont rattachés.
       if (bi.pole === Poles.entretienHorsContrat && !bi.devis_id && bi.site_id) {
-        const { data: horsContrat } = await supabase
-          .from("equipements")
-          .select("id")
-          .eq("site_id", bi.site_id)
-          .eq("hors_contrat", true);
-        const ids = ((horsContrat ?? []) as { id: string }[]).map((e) => e.id);
-        if (ids.length > 0) {
-          await supabase
-            .from("releves")
-            .update({ bon_intervention_id: bi.id })
-            .in("equipement_id", ids)
-            .is("bon_intervention_id", null);
+        const lecture = await supabase.from("equipements").select("id").eq("site_id", bi.site_id).eq("hors_contrat", true);
+        if (controler(lecture, "Lecture des équipements hors contrat du site")) {
+          const ids = ((lecture.data ?? []) as { id: string }[]).map((e) => e.id);
+          if (ids.length > 0) {
+            controler(
+              await supabase
+                .from("releves")
+                .update({ bon_intervention_id: bi.id })
+                .in("equipement_id", ids)
+                .is("bon_intervention_id", null),
+              "Rattachement des relevés",
+            );
+          }
         }
       }
       break;
@@ -110,38 +127,54 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
       const deja = await visitesDejaValidees(supabase, tous.map((e) => e.id), bi.visite_numero, bi.visite_annee, bi.id);
       const entretenus = tous.filter((e) => !deja.has(e.id));
       for (const eq of entretenus) {
-        await ajouterRemarqueEquipement(supabase, eq.id, `Entretien effectué le ${date} via ${bi.numero} : ${bi.compte_rendu}`);
+        await remarque(eq.id, eq.nom, `Entretien effectué le ${date} via ${bi.numero} : ${bi.compte_rendu}`);
       }
-      if (entretenus.length === 0 || !bi.visite_numero || !bi.visite_total || !bi.visite_annee) break;
+      if (entretenus.length === 0) break;
+      if (!bi.visite_numero || !bi.visite_total || !bi.visite_annee) {
+        problemes.push("Visites non comptées : le n° de visite, le nombre de visites par an ou l'année manque sur le BI.");
+        break;
+      }
       const repere = { visite_numero: bi.visite_numero, visite_total: bi.visite_total };
-      await supabase.from("visites_entretien").upsert(
-        entretenus.map((eq) => ({
-          equipement_id: eq.id,
-          site_id: bi.site_id,
-          bon_intervention_id: bi.id,
-          date: dateVisiteDuBon(bi),
-          annee: bi.visite_annee,
-          ...repere,
-        })),
-        { onConflict: "bon_intervention_id,equipement_id" },
+      controler(
+        await supabase.from("visites_entretien").upsert(
+          entretenus.map((eq) => ({
+            equipement_id: eq.id,
+            site_id: bi.site_id,
+            bon_intervention_id: bi.id,
+            date: dateVisiteDuBon(bi),
+            annee: bi.visite_annee,
+            ...repere,
+          })),
+          { onConflict: "bon_intervention_id,equipement_id" },
+        ),
+        `Comptage de la visite (${entretenus.length} équipement${entretenus.length > 1 ? "s" : ""})`,
       );
-      await rattacherReleves(supabase, bi, entretenus.map((eq) => eq.id));
+      try {
+        await rattacherReleves(supabase, bi, entretenus.map((eq) => eq.id));
+      } catch (e) {
+        problemes.push(`Rattachement des relevés : ${e instanceof Error ? e.message : String(e)}`);
+      }
       break;
     }
     case Poles.remplacementIdentique: {
       for (const [i, inter] of interventionsDuBon(bi).entries()) {
         if (!inter.equipement_id) continue;
-        await ajouterRemarqueEquipement(supabase, inter.equipement_id, `Remplacé le ${date} via ${bi.numero} : ${inter.compte_rendu}`);
+        await remarque(inter.equipement_id, inter.equipement_nom, `Remplacé le ${date} via ${bi.numero} : ${inter.compte_rendu}`);
         const champs = (i === 0 ? bi.materiel_champs_en_tete : inter.materiel_champs_en_tete) as Record<string, string> | undefined;
         const donnees = Object.fromEntries(
           Object.entries(champs ?? {}).filter(([cle, v]) => !CHAMPS_MATERIEL_EXCLUS_BI.has(cle) && v && String(v).trim()),
         );
         if (Object.keys(donnees).length > 0) {
-          const { data: eq } = await supabase.from("equipements").select("champs_en_tete").eq("id", inter.equipement_id).single();
-          await supabase
-            .from("equipements")
-            .update({ champs_en_tete: { ...(eq?.champs_en_tete ?? {}), ...donnees } })
-            .eq("id", inter.equipement_id);
+          const lecture = await supabase.from("equipements").select("champs_en_tete").eq("id", inter.equipement_id).single();
+          if (controler(lecture, `Lecture de ${inter.equipement_nom || "l'équipement"}`)) {
+            controler(
+              await supabase
+                .from("equipements")
+                .update({ champs_en_tete: { ...(lecture.data?.champs_en_tete ?? {}), ...donnees } })
+                .eq("id", inter.equipement_id),
+              `Nouveau matériel sur ${inter.equipement_nom || "l'équipement"}`,
+            );
+          }
         }
       }
       break;
@@ -167,8 +200,21 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
           champs: inter.materiel_champs_en_tete ?? {},
         })),
       ];
+      // Équipements déjà créés par ce BI (relance après une erreur).
+      const existants = await supabase
+        .from("equipements")
+        .select("nom")
+        .eq("site_id", bi.site_id)
+        .ilike("remarque_technicien", `%via ${bi.numero} :%`);
+      if (!controler(existants, "Lecture des équipements déjà créés")) break;
+      const dejaCrees = new Set(((existants.data ?? []) as { nom: string }[]).map((e) => e.nom.trim().toLowerCase()));
+
       for (const pose of poses) {
-        if (!pose.nom.trim() || !pose.typeId) continue;
+        if (!pose.nom.trim() || !pose.typeId) {
+          if (pose.nom.trim() || pose.typeId) problemes.push(`Équipement « ${pose.nom || "sans nom"} » non créé : nom ou famille manquant.`);
+          continue;
+        }
+        if (dejaCrees.has(pose.nom.trim().toLowerCase())) continue;
         const champs = pose.champs;
         const champsEnTete = Object.fromEntries(
           Object.entries(champs).filter(([cle, v]) => !CHAMPS_MATERIEL_EXCLUS_BI.has(cle) && v && String(v).trim()),
@@ -202,25 +248,29 @@ async function executerAutomatisationGmao(supabase: any, bi: Bon) {
         const freqSite = [...comptesFreq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
         if (freqSite) champsEnTete.freqEntretienAnnuelle = freqSite;
 
-        await supabase.from("equipements").insert({
-          site_id: bi.site_id,
-          type_equipement_id: pose.typeId,
-          nom: pose.nom,
-          numero_equipement: pose.numero,
-          localisation: pose.localisation,
-          groupe: pose.groupe,
-          // Toujours hors contrat à la création, même chez un client sous
-          // contrat : un équipement ajouté n'est jamais automatiquement
-          // couvert par le contrat existant, il faut un avenant. Chez un
-          // client déjà hors contrat, c'est trivial — rien à signaler.
-          hors_contrat: true,
-          champs_en_tete: champsEnTete,
-          remarque_technicien: `Installé le ${date} via ${bi.numero} : ${pose.compteRendu}${bi.hors_contrat ? "" : " — Hors contrat, avenant à faire."}`,
-        });
+        controler(
+          await supabase.from("equipements").insert({
+            site_id: bi.site_id,
+            type_equipement_id: pose.typeId,
+            nom: pose.nom,
+            numero_equipement: pose.numero,
+            localisation: pose.localisation,
+            groupe: pose.groupe,
+            // Toujours hors contrat à la création, même chez un client sous
+            // contrat : un équipement ajouté n'est jamais automatiquement
+            // couvert par le contrat existant, il faut un avenant. Chez un
+            // client déjà hors contrat, c'est trivial — rien à signaler.
+            hors_contrat: true,
+            champs_en_tete: champsEnTete,
+            remarque_technicien: `Installé le ${date} via ${bi.numero} : ${pose.compteRendu}${bi.hors_contrat ? "" : " — Hors contrat, avenant à faire."}`,
+          }),
+          `Création de l'équipement « ${pose.nom} »`,
+        );
       }
       break;
     }
   }
+  return problemes;
 }
 
 /// Les relevés techniques pas encore rattachés de ces équipements prennent le
@@ -263,15 +313,93 @@ export async function rattacherRelevesEnAttente(id: string): Promise<ActionResul
   }
 }
 
+/// Ajoute une ligne à l'historique de l'équipement, une seule fois par BI.
+/// Renvoie le message d'erreur, ou null si tout va bien.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function ajouterRemarqueEquipement(supabase: any, equipementId: string, remarque: string) {
-  const { data: eq } = await supabase.from("equipements").select("remarque_technicien").eq("id", equipementId).single();
-  const existante = eq?.remarque_technicien ?? "";
+async function ajouterRemarqueEquipement(supabase: any, equipementId: string, numeroBi: string, remarque: string): Promise<string | null> {
+  const lecture = await supabase.from("equipements").select("remarque_technicien").eq("id", equipementId).single();
+  if (lecture.error) return lecture.error.message;
+  const existante: string = lecture.data?.remarque_technicien ?? "";
+  if (numeroBi && existante.includes(`via ${numeroBi} :`)) return null;
   const nouvelle = existante ? `${existante}\n${remarque}` : remarque;
-  await supabase.from("equipements").update({ remarque_technicien: nouvelle }).eq("id", equipementId);
+  const { error } = await supabase.from("equipements").update({ remarque_technicien: nouvelle }).eq("id", equipementId);
+  return error ? error.message : null;
 }
 
-export async function validerBI(id: string, original: Bon, input: CorrectionInput): Promise<ActionResult> {
+/// Après la validation : mise à jour GMAO et archivage du PDF. Un échec est
+/// noté dans le journal des erreurs du bureau ; les erreurs du même genre
+/// encore ouvertes pour ce BI sont closes quand tout repasse.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function suitesValidation(supabase: any, bi: Bon, parQui: string): Promise<string | undefined> {
+  const avertissements: string[] = [];
+  const admin = createAdminClient();
+  const clore = (source: SourceIncident) =>
+    admin
+      .from("incidents")
+      .update({ resolu_le: new Date().toISOString(), resolu_par: parQui })
+      .eq("objet_id", bi.id)
+      .eq("source", source)
+      .is("resolu_le", null);
+
+  let problemes: string[];
+  try {
+    problemes = await executerAutomatisationGmao(supabase, bi);
+  } catch (e) {
+    problemes = [messageErreur(e)];
+  }
+  if (problemes.length > 0) {
+    await clore("gmao_bi");
+    await signalerIncident({
+      source: "gmao_bi",
+      titre: `Mise à jour GMAO incomplète — ${bi.numero || "BI"} (${[bi.client_nom, bi.site].filter(Boolean).join(" — ")})`,
+      detail: problemes.join("\n"),
+      objetType: "bi",
+      objetId: bi.id,
+      lien: `/bi/${bi.id}`,
+    });
+    avertissements.push(`la mise à jour GMAO a échoué (${problemes.length} point${problemes.length > 1 ? "s" : ""})`);
+  } else {
+    await clore("gmao_bi");
+  }
+
+  try {
+    await archiverBiSiBesoin(supabase, bi);
+    await clore("archive_bi");
+  } catch (e) {
+    await clore("archive_bi");
+    await signalerIncident({
+      source: "archive_bi",
+      titre: `PDF du BI non archivé — ${bi.numero || "BI"}`,
+      detail: messageErreur(e),
+      objetType: "bi",
+      objetId: bi.id,
+      lien: `/bi/${bi.id}`,
+    });
+    avertissements.push("l'archivage du PDF a échoué");
+  }
+
+  return avertissements.length
+    ? `BI validé, mais ${avertissements.join(" et ")}. Détail sur la fiche du BI et dans « Erreurs à traiter ».`
+    : undefined;
+}
+
+/// Bouton « Relancer » de la fiche d'un BI validé.
+export async function relancerSuitesValidation(id: string): Promise<ActionResult & { avertissement?: string }> {
+  const profile = await requireAdmin();
+  const supabase = await createClient();
+  const { data: bi } = await supabase.from("bons_intervention").select("*").eq("id", id).single();
+  if (!bi) return { ok: false, erreur: "BI introuvable." };
+  if (bi.statut === Statuts.brouillon || bi.statut === Statuts.aVerifier) {
+    return { ok: false, erreur: "Ce BI n'est pas encore validé." };
+  }
+  const avertissement = await suitesValidation(supabase, bi as Bon, profile.name);
+  revalidatePath(`/bi/${id}`);
+  revalidatePath("/gmao", "layout");
+  revalidatePath("/");
+  return { ok: true, avertissement };
+}
+
+export async function validerBI(id: string, original: Bon, input: CorrectionInput): Promise<ActionResult & { avertissement?: string }> {
   const profile = await requireAdmin();
   if (input.mois_facturation && !FORMAT_MOIS_ANNEE.test(input.mois_facturation)) {
     return { ok: false, erreur: "Mois de facturation : format attendu MM-AAAA (ex : 10-2026)." };
@@ -338,23 +466,14 @@ export async function validerBI(id: string, original: Bon, input: CorrectionInpu
     .single();
   if (error || !corrige) return { ok: false, erreur: error?.message ?? "Échec de la validation." };
 
-  try {
-    await executerAutomatisationGmao(supabase, corrige as Bon);
-  } catch {
-    // L'automatisation GMAO ne doit jamais empêcher la validation du
-    // bon lui-même — une erreur ici reste silencieuse pour l'usager.
-  }
-
-  try {
-    await archiverBiSiBesoin(supabase, corrige as Bon);
-  } catch {
-    // Idem : l'archivage ne doit jamais bloquer la validation — "Voir
-    // PDF" reste un filet de sécurité si ça échoue ici.
-  }
+  // Mise à jour GMAO et archivage : ne bloquent jamais la validation, mais
+  // un échec est signalé au bureau.
+  const avertissement = await suitesValidation(supabase, corrige as Bon, profile.name);
 
   revalidatePath("/bi");
   revalidatePath(`/bi/${id}`);
-  return { ok: true };
+  revalidatePath("/");
+  return { ok: true, avertissement };
 }
 
 export async function urlPhotoSignee(chemin: string): Promise<string | null> {

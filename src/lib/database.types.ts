@@ -1462,6 +1462,45 @@ export type Database = {
           },
         ]
       }
+      incidents: {
+        Row: {
+          created_at: string
+          detail: string
+          id: string
+          lien: string
+          objet_id: string | null
+          objet_type: string
+          resolu_le: string | null
+          resolu_par: string
+          source: string
+          titre: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string
+          id?: string
+          lien?: string
+          objet_id?: string | null
+          objet_type?: string
+          resolu_le?: string | null
+          resolu_par?: string
+          source: string
+          titre: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string
+          id?: string
+          lien?: string
+          objet_id?: string | null
+          objet_type?: string
+          resolu_le?: string | null
+          resolu_par?: string
+          source?: string
+          titre?: string
+        }
+        Relationships: []
+      }
       jours_feries: {
         Row: {
           created_at: string

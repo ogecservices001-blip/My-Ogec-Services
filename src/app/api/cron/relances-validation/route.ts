@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { messageErreur, signalerIncident } from "@/lib/incidents";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { joursOuvresEcoules, lienValidation } from "@/lib/planning/validation";
 import { ajouterHistorique } from "@/lib/planning/validation-historique";
@@ -50,8 +51,15 @@ export async function GET(request: NextRequest) {
         await ajouterHistorique(admin, d.id, { evenement: "sans_reponse", par: "Automatique" });
         bilan.sansReponse++;
       }
-    } catch {
+    } catch (e) {
       bilan.erreurs++;
+      await signalerIncident({
+        source: "relance_auto",
+        titre: `Relance automatique en échec — ${[d.client_nom, d.site].filter(Boolean).join(" — ")}`,
+        detail: `${d.destinataire_email}
+${messageErreur(e)}`,
+        lien: "/planning/point-rdv-client",
+      });
     }
   }
   return NextResponse.json(bilan);

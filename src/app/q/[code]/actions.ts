@@ -2,40 +2,11 @@
 
 import { messageErreur, signalerIncident } from "@/lib/incidents";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { chargerEquipementEtSite, emailConnuDuSite, type EquipementPublicDonnees } from "@/lib/gmao/depannage";
+import { chargerEquipementEtSite, emailConnuDuSite } from "@/lib/gmao/depannage";
 import { envoyerNotificationDepannage } from "@/lib/gmao/depannage-email";
 import { envoyerConfirmationDepannage } from "@/lib/gmao/depannage-confirmation-email";
 import { telInternational } from "@/lib/format";
 import { prochainChrono } from "@/lib/gmao/chrono";
-
-export type ResultatVerification =
-  | { ok: true; donnees: EquipementPublicDonnees }
-  | { ok: false; erreur: string };
-
-/// Callable public : vérifie que l'email saisi par la personne qui
-/// scanne le QR code est connu du site propriétaire de l'équipement, et
-/// renvoie alors ses données. Port de `verifierAccesEquipement`
-/// (functions/index.js) — aucun accès Supabase direct côté client,
-/// tout passe par cette Server Action et la suivante.
-export async function verifierAccesEquipement(codeQr: string, email: string): Promise<ResultatVerification> {
-  if (!email.trim() || !email.includes("@")) {
-    return { ok: false, erreur: "Merci de saisir une adresse email valide." };
-  }
-
-  const admin = createAdminClient();
-  const chargement = await chargerEquipementEtSite(admin, codeQr);
-  if (!chargement.ok) return chargement;
-
-  const connu = await emailConnuDuSite(admin, chargement.donnees.site, email);
-  if (!connu) {
-    return {
-      ok: false,
-      erreur:
-        "Cette adresse email n'est pas reconnue pour ce site. Vérifiez qu'elle correspond bien à l'adresse connue d'OGEC Services pour ce contrat.",
-    };
-  }
-  return { ok: true, donnees: chargement.donnees };
-}
 
 export type ResultatDemande = { ok: true; numero: string; accuseEnvoye: boolean } | { ok: false; erreur: string };
 

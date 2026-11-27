@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { AccesMonContrat, type LigneAccesContact } from "@/components/espace-client/acces-mon-contrat";
+import { contactsDuSite } from "@/lib/espace-client/contacts";
 import Link from "next/link";
 import {
   IdCard,
@@ -96,6 +98,22 @@ export default async function SiteDetailPage({
     ? (await calculerLignesAuditHeures(supabase)).find((l) => l.id === id)
     : undefined;
 
+  // « Mon contrat OGEC » : état de l'accès de chaque contact de la fiche.
+  let contactsAcces: LigneAccesContact[] = [];
+  if (isAdmin) {
+    const { data: acces } = await supabase.from("acces_clients").select("email, invite_le, derniere_connexion, revoque_le").eq("site_id", id);
+    const parEmail = new Map((acces ?? []).map((a) => [a.email, a]));
+    contactsAcces = contactsDuSite(site as unknown as Record<string, unknown>).map((c) => {
+      const a = parEmail.get(c.email);
+      return {
+        ...c,
+        actif: Boolean(a && !a.revoque_le),
+        inviteLe: a?.invite_le ?? null,
+        derniereConnexion: a?.derniere_connexion ?? null,
+      };
+    });
+  }
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-end">
@@ -192,6 +210,8 @@ export default async function SiteDetailPage({
           />
         )}
       </div>
+
+      {isAdmin && <AccesMonContrat siteId={id} contacts={contactsAcces} />}
 
       <div>
         <Section

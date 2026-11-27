@@ -50,6 +50,7 @@ export function construireModules(isAdmin: boolean): Module[] {
         { nom: "Clients", href: "/repertoire/clients" },
         { nom: "Fournisseurs", href: "/repertoire/fournisseurs" },
         { nom: "Collaborateurs", href: "/repertoire/collaborateurs" },
+        ...(isAdmin ? [{ nom: "Accès Mon contrat OGEC", href: "/repertoire/acces-clients" }] : []),
       ],
     },
     {

@@ -77,6 +77,57 @@ export type Database = {
           },
         ]
       }
+      acces_clients: {
+        Row: {
+          active_par: string
+          created_at: string
+          derniere_connexion: string | null
+          email: string
+          id: string
+          invite_le: string | null
+          nom: string
+          revoque_le: string | null
+          site_id: string
+        }
+        Insert: {
+          active_par?: string
+          created_at?: string
+          derniere_connexion?: string | null
+          email: string
+          id?: string
+          invite_le?: string | null
+          nom?: string
+          revoque_le?: string | null
+          site_id: string
+        }
+        Update: {
+          active_par?: string
+          created_at?: string
+          derniere_connexion?: string | null
+          email?: string
+          id?: string
+          invite_le?: string | null
+          nom?: string
+          revoque_le?: string | null
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acces_clients_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acces_clients_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affaires: {
         Row: {
           created_at: string
@@ -705,6 +756,39 @@ export type Database = {
           annee?: number
           cle?: string
           valeur?: number
+        }
+        Relationships: []
+      }
+      connexions_clients: {
+        Row: {
+          created_at: string
+          email: string
+          expire_le: string
+          id: string
+          jeton_hash: string
+          revoque_le: string | null
+          type: string
+          utilise_le: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expire_le: string
+          id?: string
+          jeton_hash: string
+          revoque_le?: string | null
+          type: string
+          utilise_le?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expire_le?: string
+          id?: string
+          jeton_hash?: string
+          revoque_le?: string | null
+          type?: string
+          utilise_le?: string | null
         }
         Relationships: []
       }

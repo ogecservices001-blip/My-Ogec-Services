@@ -12,7 +12,7 @@ const DELAI_JOURS_OUVRES = 3;
 /// n'est jamais renvoyée, un appel en trop ne fait rien.
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (secret && request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ erreur: "Non autorisé" }, { status: 401 });
   }
   const admin = createAdminClient();

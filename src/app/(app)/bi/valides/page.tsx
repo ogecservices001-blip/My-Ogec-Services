@@ -1,10 +1,7 @@
 import { requireAdminOuAccueil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Statuts, sansMontant } from "@/lib/bi/constants";
-import { montantMainDoeuvre, montantDeplacements, totalHT, type Presta } from "@/lib/bi/format";
+import { montantBi, STATUTS_BI_VALIDES as STATUTS_VALIDES } from "@/lib/facturation/ca-facturable";
 import { BonsValidesTableau } from "./bons-valides";
-
-const STATUTS_VALIDES = [Statuts.valide, Statuts.pdfGenere, Statuts.pretEnvoi, Statuts.envoye];
 
 export default async function BiValidesPage() {
   await requireAdminOuAccueil();
@@ -26,17 +23,10 @@ export default async function BiValidesPage() {
   const tauxParSite = new Map((sites ?? []).map((s) => [s.id, s]));
 
   // Prestation sur devis : aucun montant ici, le prix est celui du devis.
-  const lignes = (bons ?? []).map((b) => {
-    if (sansMontant(b.pole, b.devis_id)) return { ...b, montantHt: null };
-    const taux = b.site_id ? (tauxParSite.get(b.site_id) ?? null) : null;
-    const montantHeures = montantMainDoeuvre(b.temps_passe, taux) ?? 0;
-    const montantDepl = montantDeplacements(b.nombre_deplacements, taux) ?? 0;
-    const prestas = [
-      ...(b.prestas as unknown as Presta[]),
-      ...(b.interventions_supplementaires as unknown as { prestas: Presta[] }[]).flatMap((i) => i.prestas ?? []),
-    ];
-    return { ...b, montantHt: montantHeures + montantDepl + totalHT(prestas) };
-  });
+  const lignes = (bons ?? []).map((b) => ({
+    ...b,
+    montantHt: montantBi(b, b.site_id ? (tauxParSite.get(b.site_id) ?? null) : null),
+  }));
 
   return <BonsValidesTableau bons={lignes} />;
 }

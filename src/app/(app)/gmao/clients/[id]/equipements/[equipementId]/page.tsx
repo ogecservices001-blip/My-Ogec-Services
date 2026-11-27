@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { chargerDepannagesEquipements, ilYaDouzeMois } from "@/lib/gmao/recurrence-depannages";
 import { RepereCerfa } from "@/components/cerfa/repere-cerfa";
 import { chargerSuiviPieces } from "@/lib/gmao/suivi-pieces";
 import { SuiviPieces } from "@/components/gmao/suivi-pieces";
@@ -52,6 +53,10 @@ export default async function VisualiserEquipementPage({
 
   const resultatReference = analyserReference(c, references ?? []);
   const freqCourante = await freqCouranteCalculee(supabase, equipementId);
+  const depuis = ilYaDouzeMois();
+  const depannages12Mois = isAdmin
+    ? (await chargerDepannagesEquipements(supabase, id)).filter((d) => d.equipementId === equipementId && d.date >= depuis).length
+    : 0;
   const [devisEnCours, { data: depannagesOuverts }, bonsIntervention, suiviPieces] = await Promise.all([
     chargerDevisEnCoursParEquipement().then((parEquipement) => parEquipement[equipementId] ?? []),
     supabase
@@ -150,6 +155,16 @@ export default async function VisualiserEquipementPage({
       </div>
 
       <SuiviPieces sujets={suiviPieces} isAdmin={isAdmin} />
+
+      {depannages12Mois > 0 && (
+        <p
+          className={`mb-3 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+            depannages12Mois >= 2 ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          {depannages12Mois} dépannage{depannages12Mois > 1 ? "s" : ""} en 12 mois
+        </p>
+      )}
 
       {((depannagesOuverts ?? []).length > 0 || bonsIntervention.length > 0) && (
         <div className="mb-5 space-y-1.5 border-t border-slate-100 pt-3">
